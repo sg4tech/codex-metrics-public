@@ -874,6 +874,458 @@ def test_resolve_codex_usage_window_falls_back_to_session_token_counts(
     ) == (0.006263, 1625)
 
 
+def test_resolve_codex_usage_window_sums_multiple_session_token_events(
+    tmp_path: Path,
+) -> None:
+    state_path = tmp_path / "state.sqlite"
+    logs_path = tmp_path / "logs.sqlite"
+    pricing_path = tmp_path / "pricing.json"
+    sessions_dir = tmp_path / "sessions" / "2026" / "03" / "29"
+    sessions_dir.mkdir(parents=True)
+    rollout_path = sessions_dir / "rollout-2026-03-29T11-27-52-thread-123.jsonl"
+
+    pricing_path.write_text(
+        json.dumps(
+            {
+                "models": {
+                    "gpt-5": {
+                        "input_per_million_usd": 1.25,
+                        "cached_input_per_million_usd": 0.125,
+                        "output_per_million_usd": 10.0,
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    rollout_path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "timestamp": "2026-03-29T09:05:00.000Z",
+                        "type": "event_msg",
+                        "payload": {
+                            "type": "token_count",
+                            "info": {
+                                "last_token_usage": {
+                                    "input_tokens": 1000,
+                                    "cached_input_tokens": 100,
+                                    "output_tokens": 500,
+                                    "reasoning_output_tokens": 25,
+                                    "total_tokens": 1625,
+                                }
+                            },
+                        },
+                    }
+                ),
+                json.dumps(
+                    {
+                        "timestamp": "2026-03-29T09:06:00.000Z",
+                        "type": "event_msg",
+                        "payload": {
+                            "type": "token_count",
+                            "info": {
+                                "last_token_usage": {
+                                    "input_tokens": 2000,
+                                    "cached_input_tokens": 0,
+                                    "output_tokens": 250,
+                                    "reasoning_output_tokens": 10,
+                                    "total_tokens": 2260,
+                                }
+                            },
+                        },
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with sqlite3.connect(state_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE threads (
+                id TEXT PRIMARY KEY,
+                cwd TEXT NOT NULL,
+                updated_at INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        conn.execute(
+            "INSERT INTO threads (id, cwd, updated_at) VALUES (?, ?, ?)",
+            ("thread-123", str(tmp_path), 1),
+        )
+
+    with sqlite3.connect(logs_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                feedback_log_body TEXT,
+                thread_id TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO logs (feedback_log_body, thread_id)
+            VALUES (?, ?)
+            """,
+            (
+                "session_loop thread.id=thread-123 model=gpt-5.4 response.completed",
+                "thread-123",
+            ),
+        )
+
+    assert MODULE.resolve_codex_usage_window(
+        state_path=state_path,
+        logs_path=logs_path,
+        cwd=tmp_path,
+        started_at="2026-03-29T09:00:00+00:00",
+        finished_at="2026-03-29T09:10:00+00:00",
+        pricing_path=pricing_path,
+    ) == (0.011263, 3885)
+
+
+def test_resolve_codex_usage_window_ignores_session_events_outside_window(
+    tmp_path: Path,
+) -> None:
+    state_path = tmp_path / "state.sqlite"
+    logs_path = tmp_path / "logs.sqlite"
+    pricing_path = tmp_path / "pricing.json"
+    sessions_dir = tmp_path / "sessions" / "2026" / "03" / "29"
+    sessions_dir.mkdir(parents=True)
+    rollout_path = sessions_dir / "rollout-2026-03-29T11-27-52-thread-123.jsonl"
+
+    pricing_path.write_text(
+        json.dumps(
+            {
+                "models": {
+                    "gpt-5": {
+                        "input_per_million_usd": 1.25,
+                        "cached_input_per_million_usd": 0.125,
+                        "output_per_million_usd": 10.0,
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    rollout_path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "timestamp": "2026-03-29T08:59:59.000Z",
+                        "type": "event_msg",
+                        "payload": {
+                            "type": "token_count",
+                            "info": {
+                                "last_token_usage": {
+                                    "input_tokens": 9999,
+                                    "cached_input_tokens": 0,
+                                    "output_tokens": 1,
+                                    "reasoning_output_tokens": 0,
+                                    "total_tokens": 10000,
+                                }
+                            },
+                        },
+                    }
+                ),
+                json.dumps(
+                    {
+                        "timestamp": "2026-03-29T09:05:00.000Z",
+                        "type": "event_msg",
+                        "payload": {
+                            "type": "token_count",
+                            "info": {
+                                "last_token_usage": {
+                                    "input_tokens": 1000,
+                                    "cached_input_tokens": 100,
+                                    "output_tokens": 500,
+                                    "reasoning_output_tokens": 25,
+                                    "total_tokens": 1625,
+                                }
+                            },
+                        },
+                    }
+                ),
+                json.dumps(
+                    {
+                        "timestamp": "2026-03-29T09:10:01.000Z",
+                        "type": "event_msg",
+                        "payload": {
+                            "type": "token_count",
+                            "info": {
+                                "last_token_usage": {
+                                    "input_tokens": 9999,
+                                    "cached_input_tokens": 0,
+                                    "output_tokens": 1,
+                                    "reasoning_output_tokens": 0,
+                                    "total_tokens": 10000,
+                                }
+                            },
+                        },
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with sqlite3.connect(state_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE threads (
+                id TEXT PRIMARY KEY,
+                cwd TEXT NOT NULL,
+                updated_at INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        conn.execute(
+            "INSERT INTO threads (id, cwd, updated_at) VALUES (?, ?, ?)",
+            ("thread-123", str(tmp_path), 1),
+        )
+
+    with sqlite3.connect(logs_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                feedback_log_body TEXT,
+                thread_id TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO logs (feedback_log_body, thread_id)
+            VALUES (?, ?)
+            """,
+            (
+                "session_loop thread.id=thread-123 model=gpt-5.4 response.completed",
+                "thread-123",
+            ),
+        )
+
+    assert MODULE.resolve_codex_usage_window(
+        state_path=state_path,
+        logs_path=logs_path,
+        cwd=tmp_path,
+        started_at="2026-03-29T09:00:00+00:00",
+        finished_at="2026-03-29T09:10:00+00:00",
+        pricing_path=pricing_path,
+    ) == (0.006263, 1625)
+
+
+def test_resolve_codex_usage_window_recovers_tokens_without_cost_when_model_missing(
+    tmp_path: Path,
+) -> None:
+    state_path = tmp_path / "state.sqlite"
+    logs_path = tmp_path / "logs.sqlite"
+    pricing_path = tmp_path / "pricing.json"
+    sessions_dir = tmp_path / "sessions" / "2026" / "03" / "29"
+    sessions_dir.mkdir(parents=True)
+    rollout_path = sessions_dir / "rollout-2026-03-29T11-27-52-thread-123.jsonl"
+
+    pricing_path.write_text(
+        json.dumps(
+            {
+                "models": {
+                    "gpt-5": {
+                        "input_per_million_usd": 1.25,
+                        "cached_input_per_million_usd": 0.125,
+                        "output_per_million_usd": 10.0,
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    rollout_path.write_text(
+        json.dumps(
+            {
+                "timestamp": "2026-03-29T09:05:00.000Z",
+                "type": "event_msg",
+                "payload": {
+                    "type": "token_count",
+                    "info": {
+                        "last_token_usage": {
+                            "input_tokens": 1000,
+                            "cached_input_tokens": 100,
+                            "output_tokens": 500,
+                            "reasoning_output_tokens": 25,
+                            "total_tokens": 1625,
+                        }
+                    },
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with sqlite3.connect(state_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE threads (
+                id TEXT PRIMARY KEY,
+                cwd TEXT NOT NULL,
+                updated_at INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        conn.execute(
+            "INSERT INTO threads (id, cwd, updated_at) VALUES (?, ?, ?)",
+            ("thread-123", str(tmp_path), 1),
+        )
+
+    with sqlite3.connect(logs_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                feedback_log_body TEXT,
+                thread_id TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO logs (feedback_log_body, thread_id)
+            VALUES (?, ?)
+            """,
+            (
+                "session_loop thread.id=thread-123 response.completed",
+                "thread-123",
+            ),
+        )
+
+    assert MODULE.resolve_codex_usage_window(
+        state_path=state_path,
+        logs_path=logs_path,
+        cwd=tmp_path,
+        started_at="2026-03-29T09:00:00+00:00",
+        finished_at="2026-03-29T09:10:00+00:00",
+        pricing_path=pricing_path,
+    ) == (None, 1625)
+
+
+def test_resolve_codex_usage_window_prefers_legacy_sse_events_over_session_fallback(
+    tmp_path: Path,
+) -> None:
+    state_path = tmp_path / "state.sqlite"
+    logs_path = tmp_path / "logs.sqlite"
+    pricing_path = tmp_path / "pricing.json"
+    sessions_dir = tmp_path / "sessions" / "2026" / "03" / "29"
+    sessions_dir.mkdir(parents=True)
+    rollout_path = sessions_dir / "rollout-2026-03-29T11-27-52-thread-123.jsonl"
+
+    pricing_path.write_text(
+        json.dumps(
+            {
+                "models": {
+                    "gpt-5": {
+                        "input_per_million_usd": 1.25,
+                        "cached_input_per_million_usd": 0.125,
+                        "output_per_million_usd": 10.0,
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    rollout_path.write_text(
+        json.dumps(
+            {
+                "timestamp": "2026-03-29T09:05:00.000Z",
+                "type": "event_msg",
+                "payload": {
+                    "type": "token_count",
+                    "info": {
+                        "last_token_usage": {
+                            "input_tokens": 9999,
+                            "cached_input_tokens": 0,
+                            "output_tokens": 1,
+                            "reasoning_output_tokens": 0,
+                            "total_tokens": 10000,
+                        }
+                    },
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with sqlite3.connect(state_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE threads (
+                id TEXT PRIMARY KEY,
+                cwd TEXT NOT NULL,
+                updated_at INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        conn.execute(
+            "INSERT INTO threads (id, cwd, updated_at) VALUES (?, ?, ?)",
+            ("thread-123", str(tmp_path), 1),
+        )
+
+    with sqlite3.connect(logs_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                feedback_log_body TEXT,
+                thread_id TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO logs (feedback_log_body, thread_id)
+            VALUES (?, ?)
+            """,
+            (
+                'event.name="codex.sse_event" event.kind=response.completed '
+                "input_token_count=1000 output_token_count=500 cached_token_count=100 "
+                "reasoning_token_count=0 tool_token_count=0 "
+                "event.timestamp=2026-03-29T09:05:00.000Z conversation.id=thread-123 "
+                "model=gpt-5.4 slug=gpt-5.4",
+                "thread-123",
+            ),
+        )
+        conn.execute(
+            """
+            INSERT INTO logs (feedback_log_body, thread_id)
+            VALUES (?, ?)
+            """,
+            (
+                "session_loop thread.id=thread-123 model=gpt-5.4 response.completed",
+                "thread-123",
+            ),
+        )
+
+    assert MODULE.resolve_codex_usage_window(
+        state_path=state_path,
+        logs_path=logs_path,
+        cwd=tmp_path,
+        started_at="2026-03-29T09:00:00+00:00",
+        finished_at="2026-03-29T09:10:00+00:00",
+        pricing_path=pricing_path,
+    ) == (0.006263, 1600)
+
+
 def test_load_pricing_rejects_negative_values(tmp_path: Path) -> None:
     pricing_path = tmp_path / "pricing.json"
     pricing_path.write_text(

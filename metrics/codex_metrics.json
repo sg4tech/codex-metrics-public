@@ -1,13 +1,13 @@
 {
   "summary": {
-    "closed_tasks": 94,
-    "successes": 94,
+    "closed_tasks": 95,
+    "successes": 95,
     "fails": 0,
-    "total_attempts": 98,
+    "total_attempts": 99,
     "total_cost_usd": 134.658855,
     "total_tokens": 96561704,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.0425531914893618,
+    "attempts_per_closed_task": 1.0421052631578946,
     "known_cost_successes": 78,
     "known_token_successes": 78,
     "complete_cost_successes": 78,
@@ -40,14 +40,14 @@
         "cost_per_success_tokens": null
       },
       "product": {
-        "closed_tasks": 20,
-        "successes": 20,
+        "closed_tasks": 21,
+        "successes": 21,
         "fails": 0,
-        "total_attempts": 24,
+        "total_attempts": 25,
         "total_cost_usd": 41.722462,
         "total_tokens": 29999550,
         "success_rate": 1.0,
-        "attempts_per_closed_task": 1.2,
+        "attempts_per_closed_task": 1.1904761904761905,
         "known_cost_successes": 17,
         "known_token_successes": 17,
         "complete_cost_successes": 17,
@@ -102,14 +102,14 @@
         "cost_per_success_tokens": null
       },
       "product": {
-        "closed_tasks": 20,
-        "successes": 20,
+        "closed_tasks": 21,
+        "successes": 21,
         "fails": 0,
-        "total_attempts": 24,
+        "total_attempts": 25,
         "total_cost_usd": 41.722462,
         "total_tokens": 29999550,
         "success_rate": 1.0,
-        "attempts_per_closed_task": 1.2,
+        "attempts_per_closed_task": 1.1904761904761905,
         "known_cost_successes": 17,
         "known_token_successes": 17,
         "complete_cost_successes": 17,
@@ -143,10 +143,10 @@
       }
     },
     "entries": {
-      "closed_entries": 98,
-      "successes": 97,
+      "closed_entries": 99,
+      "successes": 98,
       "fails": 1,
-      "success_rate": 0.9897959183673469,
+      "success_rate": 0.98989898989899,
       "total_cost_usd": 133.761475,
       "total_tokens": 95845725,
       "failure_reasons": {
@@ -1639,6 +1639,21 @@
       "failure_reason": null,
       "notes": "Added an opt-in live E2E smoke that creates temporary metrics files, runs updater end-to-end against real local Codex telemetry, and verifies recovered tokens and cost match the selected rollout event exactly.",
       "result_fit": "exact_fit"
+    },
+    {
+      "goal_id": "2026-03-29-101",
+      "title": "Expand usage recovery fallback test coverage",
+      "goal_type": "product",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T17:18:50+00:00",
+      "finished_at": "2026-03-29T17:18:50+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Added hardening tests for multi-event session sums, window filtering, tokens-only fallback, and legacy-path precedence over session recovery.",
+      "result_fit": "exact_fit"
     }
   ],
   "entries": [
@@ -2954,6 +2969,19 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Added an opt-in live E2E smoke that creates temporary metrics files, runs updater end-to-end against real local Codex telemetry, and verifies recovered tokens and cost match the selected rollout event exactly."
+    },
+    {
+      "entry_id": "2026-03-29-101-attempt-001",
+      "goal_id": "2026-03-29-101",
+      "entry_type": "product",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T17:18:50+00:00",
+      "finished_at": "2026-03-29T17:18:50+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Added hardening tests for multi-event session sums, window filtering, tokens-only fallback, and legacy-path precedence over session recovery."
     }
   ]
 }
