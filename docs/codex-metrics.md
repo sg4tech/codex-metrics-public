@@ -2,23 +2,23 @@
 
 ## Goal summary
 
-- Closed goals: 18
-- Successes: 18
+- Closed goals: 20
+- Successes: 20
 - Fails: 0
-- Total attempts: 19
+- Total attempts: 21
 - Total cost (USD): 0.638112
 - Total tokens: 1359406
 - Success Rate: 100.00%
-- Attempts per Success: 1.06
+- Attempts per Success: 1.05
 - Cost per Success (USD): n/a
 - Cost per Success (Tokens): n/a
 
 ## Entry summary
 
-- Closed entries: 19
-- Successes: 18
+- Closed entries: 21
+- Successes: 20
 - Fails: 1
-- Success Rate: 94.74%
+- Success Rate: 95.24%
 - Total cost (USD): 0.638112
 - Total tokens: 1359406
 
@@ -52,10 +52,10 @@
 - Cost per Success (Tokens): n/a
 
 ### meta
-- Closed goals: 9
-- Successes: 9
+- Closed goals: 11
+- Successes: 11
 - Fails: 0
-- Total attempts: 9
+- Total attempts: 11
 - Total cost (USD): 0.00
 - Total tokens: 0
 - Success Rate: 100.00%
@@ -64,6 +64,30 @@
 - Cost per Success (Tokens): n/a
 
 ## Goal log
+
+### 2026-03-29-022 — Sync metrics policy with goal-era operational rules
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T10:08:49+00:00
+- Finished at: 2026-03-29T10:09:00+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Updated policy to require temp-path validation for destructive smoke checks, keep entry-level failure visibility alongside goal summaries, and align Success Rate terminology from closed_tasks to closed_goals.
+
+### 2026-03-29-021 — Update local AGENTS rules from project history
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T10:07:06+00:00
+- Finished at: 2026-03-29T10:07:18+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Updated AGENTS with two historical guardrails: use temporary paths for destructive init smoke checks, and report both goal-level and entry-level metrics when failures exist in entries.
 
 ### 2026-03-29-020 — Write retrospective for transition to goals
 - Goal type: retro
@@ -294,6 +318,26 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-022 — 2026-03-29-022
+- Entry type: meta
+- Status: success
+- Started at: 2026-03-29T10:08:49+00:00
+- Finished at: 2026-03-29T10:09:00+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Updated policy to require temp-path validation for destructive smoke checks, keep entry-level failure visibility alongside goal summaries, and align Success Rate terminology from closed_tasks to closed_goals.
+
+### 2026-03-29-021 — 2026-03-29-021
+- Entry type: meta
+- Status: success
+- Started at: 2026-03-29T10:07:06+00:00
+- Finished at: 2026-03-29T10:07:18+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Updated AGENTS with two historical guardrails: use temporary paths for destructive init smoke checks, and report both goal-level and entry-level metrics when failures exist in entries.
 
 ### 2026-03-29-020 — 2026-03-29-020
 - Entry type: retro

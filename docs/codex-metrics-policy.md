@@ -149,6 +149,9 @@ Human-readable summaries may also be written to:
 
 If there is any mismatch, `metrics/codex_metrics.json` is the source of truth.
 
+Generated metrics files are production-like artifacts for this repository.
+During validation, destructive smoke checks such as `init` should prefer temporary metrics/report paths unless the task explicitly requires regenerating the tracked repository files.
+
 ## Required per-goal workflow
 
 ### At goal start
@@ -182,16 +185,19 @@ They must be available both:
 - overall
 - per `goal_type`
 
+Reports must not present effective goal-level success alone when the raw entry history still contains failed attempts.
+Entry-level summary and failure reasons should remain visible alongside goal-level summary so retry pressure is not hidden by supersession or successful later replacements.
+
 ### Success Rate
 Formula:
 
-`success_rate = successes / closed_tasks`
+`success_rate = successes / closed_goals`
 
 Where:
 - `successes` = number of effective goals with status `success`
-- `closed_tasks` = number of effective goals with status `success` or `fail`
+- `closed_goals` = number of effective goals with status `success` or `fail`
 
-If `closed_tasks = 0`, set `success_rate = null`.
+If `closed_goals = 0`, set `success_rate = null`.
 
 ### Attempts per Success
 Formula:

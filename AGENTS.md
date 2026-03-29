@@ -52,6 +52,7 @@ Metrics bookkeeping is part of the definition of done.
 Retrospectives must not be mixed into product-delivery goal metrics without classification.
 Reports should make retrospective work and product-development work distinguishable.
 Source of truth should use `goals + entries`, with summary reported by effective goal chains rather than raw linked records.
+When reporting current project health, do not present goal-level success alone if entry-level failures exist; surface both the effective goal view and the raw entry view so retry pressure stays visible.
 
 ## Script editing rules
 
@@ -82,6 +83,9 @@ python -m pytest tests/test_update_codex_metrics.py
 python scripts/update_codex_metrics.py init
 python scripts/update_codex_metrics.py show
 ```
+
+When running `init` or any destructive regeneration smoke check during validation, prefer temporary metrics/report paths instead of real repository artifacts unless the task explicitly requires regenerating the tracked files.
+Generated metrics files are production-like artifacts for this repository and must not be casually overwritten during smoke testing.
 
 ## Retros Rules
 

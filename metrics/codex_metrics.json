@@ -1,21 +1,21 @@
 {
   "summary": {
-    "closed_tasks": 18,
-    "successes": 18,
+    "closed_tasks": 20,
+    "successes": 20,
     "fails": 0,
-    "total_attempts": 19,
+    "total_attempts": 21,
     "total_cost_usd": 0.638112,
     "total_tokens": 1359406,
     "success_rate": 1.0,
-    "attempts_per_success": 1.0555555555555556,
+    "attempts_per_success": 1.05,
     "cost_per_success_usd": null,
     "cost_per_success_tokens": null,
     "by_goal_type": {
       "meta": {
-        "closed_tasks": 9,
-        "successes": 9,
+        "closed_tasks": 11,
+        "successes": 11,
         "fails": 0,
-        "total_attempts": 9,
+        "total_attempts": 11,
         "total_cost_usd": 0.0,
         "total_tokens": 0,
         "success_rate": 1.0,
@@ -50,10 +50,10 @@
     },
     "by_task_type": {
       "meta": {
-        "closed_tasks": 9,
-        "successes": 9,
+        "closed_tasks": 11,
+        "successes": 11,
         "fails": 0,
-        "total_attempts": 9,
+        "total_attempts": 11,
         "total_cost_usd": 0.0,
         "total_tokens": 0,
         "success_rate": 1.0,
@@ -87,10 +87,10 @@
       }
     },
     "entries": {
-      "closed_entries": 19,
-      "successes": 18,
+      "closed_entries": 21,
+      "successes": 20,
       "fails": 1,
-      "success_rate": 0.9473684210526315,
+      "success_rate": 0.9523809523809523,
       "total_cost_usd": 0.638112,
       "total_tokens": 1359406,
       "failure_reasons": {
@@ -364,6 +364,34 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Recorded a retrospective for the goals migration, concluded that the transition succeeded, and marked the related TODO item complete with remaining risks documented explicitly."
+    },
+    {
+      "goal_id": "2026-03-29-021",
+      "title": "Update local AGENTS rules from project history",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T10:07:06+00:00",
+      "finished_at": "2026-03-29T10:07:18+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Updated AGENTS with two historical guardrails: use temporary paths for destructive init smoke checks, and report both goal-level and entry-level metrics when failures exist in entries."
+    },
+    {
+      "goal_id": "2026-03-29-022",
+      "title": "Sync metrics policy with goal-era operational rules",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T10:08:49+00:00",
+      "finished_at": "2026-03-29T10:09:00+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Updated policy to require temp-path validation for destructive smoke checks, keep entry-level failure visibility alongside goal summaries, and align Success Rate terminology from closed_tasks to closed_goals."
     }
   ],
   "entries": [
@@ -594,6 +622,30 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Recorded a retrospective for the goals migration, concluded that the transition succeeded, and marked the related TODO item complete with remaining risks documented explicitly."
+    },
+    {
+      "entry_id": "2026-03-29-021",
+      "goal_id": "2026-03-29-021",
+      "entry_type": "meta",
+      "status": "success",
+      "started_at": "2026-03-29T10:07:06+00:00",
+      "finished_at": "2026-03-29T10:07:18+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Updated AGENTS with two historical guardrails: use temporary paths for destructive init smoke checks, and report both goal-level and entry-level metrics when failures exist in entries."
+    },
+    {
+      "entry_id": "2026-03-29-022",
+      "goal_id": "2026-03-29-022",
+      "entry_type": "meta",
+      "status": "success",
+      "started_at": "2026-03-29T10:08:49+00:00",
+      "finished_at": "2026-03-29T10:09:00+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Updated policy to require temp-path validation for destructive smoke checks, keep entry-level failure visibility alongside goal summaries, and align Success Rate terminology from closed_tasks to closed_goals."
     }
   ]
 }
