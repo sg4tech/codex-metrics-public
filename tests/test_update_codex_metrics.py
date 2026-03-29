@@ -551,6 +551,14 @@ def test_bootstrap_creates_scaffold_files(repo: Path) -> None:
     assert "## Required Workflow" in policy_text
     assert "## Validation Rules" in policy_text
     assert "Metrics bookkeeping is mandatory." in policy_text
+    assert "## Reporting Rules" in policy_text
+    assert "## Anti-Gaming Rules" in policy_text
+    assert "## Required Goal Fields" not in policy_text
+    assert "## Required Entry Fields" not in policy_text
+    assert "## Summary Metrics" not in policy_text
+    assert "## Product Quality Review" not in policy_text
+    assert "## Testing Standard" not in policy_text
+    assert "## Repository Defaults For This Repo" not in policy_text
 
     agents_text = agents_path.read_text(encoding="utf-8")
     assert "# AGENTS.md" in agents_text
