@@ -2,18 +2,18 @@
 
 ## Goal summary
 
-- Closed goals: 95
-- Successes: 95
+- Closed goals: 97
+- Successes: 97
 - Fails: 0
-- Total attempts: 99
+- Total attempts: 101
 - Known total cost (USD): 134.658855
 - Known total tokens: 96561704
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 78/95 successful goals
-- Known token coverage: 78/95 successful goals
-- Complete cost coverage: 78/95 successful goals
-- Complete token coverage: 78/95 successful goals
+- Known cost coverage: 78/97 successful goals
+- Known token coverage: 78/97 successful goals
+- Complete cost coverage: 78/97 successful goals
+- Complete token coverage: 78/97 successful goals
 - Known Cost per Success (USD): 1.726396
 - Known Cost per Success (Tokens): 1237970.56
 - Complete Cost per Covered Success (USD): 1.726396
@@ -21,10 +21,10 @@
 
 ## Entry summary
 
-- Closed entries: 99
-- Successes: 98
+- Closed entries: 101
+- Successes: 100
 - Fails: 1
-- Success Rate: 98.99%
+- Success Rate: 99.01%
 - Known total cost (USD): 133.761475
 - Known total tokens: 95845725
 
@@ -59,18 +59,18 @@
 - Complete Cost per Covered Success (Tokens): 1764679.41
 
 ### retro
-- Closed goals: 21
-- Successes: 21
+- Closed goals: 23
+- Successes: 23
 - Fails: 0
-- Total attempts: 21
+- Total attempts: 23
 - Known total cost (USD): 7.964254
 - Known total tokens: 5663448
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 15/21 successful goals
-- Known token coverage: 15/21 successful goals
-- Complete cost coverage: 15/21 successful goals
-- Complete token coverage: 15/21 successful goals
+- Known cost coverage: 15/23 successful goals
+- Known token coverage: 15/23 successful goals
+- Complete cost coverage: 15/23 successful goals
+- Complete token coverage: 15/23 successful goals
 - Known Cost per Success (USD): 0.53095
 - Known Cost per Success (Tokens): 377563.20
 - Complete Cost per Covered Success (USD): 0.53095
@@ -95,6 +95,32 @@
 - Complete Cost per Covered Success (Tokens): 1323884.91
 
 ## Goal log
+
+### 2026-03-29-103 — Record usage recovery format mismatch retrospective
+- Goal type: retro
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T17:21:00+00:00
+- Finished at: 2026-03-29T17:21:00+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Captured the telemetry format mismatch root cause with 5 Whys and Theory of Constraints after adding session telemetry fallback and validating live usage recovery.
+
+### 2026-03-29-102 — Record usage recovery format mismatch retrospective
+- Goal type: retro
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T17:20:01+00:00
+- Finished at: 2026-03-29T17:20:01+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Logged a deep retro with 5 Whys for the session-based usage recovery investigation and the legacy-format extractor mismatch.
 
 ### 2026-03-29-101 — Expand usage recovery fallback test coverage
 - Goal type: product
@@ -1397,6 +1423,28 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-103-attempt-001 — 2026-03-29-103
+- Entry type: retro
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T17:21:00+00:00
+- Finished at: 2026-03-29T17:21:00+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Captured the telemetry format mismatch root cause with 5 Whys and Theory of Constraints after adding session telemetry fallback and validating live usage recovery.
+
+### 2026-03-29-102-attempt-001 — 2026-03-29-102
+- Entry type: retro
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T17:20:01+00:00
+- Finished at: 2026-03-29T17:20:01+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Logged a deep retro with 5 Whys for the session-based usage recovery investigation and the legacy-format extractor mismatch.
 
 ### 2026-03-29-101-attempt-001 — 2026-03-29-101
 - Entry type: product

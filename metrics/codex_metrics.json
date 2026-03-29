@@ -1,13 +1,13 @@
 {
   "summary": {
-    "closed_tasks": 95,
-    "successes": 95,
+    "closed_tasks": 97,
+    "successes": 97,
     "fails": 0,
-    "total_attempts": 99,
+    "total_attempts": 101,
     "total_cost_usd": 134.658855,
     "total_tokens": 96561704,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.0421052631578946,
+    "attempts_per_closed_task": 1.041237113402062,
     "known_cost_successes": 78,
     "known_token_successes": 78,
     "complete_cost_successes": 78,
@@ -60,10 +60,10 @@
         "cost_per_success_tokens": null
       },
       "retro": {
-        "closed_tasks": 21,
-        "successes": 21,
+        "closed_tasks": 23,
+        "successes": 23,
         "fails": 0,
-        "total_attempts": 21,
+        "total_attempts": 23,
         "total_cost_usd": 7.964254,
         "total_tokens": 5663448,
         "success_rate": 1.0,
@@ -122,10 +122,10 @@
         "cost_per_success_tokens": null
       },
       "retro": {
-        "closed_tasks": 21,
-        "successes": 21,
+        "closed_tasks": 23,
+        "successes": 23,
         "fails": 0,
-        "total_attempts": 21,
+        "total_attempts": 23,
         "total_cost_usd": 7.964254,
         "total_tokens": 5663448,
         "success_rate": 1.0,
@@ -143,10 +143,10 @@
       }
     },
     "entries": {
-      "closed_entries": 99,
-      "successes": 98,
+      "closed_entries": 101,
+      "successes": 100,
       "fails": 1,
-      "success_rate": 0.98989898989899,
+      "success_rate": 0.9900990099009901,
       "total_cost_usd": 133.761475,
       "total_tokens": 95845725,
       "failure_reasons": {
@@ -1654,6 +1654,36 @@
       "failure_reason": null,
       "notes": "Added hardening tests for multi-event session sums, window filtering, tokens-only fallback, and legacy-path precedence over session recovery.",
       "result_fit": "exact_fit"
+    },
+    {
+      "goal_id": "2026-03-29-102",
+      "title": "Record usage recovery format mismatch retrospective",
+      "goal_type": "retro",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T17:20:01+00:00",
+      "finished_at": "2026-03-29T17:20:01+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Logged a deep retro with 5 Whys for the session-based usage recovery investigation and the legacy-format extractor mismatch.",
+      "result_fit": null
+    },
+    {
+      "goal_id": "2026-03-29-103",
+      "title": "Record usage recovery format mismatch retrospective",
+      "goal_type": "retro",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T17:21:00+00:00",
+      "finished_at": "2026-03-29T17:21:00+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Captured the telemetry format mismatch root cause with 5 Whys and Theory of Constraints after adding session telemetry fallback and validating live usage recovery.",
+      "result_fit": null
     }
   ],
   "entries": [
@@ -2982,6 +3012,32 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Added hardening tests for multi-event session sums, window filtering, tokens-only fallback, and legacy-path precedence over session recovery."
+    },
+    {
+      "entry_id": "2026-03-29-102-attempt-001",
+      "goal_id": "2026-03-29-102",
+      "entry_type": "retro",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T17:20:01+00:00",
+      "finished_at": "2026-03-29T17:20:01+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Logged a deep retro with 5 Whys for the session-based usage recovery investigation and the legacy-format extractor mismatch."
+    },
+    {
+      "entry_id": "2026-03-29-103-attempt-001",
+      "goal_id": "2026-03-29-103",
+      "entry_type": "retro",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T17:21:00+00:00",
+      "finished_at": "2026-03-29T17:21:00+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Captured the telemetry format mismatch root cause with 5 Whys and Theory of Constraints after adding session telemetry fallback and validating live usage recovery."
     }
   ]
 }
