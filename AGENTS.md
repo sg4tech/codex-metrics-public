@@ -33,7 +33,7 @@ Generated files:
 - `metrics/codex_metrics.json`
 - `docs/codex-metrics.md`
 
-## Metrics workflow
+## Required Workflow
 
 For every engineering task involving the metrics system:
 
@@ -54,12 +54,14 @@ For every engineering task involving the metrics system:
 
 Metrics bookkeeping is part of the definition of done.
 
-Retrospectives must not be mixed into product-delivery goal metrics without classification.
-Reports should make retrospective work and product-development work distinguishable.
-Source of truth should use `goals + entries`, with summary reported by effective goal chains rather than raw linked records.
-Entries should represent attempt history, not a mirrored copy of goal records.
-When reporting current project health, do not present goal-level success alone if entry-level failures exist; surface both the effective goal view and the raw entry view so retry pressure stays visible.
-Inferred attempt-history entries may be used to preserve history shape, but they must not pollute diagnostic failure-reason reporting.
+Keep these invariants intact:
+
+- retrospectives must not be mixed into product-delivery goal metrics without classification
+- reports should make retrospective work and product-development work distinguishable
+- source of truth should use `goals + entries`, with summary reported by effective goal chains rather than raw linked records
+- entries should represent attempt history, not a mirrored copy of goal records
+- do not present goal-level success alone if entry-level failures exist
+- inferred attempt-history entries may preserve history shape, but they must not pollute diagnostic failure-reason reporting
 
 ## Script editing rules
 
@@ -95,14 +97,14 @@ python scripts/update_codex_metrics.py init
 python scripts/update_codex_metrics.py show
 ```
 
-When available, prefer the repository's canonical local validation entrypoint:
+Prefer the repository's canonical local validation entrypoint when available:
 
 ```bash
 make verify
 ```
 
 When running `init` or any destructive regeneration smoke check during validation, prefer temporary metrics/report paths instead of real repository artifacts unless the task explicitly requires regenerating the tracked files.
-Generated metrics files are production-like artifacts for this repository and must not be casually overwritten during smoke testing.
+Generated metrics files are production-like artifacts and must not be casually overwritten during smoke testing.
 When validating the updater, run dependent commands sequentially, not in parallel.
 Examples of dependent flows:
 - `update -> show`

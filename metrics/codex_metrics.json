@@ -1,13 +1,13 @@
 {
   "summary": {
-    "closed_tasks": 61,
-    "successes": 61,
+    "closed_tasks": 63,
+    "successes": 63,
     "fails": 0,
-    "total_attempts": 62,
+    "total_attempts": 64,
     "total_cost_usd": 1.159366,
     "total_tokens": 2461072,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.0163934426229508,
+    "attempts_per_closed_task": 1.0158730158730158,
     "known_cost_successes": 3,
     "known_token_successes": 3,
     "complete_cost_successes": 2,
@@ -20,10 +20,10 @@
     "cost_per_success_tokens": null,
     "by_goal_type": {
       "meta": {
-        "closed_tasks": 34,
-        "successes": 34,
+        "closed_tasks": 35,
+        "successes": 35,
         "fails": 0,
-        "total_attempts": 34,
+        "total_attempts": 35,
         "total_cost_usd": 0.2658,
         "total_tokens": 569068,
         "success_rate": 1.0,
@@ -40,14 +40,14 @@
         "cost_per_success_tokens": null
       },
       "product": {
-        "closed_tasks": 13,
-        "successes": 13,
+        "closed_tasks": 14,
+        "successes": 14,
         "fails": 0,
-        "total_attempts": 14,
+        "total_attempts": 15,
         "total_cost_usd": 0.638112,
         "total_tokens": 1359406,
         "success_rate": 1.0,
-        "attempts_per_closed_task": 1.0769230769230769,
+        "attempts_per_closed_task": 1.0714285714285714,
         "known_cost_successes": 1,
         "known_token_successes": 1,
         "complete_cost_successes": 0,
@@ -82,10 +82,10 @@
     },
     "by_task_type": {
       "meta": {
-        "closed_tasks": 34,
-        "successes": 34,
+        "closed_tasks": 35,
+        "successes": 35,
         "fails": 0,
-        "total_attempts": 34,
+        "total_attempts": 35,
         "total_cost_usd": 0.2658,
         "total_tokens": 569068,
         "success_rate": 1.0,
@@ -102,14 +102,14 @@
         "cost_per_success_tokens": null
       },
       "product": {
-        "closed_tasks": 13,
-        "successes": 13,
+        "closed_tasks": 14,
+        "successes": 14,
         "fails": 0,
-        "total_attempts": 14,
+        "total_attempts": 15,
         "total_cost_usd": 0.638112,
         "total_tokens": 1359406,
         "success_rate": 1.0,
-        "attempts_per_closed_task": 1.0769230769230769,
+        "attempts_per_closed_task": 1.0714285714285714,
         "known_cost_successes": 1,
         "known_token_successes": 1,
         "complete_cost_successes": 0,
@@ -143,10 +143,10 @@
       }
     },
     "entries": {
-      "closed_entries": 62,
-      "successes": 61,
+      "closed_entries": 64,
+      "successes": 63,
       "fails": 1,
-      "success_rate": 0.9838709677419355,
+      "success_rate": 0.984375,
       "total_cost_usd": 1.159366,
       "total_tokens": 2461072,
       "failure_reasons": {
@@ -1050,6 +1050,34 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Added one deep overall retrospective using 5 Whys and Theory of Constraints, updated AGENTS.md with durable product-alignment rules, and closed the TODO item for the overall retro and local AGENTS update."
+    },
+    {
+      "goal_id": "2026-03-29-066",
+      "title": "Clean up AGENTS operational guidance",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T12:52:58+00:00",
+      "finished_at": "2026-03-29T12:53:59+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Tightened AGENTS.md wording, reduced duplication, and kept the file focused on durable operating rules rather than history."
+    },
+    {
+      "goal_id": "2026-03-29-067",
+      "title": "Add minimal public-facing README skeleton",
+      "goal_type": "product",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T12:53:24+00:00",
+      "finished_at": "2026-03-29T12:53:28+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Added README.md with minimal public-facing project description, quick start, validated CLI commands, and local verification entrypoints."
     }
   ],
   "entries": [
@@ -1849,6 +1877,32 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Added one deep overall retrospective using 5 Whys and Theory of Constraints, updated AGENTS.md with durable product-alignment rules, and closed the TODO item for the overall retro and local AGENTS update."
+    },
+    {
+      "entry_id": "2026-03-29-066-attempt-001",
+      "goal_id": "2026-03-29-066",
+      "entry_type": "meta",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T12:52:58+00:00",
+      "finished_at": "2026-03-29T12:53:59+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Tightened AGENTS.md wording, reduced duplication, and kept the file focused on durable operating rules rather than history."
+    },
+    {
+      "entry_id": "2026-03-29-067-attempt-001",
+      "goal_id": "2026-03-29-067",
+      "entry_type": "product",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T12:53:24+00:00",
+      "finished_at": "2026-03-29T12:53:28+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Added README.md with minimal public-facing project description, quick start, validated CLI commands, and local verification entrypoints."
     }
   ]
 }
