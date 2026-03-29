@@ -2,31 +2,31 @@
 
 ## Goal summary
 
-- Closed goals: 92
-- Successes: 92
+- Closed goals: 93
+- Successes: 93
 - Fails: 0
-- Total attempts: 96
-- Known total cost (USD): 1.269228
-- Known total tokens: 2696460
+- Total attempts: 97
+- Known total cost (USD): 134.658855
+- Known total tokens: 96561704
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 4/92 successful goals
-- Known token coverage: 4/92 successful goals
-- Complete cost coverage: 2/92 successful goals
-- Complete token coverage: 2/92 successful goals
-- Known Cost per Success (USD): 0.317307
-- Known Cost per Success (Tokens): 674115.00
-- Complete Cost per Covered Success (USD): 0.260627
-- Complete Cost per Covered Success (Tokens): 550833.00
+- Known cost coverage: 78/93 successful goals
+- Known token coverage: 78/93 successful goals
+- Complete cost coverage: 78/93 successful goals
+- Complete token coverage: 78/93 successful goals
+- Known Cost per Success (USD): 1.726396
+- Known Cost per Success (Tokens): 1237970.56
+- Complete Cost per Covered Success (USD): 1.726396
+- Complete Cost per Covered Success (Tokens): 1237970.56
 
 ## Entry summary
 
-- Closed entries: 96
-- Successes: 95
+- Closed entries: 97
+- Successes: 96
 - Fails: 1
-- Success Rate: 98.96%
-- Known total cost (USD): 1.269228
-- Known total tokens: 2696460
+- Success Rate: 98.97%
+- Known total cost (USD): 133.761475
+- Known total tokens: 95845725
 
 ## Operator review
 
@@ -41,60 +41,73 @@
 - unclear_task: 1
 
 ### product
-- Closed goals: 18
-- Successes: 18
+- Closed goals: 19
+- Successes: 19
 - Fails: 0
-- Total attempts: 22
-- Known total cost (USD): 0.747974
-- Known total tokens: 1594794
+- Total attempts: 23
+- Known total cost (USD): 41.722462
+- Known total tokens: 29999550
 - Success Rate: 100.00%
-- Attempts per Closed Goal: 1.22
-- Known cost coverage: 2/18 successful goals
-- Known token coverage: 2/18 successful goals
-- Complete cost coverage: 0/18 successful goals
-- Complete token coverage: 0/18 successful goals
-- Known Cost per Success (USD): 0.373987
-- Known Cost per Success (Tokens): 797397.00
-- Complete Cost per Covered Success (USD): n/a
-- Complete Cost per Covered Success (Tokens): n/a
+- Attempts per Closed Goal: 1.21
+- Known cost coverage: 17/19 successful goals
+- Known token coverage: 17/19 successful goals
+- Complete cost coverage: 17/19 successful goals
+- Complete token coverage: 17/19 successful goals
+- Known Cost per Success (USD): 2.454262
+- Known Cost per Success (Tokens): 1764679.41
+- Complete Cost per Covered Success (USD): 2.454262
+- Complete Cost per Covered Success (Tokens): 1764679.41
 
 ### retro
 - Closed goals: 21
 - Successes: 21
 - Fails: 0
 - Total attempts: 21
-- Known total cost (USD): 0.255454
-- Known total tokens: 532598
+- Known total cost (USD): 7.964254
+- Known total tokens: 5663448
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 1/21 successful goals
-- Known token coverage: 1/21 successful goals
-- Complete cost coverage: 1/21 successful goals
-- Complete token coverage: 1/21 successful goals
-- Known Cost per Success (USD): 0.255454
-- Known Cost per Success (Tokens): 532598.00
-- Complete Cost per Covered Success (USD): 0.255454
-- Complete Cost per Covered Success (Tokens): 532598.00
+- Known cost coverage: 15/21 successful goals
+- Known token coverage: 15/21 successful goals
+- Complete cost coverage: 15/21 successful goals
+- Complete token coverage: 15/21 successful goals
+- Known Cost per Success (USD): 0.53095
+- Known Cost per Success (Tokens): 377563.20
+- Complete Cost per Covered Success (USD): 0.53095
+- Complete Cost per Covered Success (Tokens): 377563.20
 
 ### meta
 - Closed goals: 53
 - Successes: 53
 - Fails: 0
 - Total attempts: 53
-- Known total cost (USD): 0.2658
-- Known total tokens: 569068
+- Known total cost (USD): 84.972139
+- Known total tokens: 60898706
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 1/53 successful goals
-- Known token coverage: 1/53 successful goals
-- Complete cost coverage: 1/53 successful goals
-- Complete token coverage: 1/53 successful goals
-- Known Cost per Success (USD): 0.2658
-- Known Cost per Success (Tokens): 569068.00
-- Complete Cost per Covered Success (USD): 0.2658
-- Complete Cost per Covered Success (Tokens): 569068.00
+- Known cost coverage: 46/53 successful goals
+- Known token coverage: 46/53 successful goals
+- Complete cost coverage: 46/53 successful goals
+- Complete token coverage: 46/53 successful goals
+- Known Cost per Success (USD): 1.84722
+- Known Cost per Success (Tokens): 1323884.91
+- Complete Cost per Covered Success (USD): 1.84722
+- Complete Cost per Covered Success (Tokens): 1323884.91
 
 ## Goal log
+
+### 2026-03-29-099 — Add session telemetry fallback for usage recovery
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T17:09:49+00:00
+- Finished at: 2026-03-29T17:09:50+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Result fit: exact_fit
+- Notes: Added session token_count fallback for Codex usage recovery, verified with tests, and backfilled historical usage via sync-codex-usage.
 
 ### 2026-03-29-098 — Record cost coverage audit retrospective
 - Goal type: retro
@@ -129,8 +142,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T14:48:34+00:00
 - Finished at: 2026-03-29T14:48:50+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.940297
+- Tokens: 679119
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Backfilled reviewed result_fit for the last clear manual audit candidate and confirmed the quality audit now only surfaces stale goals and low cost coverage.
@@ -142,8 +155,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T14:44:51+00:00
 - Finished at: 2026-03-29T14:45:12+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.618213
+- Tokens: 443051
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Documented why result_fit was added, why status was preserved, and why backfill remained curated.
@@ -155,8 +168,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T14:40:45+00:00
 - Finished at: 2026-03-29T14:42:18+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 3.951044
+- Tokens: 2873270
 - Failure reason: n/a
 - Result fit: exact_fit
 - Notes: Added the result_fit quality layer, exposed it through the CLI and report, and backfilled the clearest historical quality outcomes.
@@ -168,8 +181,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T14:31:13+00:00
 - Finished at: 2026-03-29T14:31:39+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.509954
+- Tokens: 362208
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Documented the history audit command checkpoint, modular integration path, and verification changes.
@@ -181,8 +194,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T14:28:03+00:00
 - Finished at: 2026-03-29T14:30:57+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 5.064756
+- Tokens: 3653907
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Integrated history audit as a first-class command, extended verify coverage, and kept the implementation modular.
@@ -233,8 +246,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T14:04:18+00:00
 - Finished at: 2026-03-29T14:13:30+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.725307
+- Tokens: 522970
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Extracted record models, validation, summary computation, and attempt-sync helpers into src/codex_metrics/domain.py while preserving the existing CLI surface via imports and re-exports; verify and coverage remained green after restoring datetime/timezone compatibility for the shim-exported module surface.
@@ -272,8 +285,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T13:52:23+00:00
 - Finished at: 2026-03-29T13:57:33+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.720298
+- Tokens: 500470
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Extracted the reporting/presentation layer into src/codex_metrics/reporting.py, kept CLI behavior unchanged via imports/re-exports, and verified the refactor with green lint, mypy, tests, and coverage.
@@ -298,8 +311,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T13:44:45+00:00
 - Finished at: 2026-03-29T13:46:56+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.506987
+- Tokens: 349832
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Improved coverage with a packaged-module init smoke test and subprocess coverage for python -m codex_metrics using the canonical src path; coverage report remains clean and stable.
@@ -311,8 +324,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T13:42:59+00:00
 - Finished at: 2026-03-29T13:44:07+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.322991
+- Tokens: 229250
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Fixed coverage reporting to follow the configured codex_metrics source set instead of manually including the compatibility shim; re-ran verify and coverage successfully.
@@ -337,8 +350,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T13:37:25+00:00
 - Finished at: 2026-03-29T13:38:24+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.299129
+- Tokens: 211087
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Recorded a refreshed external-style audit covering the packaged CLI state, product maturity shift, remaining weaknesses, and updated recommendations in docs/audits/.
@@ -350,8 +363,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T13:34:03+00:00
 - Finished at: 2026-03-29T13:34:25+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.285465
+- Tokens: 200454
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Captured manual goal id conflict UX retro and permanent workflow guidance
@@ -363,8 +376,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T13:33:04+00:00
 - Finished at: 2026-03-29T13:33:15+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.142864
+- Tokens: 100661
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Closed the broad packaging TODO now that installable build artifacts, package docs, and CI packaging flow exist; added narrower follow-up tasks for GitHub Release automation, PyPI publish path, and standalone binary evaluation.
@@ -376,8 +389,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T13:30:34+00:00
 - Finished at: 2026-03-29T13:32:38+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.869673
+- Tokens: 1328883
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Clarified auto-id default path and manual id conflict guidance
@@ -389,8 +402,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T13:29:18+00:00
 - Finished at: n/a
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.094154
+- Tokens: 2365464
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Improve manual goal ID conflict messaging and document auto-ID as the default path for new goals.
@@ -415,8 +428,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T13:14:12+00:00
 - Finished at: 2026-03-29T13:21:29+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.520141
+- Tokens: 1090261
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Packaged codex-metrics as an installable src-layout CLI with a console script entrypoint, bundled pricing data, a compatibility shim under scripts/, packaging docs, a GitHub build workflow, and validated wheel installation in a clean venv.
@@ -428,8 +441,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T13:11:40+00:00
 - Finished at: 2026-03-29T13:12:32+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.876259
+- Tokens: 647445
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Aligned README terminology with the current goal-based model and clarified that goal-level outcome summary should be read together with entry-level retry history.
@@ -454,8 +467,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T13:05:16+00:00
 - Finished at: 2026-03-29T13:05:36+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.256549
+- Tokens: 184904
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added retrospective documenting the concurrent goal-id collision bug, its source-of-truth boundary failure, and the permanent fixes: internal id generation, mutation locking, atomic writes, and regression coverage.
@@ -467,8 +480,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T13:00:46+00:00
 - Finished at: 2026-03-29T13:04:06+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.522879
+- Tokens: 1084382
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added internal goal ID generation for new tasks, made --task-id optional for creation, protected mutating commands with an exclusive metrics lock, switched report/metrics writes to atomic replace, and added regression coverage for auto-id and parallel creation.
@@ -480,8 +493,8 @@
 - Attempts: 3
 - Started at: 2026-03-29T12:55:45+00:00
 - Finished at: 2026-03-29T12:56:02+00:00
-- Cost (USD): 0.109862
-- Tokens: 235388
+- Cost (USD): 0.726577
+- Tokens: 524250
 - Failure reason: n/a
 - Result fit: partial_fit
 - Notes: Improved argparse help text, examples, and command descriptions without changing CLI behavior, then closed the usability TODO item.
@@ -493,8 +506,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T12:54:36+00:00
 - Finished at: 2026-03-29T12:55:52+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.45564
+- Tokens: 1036691
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Rewrote the metrics policy into a shorter reusable version, removed bloated local detail, preserved core invariants, and closed the TODO item for policy minimization.
@@ -506,8 +519,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T12:53:24+00:00
 - Finished at: 2026-03-29T12:53:28+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.222571
+- Tokens: 161090
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added README.md with minimal public-facing project description, quick start, validated CLI commands, and local verification entrypoints.
@@ -519,8 +532,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T12:52:58+00:00
 - Finished at: 2026-03-29T12:53:59+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.581964
+- Tokens: 1136104
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Tightened AGENTS.md wording, reduced duplication, and kept the file focused on durable operating rules rather than history.
@@ -532,8 +545,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T12:49:26+00:00
 - Finished at: 2026-03-29T12:50:26+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.078667
+- Tokens: 769102
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added one deep overall retrospective using 5 Whys and Theory of Constraints, updated AGENTS.md with durable product-alignment rules, and closed the TODO item for the overall retro and local AGENTS update.
@@ -545,8 +558,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T12:42:51+00:00
 - Finished at: 2026-03-29T12:45:43+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 3.286696
+- Tokens: 2335708
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Replaced brittle complete-cost display with complete coverage and covered-success averages, clarified the operator review wording, and closed the TODO item about always-null complete cost reporting.
@@ -558,8 +571,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T12:35:55+00:00
 - Finished at: 2026-03-29T12:37:18+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.02272
+- Tokens: 720502
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Repeated high-ROI code review, added supersession-cycle guardrails for merge and load validation, expanded regression coverage, and closed the TODO review item.
@@ -584,8 +597,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T12:28:32+00:00
 - Finished at: 2026-03-29T12:31:53+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 3.621946
+- Tokens: 2700534
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added operator-facing review guidance to CLI show output and markdown report, with tests covering review heuristics and report rendering.
@@ -597,8 +610,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T12:20:41+00:00
 - Finished at: 2026-03-29T12:24:34+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 7.932878
+- Tokens: 5716890
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Upgraded cost reporting to separate known spend from complete chain completeness by adding known-cost coverage and known-only average cost metrics alongside the stricter complete cost-per-success KPI.
@@ -610,8 +623,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T12:18:49+00:00
 - Finished at: 2026-03-29T12:19:23+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.833691
+- Tokens: 597372
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Audited the cost layer: total cost uses known spend, but cost per success requires complete cost chains for all successes, which makes it unavailable in most real operator views. Recommended a product change toward explicit known-cost coverage and a known-only average.
@@ -623,8 +636,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T12:14:57+00:00
 - Finished at: 2026-03-29T12:15:28+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.803564
+- Tokens: 579825
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Recorded the confirmed product-discovery context: outcome miss is the clearest quality failure, cost is a business signal, failure reasons are for debugging, and final quality/cost metrics remain intentionally open.
@@ -636,8 +649,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T12:09:43+00:00
 - Finished at: 2026-03-29T12:10:08+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.307536
+- Tokens: 947168
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Clarified that current quality-related metrics are working proxies to be refined empirically rather than treated as final truth.
@@ -649,8 +662,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T12:00:20+00:00
 - Finished at: 2026-03-29T12:01:40+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.074761
+- Tokens: 1486023
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Rewrote the product framing from the user's actual goals: operator-centric, quality-first, profit-aware, and cost-constrained Codex usage, then marked the vision TODO done.
@@ -662,8 +675,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T11:52:49+00:00
 - Finished at: 2026-03-29T11:53:46+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.211704
+- Tokens: 1594498
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added a short product framing document covering primary user, JTBD, workflow, decisions supported, scope, and north star metric, and marked the product-vision TODO item complete.
@@ -675,8 +688,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T11:49:36+00:00
 - Finished at: 2026-03-29T11:50:02+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.470197
+- Tokens: 334452
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Captured an overall PM/client-oriented retrospective: what user problem the metrics system needed to solve, what value was actually delivered, and what product gaps remain.
@@ -688,8 +701,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T11:48:20+00:00
 - Finished at: 2026-03-29T11:49:30+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.468076
+- Tokens: 330627
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Documented the external-style project/product audit in docs/audits/ with a dedicated index for future audits.
@@ -714,8 +727,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T11:39:28+00:00
 - Finished at: 2026-03-29T11:42:39+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 6.654708
+- Tokens: 4795894
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Fixed critical invariants by auto-normalizing first closed attempt, rewriting downstream supersedes links during merge, and enforcing entry business rules without breaking inferred history entries.
@@ -727,8 +740,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T11:33:35+00:00
 - Finished at: 2026-03-29T11:35:22+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.597846
+- Tokens: 1864330
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Expanded high-ROI coverage for pricing validation and usage-sync no-op paths, then documented make verify as the canonical local validation flow.
@@ -753,8 +766,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T11:28:28+00:00
 - Finished at: 2026-03-29T11:31:29+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.970025
+- Tokens: 1479752
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added high-ROI tests for malformed metrics validation plus usage/pricing helpers, and introduced a canonical Makefile verify/coverage entrypoint.
@@ -766,8 +779,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T11:25:21+00:00
 - Finished at: 2026-03-29T11:25:30+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.625676
+- Tokens: 453424
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added local coverage artifacts to .gitignore and defined the next engineering plan around expected ROI instead of continued polishing.
@@ -779,8 +792,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T11:20:36+00:00
 - Finished at: 2026-03-29T11:22:50+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 5.120682
+- Tokens: 3713269
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added subprocess-aware coverage support via coverage.py and test harness env switching, then measured real updater coverage and identified the main remaining untested zones.
@@ -792,8 +805,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T11:15:42+00:00
 - Finished at: 2026-03-29T11:16:17+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.125601
+- Tokens: 809011
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Recorded that mutating commands need tests for happy path, invalid-state rejection, and summary/report consistency, and codified that rule in AGENTS.md and the metrics policy.
@@ -805,8 +818,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T11:13:17+00:00
 - Finished at: n/a
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.091982
+- Tokens: 2355804
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Prevent invalid merge states in merge_tasks and mark inferred entries explicitly in the markdown report.
@@ -818,8 +831,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T11:12:43+00:00
 - Finished at: 2026-03-29T11:14:38+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 3.245386
+- Tokens: 2329933
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Fixed merge_tasks to reject cross-type merges and supersession cycles, and marked inferred entries explicitly in the markdown report.
@@ -831,8 +844,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T11:06:05+00:00
 - Finished at: 2026-03-29T11:06:12+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.230671
+- Tokens: 164778
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Audited the updater for copy-pasted logic. No severe duplication found; remaining repetition is concentrated in report rendering, merge/sync dict mutation, and a few parallel cost/token update branches.
@@ -844,8 +857,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T11:04:42+00:00
 - Finished at: 2026-03-29T11:04:58+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.451127
+- Tokens: 323243
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Recorded that moving update flow to typed domain boundaries was the final high-ROI refactor before diminishing returns and that further refactoring should now be demand-driven.
@@ -857,8 +870,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T11:03:21+00:00
 - Finished at: 2026-03-29T11:04:17+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.893981
+- Tokens: 632663
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Moved the update/application path closer to the typed domain boundary by mutating GoalRecord internally and serializing back to dict only at persistence boundaries.
@@ -870,8 +883,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T11:00:29+00:00
 - Finished at: 2026-03-29T11:01:29+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.656257
+- Tokens: 1189568
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Closed goal_type drift by forbidding goal reclassification after attempt history exists and synced that invariant into AGENTS.md and codex-metrics-policy.md.
@@ -883,8 +896,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:57:39+00:00
 - Finished at: 2026-03-29T10:58:17+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.393449
+- Tokens: 281626
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Recorded the lesson that inferred attempt history is operational context, not diagnostic failure attribution, and should not pollute failure-reason metrics.
@@ -896,8 +909,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:53:18+00:00
 - Finished at: 2026-03-29T10:56:25+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 4.253716
+- Tokens: 3044160
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Decomposed sync_goal_attempt_entries into smaller policy helpers and excluded inferred synthetic failures from diagnostic failure-reason reporting.
@@ -909,8 +922,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:50:48+00:00
 - Finished at: 2026-03-29T10:50:58+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.150095
+- Tokens: 105283
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Reviewed commits, retros, and current metrics state. No new unresolved historical product bugs found beyond already documented issues around task boundaries, partial cost completeness, and stale-read validation procedure.
@@ -922,8 +935,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:49:21+00:00
 - Finished at: 2026-03-29T10:49:39+00:00
-- Cost (USD): 0.2658
-- Tokens: 569068
+- Cost (USD): 0.394805
+- Tokens: 280952
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added permanent sequential-validation rules to AGENTS.md and codex-metrics-policy.md so dependent updater commands are not validated in parallel.
@@ -935,8 +948,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:48:13+00:00
 - Finished at: 2026-03-29T10:48:30+00:00
-- Cost (USD): 0.255454
-- Tokens: 532598
+- Cost (USD): 0.248922
+- Tokens: 177287
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Recorded the lesson that dependent updater commands must be validated sequentially because parallel update/show can produce stale-read false positives.
@@ -948,8 +961,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:44:55+00:00
 - Finished at: 2026-03-29T10:47:12+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.215118
+- Tokens: 843659
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Moved summary and effective-goal computation to typed GoalRecord, AttemptEntryRecord, and EffectiveGoalRecord inputs while keeping JSON serialization at the boundary.
@@ -961,8 +974,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:42:15+00:00
 - Finished at: 2026-03-29T10:44:28+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.330792
+- Tokens: 1734535
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added explicit dict-to-record and record-to-dict helpers and applied them to validation and internal record creation without changing CLI or persisted schema.
@@ -974,8 +987,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:38:32+00:00
 - Finished at: 2026-03-29T10:39:37+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.713845
+- Tokens: 1230944
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Introduced typed internal records for attempt entries and effective goals, and switched the corresponding helper paths to use those structures without changing the persisted JSON schema or CLI behavior.
@@ -987,8 +1000,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:36:36+00:00
 - Finished at: n/a
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.091982
+- Tokens: 2355804
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Continue safe refactoring by making summary and effective-goal logic more explicit and modular without changing persisted schema or CLI behavior.
@@ -1000,8 +1013,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:34:28+00:00
 - Finished at: 2026-03-29T10:35:53+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.064359
+- Tokens: 746489
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Safely decomposed upsert_task into smaller internal steps for goal creation, usage resolution, update application, and final validation, while preserving CLI behavior and keeping ruff, mypy, and 46 tests green.
@@ -1013,8 +1026,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:32:31+00:00
 - Finished at: 2026-03-29T10:32:52+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.495018
+- Tokens: 355985
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added a retrospective for the testing and static-analysis bootstrap, documenting why unit tests plus ruff/mypy were added before refactoring and what adoption scope was intentionally kept narrow.
@@ -1026,8 +1039,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:29:33+00:00
 - Finished at: 2026-03-29T10:31:54+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 4.880283
+- Tokens: 3524158
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added pyproject-based static analysis with ruff and mypy, installed both tools into .venv, tuned initial adoption to keep signal high, and verified ruff + mypy + 46 pytest checks all pass.
@@ -1039,8 +1052,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:26:26+00:00
 - Finished at: 2026-03-29T10:27:56+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.46808
+- Tokens: 1049464
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added direct unit tests for summary math, effective goal chains, entry failure aggregation, and attempt-log synchronization; full suite now passes with 46 tests.
@@ -1052,8 +1065,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:20:41+00:00
 - Finished at: 2026-03-29T10:20:45+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.176616
+- Tokens: 125887
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Audited historical goals after attempt-log migration. No additional structural backfill was required: all existing goals already have entry counts matching attempts, and the earlier failed-to-successful product path remains represented through separate linked goals 2026-03-29-007 -> 2026-03-29-008.
@@ -1065,8 +1078,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:16:10+00:00
 - Finished at: 2026-03-29T10:18:56+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.451302
+- Tokens: 1702162
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Converted entries from mirrored goal snapshots into attempt-history records, added focused attempt-log tests, kept merge and sync flows compatible, and synchronized AGENTS/policy with the new semantics.
@@ -1078,8 +1091,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:10:12+00:00
 - Finished at: 2026-03-29T10:12:08+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.14502
+- Tokens: 800964
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Audited metric definitions end-to-end and fixed the main inconsistency: summary/report/tests now use attempts_per_closed_task (shown as Attempts per Closed Goal) instead of attempts_per_success; failure reason counting is explicitly covered by tests.
@@ -1091,8 +1104,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:08:49+00:00
 - Finished at: 2026-03-29T10:09:00+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.141505
+- Tokens: 99102
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Updated policy to require temp-path validation for destructive smoke checks, keep entry-level failure visibility alongside goal summaries, and align Success Rate terminology from closed_tasks to closed_goals.
@@ -1104,8 +1117,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:07:06+00:00
 - Finished at: 2026-03-29T10:07:18+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.12901
+- Tokens: 90914
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Updated AGENTS with two historical guardrails: use temporary paths for destructive init smoke checks, and report both goal-level and entry-level metrics when failures exist in entries.
@@ -1117,8 +1130,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:03:48+00:00
 - Finished at: 2026-03-29T10:04:17+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.854465
+- Tokens: 612979
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Recorded a retrospective for the goals migration, concluded that the transition succeeded, and marked the related TODO item complete with remaining risks documented explicitly.
@@ -1130,8 +1143,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:00:52+00:00
 - Finished at: 2026-03-29T10:02:07+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.174234
+- Tokens: 1563398
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added entry-level summary and failure-reason visibility alongside goal metrics, preserved effective goal-chain summaries, and validated the combined model with 40 passing tests plus CLI smoke.
@@ -1143,8 +1156,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T09:47:56+00:00
 - Finished at: 2026-03-29T09:57:49+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 12.084695
+- Tokens: 8629141
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Migrated the metrics source of truth from task records to goals plus entries, enabled effective goal-chain summaries via supersession links, restored generated outputs, and validated the new model with 40 passing tests plus CLI smoke.
@@ -1156,8 +1169,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T09:42:56+00:00
 - Finished at: 2026-03-29T09:43:05+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.397967
+- Tokens: 286097
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Confirmed the first TODO audit item is complete and marked it done after the metrics definitions, validation flow, task typing, and success/failure bookkeeping were corrected.
@@ -1169,8 +1182,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T09:38:38+00:00
 - Finished at: 2026-03-29T09:40:40+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.870635
+- Tokens: 2052463
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added explicit linked-task guardrails via continuation or supersession references for newly created tasks, validated reference rules, updated reporting, and confirmed behavior with 39 passing tests plus CLI smoke.
@@ -1182,8 +1195,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T09:35:35+00:00
 - Finished at: 2026-03-29T09:37:23+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.068903
+- Tokens: 1489347
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Required explicit task_type for new task creation, preserved existing-task updates, updated docs, and validated the new guardrail with 35 passing tests plus CLI smoke.
@@ -1195,8 +1208,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T09:30:13+00:00
 - Finished at: 2026-03-29T09:33:48+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 3.17875
+- Tokens: 2252785
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Applied retrospective outcomes by separating task types across product, retro, and meta work, updating policy and AGENTS, adding per-type reporting to the updater, and validating with tests plus CLI smoke.
@@ -1208,8 +1221,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T09:26:02+00:00
 - Finished at: 2026-03-29T09:26:43+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.373263
+- Tokens: 257676
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Completed a deep 5 Whys retrospective on overstated success and split task boundaries, recorded root causes, and proposed solution options for discussion.
@@ -1221,8 +1234,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T09:22:33+00:00
 - Finished at: 2026-03-29T09:24:42+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.218694
+- Tokens: 849145
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added a safe merge-tasks command for recombining mistakenly split closed tasks, covered it with focused tests, and verified the full CLI flow with merge smoke validation.
@@ -1234,8 +1247,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T09:20:58+00:00
 - Finished at: 2026-03-29T09:21:27+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.244496
+- Tokens: 170646
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Audited the current metrics history. No additional false successes were found after correcting task 007, but two process risks remain: the original cost-tracking goal is still historically split across tasks 007 and 008, and the earliest repository commits predate the metrics workflow so they do not have corresponding task records.
@@ -1247,8 +1260,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T09:20:00+00:00
 - Finished at: 2026-03-29T09:20:14+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.227026
+- Tokens: 155852
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Corrected the metrics history so the rejected pricing-only attempt is now recorded as fail, which restores an honest success rate and attempt-per-success summary.
@@ -1260,8 +1273,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T09:16:33+00:00
 - Finished at: 2026-03-29T09:17:13+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.259183
+- Tokens: 175800
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added a retrospective for the automatic usage sync milestone, verified 29 passing tests, and completed CLI smoke validation before creating the checkpoint commit.
@@ -1273,8 +1286,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T09:08:21+00:00
 - Finished at: 2026-03-29T09:14:00+00:00
-- Cost (USD): 0.638112
-- Tokens: 1359406
+- Cost (USD): 5.545442
+- Tokens: 3956768
 - Failure reason: n/a
 - Result fit: partial_fit
 - Notes: Implemented fully automatic Codex usage ingestion from local SQLite telemetry, added sync-codex-usage backfill command, validated with 29 tests, and confirmed that current-task usage auto-populates when local response.completed events exist.
@@ -1286,8 +1299,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T09:01:23+00:00
 - Finished at: 2026-03-29T09:05:24+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.812161
+- Tokens: 1979984
 - Failure reason: unclear_task
 - Result fit: miss
 - Notes: Initial pricing-only implementation was not accepted because it still depended on manual or semi-manual usage entry and did not satisfy the required fully automatic cost-tracking workflow.
@@ -1299,8 +1312,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T08:49:39+00:00
 - Finished at: 2026-03-29T08:51:56+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.412746
+- Tokens: 1717937
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added strict task-record validation, status/failure_reason and timestamp business rules, safe init with --force, concise CLI error messages, 22 passing tests, and sequential smoke validation for init/update/show.
@@ -1312,8 +1325,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T08:44:40+00:00
 - Finished at: 2026-03-29T08:45:36+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.592395
+- Tokens: 412863
 - Failure reason: n/a
 - Result fit: exact_fit
 - Notes: Expanded tests to cover missing stateful CLI behavior: required title on create, updating existing tasks without title, explicit timestamps, negative attempts, and report ordering; 15 tests passed and smoke flow validated.
@@ -1325,8 +1338,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T08:41:51+00:00
 - Finished at: 2026-03-29T08:42:12+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.302261
+- Tokens: 213969
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added repository .gitignore for caches, local virtualenvs, IDE settings, and OS noise; verified required metrics/report/retro files are not ignored.
@@ -1338,8 +1351,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T08:38:27+00:00
 - Finished at: 2026-03-29T08:39:27+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.544181
+- Tokens: 375670
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added first retrospective, verified 10 passing tests, and completed serialized smoke flow for init/update/show before creating a checkpoint commit.
@@ -1351,13 +1364,24 @@
 - Attempts: 1
 - Started at: 2026-03-29T08:31:25+00:00
 - Finished at: 2026-03-29T08:31:31+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.041469
+- Tokens: 26758
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-099-attempt-001 — 2026-03-29-099
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T17:09:49+00:00
+- Finished at: 2026-03-29T17:09:50+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Added session token_count fallback for Codex usage recovery, verified with tests, and backfilled historical usage via sync-codex-usage.
 
 ### 2026-03-29-098-attempt-001 — 2026-03-29-098
 - Entry type: retro
@@ -1387,8 +1411,8 @@
 - Status: success
 - Started at: 2026-03-29T14:48:34+00:00
 - Finished at: 2026-03-29T14:48:50+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.940297
+- Tokens: 679119
 - Failure reason: n/a
 - Notes: Backfilled reviewed result_fit for the last clear manual audit candidate and confirmed the quality audit now only surfaces stale goals and low cost coverage.
 
@@ -1398,8 +1422,8 @@
 - Status: success
 - Started at: 2026-03-29T14:44:51+00:00
 - Finished at: 2026-03-29T14:45:12+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.618213
+- Tokens: 443051
 - Failure reason: n/a
 - Notes: Documented why result_fit was added, why status was preserved, and why backfill remained curated.
 
@@ -1409,8 +1433,8 @@
 - Status: success
 - Started at: 2026-03-29T14:40:45+00:00
 - Finished at: 2026-03-29T14:42:18+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 3.951044
+- Tokens: 2873270
 - Failure reason: n/a
 - Notes: Added the result_fit quality layer, exposed it through the CLI and report, and backfilled the clearest historical quality outcomes.
 
@@ -1420,8 +1444,8 @@
 - Status: success
 - Started at: 2026-03-29T14:31:13+00:00
 - Finished at: 2026-03-29T14:31:39+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.509954
+- Tokens: 362208
 - Failure reason: n/a
 - Notes: Documented the history audit command checkpoint, modular integration path, and verification changes.
 
@@ -1431,8 +1455,8 @@
 - Status: success
 - Started at: 2026-03-29T14:28:03+00:00
 - Finished at: 2026-03-29T14:30:57+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 5.064756
+- Tokens: 3653907
 - Failure reason: n/a
 - Notes: Integrated history audit as a first-class command, extended verify coverage, and kept the implementation modular.
 
@@ -1475,8 +1499,8 @@
 - Status: success
 - Started at: 2026-03-29T14:04:18+00:00
 - Finished at: 2026-03-29T14:13:30+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.725307
+- Tokens: 522970
 - Failure reason: n/a
 - Notes: Extracted record models, validation, summary computation, and attempt-sync helpers into src/codex_metrics/domain.py while preserving the existing CLI surface via imports and re-exports; verify and coverage remained green after restoring datetime/timezone compatibility for the shim-exported module surface.
 
@@ -1508,8 +1532,8 @@
 - Status: success
 - Started at: 2026-03-29T13:52:23+00:00
 - Finished at: 2026-03-29T13:57:33+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.720298
+- Tokens: 500470
 - Failure reason: n/a
 - Notes: Extracted the reporting/presentation layer into src/codex_metrics/reporting.py, kept CLI behavior unchanged via imports/re-exports, and verified the refactor with green lint, mypy, tests, and coverage.
 
@@ -1530,8 +1554,8 @@
 - Status: success
 - Started at: 2026-03-29T13:44:45+00:00
 - Finished at: 2026-03-29T13:46:56+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.506987
+- Tokens: 349832
 - Failure reason: n/a
 - Notes: Improved coverage with a packaged-module init smoke test and subprocess coverage for python -m codex_metrics using the canonical src path; coverage report remains clean and stable.
 
@@ -1541,8 +1565,8 @@
 - Status: success
 - Started at: 2026-03-29T13:42:59+00:00
 - Finished at: 2026-03-29T13:44:07+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.322991
+- Tokens: 229250
 - Failure reason: n/a
 - Notes: Fixed coverage reporting to follow the configured codex_metrics source set instead of manually including the compatibility shim; re-ran verify and coverage successfully.
 
@@ -1563,8 +1587,8 @@
 - Status: success
 - Started at: 2026-03-29T13:37:25+00:00
 - Finished at: 2026-03-29T13:38:24+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.299129
+- Tokens: 211087
 - Failure reason: n/a
 - Notes: Recorded a refreshed external-style audit covering the packaged CLI state, product maturity shift, remaining weaknesses, and updated recommendations in docs/audits/.
 
@@ -1574,8 +1598,8 @@
 - Status: success
 - Started at: 2026-03-29T13:34:03+00:00
 - Finished at: 2026-03-29T13:34:25+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.285465
+- Tokens: 200454
 - Failure reason: n/a
 - Notes: Captured manual goal id conflict UX retro and permanent workflow guidance
 
@@ -1585,8 +1609,8 @@
 - Status: success
 - Started at: 2026-03-29T13:33:04+00:00
 - Finished at: 2026-03-29T13:33:15+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.142864
+- Tokens: 100661
 - Failure reason: n/a
 - Notes: Closed the broad packaging TODO now that installable build artifacts, package docs, and CI packaging flow exist; added narrower follow-up tasks for GitHub Release automation, PyPI publish path, and standalone binary evaluation.
 
@@ -1596,8 +1620,8 @@
 - Status: success
 - Started at: 2026-03-29T13:30:34+00:00
 - Finished at: 2026-03-29T13:32:38+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.869673
+- Tokens: 1328883
 - Failure reason: n/a
 - Notes: Clarified auto-id default path and manual id conflict guidance
 
@@ -1607,8 +1631,8 @@
 - Status: in_progress
 - Started at: 2026-03-29T13:29:18+00:00
 - Finished at: n/a
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.094154
+- Tokens: 2365464
 - Failure reason: n/a
 - Notes: Improve manual goal ID conflict messaging and document auto-ID as the default path for new goals.
 
@@ -1629,8 +1653,8 @@
 - Status: success
 - Started at: 2026-03-29T13:14:12+00:00
 - Finished at: 2026-03-29T13:21:29+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.520141
+- Tokens: 1090261
 - Failure reason: n/a
 - Notes: Packaged codex-metrics as an installable src-layout CLI with a console script entrypoint, bundled pricing data, a compatibility shim under scripts/, packaging docs, a GitHub build workflow, and validated wheel installation in a clean venv.
 
@@ -1640,8 +1664,8 @@
 - Status: success
 - Started at: 2026-03-29T13:11:40+00:00
 - Finished at: 2026-03-29T13:12:32+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.876259
+- Tokens: 647445
 - Failure reason: n/a
 - Notes: Aligned README terminology with the current goal-based model and clarified that goal-level outcome summary should be read together with entry-level retry history.
 
@@ -1662,8 +1686,8 @@
 - Status: success
 - Started at: 2026-03-29T13:05:16+00:00
 - Finished at: 2026-03-29T13:05:36+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.256549
+- Tokens: 184904
 - Failure reason: n/a
 - Notes: Added retrospective documenting the concurrent goal-id collision bug, its source-of-truth boundary failure, and the permanent fixes: internal id generation, mutation locking, atomic writes, and regression coverage.
 
@@ -1673,8 +1697,8 @@
 - Status: success
 - Started at: 2026-03-29T13:00:46+00:00
 - Finished at: 2026-03-29T13:04:06+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.522879
+- Tokens: 1084382
 - Failure reason: n/a
 - Notes: Added internal goal ID generation for new tasks, made --task-id optional for creation, protected mutating commands with an exclusive metrics lock, switched report/metrics writes to atomic replace, and added regression coverage for auto-id and parallel creation.
 
@@ -1706,8 +1730,8 @@
 - Status: success
 - Started at: 2026-03-29T12:55:45+00:00
 - Finished at: 2026-03-29T12:56:02+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.616715
+- Tokens: 288862
 - Failure reason: n/a
 - Notes: Improved argparse help text, examples, and command descriptions without changing CLI behavior, then closed the usability TODO item.
 
@@ -1717,8 +1741,8 @@
 - Status: success
 - Started at: 2026-03-29T12:54:36+00:00
 - Finished at: 2026-03-29T12:55:52+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.45564
+- Tokens: 1036691
 - Failure reason: n/a
 - Notes: Rewrote the metrics policy into a shorter reusable version, removed bloated local detail, preserved core invariants, and closed the TODO item for policy minimization.
 
@@ -1728,8 +1752,8 @@
 - Status: success
 - Started at: 2026-03-29T12:53:24+00:00
 - Finished at: 2026-03-29T12:53:28+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.222571
+- Tokens: 161090
 - Failure reason: n/a
 - Notes: Added README.md with minimal public-facing project description, quick start, validated CLI commands, and local verification entrypoints.
 
@@ -1739,8 +1763,8 @@
 - Status: success
 - Started at: 2026-03-29T12:52:58+00:00
 - Finished at: 2026-03-29T12:53:59+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.581964
+- Tokens: 1136104
 - Failure reason: n/a
 - Notes: Tightened AGENTS.md wording, reduced duplication, and kept the file focused on durable operating rules rather than history.
 
@@ -1750,8 +1774,8 @@
 - Status: success
 - Started at: 2026-03-29T12:49:26+00:00
 - Finished at: 2026-03-29T12:50:26+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.078667
+- Tokens: 769102
 - Failure reason: n/a
 - Notes: Added one deep overall retrospective using 5 Whys and Theory of Constraints, updated AGENTS.md with durable product-alignment rules, and closed the TODO item for the overall retro and local AGENTS update.
 
@@ -1761,8 +1785,8 @@
 - Status: success
 - Started at: 2026-03-29T12:42:51+00:00
 - Finished at: 2026-03-29T12:45:43+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 3.286696
+- Tokens: 2335708
 - Failure reason: n/a
 - Notes: Replaced brittle complete-cost display with complete coverage and covered-success averages, clarified the operator review wording, and closed the TODO item about always-null complete cost reporting.
 
@@ -1772,8 +1796,8 @@
 - Status: success
 - Started at: 2026-03-29T12:35:55+00:00
 - Finished at: 2026-03-29T12:37:18+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.02272
+- Tokens: 720502
 - Failure reason: n/a
 - Notes: Repeated high-ROI code review, added supersession-cycle guardrails for merge and load validation, expanded regression coverage, and closed the TODO review item.
 
@@ -1794,8 +1818,8 @@
 - Status: success
 - Started at: 2026-03-29T12:28:32+00:00
 - Finished at: 2026-03-29T12:31:53+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 3.621946
+- Tokens: 2700534
 - Failure reason: n/a
 - Notes: Added operator-facing review guidance to CLI show output and markdown report, with tests covering review heuristics and report rendering.
 
@@ -1805,8 +1829,8 @@
 - Status: success
 - Started at: 2026-03-29T12:20:41+00:00
 - Finished at: 2026-03-29T12:24:34+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 7.932878
+- Tokens: 5716890
 - Failure reason: n/a
 - Notes: Upgraded cost reporting to separate known spend from complete chain completeness by adding known-cost coverage and known-only average cost metrics alongside the stricter complete cost-per-success KPI.
 
@@ -1816,8 +1840,8 @@
 - Status: success
 - Started at: 2026-03-29T12:18:49+00:00
 - Finished at: 2026-03-29T12:19:23+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.833691
+- Tokens: 597372
 - Failure reason: n/a
 - Notes: Audited the cost layer: total cost uses known spend, but cost per success requires complete cost chains for all successes, which makes it unavailable in most real operator views. Recommended a product change toward explicit known-cost coverage and a known-only average.
 
@@ -1827,8 +1851,8 @@
 - Status: success
 - Started at: 2026-03-29T12:14:57+00:00
 - Finished at: 2026-03-29T12:15:28+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.803564
+- Tokens: 579825
 - Failure reason: n/a
 - Notes: Recorded the confirmed product-discovery context: outcome miss is the clearest quality failure, cost is a business signal, failure reasons are for debugging, and final quality/cost metrics remain intentionally open.
 
@@ -1838,8 +1862,8 @@
 - Status: success
 - Started at: 2026-03-29T12:09:43+00:00
 - Finished at: 2026-03-29T12:10:08+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.307536
+- Tokens: 947168
 - Failure reason: n/a
 - Notes: Clarified that current quality-related metrics are working proxies to be refined empirically rather than treated as final truth.
 
@@ -1849,8 +1873,8 @@
 - Status: success
 - Started at: 2026-03-29T12:00:20+00:00
 - Finished at: 2026-03-29T12:01:40+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.074761
+- Tokens: 1486023
 - Failure reason: n/a
 - Notes: Rewrote the product framing from the user's actual goals: operator-centric, quality-first, profit-aware, and cost-constrained Codex usage, then marked the vision TODO done.
 
@@ -1860,8 +1884,8 @@
 - Status: success
 - Started at: 2026-03-29T11:52:49+00:00
 - Finished at: 2026-03-29T11:53:46+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.211704
+- Tokens: 1594498
 - Failure reason: n/a
 - Notes: Added a short product framing document covering primary user, JTBD, workflow, decisions supported, scope, and north star metric, and marked the product-vision TODO item complete.
 
@@ -1871,8 +1895,8 @@
 - Status: success
 - Started at: 2026-03-29T11:49:36+00:00
 - Finished at: 2026-03-29T11:50:02+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.470197
+- Tokens: 334452
 - Failure reason: n/a
 - Notes: Captured an overall PM/client-oriented retrospective: what user problem the metrics system needed to solve, what value was actually delivered, and what product gaps remain.
 
@@ -1882,8 +1906,8 @@
 - Status: success
 - Started at: 2026-03-29T11:48:20+00:00
 - Finished at: 2026-03-29T11:49:30+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.468076
+- Tokens: 330627
 - Failure reason: n/a
 - Notes: Documented the external-style project/product audit in docs/audits/ with a dedicated index for future audits.
 
@@ -1904,8 +1928,8 @@
 - Status: success
 - Started at: 2026-03-29T11:39:28+00:00
 - Finished at: 2026-03-29T11:42:39+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 6.654708
+- Tokens: 4795894
 - Failure reason: n/a
 - Notes: Fixed critical invariants by auto-normalizing first closed attempt, rewriting downstream supersedes links during merge, and enforcing entry business rules without breaking inferred history entries.
 
@@ -1915,8 +1939,8 @@
 - Status: success
 - Started at: 2026-03-29T11:33:35+00:00
 - Finished at: 2026-03-29T11:35:22+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.597846
+- Tokens: 1864330
 - Failure reason: n/a
 - Notes: Expanded high-ROI coverage for pricing validation and usage-sync no-op paths, then documented make verify as the canonical local validation flow.
 
@@ -1937,8 +1961,8 @@
 - Status: success
 - Started at: 2026-03-29T11:28:28+00:00
 - Finished at: 2026-03-29T11:31:29+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.970025
+- Tokens: 1479752
 - Failure reason: n/a
 - Notes: Added high-ROI tests for malformed metrics validation plus usage/pricing helpers, and introduced a canonical Makefile verify/coverage entrypoint.
 
@@ -1948,8 +1972,8 @@
 - Status: success
 - Started at: 2026-03-29T11:25:21+00:00
 - Finished at: 2026-03-29T11:25:30+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.625676
+- Tokens: 453424
 - Failure reason: n/a
 - Notes: Added local coverage artifacts to .gitignore and defined the next engineering plan around expected ROI instead of continued polishing.
 
@@ -1959,8 +1983,8 @@
 - Status: success
 - Started at: 2026-03-29T11:20:36+00:00
 - Finished at: 2026-03-29T11:22:50+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 5.120682
+- Tokens: 3713269
 - Failure reason: n/a
 - Notes: Added subprocess-aware coverage support via coverage.py and test harness env switching, then measured real updater coverage and identified the main remaining untested zones.
 
@@ -1970,8 +1994,8 @@
 - Status: success
 - Started at: 2026-03-29T11:15:42+00:00
 - Finished at: 2026-03-29T11:16:17+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.125601
+- Tokens: 809011
 - Failure reason: n/a
 - Notes: Recorded that mutating commands need tests for happy path, invalid-state rejection, and summary/report consistency, and codified that rule in AGENTS.md and the metrics policy.
 
@@ -1981,8 +2005,8 @@
 - Status: in_progress
 - Started at: 2026-03-29T11:13:17+00:00
 - Finished at: n/a
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.091982
+- Tokens: 2355804
 - Failure reason: n/a
 - Notes: Prevent invalid merge states in merge_tasks and mark inferred entries explicitly in the markdown report.
 
@@ -1992,8 +2016,8 @@
 - Status: success
 - Started at: 2026-03-29T11:12:43+00:00
 - Finished at: 2026-03-29T11:14:38+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 3.245386
+- Tokens: 2329933
 - Failure reason: n/a
 - Notes: Fixed merge_tasks to reject cross-type merges and supersession cycles, and marked inferred entries explicitly in the markdown report.
 
@@ -2003,8 +2027,8 @@
 - Status: success
 - Started at: 2026-03-29T11:06:05+00:00
 - Finished at: 2026-03-29T11:06:12+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.230671
+- Tokens: 164778
 - Failure reason: n/a
 - Notes: Audited the updater for copy-pasted logic. No severe duplication found; remaining repetition is concentrated in report rendering, merge/sync dict mutation, and a few parallel cost/token update branches.
 
@@ -2014,8 +2038,8 @@
 - Status: success
 - Started at: 2026-03-29T11:04:42+00:00
 - Finished at: 2026-03-29T11:04:58+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.451127
+- Tokens: 323243
 - Failure reason: n/a
 - Notes: Recorded that moving update flow to typed domain boundaries was the final high-ROI refactor before diminishing returns and that further refactoring should now be demand-driven.
 
@@ -2025,8 +2049,8 @@
 - Status: success
 - Started at: 2026-03-29T11:03:21+00:00
 - Finished at: 2026-03-29T11:04:17+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.893981
+- Tokens: 632663
 - Failure reason: n/a
 - Notes: Moved the update/application path closer to the typed domain boundary by mutating GoalRecord internally and serializing back to dict only at persistence boundaries.
 
@@ -2036,8 +2060,8 @@
 - Status: success
 - Started at: 2026-03-29T11:00:29+00:00
 - Finished at: 2026-03-29T11:01:29+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.656257
+- Tokens: 1189568
 - Failure reason: n/a
 - Notes: Closed goal_type drift by forbidding goal reclassification after attempt history exists and synced that invariant into AGENTS.md and codex-metrics-policy.md.
 
@@ -2047,8 +2071,8 @@
 - Status: success
 - Started at: 2026-03-29T10:57:39+00:00
 - Finished at: 2026-03-29T10:58:17+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.393449
+- Tokens: 281626
 - Failure reason: n/a
 - Notes: Recorded the lesson that inferred attempt history is operational context, not diagnostic failure attribution, and should not pollute failure-reason metrics.
 
@@ -2058,8 +2082,8 @@
 - Status: success
 - Started at: 2026-03-29T10:53:18+00:00
 - Finished at: 2026-03-29T10:56:25+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 4.253716
+- Tokens: 3044160
 - Failure reason: n/a
 - Notes: Decomposed sync_goal_attempt_entries into smaller policy helpers and excluded inferred synthetic failures from diagnostic failure-reason reporting.
 
@@ -2069,8 +2093,8 @@
 - Status: success
 - Started at: 2026-03-29T10:50:48+00:00
 - Finished at: 2026-03-29T10:50:58+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.150095
+- Tokens: 105283
 - Failure reason: n/a
 - Notes: Reviewed commits, retros, and current metrics state. No new unresolved historical product bugs found beyond already documented issues around task boundaries, partial cost completeness, and stale-read validation procedure.
 
@@ -2080,7 +2104,7 @@
 - Status: success
 - Started at: 2026-03-29T10:49:21+00:00
 - Finished at: 2026-03-29T10:49:39+00:00
-- Cost (USD): 0.2658
+- Cost (USD): 0.129005
 - Tokens: 569068
 - Failure reason: n/a
 - Notes: Added permanent sequential-validation rules to AGENTS.md and codex-metrics-policy.md so dependent updater commands are not validated in parallel.
@@ -2102,8 +2126,8 @@
 - Status: success
 - Started at: 2026-03-29T10:44:55+00:00
 - Finished at: 2026-03-29T10:47:12+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.215118
+- Tokens: 843659
 - Failure reason: n/a
 - Notes: Moved summary and effective-goal computation to typed GoalRecord, AttemptEntryRecord, and EffectiveGoalRecord inputs while keeping JSON serialization at the boundary.
 
@@ -2113,8 +2137,8 @@
 - Status: success
 - Started at: 2026-03-29T10:42:15+00:00
 - Finished at: 2026-03-29T10:44:28+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.330792
+- Tokens: 1734535
 - Failure reason: n/a
 - Notes: Added explicit dict-to-record and record-to-dict helpers and applied them to validation and internal record creation without changing CLI or persisted schema.
 
@@ -2124,8 +2148,8 @@
 - Status: success
 - Started at: 2026-03-29T10:38:32+00:00
 - Finished at: 2026-03-29T10:39:37+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.713845
+- Tokens: 1230944
 - Failure reason: n/a
 - Notes: Introduced typed internal records for attempt entries and effective goals, and switched the corresponding helper paths to use those structures without changing the persisted JSON schema or CLI behavior.
 
@@ -2135,8 +2159,8 @@
 - Status: in_progress
 - Started at: 2026-03-29T10:36:36+00:00
 - Finished at: n/a
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.091982
+- Tokens: 2355804
 - Failure reason: n/a
 - Notes: Continue safe refactoring by making summary and effective-goal logic more explicit and modular without changing persisted schema or CLI behavior.
 
@@ -2146,8 +2170,8 @@
 - Status: success
 - Started at: 2026-03-29T10:34:28+00:00
 - Finished at: 2026-03-29T10:35:53+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.064359
+- Tokens: 746489
 - Failure reason: n/a
 - Notes: Safely decomposed upsert_task into smaller internal steps for goal creation, usage resolution, update application, and final validation, while preserving CLI behavior and keeping ruff, mypy, and 46 tests green.
 
@@ -2157,8 +2181,8 @@
 - Status: success
 - Started at: 2026-03-29T10:32:31+00:00
 - Finished at: 2026-03-29T10:32:52+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.495018
+- Tokens: 355985
 - Failure reason: n/a
 - Notes: Added a retrospective for the testing and static-analysis bootstrap, documenting why unit tests plus ruff/mypy were added before refactoring and what adoption scope was intentionally kept narrow.
 
@@ -2168,8 +2192,8 @@
 - Status: success
 - Started at: 2026-03-29T10:29:33+00:00
 - Finished at: 2026-03-29T10:31:54+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 4.880283
+- Tokens: 3524158
 - Failure reason: n/a
 - Notes: Added pyproject-based static analysis with ruff and mypy, installed both tools into .venv, tuned initial adoption to keep signal high, and verified ruff + mypy + 46 pytest checks all pass.
 
@@ -2179,8 +2203,8 @@
 - Status: success
 - Started at: 2026-03-29T10:26:26+00:00
 - Finished at: 2026-03-29T10:27:56+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.46808
+- Tokens: 1049464
 - Failure reason: n/a
 - Notes: Added direct unit tests for summary math, effective goal chains, entry failure aggregation, and attempt-log synchronization; full suite now passes with 46 tests.
 
@@ -2190,8 +2214,8 @@
 - Status: success
 - Started at: 2026-03-29T10:20:41+00:00
 - Finished at: 2026-03-29T10:20:45+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.176616
+- Tokens: 125887
 - Failure reason: n/a
 - Notes: Audited historical goals after attempt-log migration. No additional structural backfill was required: all existing goals already have entry counts matching attempts, and the earlier failed-to-successful product path remains represented through separate linked goals 2026-03-29-007 -> 2026-03-29-008.
 
@@ -2201,8 +2225,8 @@
 - Status: success
 - Started at: 2026-03-29T10:16:10+00:00
 - Finished at: 2026-03-29T10:18:56+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.451302
+- Tokens: 1702162
 - Failure reason: n/a
 - Notes: Converted entries from mirrored goal snapshots into attempt-history records, added focused attempt-log tests, kept merge and sync flows compatible, and synchronized AGENTS/policy with the new semantics.
 
@@ -2212,8 +2236,8 @@
 - Status: success
 - Started at: 2026-03-29T10:10:12+00:00
 - Finished at: 2026-03-29T10:12:08+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.14502
+- Tokens: 800964
 - Failure reason: n/a
 - Notes: Audited metric definitions end-to-end and fixed the main inconsistency: summary/report/tests now use attempts_per_closed_task (shown as Attempts per Closed Goal) instead of attempts_per_success; failure reason counting is explicitly covered by tests.
 
@@ -2223,8 +2247,8 @@
 - Status: success
 - Started at: 2026-03-29T10:08:49+00:00
 - Finished at: 2026-03-29T10:09:00+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.141505
+- Tokens: 99102
 - Failure reason: n/a
 - Notes: Updated policy to require temp-path validation for destructive smoke checks, keep entry-level failure visibility alongside goal summaries, and align Success Rate terminology from closed_tasks to closed_goals.
 
@@ -2234,8 +2258,8 @@
 - Status: success
 - Started at: 2026-03-29T10:07:06+00:00
 - Finished at: 2026-03-29T10:07:18+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.12901
+- Tokens: 90914
 - Failure reason: n/a
 - Notes: Updated AGENTS with two historical guardrails: use temporary paths for destructive init smoke checks, and report both goal-level and entry-level metrics when failures exist in entries.
 
@@ -2245,8 +2269,8 @@
 - Status: success
 - Started at: 2026-03-29T10:03:48+00:00
 - Finished at: 2026-03-29T10:04:17+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.854465
+- Tokens: 612979
 - Failure reason: n/a
 - Notes: Recorded a retrospective for the goals migration, concluded that the transition succeeded, and marked the related TODO item complete with remaining risks documented explicitly.
 
@@ -2256,8 +2280,8 @@
 - Status: success
 - Started at: 2026-03-29T10:00:52+00:00
 - Finished at: 2026-03-29T10:02:07+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.174234
+- Tokens: 1563398
 - Failure reason: n/a
 - Notes: Added entry-level summary and failure-reason visibility alongside goal metrics, preserved effective goal-chain summaries, and validated the combined model with 40 passing tests plus CLI smoke.
 
@@ -2267,8 +2291,8 @@
 - Status: success
 - Started at: 2026-03-29T09:47:56+00:00
 - Finished at: 2026-03-29T09:57:49+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 12.084695
+- Tokens: 8629141
 - Failure reason: n/a
 - Notes: Migrated the metrics source of truth from task records to goals plus entries, enabled effective goal-chain summaries via supersession links, restored generated outputs, and validated the new model with 40 passing tests plus CLI smoke.
 
@@ -2278,8 +2302,8 @@
 - Status: success
 - Started at: 2026-03-29T09:42:56+00:00
 - Finished at: 2026-03-29T09:43:05+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.397967
+- Tokens: 286097
 - Failure reason: n/a
 - Notes: Confirmed the first TODO audit item is complete and marked it done after the metrics definitions, validation flow, task typing, and success/failure bookkeeping were corrected.
 
@@ -2289,8 +2313,8 @@
 - Status: success
 - Started at: 2026-03-29T09:38:38+00:00
 - Finished at: 2026-03-29T09:40:40+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.870635
+- Tokens: 2052463
 - Failure reason: n/a
 - Notes: Added explicit linked-task guardrails via continuation or supersession references for newly created tasks, validated reference rules, updated reporting, and confirmed behavior with 39 passing tests plus CLI smoke.
 
@@ -2300,8 +2324,8 @@
 - Status: success
 - Started at: 2026-03-29T09:35:35+00:00
 - Finished at: 2026-03-29T09:37:23+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.068903
+- Tokens: 1489347
 - Failure reason: n/a
 - Notes: Required explicit task_type for new task creation, preserved existing-task updates, updated docs, and validated the new guardrail with 35 passing tests plus CLI smoke.
 
@@ -2311,8 +2335,8 @@
 - Status: success
 - Started at: 2026-03-29T09:30:13+00:00
 - Finished at: 2026-03-29T09:33:48+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 3.17875
+- Tokens: 2252785
 - Failure reason: n/a
 - Notes: Applied retrospective outcomes by separating task types across product, retro, and meta work, updating policy and AGENTS, adding per-type reporting to the updater, and validating with tests plus CLI smoke.
 
@@ -2322,8 +2346,8 @@
 - Status: success
 - Started at: 2026-03-29T09:26:02+00:00
 - Finished at: 2026-03-29T09:26:43+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.373263
+- Tokens: 257676
 - Failure reason: n/a
 - Notes: Completed a deep 5 Whys retrospective on overstated success and split task boundaries, recorded root causes, and proposed solution options for discussion.
 
@@ -2333,8 +2357,8 @@
 - Status: success
 - Started at: 2026-03-29T09:22:33+00:00
 - Finished at: 2026-03-29T09:24:42+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 1.218694
+- Tokens: 849145
 - Failure reason: n/a
 - Notes: Added a safe merge-tasks command for recombining mistakenly split closed tasks, covered it with focused tests, and verified the full CLI flow with merge smoke validation.
 
@@ -2344,8 +2368,8 @@
 - Status: success
 - Started at: 2026-03-29T09:20:58+00:00
 - Finished at: 2026-03-29T09:21:27+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.244496
+- Tokens: 170646
 - Failure reason: n/a
 - Notes: Audited the current metrics history. No additional false successes were found after correcting task 007, but two process risks remain: the original cost-tracking goal is still historically split across tasks 007 and 008, and the earliest repository commits predate the metrics workflow so they do not have corresponding task records.
 
@@ -2355,8 +2379,8 @@
 - Status: success
 - Started at: 2026-03-29T09:20:00+00:00
 - Finished at: 2026-03-29T09:20:14+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.227026
+- Tokens: 155852
 - Failure reason: n/a
 - Notes: Corrected the metrics history so the rejected pricing-only attempt is now recorded as fail, which restores an honest success rate and attempt-per-success summary.
 
@@ -2366,8 +2390,8 @@
 - Status: success
 - Started at: 2026-03-29T09:16:33+00:00
 - Finished at: 2026-03-29T09:17:13+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.259183
+- Tokens: 175800
 - Failure reason: n/a
 - Notes: Added a retrospective for the automatic usage sync milestone, verified 29 passing tests, and completed CLI smoke validation before creating the checkpoint commit.
 
@@ -2377,8 +2401,8 @@
 - Status: success
 - Started at: 2026-03-29T09:08:21+00:00
 - Finished at: 2026-03-29T09:14:00+00:00
-- Cost (USD): 0.638112
-- Tokens: 1359406
+- Cost (USD): 4.90733
+- Tokens: 2597362
 - Failure reason: n/a
 - Notes: Implemented fully automatic Codex usage ingestion from local SQLite telemetry, added sync-codex-usage backfill command, validated with 29 tests, and confirmed that current-task usage auto-populates when local response.completed events exist.
 
@@ -2388,8 +2412,8 @@
 - Status: fail
 - Started at: 2026-03-29T09:01:23+00:00
 - Finished at: 2026-03-29T09:05:24+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.812161
+- Tokens: 1979984
 - Failure reason: unclear_task
 - Notes: Initial pricing-only implementation was not accepted because it still depended on manual or semi-manual usage entry and did not satisfy the required fully automatic cost-tracking workflow.
 
@@ -2399,8 +2423,8 @@
 - Status: success
 - Started at: 2026-03-29T08:49:39+00:00
 - Finished at: 2026-03-29T08:51:56+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 2.412746
+- Tokens: 1717937
 - Failure reason: n/a
 - Notes: Added strict task-record validation, status/failure_reason and timestamp business rules, safe init with --force, concise CLI error messages, 22 passing tests, and sequential smoke validation for init/update/show.
 
@@ -2410,8 +2434,8 @@
 - Status: success
 - Started at: 2026-03-29T08:44:40+00:00
 - Finished at: 2026-03-29T08:45:36+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.592395
+- Tokens: 412863
 - Failure reason: n/a
 - Notes: Expanded tests to cover missing stateful CLI behavior: required title on create, updating existing tasks without title, explicit timestamps, negative attempts, and report ordering; 15 tests passed and smoke flow validated.
 
@@ -2421,8 +2445,8 @@
 - Status: success
 - Started at: 2026-03-29T08:41:51+00:00
 - Finished at: 2026-03-29T08:42:12+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.302261
+- Tokens: 213969
 - Failure reason: n/a
 - Notes: Added repository .gitignore for caches, local virtualenvs, IDE settings, and OS noise; verified required metrics/report/retro files are not ignored.
 
@@ -2432,8 +2456,8 @@
 - Status: success
 - Started at: 2026-03-29T08:38:27+00:00
 - Finished at: 2026-03-29T08:39:27+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.544181
+- Tokens: 375670
 - Failure reason: n/a
 - Notes: Added first retrospective, verified 10 passing tests, and completed serialized smoke flow for init/update/show before creating a checkpoint commit.
 
@@ -2443,7 +2467,7 @@
 - Status: success
 - Started at: 2026-03-29T08:31:25+00:00
 - Finished at: 2026-03-29T08:31:31+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.041469
+- Tokens: 26758
 - Failure reason: n/a
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.

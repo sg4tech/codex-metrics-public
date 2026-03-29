@@ -218,6 +218,124 @@ def create_codex_usage_sources(
     return state_path, logs_path
 
 
+def create_codex_session_usage_sources(
+    repo: Path,
+    thread_id: str = "thread-123",
+    cwd: str | None = None,
+    event_timestamp: str = "2026-03-29T09:05:00.000Z",
+    model: str = "gpt-5.4",
+    input_tokens: int = 1000,
+    cached_input_tokens: int = 100,
+    output_tokens: int = 500,
+    reasoning_tokens: int = 25,
+) -> tuple[Path, Path]:
+    state_path = repo / "codex_state.sqlite"
+    logs_path = repo / "codex_logs.sqlite"
+    resolved_cwd = cwd or str(repo)
+
+    with sqlite3.connect(state_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE threads (
+                id TEXT PRIMARY KEY,
+                rollout_path TEXT NOT NULL DEFAULT '',
+                created_at INTEGER NOT NULL DEFAULT 0,
+                updated_at INTEGER NOT NULL DEFAULT 0,
+                source TEXT NOT NULL DEFAULT '',
+                model_provider TEXT NOT NULL DEFAULT '',
+                cwd TEXT NOT NULL,
+                title TEXT NOT NULL DEFAULT '',
+                sandbox_policy TEXT NOT NULL DEFAULT '',
+                approval_mode TEXT NOT NULL DEFAULT '',
+                tokens_used INTEGER NOT NULL DEFAULT 0,
+                has_user_event INTEGER NOT NULL DEFAULT 0,
+                archived INTEGER NOT NULL DEFAULT 0,
+                archived_at INTEGER,
+                git_sha TEXT,
+                git_branch TEXT,
+                git_origin_url TEXT,
+                cli_version TEXT NOT NULL DEFAULT '',
+                first_user_message TEXT NOT NULL DEFAULT '',
+                agent_nickname TEXT,
+                agent_role TEXT,
+                memory_mode TEXT NOT NULL DEFAULT 'enabled',
+                model TEXT,
+                reasoning_effort TEXT,
+                agent_path TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO threads (
+                id, cwd, model_provider, model, created_at, updated_at, title, sandbox_policy, approval_mode, source
+            ) VALUES (?, ?, 'openai', ?, 0, 0, 'Test Thread', 'workspace-write', 'default', 'desktop')
+            """,
+            (thread_id, resolved_cwd, model),
+        )
+
+    with sqlite3.connect(logs_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts INTEGER NOT NULL DEFAULT 0,
+                ts_nanos INTEGER NOT NULL DEFAULT 0,
+                level TEXT NOT NULL DEFAULT 'INFO',
+                target TEXT NOT NULL DEFAULT 'log',
+                feedback_log_body TEXT,
+                module_path TEXT,
+                file TEXT,
+                line INTEGER,
+                thread_id TEXT,
+                process_uuid TEXT,
+                estimated_bytes INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO logs (feedback_log_body, thread_id)
+            VALUES (?, ?)
+            """,
+            (
+                f"session_loop thread.id={thread_id} model={model} response.completed",
+                thread_id,
+            ),
+        )
+
+    sessions_dir = repo / "sessions" / "2026" / "03" / "29"
+    sessions_dir.mkdir(parents=True)
+    rollout_path = sessions_dir / f"rollout-2026-03-29T11-27-52-{thread_id}.jsonl"
+    rollout_path.write_text(
+        json.dumps(
+            {
+                "timestamp": event_timestamp,
+                "type": "event_msg",
+                "payload": {
+                    "type": "token_count",
+                    "info": {
+                        "last_token_usage": {
+                            "input_tokens": input_tokens,
+                            "cached_input_tokens": cached_input_tokens,
+                            "output_tokens": output_tokens,
+                            "reasoning_output_tokens": reasoning_tokens,
+                            "total_tokens": input_tokens
+                            + cached_input_tokens
+                            + output_tokens
+                            + reasoning_tokens,
+                        }
+                    },
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    return state_path, logs_path
+
+
 @pytest.fixture
 def repo(tmp_path: Path) -> Path:
     (tmp_path / "scripts").mkdir(parents=True, exist_ok=True)
@@ -1835,6 +1953,46 @@ def test_sync_codex_usage_backfills_existing_tasks(repo: Path) -> None:
     data = read_json(repo / "metrics" / "codex_metrics.json")
     task = data["tasks"][0]
     assert task["tokens_total"] == 1600
+    assert task["cost_usd"] == 0.006263
+
+
+def test_sync_codex_usage_backfills_from_session_rollout_token_counts(repo: Path) -> None:
+    state_path, logs_path = create_codex_session_usage_sources(repo)
+    assert run_cmd(repo, "init", "--force").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "session-backfill-task",
+        "--title",
+        "Session Backfill Task",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+        "--started-at",
+        "2026-03-29T09:00:00+00:00",
+        "--finished-at",
+        "2026-03-29T09:10:00+00:00",
+        "--codex-state-path",
+        str(repo / "missing_state.sqlite"),
+        "--codex-logs-path",
+        str(repo / "missing_logs.sqlite"),
+    ).returncode == 0
+
+    sync_result = run_cmd(
+        repo,
+        "sync-codex-usage",
+        "--codex-state-path",
+        str(state_path),
+        "--codex-logs-path",
+        str(logs_path),
+    )
+
+    assert sync_result.returncode == 0, sync_result.stderr
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    task = data["tasks"][0]
+    assert task["tokens_total"] == 1625
     assert task["cost_usd"] == 0.006263
 
 

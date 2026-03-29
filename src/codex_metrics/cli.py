@@ -121,6 +121,7 @@ USAGE_FIELD_PATTERNS = {
     "model": re.compile(r"\bmodel=([^ ]+)"),
     "timestamp": re.compile(r"\bevent\.timestamp=([^ ]+)"),
 }
+THREAD_MODEL_PATTERN = re.compile(r"\bmodel=([A-Za-z0-9._-]+)")
 ensure_parent_dir = storage.ensure_parent_dir
 atomic_write_text = storage.atomic_write_text
 save_metrics = storage.save_metrics
@@ -286,7 +287,16 @@ def resolve_codex_usage_window(
             usage_events.append(event)
 
     if not usage_events:
-        return None, None
+        session_cost_usd, session_total_tokens = resolve_codex_session_usage_window(
+            logs_path=logs_path,
+            thread_id=resolved_thread_id,
+            started_dt=started_dt,
+            finished_dt=finished_dt,
+            pricing=pricing,
+        )
+        if session_cost_usd is None and session_total_tokens is None:
+            return None, None
+        return session_cost_usd, session_total_tokens
 
     total_cost = 0.0
     total_tokens = 0
@@ -300,6 +310,114 @@ def resolve_codex_usage_window(
             + event["tool_tokens"]
         )
     return total_cost, total_tokens
+
+
+def find_session_rollout_path(sessions_root: Path, thread_id: str) -> Path | None:
+    if not sessions_root.exists():
+        return None
+
+    candidates = sorted(
+        sessions_root.rglob(f"*{thread_id}.jsonl"),
+        key=lambda path: path.name,
+        reverse=True,
+    )
+    return candidates[0] if candidates else None
+
+
+def resolve_thread_model_from_logs(logs_path: Path, thread_id: str) -> str | None:
+    with sqlite3.connect(logs_path) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """
+            SELECT feedback_log_body
+            FROM logs
+            WHERE thread_id = ?
+              AND feedback_log_body LIKE '%model=%'
+            ORDER BY id DESC
+            LIMIT 200
+            """,
+            (thread_id,),
+        ).fetchall()
+
+    for row in rows:
+        body = row["feedback_log_body"]
+        if body is None:
+            continue
+        match = THREAD_MODEL_PATTERN.search(str(body))
+        if match is not None:
+            return match.group(1)
+    return None
+
+
+def resolve_codex_session_usage_window(
+    *,
+    logs_path: Path,
+    thread_id: str,
+    started_dt: datetime,
+    finished_dt: datetime,
+    pricing: dict[str, dict[str, float | None]],
+) -> tuple[float | None, int | None]:
+    sessions_root = logs_path.parent / "sessions"
+    rollout_path = find_session_rollout_path(sessions_root, thread_id)
+    if rollout_path is None:
+        return None, None
+
+    model = resolve_thread_model_from_logs(logs_path, thread_id)
+    total_cost = 0.0
+    total_tokens = 0
+    cost_found = False
+    tokens_found = False
+
+    with rollout_path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            if record.get("type") != "event_msg":
+                continue
+            payload = record.get("payload")
+            if not isinstance(payload, dict) or payload.get("type") != "token_count":
+                continue
+            timestamp = record.get("timestamp")
+            if not isinstance(timestamp, str):
+                continue
+            event_dt = parse_iso_datetime_flexible(timestamp, "timestamp")
+            if not (started_dt <= event_dt <= finished_dt):
+                continue
+
+            info = payload.get("info")
+            if not isinstance(info, dict):
+                continue
+            last_usage = info.get("last_token_usage")
+            if not isinstance(last_usage, dict):
+                continue
+
+            input_tokens = int(last_usage.get("input_tokens", 0))
+            cached_input_tokens = int(last_usage.get("cached_input_tokens", 0))
+            output_tokens = int(last_usage.get("output_tokens", 0))
+            reasoning_tokens = int(last_usage.get("reasoning_output_tokens", 0))
+            total_tokens += int(last_usage.get("total_tokens", input_tokens + cached_input_tokens + output_tokens))
+            total_tokens += 0
+            if reasoning_tokens > 0 and "total_tokens" not in last_usage:
+                total_tokens += reasoning_tokens
+            tokens_found = True
+
+            if model is None:
+                continue
+
+            event = {
+                "model": model,
+                "input_tokens": input_tokens,
+                "cached_input_tokens": cached_input_tokens,
+                "output_tokens": output_tokens,
+            }
+            total_cost = round_usd(total_cost + compute_event_cost_usd(event, pricing))
+            cost_found = True
+
+    return (
+        round_usd(total_cost) if cost_found else None,
+        total_tokens if tokens_found else None,
+    )
 
 
 def resolve_usage_costs(
