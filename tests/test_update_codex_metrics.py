@@ -545,15 +545,12 @@ def test_bootstrap_creates_scaffold_files(repo: Path) -> None:
 
     policy_text = policy_path.read_text(encoding="utf-8")
     assert "Codex Metrics Policy" in policy_text
-    assert "## What This Is" in policy_text
-    assert "Use it to make Codex-assisted work auditable" in policy_text
-    assert "## When It Applies" in policy_text
-    assert "### First Task Checklist" in policy_text
-    assert "Record a retry or another implementation pass on the same goal" in policy_text
-    assert "The local `AGENTS.md` should point agents to this file." in policy_text
+    assert "## Purpose" in policy_text
+    assert "## Scope" in policy_text
+    assert "## Core Model" in policy_text
+    assert "## Required Workflow" in policy_text
+    assert "## Validation Rules" in policy_text
     assert "Metrics bookkeeping is mandatory." in policy_text
-    assert "If you are using a standalone self-host binary that is not on `PATH`" in policy_text
-    assert "`~/bin/codex-metrics`" in policy_text
 
     agents_text = agents_path.read_text(encoding="utf-8")
     assert "# AGENTS.md" in agents_text
@@ -566,6 +563,15 @@ def test_bootstrap_creates_scaffold_files(repo: Path) -> None:
     assert "Generated artifacts:" not in agents_text
     assert "Do not edit generated metrics files manually" not in agents_text
     assert "codex-metrics update" not in agents_text
+
+
+def test_packaged_policy_template_matches_repo_policy() -> None:
+    repo_policy = (WORKSPACE_ROOT / "docs" / "codex-metrics-policy.md").read_text(encoding="utf-8")
+    packaged_policy = (
+        WORKSPACE_ROOT / "src" / "codex_metrics" / "data" / "bootstrap_codex_metrics_policy.md"
+    ).read_text(encoding="utf-8")
+
+    assert packaged_policy == repo_policy
 
 
 def test_bootstrap_appends_single_managed_block_to_existing_agents(repo: Path) -> None:

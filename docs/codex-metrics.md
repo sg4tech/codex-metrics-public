@@ -2,31 +2,31 @@
 
 ## Goal summary
 
-- Closed goals: 132
-- Successes: 132
+- Closed goals: 134
+- Successes: 134
 - Fails: 0
-- Total attempts: 138
-- Known total cost (USD): 199.411636
-- Known total tokens: 143065072
+- Total attempts: 140
+- Known total cost (USD): 201.562559
+- Known total tokens: 144636181
 - Success Rate: 100.00%
-- Attempts per Closed Goal: 1.05
-- Known cost coverage: 111/132 successful goals
-- Known token coverage: 111/132 successful goals
-- Complete cost coverage: 111/132 successful goals
-- Complete token coverage: 111/132 successful goals
-- Known Cost per Success (USD): 1.796501
-- Known Cost per Success (Tokens): 1288874.52
-- Complete Cost per Covered Success (USD): 1.796501
-- Complete Cost per Covered Success (Tokens): 1288874.52
+- Attempts per Closed Goal: 1.04
+- Known cost coverage: 113/134 successful goals
+- Known token coverage: 113/134 successful goals
+- Complete cost coverage: 113/134 successful goals
+- Complete token coverage: 113/134 successful goals
+- Known Cost per Success (USD): 1.783739
+- Known Cost per Success (Tokens): 1279966.20
+- Complete Cost per Covered Success (USD): 1.783739
+- Complete Cost per Covered Success (Tokens): 1279966.20
 
 ## Entry summary
 
-- Closed entries: 138
-- Successes: 137
+- Closed entries: 140
+- Successes: 139
 - Fails: 1
-- Success Rate: 99.28%
-- Known total cost (USD): 198.514256
-- Known total tokens: 142349093
+- Success Rate: 99.29%
+- Known total cost (USD): 200.665179
+- Known total tokens: 143920202
 
 ## Operator review
 
@@ -59,42 +59,68 @@
 - Complete Cost per Covered Success (Tokens): 1813056.23
 
 ### retro
-- Closed goals: 31
-- Successes: 31
+- Closed goals: 32
+- Successes: 32
 - Fails: 0
-- Total attempts: 31
-- Known total cost (USD): 11.717616
-- Known total tokens: 8342516
+- Total attempts: 32
+- Known total cost (USD): 12.044529
+- Known total tokens: 8572197
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 22/31 successful goals
-- Known token coverage: 22/31 successful goals
-- Complete cost coverage: 22/31 successful goals
-- Complete token coverage: 22/31 successful goals
-- Known Cost per Success (USD): 0.532619
-- Known Cost per Success (Tokens): 379205.27
-- Complete Cost per Covered Success (USD): 0.532619
-- Complete Cost per Covered Success (Tokens): 379205.27
+- Known cost coverage: 23/32 successful goals
+- Known token coverage: 23/32 successful goals
+- Complete cost coverage: 23/32 successful goals
+- Complete token coverage: 23/32 successful goals
+- Known Cost per Success (USD): 0.523675
+- Known Cost per Success (Tokens): 372704.22
+- Complete Cost per Covered Success (USD): 0.523675
+- Complete Cost per Covered Success (Tokens): 372704.22
 
 ### meta
-- Closed goals: 58
-- Successes: 58
+- Closed goals: 59
+- Successes: 59
 - Fails: 0
-- Total attempts: 58
-- Known total cost (USD): 89.303882
-- Known total tokens: 64013363
+- Total attempts: 59
+- Known total cost (USD): 91.127892
+- Known total tokens: 65354791
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 50/58 successful goals
-- Known token coverage: 50/58 successful goals
-- Complete cost coverage: 50/58 successful goals
-- Complete token coverage: 50/58 successful goals
-- Known Cost per Success (USD): 1.786078
-- Known Cost per Success (Tokens): 1280267.26
-- Complete Cost per Covered Success (USD): 1.786078
-- Complete Cost per Covered Success (Tokens): 1280267.26
+- Known cost coverage: 51/59 successful goals
+- Known token coverage: 51/59 successful goals
+- Complete cost coverage: 51/59 successful goals
+- Complete token coverage: 51/59 successful goals
+- Known Cost per Success (USD): 1.786821
+- Known Cost per Success (Tokens): 1281466.49
+- Complete Cost per Covered Success (USD): 1.786821
+- Complete Cost per Covered Success (Tokens): 1281466.49
 
 ## Goal log
+
+### 2026-03-29-140 — Retrospective for duplicated metrics policy sources
+- Goal type: retro
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T19:37:46+00:00
+- Finished at: 2026-03-29T19:38:14+00:00
+- Cost (USD): 0.326913
+- Tokens: 229681
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Recorded the duplicate-policy-source incident and codified the runtime-package plus synchronized-mirror approach.
+
+### 2026-03-29-139 — Unify duplicate codex-metrics policy sources
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T19:32:24+00:00
+- Finished at: 2026-03-29T19:36:07+00:00
+- Cost (USD): 1.82401
+- Tokens: 1341428
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Unified bootstrap and repo policy text under one canonical content and added a regression test to prevent drift.
 
 ### 2026-03-29-138 — Deduplicate local AGENTS against reusable codex-metrics policy
 - Goal type: meta
@@ -1878,6 +1904,28 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-140-attempt-001 — 2026-03-29-140
+- Entry type: retro
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T19:37:46+00:00
+- Finished at: 2026-03-29T19:38:14+00:00
+- Cost (USD): 0.326913
+- Tokens: 229681
+- Failure reason: n/a
+- Notes: Recorded the duplicate-policy-source incident and codified the runtime-package plus synchronized-mirror approach.
+
+### 2026-03-29-139-attempt-001 — 2026-03-29-139
+- Entry type: meta
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T19:32:24+00:00
+- Finished at: 2026-03-29T19:36:07+00:00
+- Cost (USD): 1.82401
+- Tokens: 1341428
+- Failure reason: n/a
+- Notes: Unified bootstrap and repo policy text under one canonical content and added a regression test to prevent drift.
 
 ### 2026-03-29-138-attempt-001 — 2026-03-29-138
 - Entry type: meta
