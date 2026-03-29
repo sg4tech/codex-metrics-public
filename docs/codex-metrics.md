@@ -2,18 +2,18 @@
 
 ## Goal summary
 
-- Closed goals: 69
-- Successes: 69
+- Closed goals: 70
+- Successes: 70
 - Fails: 0
-- Total attempts: 73
+- Total attempts: 74
 - Known total cost (USD): 1.269228
 - Known total tokens: 2696460
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.06
-- Known cost coverage: 4/69 successful goals
-- Known token coverage: 4/69 successful goals
-- Complete cost coverage: 2/69 successful goals
-- Complete token coverage: 2/69 successful goals
+- Known cost coverage: 4/70 successful goals
+- Known token coverage: 4/70 successful goals
+- Complete cost coverage: 2/70 successful goals
+- Complete token coverage: 2/70 successful goals
 - Known Cost per Success (USD): 0.317307
 - Known Cost per Success (Tokens): 674115.00
 - Complete Cost per Covered Success (USD): 0.260627
@@ -21,10 +21,10 @@
 
 ## Entry summary
 
-- Closed entries: 73
-- Successes: 72
+- Closed entries: 74
+- Successes: 73
 - Fails: 1
-- Success Rate: 98.63%
+- Success Rate: 98.65%
 - Known total cost (USD): 1.269228
 - Known total tokens: 2696460
 
@@ -59,18 +59,18 @@
 - Complete Cost per Covered Success (Tokens): n/a
 
 ### retro
-- Closed goals: 15
-- Successes: 15
+- Closed goals: 16
+- Successes: 16
 - Fails: 0
-- Total attempts: 15
+- Total attempts: 16
 - Known total cost (USD): 0.255454
 - Known total tokens: 532598
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 1/15 successful goals
-- Known token coverage: 1/15 successful goals
-- Complete cost coverage: 1/15 successful goals
-- Complete token coverage: 1/15 successful goals
+- Known cost coverage: 1/16 successful goals
+- Known token coverage: 1/16 successful goals
+- Complete cost coverage: 1/16 successful goals
+- Complete token coverage: 1/16 successful goals
 - Known Cost per Success (USD): 0.255454
 - Known Cost per Success (Tokens): 532598.00
 - Complete Cost per Covered Success (USD): 0.255454
@@ -95,6 +95,18 @@
 - Complete Cost per Covered Success (Tokens): 569068.00
 
 ## Goal log
+
+### 2026-03-29-075 — Retrospective for installable CLI packaging milestone
+- Goal type: retro
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T13:26:05+00:00
+- Finished at: 2026-03-29T13:26:28+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Added retrospective for the installable CLI packaging milestone, documenting the shift from repo-local script assumptions to package-first runtime, package data handling, compatibility shims, and release validation.
 
 ### 2026-03-29-074 — Package codex-metrics as installable public CLI
 - Goal type: product
@@ -973,6 +985,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-075-attempt-001 — 2026-03-29-075
+- Entry type: retro
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T13:26:05+00:00
+- Finished at: 2026-03-29T13:26:28+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Added retrospective for the installable CLI packaging milestone, documenting the shift from repo-local script assumptions to package-first runtime, package data handling, compatibility shims, and release validation.
 
 ### 2026-03-29-074-attempt-001 — 2026-03-29-074
 - Entry type: product
