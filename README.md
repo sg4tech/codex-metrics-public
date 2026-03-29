@@ -1,6 +1,6 @@
 # codex-metrics
 
-Small Python CLI for tracking Codex task metrics, attempt history, and usage-derived cost in a repo-friendly format.
+Small Python CLI for tracking Codex goal metrics, attempt history, and usage-derived cost in a repo-friendly format.
 
 This repository is an internal local operator tool. It is meant to help track whether Codex-assisted engineering work is getting better over time, not to act as a public analytics product or hosted service.
 
@@ -55,7 +55,7 @@ Initialize metrics files:
 ./.venv/bin/python scripts/update_codex_metrics.py init
 ```
 
-Create or update a task record:
+Create or update a goal record:
 
 ```bash
 ./.venv/bin/python scripts/update_codex_metrics.py update --help
@@ -73,7 +73,7 @@ Backfill usage and cost from local Codex logs:
 ./.venv/bin/python scripts/update_codex_metrics.py sync-codex-usage --help
 ```
 
-Merge a split or superseded task record:
+Merge a split or superseded goal record:
 
 ```bash
 ./.venv/bin/python scripts/update_codex_metrics.py merge-tasks --help
@@ -94,3 +94,4 @@ Available `make` targets:
 - Do not edit generated metrics files manually when the updater can regenerate them.
 - Treat `metrics/codex_metrics.json` as the source of truth.
 - Goal and attempt bookkeeping is part of the repository workflow, not optional project hygiene.
+- Goal-level outcome summary should be read together with entry-level retry history.
