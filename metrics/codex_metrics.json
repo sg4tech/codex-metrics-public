@@ -1,15 +1,53 @@
 {
   "summary": {
-    "closed_tasks": 8,
-    "successes": 8,
-    "fails": 0,
-    "total_attempts": 8,
+    "closed_tasks": 15,
+    "successes": 14,
+    "fails": 1,
+    "total_attempts": 15,
     "total_cost_usd": 0.638112,
     "total_tokens": 1359406,
-    "success_rate": 1.0,
-    "attempts_per_success": 1.0,
+    "success_rate": 0.9333333333333333,
+    "attempts_per_success": 1.0714285714285714,
     "cost_per_success_usd": null,
-    "cost_per_success_tokens": null
+    "cost_per_success_tokens": null,
+    "by_task_type": {
+      "meta": {
+        "closed_tasks": 6,
+        "successes": 6,
+        "fails": 0,
+        "total_attempts": 6,
+        "total_cost_usd": 0.0,
+        "total_tokens": 0,
+        "success_rate": 1.0,
+        "attempts_per_success": 1.0,
+        "cost_per_success_usd": null,
+        "cost_per_success_tokens": null
+      },
+      "product": {
+        "closed_tasks": 6,
+        "successes": 5,
+        "fails": 1,
+        "total_attempts": 6,
+        "total_cost_usd": 0.638112,
+        "total_tokens": 1359406,
+        "success_rate": 0.8333333333333334,
+        "attempts_per_success": 1.2,
+        "cost_per_success_usd": null,
+        "cost_per_success_tokens": null
+      },
+      "retro": {
+        "closed_tasks": 3,
+        "successes": 3,
+        "fails": 0,
+        "total_attempts": 3,
+        "total_cost_usd": 0.0,
+        "total_tokens": 0,
+        "success_rate": 1.0,
+        "attempts_per_success": 1.0,
+        "cost_per_success_usd": null,
+        "cost_per_success_tokens": null
+      }
+    }
   },
   "tasks": [
     {
@@ -22,7 +60,9 @@
       "cost_usd": null,
       "tokens_total": null,
       "failure_reason": null,
-      "notes": "Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv."
+      "notes": "Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.",
+      "task_type": "product",
+      "supersedes_task_id": null
     },
     {
       "task_id": "2026-03-29-003",
@@ -34,7 +74,9 @@
       "cost_usd": null,
       "tokens_total": null,
       "failure_reason": null,
-      "notes": "Added first retrospective, verified 10 passing tests, and completed serialized smoke flow for init/update/show before creating a checkpoint commit."
+      "notes": "Added first retrospective, verified 10 passing tests, and completed serialized smoke flow for init/update/show before creating a checkpoint commit.",
+      "task_type": "retro",
+      "supersedes_task_id": null
     },
     {
       "task_id": "2026-03-29-004",
@@ -46,7 +88,9 @@
       "cost_usd": null,
       "tokens_total": null,
       "failure_reason": null,
-      "notes": "Added repository .gitignore for caches, local virtualenvs, IDE settings, and OS noise; verified required metrics/report/retro files are not ignored."
+      "notes": "Added repository .gitignore for caches, local virtualenvs, IDE settings, and OS noise; verified required metrics/report/retro files are not ignored.",
+      "task_type": "product",
+      "supersedes_task_id": null
     },
     {
       "task_id": "2026-03-29-005",
@@ -58,7 +102,9 @@
       "cost_usd": null,
       "tokens_total": null,
       "failure_reason": null,
-      "notes": "Expanded tests to cover missing stateful CLI behavior: required title on create, updating existing tasks without title, explicit timestamps, negative attempts, and report ordering; 15 tests passed and smoke flow validated."
+      "notes": "Expanded tests to cover missing stateful CLI behavior: required title on create, updating existing tasks without title, explicit timestamps, negative attempts, and report ordering; 15 tests passed and smoke flow validated.",
+      "task_type": "product",
+      "supersedes_task_id": null
     },
     {
       "task_id": "2026-03-29-006",
@@ -70,19 +116,23 @@
       "cost_usd": null,
       "tokens_total": null,
       "failure_reason": null,
-      "notes": "Added strict task-record validation, status/failure_reason and timestamp business rules, safe init with --force, concise CLI error messages, 22 passing tests, and sequential smoke validation for init/update/show."
+      "notes": "Added strict task-record validation, status/failure_reason and timestamp business rules, safe init with --force, concise CLI error messages, 22 passing tests, and sequential smoke validation for init/update/show.",
+      "task_type": "product",
+      "supersedes_task_id": null
     },
     {
       "task_id": "2026-03-29-007",
       "title": "Implement practical cost tracking workflow",
-      "status": "success",
+      "status": "fail",
       "attempts": 1,
       "started_at": "2026-03-29T09:01:23+00:00",
       "finished_at": "2026-03-29T09:05:24+00:00",
       "cost_usd": null,
       "tokens_total": null,
-      "failure_reason": null,
-      "notes": "Added pricing-based cost tracking from model + usage tokens, tracked pricing config, precise USD display, conflict validation, 27 passing tests, and smoke validation for init/update/show with calculated cost."
+      "failure_reason": "unclear_task",
+      "notes": "Initial pricing-only implementation was not accepted because it still depended on manual or semi-manual usage entry and did not satisfy the required fully automatic cost-tracking workflow.",
+      "task_type": "product",
+      "supersedes_task_id": null
     },
     {
       "task_id": "2026-03-29-008",
@@ -94,7 +144,9 @@
       "cost_usd": 0.638112,
       "tokens_total": 1359406,
       "failure_reason": null,
-      "notes": "Implemented fully automatic Codex usage ingestion from local SQLite telemetry, added sync-codex-usage backfill command, validated with 29 tests, and confirmed that current-task usage auto-populates when local response.completed events exist."
+      "notes": "Implemented fully automatic Codex usage ingestion from local SQLite telemetry, added sync-codex-usage backfill command, validated with 29 tests, and confirmed that current-task usage auto-populates when local response.completed events exist.",
+      "task_type": "product",
+      "supersedes_task_id": null
     },
     {
       "task_id": "2026-03-29-009",
@@ -106,7 +158,107 @@
       "cost_usd": null,
       "tokens_total": null,
       "failure_reason": null,
-      "notes": "Added a retrospective for the automatic usage sync milestone, verified 29 passing tests, and completed CLI smoke validation before creating the checkpoint commit."
+      "notes": "Added a retrospective for the automatic usage sync milestone, verified 29 passing tests, and completed CLI smoke validation before creating the checkpoint commit.",
+      "task_type": "retro",
+      "supersedes_task_id": null
+    },
+    {
+      "task_id": "2026-03-29-010",
+      "title": "Correct overstated success metrics for rejected pricing attempt",
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T09:20:00+00:00",
+      "finished_at": "2026-03-29T09:20:14+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Corrected the metrics history so the rejected pricing-only attempt is now recorded as fail, which restores an honest success rate and attempt-per-success summary.",
+      "task_type": "meta",
+      "supersedes_task_id": null
+    },
+    {
+      "task_id": "2026-03-29-011",
+      "title": "Audit metrics history for false successes and split tasks",
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T09:20:58+00:00",
+      "finished_at": "2026-03-29T09:21:27+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Audited the current metrics history. No additional false successes were found after correcting task 007, but two process risks remain: the original cost-tracking goal is still historically split across tasks 007 and 008, and the earliest repository commits predate the metrics workflow so they do not have corresponding task records.",
+      "task_type": "meta",
+      "supersedes_task_id": null
+    },
+    {
+      "task_id": "2026-03-29-012",
+      "title": "Add safe task merge command for split metrics history",
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T09:22:33+00:00",
+      "finished_at": "2026-03-29T09:24:42+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Added a safe merge-tasks command for recombining mistakenly split closed tasks, covered it with focused tests, and verified the full CLI flow with merge smoke validation.",
+      "task_type": "meta",
+      "supersedes_task_id": null
+    },
+    {
+      "task_id": "2026-03-29-013",
+      "title": "Run deep 5 Whys retrospective on metrics history issues",
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T09:26:02+00:00",
+      "finished_at": "2026-03-29T09:26:43+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Completed a deep 5 Whys retrospective on overstated success and split task boundaries, recorded root causes, and proposed solution options for discussion.",
+      "task_type": "retro",
+      "supersedes_task_id": null
+    },
+    {
+      "task_id": "2026-03-29-014",
+      "title": "Apply retrospective outcomes for task typing and separate reporting",
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T09:30:13+00:00",
+      "finished_at": "2026-03-29T09:33:48+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Applied retrospective outcomes by separating task types across product, retro, and meta work, updating policy and AGENTS, adding per-type reporting to the updater, and validating with tests plus CLI smoke.",
+      "task_type": "meta",
+      "supersedes_task_id": null
+    },
+    {
+      "task_id": "2026-03-29-015",
+      "title": "Require explicit task type for new tasks",
+      "task_type": "meta",
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T09:35:35+00:00",
+      "finished_at": "2026-03-29T09:37:23+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Required explicit task_type for new task creation, preserved existing-task updates, updated docs, and validated the new guardrail with 35 passing tests plus CLI smoke.",
+      "supersedes_task_id": null
+    },
+    {
+      "task_id": "2026-03-29-016",
+      "title": "Add continuation and supersession guardrails",
+      "task_type": "meta",
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T09:38:38+00:00",
+      "finished_at": "2026-03-29T09:40:40+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Added explicit linked-task guardrails via continuation or supersession references for newly created tasks, validated reference rules, updated reporting, and confirmed behavior with 39 passing tests plus CLI smoke.",
+      "supersedes_task_id": null
     }
   ]
 }

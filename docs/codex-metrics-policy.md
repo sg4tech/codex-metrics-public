@@ -78,6 +78,8 @@ Each task record must contain:
 
 - `task_id`
 - `title`
+- `task_type`
+- `supersedes_task_id`
 - `status`
 - `attempts`
 - `started_at`
@@ -86,6 +88,20 @@ Each task record must contain:
 - `tokens_total`
 - `failure_reason`
 - `notes`
+
+## Allowed task types
+
+- `product`
+- `retro`
+- `meta`
+
+Use:
+- `product` for product or engineering delivery
+- `retro` for retrospectives and retrospective writeups
+- `meta` for bookkeeping, audits, policy/tooling governance, and other support work that should not be mixed with product delivery metrics
+
+For new task records, `task_type` must always be set explicitly.
+If a new task intentionally continues or supersedes a prior closed task instead of remaining one task with more attempts, that relationship must be recorded explicitly.
 
 ## Allowed status values
 
@@ -124,8 +140,9 @@ If there is any mismatch, `metrics/codex_metrics.json` is the source of truth.
 Codex must:
 1. detect whether the work belongs to an existing open task or a new task
 2. create a new task record if needed
-3. set status to `in_progress`
-4. initialize attempts to `0`
+3. if a new task intentionally replaces or continues a prior closed task, record that link explicitly
+4. set status to `in_progress`
+5. initialize attempts to `0`
 
 ### On each attempt
 Codex must:
@@ -145,6 +162,10 @@ Codex must:
 ## Summary metrics
 
 The following summary metrics must be recalculated after every closed task.
+
+They must be available both:
+- overall
+- per `task_type`
 
 ### Success Rate
 Formula:
@@ -187,6 +208,7 @@ If `successes = 0` or token data is unavailable, set `cost_per_success_tokens = 
 At the end of each completed task, Codex must provide in its final response:
 
 - task status
+- task type
 - attempts for the task
 - current success rate
 - current attempts per success
@@ -204,6 +226,7 @@ A task is not done until all of the following are true:
 ## Anti-gaming rules
 
 - Do not split one coherent task into many tiny tasks just to inflate success rate.
+- Do not classify retrospective or bookkeeping work as product delivery.
 - Do not keep failed work as `in_progress` forever to hide failures.
 - Do not edit summary values directly without updating the underlying task records.
 - Do not mark a task as success if validation has not been completed.
@@ -230,7 +253,27 @@ A task is not done until all of the following are true:
     "success_rate": null,
     "attempts_per_success": null,
     "cost_per_success_usd": null,
-    "cost_per_success_tokens": null
+    "cost_per_success_tokens": null,
+    "by_task_type": {
+      "product": {},
+      "retro": {},
+      "meta": {}
+    }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "task_id": "2026-03-29-001",
+      "title": "Example task",
+      "task_type": "product",
+      "supersedes_task_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T09:00:00+00:00",
+      "finished_at": "2026-03-29T09:10:00+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Example task record"
+    }
+  ]
 }

@@ -34,14 +34,23 @@ Generated files:
 For every engineering task involving the metrics system:
 
 1. create or continue a task record
-2. update attempts on each new implementation pass
-3. update cost or tokens when available
-4. close the task as `success` or `fail`
-5. regenerate:
+2. set or confirm the task type:
+   - `product` for product or engineering delivery
+   - `retro` for retrospective analysis and retro writeups
+   - `meta` for bookkeeping, audits, process/tooling governance, and non-product support work
+   - for new tasks, always pass the task type explicitly
+   - if a new task intentionally continues or supersedes a prior closed task, link it explicitly with `--continuation-of` or `--supersedes-task-id`
+3. update attempts on each new implementation pass
+4. update cost or tokens when available
+5. close the task as `success` or `fail`
+6. regenerate:
    - `metrics/codex_metrics.json`
    - `docs/codex-metrics.md`
 
 Metrics bookkeeping is part of the definition of done.
+
+Retrospectives must not be mixed into product-delivery metrics without classification.
+Reports should make retrospective work and product-development work distinguishable.
 
 ## Script editing rules
 

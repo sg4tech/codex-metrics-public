@@ -154,6 +154,9 @@ def test_init_creates_files(repo: Path) -> None:
 
     data = read_json(metrics_path)
     assert data["summary"]["closed_tasks"] == 0
+    assert data["summary"]["by_task_type"]["product"]["closed_tasks"] == 0
+    assert data["summary"]["by_task_type"]["retro"]["closed_tasks"] == 0
+    assert data["summary"]["by_task_type"]["meta"]["closed_tasks"] == 0
     assert data["tasks"] == []
 
     report = report_path.read_text(encoding="utf-8")
@@ -192,6 +195,8 @@ def test_create_task_and_close_success(repo: Path) -> None:
         "task-001",
         "--title",
         "Add CSV import",
+        "--task-type",
+        "product",
     )
     assert create_res.returncode == 0, create_res.stderr
 
@@ -230,9 +235,12 @@ def test_create_task_and_close_success(repo: Path) -> None:
     assert data["summary"]["attempts_per_success"] == 1.0
     assert data["summary"]["cost_per_success_usd"] == 0.25
     assert data["summary"]["cost_per_success_tokens"] == 1000.0
+    assert data["summary"]["by_task_type"]["product"]["successes"] == 1
+    assert data["summary"]["by_task_type"]["retro"]["successes"] == 0
 
     task = data["tasks"][0]
     assert task["task_id"] == "task-001"
+    assert task["task_type"] == "product"
     assert task["status"] == "success"
     assert task["attempts"] == 1
     assert task["tokens_total"] == 1000
@@ -250,6 +258,8 @@ def test_update_can_compute_cost_from_model_pricing(repo: Path) -> None:
         "priced-task",
         "--title",
         "Priced task",
+        "--task-type",
+        "product",
         "--attempts-delta",
         "1",
         "--model",
@@ -285,6 +295,8 @@ def test_update_can_auto_sync_cost_and_tokens_from_codex_logs(repo: Path) -> Non
         "auto-usage",
         "--title",
         "Auto usage",
+        "--task-type",
+        "product",
         "--status",
         "success",
         "--started-at",
@@ -315,6 +327,8 @@ def test_close_fail_updates_summary(repo: Path) -> None:
         "task-002",
         "--title",
         "Refactor auth flow",
+        "--task-type",
+        "product",
     ).returncode == 0
 
     assert run_cmd(
@@ -349,7 +363,7 @@ def test_close_fail_updates_summary(repo: Path) -> None:
 def test_multiple_tasks_summary(repo: Path) -> None:
     assert run_cmd(repo, "init").returncode == 0
 
-    assert run_cmd(repo, "update", "--task-id", "t1", "--title", "Task 1").returncode == 0
+    assert run_cmd(repo, "update", "--task-id", "t1", "--title", "Task 1", "--task-type", "product").returncode == 0
     assert run_cmd(repo, "update", "--task-id", "t1", "--attempts-delta", "2").returncode == 0
     assert run_cmd(
         repo,
@@ -364,7 +378,7 @@ def test_multiple_tasks_summary(repo: Path) -> None:
         "0.50",
     ).returncode == 0
 
-    assert run_cmd(repo, "update", "--task-id", "t2", "--title", "Task 2").returncode == 0
+    assert run_cmd(repo, "update", "--task-id", "t2", "--title", "Task 2", "--task-type", "product").returncode == 0
     assert run_cmd(
         repo,
         "update",
@@ -389,11 +403,13 @@ def test_multiple_tasks_summary(repo: Path) -> None:
     assert summary["attempts_per_success"] == 6.0
     assert summary["cost_per_success_usd"] == 0.5
     assert summary["cost_per_success_tokens"] == 500.0
+    assert summary["by_task_type"]["product"]["closed_tasks"] == 2
+    assert summary["by_task_type"]["product"]["fails"] == 1
 
 
 def test_invalid_failure_reason_fails(repo: Path) -> None:
     assert run_cmd(repo, "init").returncode == 0
-    assert run_cmd(repo, "update", "--task-id", "t3", "--title", "Task 3").returncode == 0
+    assert run_cmd(repo, "update", "--task-id", "t3", "--title", "Task 3", "--task-type", "product").returncode == 0
 
     result = run_cmd(
         repo,
@@ -416,6 +432,8 @@ def test_unknown_pricing_model_fails(repo: Path) -> None:
         "unknown-model",
         "--title",
         "Unknown model",
+        "--task-type",
+        "product",
         "--model",
         "not-a-model",
         "--input-tokens",
@@ -437,6 +455,22 @@ def test_new_task_requires_title(repo: Path) -> None:
     assert "title is required when creating a new task" in result.stderr
 
 
+def test_new_task_requires_task_type(repo: Path) -> None:
+    assert run_cmd(repo, "init").returncode == 0
+
+    result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "missing-task-type",
+        "--title",
+        "Missing task type",
+    )
+
+    assert result.returncode != 0
+    assert "task_type is required when creating a new task" in result.stderr
+
+
 def test_pricing_usage_cannot_mix_with_explicit_cost_or_tokens(repo: Path) -> None:
     assert run_cmd(repo, "init", "--force").returncode == 0
 
@@ -447,6 +481,8 @@ def test_pricing_usage_cannot_mix_with_explicit_cost_or_tokens(repo: Path) -> No
         "mixed-pricing",
         "--title",
         "Mixed pricing",
+        "--task-type",
+        "product",
         "--model",
         "gpt-5",
         "--input-tokens",
@@ -471,6 +507,8 @@ def test_cached_tokens_require_cached_rate_support(repo: Path) -> None:
         "cached-pro",
         "--title",
         "Cached Pro",
+        "--task-type",
+        "product",
         "--model",
         "gpt-5-pro",
         "--cached-input-tokens",
@@ -504,6 +542,8 @@ def test_existing_task_can_be_updated_without_title_and_keeps_started_at(repo: P
         "task-with-times",
         "--title",
         "Task with timestamps",
+        "--task-type",
+        "product",
         "--started-at",
         started_at,
     )
@@ -542,6 +582,8 @@ def test_finished_at_cannot_be_before_started_at(repo: Path) -> None:
         "bad-times",
         "--title",
         "Bad Times",
+        "--task-type",
+        "product",
         "--started-at",
         "2026-03-29T09:10:00+00:00",
         "--finished-at",
@@ -564,6 +606,8 @@ def test_invalid_timestamp_format_fails(repo: Path) -> None:
         "bad-timestamp",
         "--title",
         "Bad Timestamp",
+        "--task-type",
+        "product",
         "--started-at",
         "not-a-timestamp",
     )
@@ -574,7 +618,7 @@ def test_invalid_timestamp_format_fails(repo: Path) -> None:
 
 def test_fail_status_requires_failure_reason(repo: Path) -> None:
     assert run_cmd(repo, "init").returncode == 0
-    assert run_cmd(repo, "update", "--task-id", "must-fail", "--title", "Must Fail").returncode == 0
+    assert run_cmd(repo, "update", "--task-id", "must-fail", "--title", "Must Fail", "--task-type", "product").returncode == 0
 
     result = run_cmd(repo, "update", "--task-id", "must-fail", "--status", "fail")
 
@@ -584,7 +628,7 @@ def test_fail_status_requires_failure_reason(repo: Path) -> None:
 
 def test_success_status_clears_existing_failure_reason(repo: Path) -> None:
     assert run_cmd(repo, "init").returncode == 0
-    assert run_cmd(repo, "update", "--task-id", "recover", "--title", "Recover Task").returncode == 0
+    assert run_cmd(repo, "update", "--task-id", "recover", "--title", "Recover Task", "--task-type", "product").returncode == 0
     assert run_cmd(
         repo,
         "update",
@@ -612,7 +656,7 @@ def test_success_status_clears_existing_failure_reason(repo: Path) -> None:
 )
 def test_negative_attempt_values_fail(repo: Path, flag: str, value: str) -> None:
     assert run_cmd(repo, "init").returncode == 0
-    assert run_cmd(repo, "update", "--task-id", "attempt-task", "--title", "Attempt Task").returncode == 0
+    assert run_cmd(repo, "update", "--task-id", "attempt-task", "--title", "Attempt Task", "--task-type", "product").returncode == 0
 
     result = run_cmd(repo, "update", "--task-id", "attempt-task", flag, value)
 
@@ -630,7 +674,7 @@ def test_negative_attempt_values_fail(repo: Path, flag: str, value: str) -> None
 )
 def test_negative_cost_and_token_values_fail(repo: Path, flag: str, value: str) -> None:
     assert run_cmd(repo, "init").returncode == 0
-    assert run_cmd(repo, "update", "--task-id", "t4", "--title", "Task 4").returncode == 0
+    assert run_cmd(repo, "update", "--task-id", "t4", "--title", "Task 4", "--task-type", "product").returncode == 0
 
     result = run_cmd(repo, "update", "--task-id", "t4", flag, value)
 
@@ -643,6 +687,247 @@ def test_show_command(repo: Path) -> None:
     assert result.returncode == 0
     assert "Codex Metrics Summary" in result.stdout
     assert "Closed tasks: 0" in result.stdout
+    assert "Product tasks: 0 closed, 0 successes, 0 fails" in result.stdout
+
+
+def test_task_type_can_be_set_to_retro_and_is_reported_separately(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+
+    result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "retro-task",
+        "--title",
+        "Write retro",
+        "--task-type",
+        "retro",
+        "--status",
+        "success",
+    )
+    assert result.returncode == 0, result.stderr
+
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    task = data["tasks"][0]
+    assert task["task_type"] == "retro"
+    assert data["summary"]["by_task_type"]["retro"]["closed_tasks"] == 1
+    assert data["summary"]["by_task_type"]["retro"]["successes"] == 1
+    assert data["summary"]["by_task_type"]["product"]["closed_tasks"] == 0
+
+    report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
+    assert "### retro" in report
+    assert "- Task type: retro" in report
+
+
+def test_new_task_can_link_to_closed_previous_task(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "original-task",
+        "--title",
+        "Original task",
+        "--task-type",
+        "product",
+        "--status",
+        "fail",
+        "--attempts",
+        "1",
+        "--failure-reason",
+        "validation_failed",
+    ).returncode == 0
+
+    result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "followup-task",
+        "--title",
+        "Follow-up task",
+        "--task-type",
+        "product",
+        "--continuation-of",
+        "original-task",
+        "--status",
+        "success",
+        "--attempts-delta",
+        "1",
+    )
+
+    assert result.returncode == 0, result.stderr
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    followup_task = next(task for task in data["tasks"] if task["task_id"] == "followup-task")
+    assert followup_task["supersedes_task_id"] == "original-task"
+
+    report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
+    assert "- Supersedes task: original-task" in report
+
+
+def test_new_task_can_use_supersedes_alias(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "base-task",
+        "--title",
+        "Base task",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+    ).returncode == 0
+
+    result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "replacement-task",
+        "--title",
+        "Replacement task",
+        "--task-type",
+        "product",
+        "--supersedes-task-id",
+        "base-task",
+    )
+
+    assert result.returncode == 0, result.stderr
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    replacement_task = next(task for task in data["tasks"] if task["task_id"] == "replacement-task")
+    assert replacement_task["supersedes_task_id"] == "base-task"
+
+
+def test_linked_new_task_requires_existing_closed_reference(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+
+    missing_result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "missing-link",
+        "--title",
+        "Missing link",
+        "--task-type",
+        "product",
+        "--continuation-of",
+        "no-such-task",
+    )
+    assert missing_result.returncode != 0
+    assert "Referenced task not found" in missing_result.stderr
+
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "open-task",
+        "--title",
+        "Open task",
+        "--task-type",
+        "product",
+    ).returncode == 0
+
+    open_result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "bad-link",
+        "--title",
+        "Bad link",
+        "--task-type",
+        "product",
+        "--continuation-of",
+        "open-task",
+    )
+    assert open_result.returncode != 0
+    assert "must refer to a closed task" in open_result.stderr
+
+
+def test_link_flags_cannot_be_used_when_updating_existing_task(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "existing-task",
+        "--title",
+        "Existing task",
+        "--task-type",
+        "product",
+    ).returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "closed-task",
+        "--title",
+        "Closed task",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+    ).returncode == 0
+
+    result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "existing-task",
+        "--continuation-of",
+        "closed-task",
+    )
+
+    assert result.returncode != 0
+    assert "can only be set when creating a new task" in result.stderr
+
+
+def test_legacy_metrics_without_task_type_are_normalized(repo: Path) -> None:
+    metrics_path = repo / "metrics" / "codex_metrics.json"
+    metrics_path.write_text(
+        json.dumps(
+            {
+                "summary": {
+                    "closed_tasks": 1,
+                    "successes": 1,
+                    "fails": 0,
+                    "total_attempts": 1,
+                    "total_cost_usd": 0.0,
+                    "total_tokens": 0,
+                    "success_rate": 1.0,
+                    "attempts_per_success": 1.0,
+                    "cost_per_success_usd": None,
+                    "cost_per_success_tokens": None,
+                },
+                "tasks": [
+                    {
+                        "task_id": "legacy-task",
+                        "title": "Legacy task",
+                        "status": "success",
+                        "attempts": 1,
+                        "started_at": "2026-03-29T09:00:00+00:00",
+                        "finished_at": "2026-03-29T09:01:00+00:00",
+                        "cost_usd": None,
+                        "tokens_total": None,
+                        "failure_reason": None,
+                        "notes": "Old file without task_type",
+                        "supersedes_task_id": None,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = run_cmd(repo, "show")
+
+    assert result.returncode == 0, result.stderr
+    assert "Product tasks: 1 closed, 1 successes, 0 fails" in result.stdout
+
+    update_result = run_cmd(repo, "update", "--task-id", "legacy-task", "--notes", "Normalized")
+    assert update_result.returncode == 0, update_result.stderr
+    data = read_json(metrics_path)
+    assert data["tasks"][0]["task_type"] == "product"
+    assert data["tasks"][0]["supersedes_task_id"] is None
 
 
 def test_show_preserves_small_usd_precision(repo: Path) -> None:
@@ -654,6 +939,8 @@ def test_show_preserves_small_usd_precision(repo: Path) -> None:
         "precision-task",
         "--title",
         "Precision Task",
+        "--task-type",
+        "product",
         "--status",
         "success",
         "--model",
@@ -683,6 +970,8 @@ def test_sync_codex_usage_backfills_existing_tasks(repo: Path) -> None:
         "backfill-task",
         "--title",
         "Backfill Task",
+        "--task-type",
+        "product",
         "--status",
         "success",
         "--started-at",
@@ -711,6 +1000,176 @@ def test_sync_codex_usage_backfills_existing_tasks(repo: Path) -> None:
     assert task["cost_usd"] == 0.006263
 
 
+def test_merge_tasks_combines_attempt_history_into_kept_task(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "task-a",
+        "--title",
+        "Original task",
+        "--task-type",
+        "product",
+        "--status",
+        "fail",
+        "--attempts",
+        "1",
+        "--started-at",
+        "2026-03-29T09:00:00+00:00",
+        "--finished-at",
+        "2026-03-29T09:05:00+00:00",
+        "--failure-reason",
+        "validation_failed",
+        "--notes",
+        "First attempt failed",
+    ).returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "task-b",
+        "--title",
+        "Replacement task",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+        "--attempts",
+        "1",
+        "--started-at",
+        "2026-03-29T09:06:00+00:00",
+        "--finished-at",
+        "2026-03-29T09:10:00+00:00",
+        "--cost-usd",
+        "0.25",
+        "--tokens",
+        "1000",
+        "--notes",
+        "Second attempt succeeded",
+    ).returncode == 0
+
+    result = run_cmd(
+        repo,
+        "merge-tasks",
+        "--keep-task-id",
+        "task-b",
+        "--drop-task-id",
+        "task-a",
+    )
+
+    assert result.returncode == 0, result.stderr
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    assert len(data["tasks"]) == 1
+    task = data["tasks"][0]
+
+    assert task["task_id"] == "task-b"
+    assert task["status"] == "success"
+    assert task["attempts"] == 2
+    assert task["started_at"] == "2026-03-29T09:00:00+00:00"
+    assert task["finished_at"] == "2026-03-29T09:10:00+00:00"
+    assert task["failure_reason"] is None
+    assert "Merged task-a into task-b" in task["notes"]
+    assert data["summary"]["closed_tasks"] == 1
+    assert data["summary"]["successes"] == 1
+    assert data["summary"]["fails"] == 0
+    assert data["summary"]["total_attempts"] == 2
+    assert data["summary"]["success_rate"] == 1.0
+    assert data["summary"]["attempts_per_success"] == 2.0
+
+
+def test_merge_tasks_keeps_cost_unknown_when_dropped_task_cost_is_missing(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "task-a",
+        "--title",
+        "Failed task",
+        "--task-type",
+        "product",
+        "--status",
+        "fail",
+        "--attempts",
+        "1",
+        "--started-at",
+        "2026-03-29T09:00:00+00:00",
+        "--finished-at",
+        "2026-03-29T09:05:00+00:00",
+        "--failure-reason",
+        "validation_failed",
+    ).returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "task-b",
+        "--title",
+        "Successful task",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+        "--attempts",
+        "1",
+        "--started-at",
+        "2026-03-29T09:06:00+00:00",
+        "--finished-at",
+        "2026-03-29T09:10:00+00:00",
+        "--cost-usd",
+        "0.25",
+        "--tokens",
+        "1000",
+    ).returncode == 0
+
+    result = run_cmd(
+        repo,
+        "merge-tasks",
+        "--keep-task-id",
+        "task-b",
+        "--drop-task-id",
+        "task-a",
+    )
+
+    assert result.returncode == 0, result.stderr
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    task = data["tasks"][0]
+    assert task["cost_usd"] is None
+    assert task["tokens_total"] is None
+    assert data["summary"]["cost_per_success_usd"] is None
+    assert data["summary"]["cost_per_success_tokens"] is None
+
+
+def test_merge_tasks_rejects_in_progress_tasks(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+    assert run_cmd(repo, "update", "--task-id", "task-a", "--title", "Open task", "--task-type", "product").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "task-b",
+        "--title",
+        "Closed task",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+    ).returncode == 0
+
+    result = run_cmd(
+        repo,
+        "merge-tasks",
+        "--keep-task-id",
+        "task-b",
+        "--drop-task-id",
+        "task-a",
+    )
+
+    assert result.returncode != 0
+    assert "only closed tasks can be merged" in result.stderr
+
+
 def test_report_sorts_tasks_by_started_at_descending(repo: Path) -> None:
     assert run_cmd(repo, "init").returncode == 0
 
@@ -721,6 +1180,8 @@ def test_report_sorts_tasks_by_started_at_descending(repo: Path) -> None:
         "older",
         "--title",
         "Older task",
+        "--task-type",
+        "product",
         "--started-at",
         "2026-03-29T08:00:00+00:00",
         "--status",
@@ -734,6 +1195,8 @@ def test_report_sorts_tasks_by_started_at_descending(repo: Path) -> None:
         "newer",
         "--title",
         "Newer task",
+        "--task-type",
+        "product",
         "--started-at",
         "2026-03-29T09:00:00+00:00",
         "--status",

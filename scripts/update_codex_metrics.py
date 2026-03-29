@@ -21,6 +21,7 @@ CODEX_LOGS_PATH = Path.home() / ".codex" / "logs_1.sqlite"
 
 
 ALLOWED_STATUSES = {"in_progress", "success", "fail"}
+ALLOWED_TASK_TYPES = {"product", "retro", "meta"}
 ALLOWED_FAILURE_REASONS = {
     "unclear_task",
     "missing_context",
@@ -37,6 +38,8 @@ ALLOWED_FAILURE_REASONS = {
 class TaskRecord:
     task_id: str
     title: str
+    task_type: str
+    supersedes_task_id: str | None
     status: str
     attempts: int
     started_at: str | None
@@ -72,20 +75,29 @@ def ensure_parent_dir(path: Path) -> None:
 
 def default_metrics() -> dict[str, Any]:
     return {
-        "summary": {
-            "closed_tasks": 0,
-            "successes": 0,
-            "fails": 0,
-            "total_attempts": 0,
-            "total_cost_usd": 0.0,
-            "total_tokens": 0,
-            "success_rate": None,
-            "attempts_per_success": None,
-            "cost_per_success_usd": None,
-            "cost_per_success_tokens": None,
-        },
+        "summary": empty_summary_block(include_by_task_type=True),
         "tasks": [],
     }
+
+
+def empty_summary_block(include_by_task_type: bool = False) -> dict[str, Any]:
+    summary = {
+        "closed_tasks": 0,
+        "successes": 0,
+        "fails": 0,
+        "total_attempts": 0,
+        "total_cost_usd": 0.0,
+        "total_tokens": 0,
+        "success_rate": None,
+        "attempts_per_success": None,
+        "cost_per_success_usd": None,
+        "cost_per_success_tokens": None,
+    }
+    if include_by_task_type:
+        summary["by_task_type"] = {
+            task_type: empty_summary_block(include_by_task_type=False) for task_type in sorted(ALLOWED_TASK_TYPES)
+        }
+    return summary
 
 
 def round_usd(value: Decimal | float) -> float:
@@ -113,6 +125,8 @@ def validate_task_record(task: dict[str, Any]) -> None:
     required_fields = {
         "task_id": str,
         "title": str,
+        "task_type": str,
+        "supersedes_task_id": (str, type(None)),
         "status": str,
         "attempts": int,
         "started_at": (str, type(None)),
@@ -134,6 +148,7 @@ def validate_task_record(task: dict[str, Any]) -> None:
     if not task["title"].strip():
         raise ValueError("title cannot be empty")
 
+    validate_task_type(task["task_type"])
     validate_status(task["status"])
     validate_non_negative_int(task["attempts"], "attempts")
 
@@ -163,6 +178,17 @@ def validate_metrics_data(data: dict[str, Any], path: Path) -> None:
         if task_id in task_ids:
             raise ValueError(f"Duplicate task_id found: {task_id}")
         task_ids.add(task_id)
+
+
+def normalize_legacy_metrics_data(data: dict[str, Any]) -> None:
+    tasks = data.get("tasks")
+    if not isinstance(tasks, list):
+        return
+    for task in tasks:
+        if isinstance(task, dict) and "task_type" not in task:
+            task["task_type"] = "product"
+        if isinstance(task, dict) and "supersedes_task_id" not in task:
+            task["supersedes_task_id"] = None
 
 
 def load_pricing(path: Path) -> dict[str, dict[str, float | None]]:
@@ -387,6 +413,7 @@ def load_metrics(path: Path) -> dict[str, Any]:
         return default_metrics()
     with path.open("r", encoding="utf-8") as f:
         data = json.load(f)
+    normalize_legacy_metrics_data(data)
     validate_metrics_data(data, path)
     return data
 
@@ -401,6 +428,11 @@ def save_metrics(path: Path, data: dict[str, Any]) -> None:
 def validate_status(status: str) -> None:
     if status not in ALLOWED_STATUSES:
         raise ValueError(f"Invalid status: {status}. Allowed: {sorted(ALLOWED_STATUSES)}")
+
+
+def validate_task_type(task_type: str) -> None:
+    if task_type not in ALLOWED_TASK_TYPES:
+        raise ValueError(f"Invalid task type: {task_type}. Allowed: {sorted(ALLOWED_TASK_TYPES)}")
 
 
 def validate_failure_reason(reason: str | None) -> None:
@@ -448,6 +480,11 @@ def get_task_index(tasks: list[dict[str, Any]], task_id: str) -> int | None:
     return None
 
 
+def get_task(tasks: list[dict[str, Any]], task_id: str) -> dict[str, Any] | None:
+    task_index = get_task_index(tasks, task_id)
+    return None if task_index is None else tasks[task_index]
+
+
 def format_pct(value: float | None) -> str:
     return "n/a" if value is None else f"{value * 100:.2f}%"
 
@@ -472,9 +509,63 @@ def format_usd(value: float | None) -> str:
     return formatted
 
 
-def recompute_summary(data: dict[str, Any]) -> None:
-    tasks: list[dict[str, Any]] = data["tasks"]
+def choose_earliest_timestamp(first: str | None, second: str | None) -> str | None:
+    if first is None:
+        return second
+    if second is None:
+        return first
+    return first if parse_iso_datetime(first, "timestamp") <= parse_iso_datetime(second, "timestamp") else second
 
+
+def choose_latest_timestamp(first: str | None, second: str | None) -> str | None:
+    if first is None:
+        return second
+    if second is None:
+        return first
+    return first if parse_iso_datetime(first, "timestamp") >= parse_iso_datetime(second, "timestamp") else second
+
+
+def combine_optional_cost(first: float | None, second: float | None) -> float | None:
+    if first is None or second is None:
+        return None
+    return round_usd(first + second)
+
+
+def combine_optional_tokens(first: int | None, second: int | None) -> int | None:
+    if first is None or second is None:
+        return None
+    return first + second
+
+
+def build_merged_notes(kept_task: dict[str, Any], dropped_task: dict[str, Any]) -> str:
+    notes_parts = [part for part in (kept_task.get("notes"), dropped_task.get("notes")) if part]
+    notes_parts.append(
+        f"Merged {dropped_task['task_id']} into {kept_task['task_id']} to recombine split task history."
+    )
+    return " | ".join(notes_parts)
+
+
+def resolve_linked_task_reference(
+    tasks: list[dict[str, Any]],
+    continuation_of: str | None,
+    supersedes_task_id: str | None,
+    creating_new_task: bool,
+) -> str | None:
+    linked_task_id = continuation_of or supersedes_task_id
+    if linked_task_id is None:
+        return None
+    if not creating_new_task:
+        raise ValueError("continuation or supersession links can only be set when creating a new task")
+
+    linked_task = get_task(tasks, linked_task_id)
+    if linked_task is None:
+        raise ValueError(f"Referenced task not found: {linked_task_id}")
+    if linked_task["status"] not in {"success", "fail"}:
+        raise ValueError("continuation or supersession must refer to a closed task")
+    return linked_task_id
+
+
+def compute_summary_block(tasks: list[dict[str, Any]]) -> dict[str, Any]:
     closed_tasks = [t for t in tasks if t["status"] in {"success", "fail"}]
     successes = [t for t in closed_tasks if t["status"] == "success"]
     fails = [t for t in closed_tasks if t["status"] == "fail"]
@@ -504,7 +595,7 @@ def recompute_summary(data: dict[str, Any]) -> None:
         else None
     )
 
-    data["summary"] = {
+    return {
         "closed_tasks": len(closed_tasks),
         "successes": len(successes),
         "fails": len(fails),
@@ -516,6 +607,16 @@ def recompute_summary(data: dict[str, Any]) -> None:
         "cost_per_success_usd": round_usd(cost_per_success_usd) if cost_per_success_usd is not None else None,
         "cost_per_success_tokens": cost_per_success_tokens,
     }
+
+
+def recompute_summary(data: dict[str, Any]) -> None:
+    tasks: list[dict[str, Any]] = data["tasks"]
+    summary = compute_summary_block(tasks)
+    summary["by_task_type"] = {
+        task_type: compute_summary_block([task for task in tasks if task.get("task_type") == task_type])
+        for task_type in sorted(ALLOWED_TASK_TYPES)
+    }
+    data["summary"] = summary
 
 
 def generate_report_md(data: dict[str, Any]) -> str:
@@ -538,9 +639,35 @@ def generate_report_md(data: dict[str, Any]) -> str:
         f"- Cost per Success (USD): {format_usd(summary['cost_per_success_usd'])}",
         f"- Cost per Success (Tokens): {format_num(summary['cost_per_success_tokens'])}",
         "",
-        "## Task log",
+        "## By task type",
         "",
     ]
+
+    for task_type in ("product", "retro", "meta"):
+        type_summary = summary["by_task_type"][task_type]
+        lines.extend(
+            [
+                f"### {task_type}",
+                f"- Closed tasks: {type_summary['closed_tasks']}",
+                f"- Successes: {type_summary['successes']}",
+                f"- Fails: {type_summary['fails']}",
+                f"- Total attempts: {type_summary['total_attempts']}",
+                f"- Total cost (USD): {format_usd(type_summary['total_cost_usd'])}",
+                f"- Total tokens: {type_summary['total_tokens']}",
+                f"- Success Rate: {format_pct(type_summary['success_rate'])}",
+                f"- Attempts per Success: {format_num(type_summary['attempts_per_success'])}",
+                f"- Cost per Success (USD): {format_usd(type_summary['cost_per_success_usd'])}",
+                f"- Cost per Success (Tokens): {format_num(type_summary['cost_per_success_tokens'])}",
+                "",
+            ]
+        )
+
+    lines.extend(
+        [
+            "## Task log",
+            "",
+        ]
+    )
 
     if not tasks:
         lines.append("_No tasks recorded yet._")
@@ -551,6 +678,8 @@ def generate_report_md(data: dict[str, Any]) -> str:
         lines.extend(
             [
                 f"### {task['task_id']} — {task['title']}",
+                f"- Task type: {task['task_type']}",
+                f"- Supersedes task: {task.get('supersedes_task_id') or 'n/a'}",
                 f"- Status: {task['status']}",
                 f"- Attempts: {task['attempts']}",
                 f"- Started at: {task['started_at'] or 'n/a'}",
@@ -589,6 +718,9 @@ def upsert_task(
     data: dict[str, Any],
     task_id: str,
     title: str | None,
+    task_type: str | None,
+    continuation_of: str | None,
+    supersedes_task_id: str | None,
     status: str | None,
     attempts_delta: int | None,
     attempts_abs: int | None,
@@ -612,13 +744,29 @@ def upsert_task(
 ) -> dict[str, Any]:
     tasks: list[dict[str, Any]] = data["tasks"]
     task_index = get_task_index(tasks, task_id)
+    linked_task_id = resolve_linked_task_reference(
+        tasks=tasks,
+        continuation_of=continuation_of,
+        supersedes_task_id=supersedes_task_id,
+        creating_new_task=task_index is None,
+    )
 
     if task_index is None:
         if title is None:
             raise ValueError("title is required when creating a new task")
+        if task_type is None:
+            raise ValueError("task_type is required when creating a new task")
+        resolved_task_type = task_type
+        validate_task_type(resolved_task_type)
+        if linked_task_id is not None:
+            linked_task = get_task(tasks, linked_task_id)
+            if linked_task is not None and linked_task["task_type"] != resolved_task_type:
+                raise ValueError("linked tasks must use the same task_type")
         task = TaskRecord(
             task_id=task_id,
             title=title,
+            task_type=resolved_task_type,
+            supersedes_task_id=linked_task_id,
             status="in_progress",
             attempts=0,
             started_at=started_at or now_utc_iso(),
@@ -660,6 +808,9 @@ def upsert_task(
         if not title.strip():
             raise ValueError("title cannot be empty")
         task["title"] = title
+    if task_type is not None:
+        validate_task_type(task_type)
+        task["task_type"] = task_type
     if status is not None:
         validate_status(status)
         task["status"] = status
@@ -737,6 +888,10 @@ def build_parser() -> argparse.ArgumentParser:
     update_parser = subparsers.add_parser("update", help="Create or update a task")
     update_parser.add_argument("--task-id", required=True)
     update_parser.add_argument("--title")
+    update_parser.add_argument("--task-type", choices=sorted(ALLOWED_TASK_TYPES))
+    linked_task_group = update_parser.add_mutually_exclusive_group()
+    linked_task_group.add_argument("--continuation-of")
+    linked_task_group.add_argument("--supersedes-task-id")
     update_parser.add_argument("--status", choices=sorted(ALLOWED_STATUSES))
     update_parser.add_argument("--attempts-delta", type=int)
     update_parser.add_argument("--attempts", type=int)
@@ -770,6 +925,12 @@ def build_parser() -> argparse.ArgumentParser:
     sync_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
     sync_parser.add_argument("--codex-thread-id")
 
+    merge_parser = subparsers.add_parser("merge-tasks", help="Merge a dropped split task into a kept task")
+    merge_parser.add_argument("--keep-task-id", required=True)
+    merge_parser.add_argument("--drop-task-id", required=True)
+    merge_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
+    merge_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
+
     return parser
 
 
@@ -786,6 +947,9 @@ def print_summary(data: dict[str, Any]) -> None:
     print(f"Attempts per Success: {format_num(summary['attempts_per_success'])}")
     print(f"Cost per Success (USD): {format_usd(summary['cost_per_success_usd'])}")
     print(f"Cost per Success (Tokens): {format_num(summary['cost_per_success_tokens'])}")
+    for task_type in ("product", "retro", "meta"):
+        type_summary = summary["by_task_type"][task_type]
+        print(f"{task_type.title()} tasks: {type_summary['closed_tasks']} closed, {type_summary['successes']} successes, {type_summary['fails']} fails")
 
 
 def sync_codex_usage(
@@ -821,6 +985,42 @@ def sync_codex_usage(
             validate_task_record(task)
             updated_tasks += 1
     return updated_tasks
+
+
+def merge_tasks(data: dict[str, Any], keep_task_id: str, drop_task_id: str) -> dict[str, Any]:
+    if keep_task_id == drop_task_id:
+        raise ValueError("keep_task_id and drop_task_id must be different")
+
+    tasks: list[dict[str, Any]] = data["tasks"]
+    keep_index = get_task_index(tasks, keep_task_id)
+    drop_index = get_task_index(tasks, drop_task_id)
+    if keep_index is None:
+        raise ValueError(f"Task not found: {keep_task_id}")
+    if drop_index is None:
+        raise ValueError(f"Task not found: {drop_task_id}")
+
+    kept_task = tasks[keep_index]
+    dropped_task = tasks[drop_index]
+    if kept_task["status"] not in {"success", "fail"} or dropped_task["status"] not in {"success", "fail"}:
+        raise ValueError("only closed tasks can be merged")
+
+    kept_task["attempts"] = int(kept_task["attempts"]) + int(dropped_task["attempts"])
+    kept_task["started_at"] = choose_earliest_timestamp(kept_task.get("started_at"), dropped_task.get("started_at"))
+    kept_task["finished_at"] = choose_latest_timestamp(kept_task.get("finished_at"), dropped_task.get("finished_at"))
+    kept_task["cost_usd"] = combine_optional_cost(kept_task.get("cost_usd"), dropped_task.get("cost_usd"))
+    kept_task["tokens_total"] = combine_optional_tokens(kept_task.get("tokens_total"), dropped_task.get("tokens_total"))
+    kept_task["notes"] = build_merged_notes(kept_task, dropped_task)
+    if kept_task.get("supersedes_task_id") is None:
+        kept_task["supersedes_task_id"] = dropped_task.get("supersedes_task_id")
+
+    if kept_task["status"] == "success":
+        kept_task["failure_reason"] = None
+    elif kept_task.get("failure_reason") is None:
+        kept_task["failure_reason"] = dropped_task.get("failure_reason")
+
+    validate_task_record(kept_task)
+    del tasks[drop_index]
+    return kept_task
 
 
 def main() -> int:
@@ -863,6 +1063,24 @@ def main() -> int:
         print_summary(data)
         return 0
 
+    if args.command == "merge-tasks":
+        metrics_path = Path(args.metrics_path)
+        report_path = Path(args.report_path)
+        data = load_metrics(metrics_path)
+        task = merge_tasks(
+            data=data,
+            keep_task_id=args.keep_task_id,
+            drop_task_id=args.drop_task_id,
+        )
+        recompute_summary(data)
+        save_metrics(metrics_path, data)
+        save_report(report_path, data)
+        print(f"Merged task {args.drop_task_id} into {args.keep_task_id}")
+        print(f"Status: {task['status']}")
+        print(f"Attempts: {task['attempts']}")
+        print_summary(data)
+        return 0
+
     if args.command == "update":
         metrics_path = Path(args.metrics_path)
         report_path = Path(args.report_path)
@@ -875,6 +1093,9 @@ def main() -> int:
             data=data,
             task_id=args.task_id,
             title=args.title,
+            task_type=args.task_type,
+            continuation_of=args.continuation_of,
+            supersedes_task_id=args.supersedes_task_id,
             status=args.status,
             attempts_delta=args.attempts_delta,
             attempts_abs=args.attempts,
