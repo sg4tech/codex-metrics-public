@@ -104,6 +104,9 @@ Each entry record must contain:
 - `failure_reason`
 - `notes`
 
+Entries are attempt-history records.
+They must not be treated as a mirrored copy of final goal state when the goal has multiple attempts.
+
 ## Allowed goal types
 
 - `product`
@@ -168,6 +171,7 @@ Codex must:
 2. update notes if useful
 3. update partial cost if available
 4. record the dominant failure reason if the attempt did not succeed
+5. append or update attempt-history entry data so entry-level reporting remains diagnostic
 
 ### On goal completion
 Codex must:
@@ -199,16 +203,16 @@ Where:
 
 If `closed_goals = 0`, set `success_rate = null`.
 
-### Attempts per Success
+### Attempts per Closed Goal
 Formula:
 
-`attempts_per_success = total_attempts / successes`
+`attempts_per_closed_task = total_attempts / closed_goals`
 
 Where:
 - `total_attempts` = sum of attempts across closed effective goals
-- `successes` = number of successful effective goals
+- `closed_goals` = number of effective goals with status `success` or `fail`
 
-If `successes = 0`, set `attempts_per_success = null`.
+If `closed_goals = 0`, set `attempts_per_closed_task = null`.
 
 ### Cost per Success (USD)
 Formula:
@@ -232,7 +236,7 @@ At the end of each completed task, Codex must provide in its final response:
 - goal type
 - attempts for the goal
 - current success rate
-- current attempts per success
+- current attempts per closed goal
 - current cost per success if available
 
 ## Definition of done
@@ -272,7 +276,7 @@ A task is not done until all of the following are true:
     "total_cost_usd": 0,
     "total_tokens": 0,
     "success_rate": null,
-    "attempts_per_success": null,
+    "attempts_per_closed_task": null,
     "cost_per_success_usd": null,
     "cost_per_success_tokens": null,
     "by_task_type": {

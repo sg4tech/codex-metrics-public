@@ -254,7 +254,7 @@ def test_create_task_and_close_success(repo: Path) -> None:
     assert data["summary"]["fails"] == 0
     assert data["summary"]["total_attempts"] == 1
     assert data["summary"]["success_rate"] == 1.0
-    assert data["summary"]["attempts_per_success"] == 1.0
+    assert data["summary"]["attempts_per_closed_task"] == 1.0
     assert data["summary"]["cost_per_success_usd"] == 0.25
     assert data["summary"]["cost_per_success_tokens"] == 1000.0
     assert data["summary"]["by_task_type"]["product"]["successes"] == 1
@@ -304,6 +304,125 @@ def test_update_can_compute_cost_from_model_pricing(repo: Path) -> None:
     assert task["cost_usd"] == 0.006263
     assert data["summary"]["total_cost_usd"] == 0.006263
     assert data["summary"]["total_tokens"] == 1600
+
+
+def test_entries_track_single_attempt_lifecycle(repo: Path) -> None:
+    assert run_cmd(repo, "init").returncode == 0
+
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "entry-task-001",
+        "--title",
+        "Entry lifecycle task",
+        "--task-type",
+        "product",
+    ).returncode == 0
+
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "entry-task-001",
+        "--attempts-delta",
+        "1",
+        "--cost-usd-add",
+        "0.10",
+        "--tokens-add",
+        "200",
+    ).returncode == 0
+
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "entry-task-001",
+        "--status",
+        "success",
+        "--notes",
+        "Attempt finished cleanly",
+    ).returncode == 0
+
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    entries = [entry for entry in data["entries"] if entry["goal_id"] == "entry-task-001"]
+
+    assert len(entries) == 1
+    assert entries[0]["status"] == "success"
+    assert entries[0]["failure_reason"] is None
+    assert entries[0]["cost_usd"] == 0.1
+    assert entries[0]["tokens_total"] == 200
+    assert entries[0]["finished_at"] is not None
+
+
+def test_entries_preserve_prior_attempt_when_new_attempt_starts(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "entry-task-002",
+        "--title",
+        "Multiple attempts task",
+        "--task-type",
+        "product",
+    ).returncode == 0
+
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "entry-task-002",
+        "--attempts-delta",
+        "1",
+        "--notes",
+        "First attempt started",
+    ).returncode == 0
+
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "entry-task-002",
+        "--attempts-delta",
+        "1",
+        "--cost-usd-add",
+        "0.20",
+        "--tokens-add",
+        "500",
+        "--notes",
+        "Second attempt started",
+    ).returncode == 0
+
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "entry-task-002",
+        "--status",
+        "success",
+        "--notes",
+        "Second attempt succeeded",
+    ).returncode == 0
+
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    entries = sorted(
+        [entry for entry in data["entries"] if entry["goal_id"] == "entry-task-002"],
+        key=lambda entry: entry["entry_id"],
+    )
+
+    assert len(entries) == 2
+    assert entries[0]["status"] == "fail"
+    assert entries[0]["failure_reason"] == "other"
+    assert entries[1]["status"] == "success"
+    assert entries[1]["failure_reason"] is None
+    assert entries[1]["cost_usd"] == 0.2
+    assert entries[1]["tokens_total"] == 500
+    assert data["summary"]["entries"]["closed_entries"] == 2
+    assert data["summary"]["entries"]["successes"] == 1
+    assert data["summary"]["entries"]["fails"] == 1
+    assert data["summary"]["entries"]["failure_reasons"] == {"other": 1}
 
 
 def test_update_can_auto_sync_cost_and_tokens_from_codex_logs(repo: Path) -> None:
@@ -374,9 +493,10 @@ def test_close_fail_updates_summary(repo: Path) -> None:
     assert data["summary"]["fails"] == 1
     assert data["summary"]["total_attempts"] == 3
     assert data["summary"]["success_rate"] == 0.0
-    assert data["summary"]["attempts_per_success"] is None
+    assert data["summary"]["attempts_per_closed_task"] == 3.0
     assert data["summary"]["cost_per_success_usd"] is None
     assert data["summary"]["cost_per_success_tokens"] is None
+    assert data["summary"]["entries"]["failure_reasons"] == {"other": 2, "validation_failed": 1}
 
     task = data["tasks"][0]
     assert task["failure_reason"] == "validation_failed"
@@ -422,11 +542,12 @@ def test_multiple_tasks_summary(repo: Path) -> None:
     assert summary["fails"] == 1
     assert summary["total_attempts"] == 6
     assert summary["success_rate"] == 0.5
-    assert summary["attempts_per_success"] == 6.0
+    assert summary["attempts_per_closed_task"] == 3.0
     assert summary["cost_per_success_usd"] == 0.5
     assert summary["cost_per_success_tokens"] == 500.0
     assert summary["by_task_type"]["product"]["closed_tasks"] == 2
     assert summary["by_task_type"]["product"]["fails"] == 1
+    assert summary["entries"]["failure_reasons"] == {"other": 5}
 
 
 def test_invalid_failure_reason_fails(repo: Path) -> None:
@@ -832,7 +953,7 @@ def test_superseded_goal_chain_counts_as_one_effective_goal(repo: Path) -> None:
     assert data["summary"]["successes"] == 1
     assert data["summary"]["fails"] == 0
     assert data["summary"]["total_attempts"] == 2
-    assert data["summary"]["attempts_per_success"] == 2.0
+    assert data["summary"]["attempts_per_closed_task"] == 2.0
     assert data["summary"]["cost_per_success_usd"] is None
     assert data["summary"]["by_task_type"]["product"]["closed_tasks"] == 1
     assert data["summary"]["entries"]["closed_entries"] == 2
@@ -977,7 +1098,7 @@ def test_legacy_metrics_without_task_type_are_normalized(repo: Path) -> None:
                     "total_cost_usd": 0.0,
                     "total_tokens": 0,
                     "success_rate": 1.0,
-                    "attempts_per_success": 1.0,
+                    "attempts_per_closed_task": 1.0,
                     "cost_per_success_usd": None,
                     "cost_per_success_tokens": None,
                 },
@@ -1158,7 +1279,7 @@ def test_merge_tasks_combines_attempt_history_into_kept_task(repo: Path) -> None
     assert data["summary"]["fails"] == 0
     assert data["summary"]["total_attempts"] == 2
     assert data["summary"]["success_rate"] == 1.0
-    assert data["summary"]["attempts_per_success"] == 2.0
+    assert data["summary"]["attempts_per_closed_task"] == 2.0
 
 
 def test_merge_tasks_keeps_cost_unknown_when_dropped_task_cost_is_missing(repo: Path) -> None:

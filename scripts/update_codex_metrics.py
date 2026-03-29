@@ -95,7 +95,7 @@ def empty_summary_block(include_by_task_type: bool = False) -> dict[str, Any]:
         "total_cost_usd": 0.0,
         "total_tokens": 0,
         "success_rate": None,
-        "attempts_per_success": None,
+        "attempts_per_closed_task": None,
         "cost_per_success_usd": None,
         "cost_per_success_tokens": None,
     }
@@ -712,7 +712,7 @@ def compute_summary_block(tasks: list[dict[str, Any]]) -> dict[str, Any]:
     total_tokens = sum(token_values) if token_values else 0
 
     success_rate = (len(successes) / len(closed_tasks)) if closed_tasks else None
-    attempts_per_success = (total_attempts / len(successes)) if successes else None
+    attempts_per_closed_task = (total_attempts / len(closed_tasks)) if closed_tasks else None
 
     success_cost_values = [t["cost_usd"] for t in successes if t.get("cost_complete") and t.get("cost_usd") is not None]
     cost_per_success_usd = (
@@ -736,7 +736,7 @@ def compute_summary_block(tasks: list[dict[str, Any]]) -> dict[str, Any]:
         "total_cost_usd": round_usd(total_cost_usd),
         "total_tokens": total_tokens,
         "success_rate": success_rate,
-        "attempts_per_success": attempts_per_success,
+        "attempts_per_closed_task": attempts_per_closed_task,
         "cost_per_success_usd": round_usd(cost_per_success_usd) if cost_per_success_usd is not None else None,
         "cost_per_success_tokens": cost_per_success_tokens,
     }
@@ -863,7 +863,7 @@ def generate_report_md(data: dict[str, Any]) -> str:
         f"- Total cost (USD): {format_usd(summary['total_cost_usd'])}",
         f"- Total tokens: {summary['total_tokens']}",
         f"- Success Rate: {format_pct(summary['success_rate'])}",
-        f"- Attempts per Success: {format_num(summary['attempts_per_success'])}",
+        f"- Attempts per Closed Goal: {format_num(summary['attempts_per_closed_task'])}",
         f"- Cost per Success (USD): {format_usd(summary['cost_per_success_usd'])}",
         f"- Cost per Success (Tokens): {format_num(summary['cost_per_success_tokens'])}",
         "",
@@ -903,7 +903,7 @@ def generate_report_md(data: dict[str, Any]) -> str:
                 f"- Total cost (USD): {format_usd(type_summary['total_cost_usd'])}",
                 f"- Total tokens: {type_summary['total_tokens']}",
                 f"- Success Rate: {format_pct(type_summary['success_rate'])}",
-                f"- Attempts per Success: {format_num(type_summary['attempts_per_success'])}",
+                f"- Attempts per Closed Goal: {format_num(type_summary['attempts_per_closed_task'])}",
                 f"- Cost per Success (USD): {format_usd(type_summary['cost_per_success_usd'])}",
                 f"- Cost per Success (Tokens): {format_num(type_summary['cost_per_success_tokens'])}",
                 "",
@@ -971,23 +971,143 @@ def save_report(path: Path, data: dict[str, Any]) -> None:
     path.write_text(report, encoding="utf-8")
 
 
-def refresh_entries_from_goals(data: dict[str, Any]) -> None:
-    goals: list[dict[str, Any]] = data["goals"]
-    data["entries"] = [
-        {
-            "entry_id": goal["goal_id"],
-            "goal_id": goal["goal_id"],
-            "entry_type": goal["goal_type"],
-            "status": goal["status"],
-            "started_at": goal["started_at"],
-            "finished_at": goal["finished_at"],
-            "cost_usd": goal["cost_usd"],
-            "tokens_total": goal["tokens_total"],
-            "failure_reason": goal["failure_reason"],
-            "notes": goal["notes"],
-        }
-        for goal in goals
-    ]
+def get_goal_entries(entries: list[dict[str, Any]], goal_id: str) -> list[dict[str, Any]]:
+    return [entry for entry in entries if entry.get("goal_id") == goal_id]
+
+
+def next_entry_id(entries: list[dict[str, Any]], goal_id: str) -> str:
+    existing_ids = {entry["entry_id"] for entry in entries}
+    entry_number = 1
+    while True:
+        candidate = f"{goal_id}-attempt-{entry_number:03d}"
+        if candidate not in existing_ids:
+            return candidate
+        entry_number += 1
+
+
+def compute_numeric_delta(previous_value: float | int | None, current_value: float | int | None) -> float | int | None:
+    if current_value is None:
+        return None
+    if previous_value is None:
+        return current_value
+    delta = current_value - previous_value
+    if delta <= 0:
+        return None
+    return delta
+
+
+def build_attempt_entry(
+    *,
+    entries: list[dict[str, Any]],
+    goal: dict[str, Any],
+    status: str,
+    started_at: str | None,
+    finished_at: str | None,
+    cost_usd: float | None,
+    tokens_total: int | None,
+    failure_reason: str | None,
+    notes: str | None,
+) -> dict[str, Any]:
+    entry = {
+        "entry_id": next_entry_id(entries, goal["goal_id"]),
+        "goal_id": goal["goal_id"],
+        "entry_type": goal["goal_type"],
+        "status": status,
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "cost_usd": cost_usd,
+        "tokens_total": tokens_total,
+        "failure_reason": failure_reason,
+        "notes": notes,
+    }
+    validate_entry_record(entry)
+    return entry
+
+
+def close_open_attempt_entry(entry: dict[str, Any], finished_at: str | None, notes: str | None) -> None:
+    if entry["status"] != "in_progress":
+        return
+    entry["status"] = "fail"
+    entry["failure_reason"] = entry.get("failure_reason") or "other"
+    entry["finished_at"] = finished_at or now_utc_iso()
+    if notes:
+        existing_notes = entry.get("notes")
+        entry["notes"] = notes if not existing_notes else f"{existing_notes} | {notes}"
+
+
+def sync_goal_attempt_entries(
+    data: dict[str, Any],
+    goal: dict[str, Any],
+    previous_goal: dict[str, Any] | None,
+) -> None:
+    entries: list[dict[str, Any]] = data["entries"]
+    goal_entries = get_goal_entries(entries, goal["goal_id"])
+    goal_entries.sort(key=lambda entry: entry.get("started_at") or "")
+
+    previous_attempts = 0 if previous_goal is None else int(previous_goal.get("attempts") or 0)
+    current_attempts = int(goal.get("attempts") or 0)
+
+    while len(goal_entries) > current_attempts:
+        removed_entry = goal_entries.pop()
+        entries.remove(removed_entry)
+
+    if current_attempts > len(goal_entries) and goal_entries:
+        close_open_attempt_entry(
+            goal_entries[-1],
+            finished_at=goal.get("finished_at"),
+            notes="Inferred failed attempt because a newer attempt was started.",
+        )
+
+    while len(goal_entries) < current_attempts:
+        is_latest_attempt = len(goal_entries) + 1 == current_attempts
+        inferred_failed_attempt = not is_latest_attempt
+        entry_status = goal["status"] if is_latest_attempt else "fail"
+        entry_finished_at = goal.get("finished_at") if entry_status in {"success", "fail"} else None
+        if inferred_failed_attempt:
+            entry_finished_at = goal.get("started_at") or now_utc_iso()
+        started_at = goal.get("started_at") if not goal_entries else now_utc_iso()
+        notes = goal.get("notes")
+        if inferred_failed_attempt:
+            notes = "Inferred historical failed attempt from attempts count."
+        entry = build_attempt_entry(
+            entries=entries,
+            goal=goal,
+            status=entry_status,
+            started_at=started_at,
+            finished_at=entry_finished_at,
+            cost_usd=None,
+            tokens_total=None,
+            failure_reason=(goal.get("failure_reason") if entry_status == "fail" and is_latest_attempt else "other" if inferred_failed_attempt else None),
+            notes=notes,
+        )
+        entries.append(entry)
+        goal_entries.append(entry)
+
+    if current_attempts == 0 or not goal_entries:
+        return
+
+    latest_entry = goal_entries[-1]
+    latest_entry["entry_type"] = goal["goal_type"]
+    latest_entry["status"] = goal["status"]
+    latest_entry["started_at"] = latest_entry.get("started_at") or goal.get("started_at")
+    latest_entry["finished_at"] = goal.get("finished_at") if goal["status"] in {"success", "fail"} else None
+    latest_entry["failure_reason"] = goal.get("failure_reason")
+    latest_entry["notes"] = goal.get("notes")
+
+    previous_cost = None if previous_goal is None else previous_goal.get("cost_usd")
+    previous_tokens = None if previous_goal is None else previous_goal.get("tokens_total")
+    cost_delta = compute_numeric_delta(previous_cost, goal.get("cost_usd"))
+    token_delta = compute_numeric_delta(previous_tokens, goal.get("tokens_total"))
+    if cost_delta is not None:
+        latest_entry["cost_usd"] = round_usd(cost_delta) if isinstance(cost_delta, float) else round_usd(float(cost_delta))
+    elif previous_goal is None and goal.get("cost_usd") is not None:
+        latest_entry["cost_usd"] = goal.get("cost_usd")
+    if token_delta is not None:
+        latest_entry["tokens_total"] = int(token_delta)
+    elif previous_goal is None and goal.get("tokens_total") is not None:
+        latest_entry["tokens_total"] = goal.get("tokens_total")
+
+    validate_entry_record(latest_entry)
 
 
 def init_files(metrics_path: Path, report_path: Path, force: bool = False) -> None:
@@ -1233,7 +1353,7 @@ def print_summary(data: dict[str, Any]) -> None:
     print(f"Total cost (USD): {format_usd(summary['total_cost_usd'])}")
     print(f"Total tokens: {summary['total_tokens']}")
     print(f"Success Rate: {format_pct(summary['success_rate'])}")
-    print(f"Attempts per Success: {format_num(summary['attempts_per_success'])}")
+    print(f"Attempts per Closed Goal: {format_num(summary['attempts_per_closed_task'])}")
     print(f"Cost per Success (USD): {format_usd(summary['cost_per_success_usd'])}")
     print(f"Cost per Success (Tokens): {format_num(summary['cost_per_success_tokens'])}")
     print(f"Closed entries: {summary['entries']['closed_entries']}")
@@ -1260,6 +1380,7 @@ def sync_codex_usage(
     updated_tasks = 0
     tasks: list[dict[str, Any]] = data["goals"]
     for task in tasks:
+        previous_task = dict(task)
         auto_cost_usd, auto_total_tokens = resolve_codex_usage_window(
             state_path=codex_state_path,
             logs_path=codex_logs_path,
@@ -1280,6 +1401,7 @@ def sync_codex_usage(
             changed = True
         if changed:
             validate_goal_record(task)
+            sync_goal_attempt_entries(data, task, previous_task)
             updated_tasks += 1
     return updated_tasks
 
@@ -1316,6 +1438,11 @@ def merge_tasks(data: dict[str, Any], keep_task_id: str, drop_task_id: str) -> d
         kept_task["failure_reason"] = dropped_task.get("failure_reason")
 
     validate_goal_record(kept_task)
+    entries: list[dict[str, Any]] = data["entries"]
+    for entry in entries:
+        if entry.get("goal_id") == drop_task_id:
+            entry["goal_id"] = keep_task_id
+            validate_entry_record(entry)
     del tasks[drop_index]
     return kept_task
 
@@ -1334,7 +1461,6 @@ def main() -> int:
     if args.command == "show":
         metrics_path = Path(args.metrics_path)
         data = load_metrics(metrics_path)
-        refresh_entries_from_goals(data)
         recompute_summary(data)
         print_summary(data)
         return 0
@@ -1354,7 +1480,6 @@ def main() -> int:
             codex_logs_path=codex_logs_path,
             codex_thread_id=args.codex_thread_id,
         )
-        refresh_entries_from_goals(data)
         recompute_summary(data)
         save_metrics(metrics_path, data)
         save_report(report_path, data)
@@ -1371,7 +1496,6 @@ def main() -> int:
             keep_task_id=args.keep_task_id,
             drop_task_id=args.drop_task_id,
         )
-        refresh_entries_from_goals(data)
         recompute_summary(data)
         save_metrics(metrics_path, data)
         save_report(report_path, data)
@@ -1385,6 +1509,10 @@ def main() -> int:
         metrics_path = Path(args.metrics_path)
         report_path = Path(args.report_path)
         data = load_metrics(metrics_path)
+        previous_task = None
+        existing_task = get_task(data["goals"], args.task_id)
+        if existing_task is not None:
+            previous_task = dict(existing_task)
         pricing_path = Path(args.pricing_path)
         codex_state_path = Path(args.codex_state_path)
         codex_logs_path = Path(args.codex_logs_path)
@@ -1418,7 +1546,7 @@ def main() -> int:
             cwd=Path.cwd(),
         )
 
-        refresh_entries_from_goals(data)
+        sync_goal_attempt_entries(data, task, previous_task)
         recompute_summary(data)
         save_metrics(metrics_path, data)
         save_report(report_path, data)

@@ -1,25 +1,25 @@
 {
   "summary": {
-    "closed_tasks": 20,
-    "successes": 20,
+    "closed_tasks": 23,
+    "successes": 23,
     "fails": 0,
-    "total_attempts": 21,
+    "total_attempts": 24,
     "total_cost_usd": 0.638112,
     "total_tokens": 1359406,
     "success_rate": 1.0,
-    "attempts_per_success": 1.05,
+    "attempts_per_closed_task": 1.0434782608695652,
     "cost_per_success_usd": null,
     "cost_per_success_tokens": null,
     "by_goal_type": {
       "meta": {
-        "closed_tasks": 11,
-        "successes": 11,
+        "closed_tasks": 14,
+        "successes": 14,
         "fails": 0,
-        "total_attempts": 11,
+        "total_attempts": 14,
         "total_cost_usd": 0.0,
         "total_tokens": 0,
         "success_rate": 1.0,
-        "attempts_per_success": 1.0,
+        "attempts_per_closed_task": 1.0,
         "cost_per_success_usd": null,
         "cost_per_success_tokens": null
       },
@@ -31,7 +31,7 @@
         "total_cost_usd": 0.638112,
         "total_tokens": 1359406,
         "success_rate": 1.0,
-        "attempts_per_success": 1.2,
+        "attempts_per_closed_task": 1.2,
         "cost_per_success_usd": null,
         "cost_per_success_tokens": null
       },
@@ -43,21 +43,21 @@
         "total_cost_usd": 0.0,
         "total_tokens": 0,
         "success_rate": 1.0,
-        "attempts_per_success": 1.0,
+        "attempts_per_closed_task": 1.0,
         "cost_per_success_usd": null,
         "cost_per_success_tokens": null
       }
     },
     "by_task_type": {
       "meta": {
-        "closed_tasks": 11,
-        "successes": 11,
+        "closed_tasks": 14,
+        "successes": 14,
         "fails": 0,
-        "total_attempts": 11,
+        "total_attempts": 14,
         "total_cost_usd": 0.0,
         "total_tokens": 0,
         "success_rate": 1.0,
-        "attempts_per_success": 1.0,
+        "attempts_per_closed_task": 1.0,
         "cost_per_success_usd": null,
         "cost_per_success_tokens": null
       },
@@ -69,7 +69,7 @@
         "total_cost_usd": 0.638112,
         "total_tokens": 1359406,
         "success_rate": 1.0,
-        "attempts_per_success": 1.2,
+        "attempts_per_closed_task": 1.2,
         "cost_per_success_usd": null,
         "cost_per_success_tokens": null
       },
@@ -81,16 +81,16 @@
         "total_cost_usd": 0.0,
         "total_tokens": 0,
         "success_rate": 1.0,
-        "attempts_per_success": 1.0,
+        "attempts_per_closed_task": 1.0,
         "cost_per_success_usd": null,
         "cost_per_success_tokens": null
       }
     },
     "entries": {
-      "closed_entries": 21,
-      "successes": 20,
+      "closed_entries": 24,
+      "successes": 23,
       "fails": 1,
-      "success_rate": 0.9523809523809523,
+      "success_rate": 0.9583333333333334,
       "total_cost_usd": 0.638112,
       "total_tokens": 1359406,
       "failure_reasons": {
@@ -392,6 +392,48 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Updated policy to require temp-path validation for destructive smoke checks, keep entry-level failure visibility alongside goal summaries, and align Success Rate terminology from closed_tasks to closed_goals."
+    },
+    {
+      "goal_id": "2026-03-29-023",
+      "title": "Audit metrics definitions for success rate, attempts, and failure reasons",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T10:10:12+00:00",
+      "finished_at": "2026-03-29T10:12:08+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Audited metric definitions end-to-end and fixed the main inconsistency: summary/report/tests now use attempts_per_closed_task (shown as Attempts per Closed Goal) instead of attempts_per_success; failure reason counting is explicitly covered by tests."
+    },
+    {
+      "goal_id": "2026-03-29-024",
+      "title": "Turn entries into a real attempt log",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T10:16:10+00:00",
+      "finished_at": "2026-03-29T10:18:56+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Converted entries from mirrored goal snapshots into attempt-history records, added focused attempt-log tests, kept merge and sync flows compatible, and synchronized AGENTS/policy with the new semantics."
+    },
+    {
+      "goal_id": "2026-03-29-025",
+      "title": "Audit historical goals for attempt-log backfill",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T10:20:41+00:00",
+      "finished_at": "2026-03-29T10:20:45+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Audited historical goals after attempt-log migration. No additional structural backfill was required: all existing goals already have entry counts matching attempts, and the earlier failed-to-successful product path remains represented through separate linked goals 2026-03-29-007 -> 2026-03-29-008."
     }
   ],
   "entries": [
@@ -646,6 +688,42 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Updated policy to require temp-path validation for destructive smoke checks, keep entry-level failure visibility alongside goal summaries, and align Success Rate terminology from closed_tasks to closed_goals."
+    },
+    {
+      "entry_id": "2026-03-29-023",
+      "goal_id": "2026-03-29-023",
+      "entry_type": "meta",
+      "status": "success",
+      "started_at": "2026-03-29T10:10:12+00:00",
+      "finished_at": "2026-03-29T10:12:08+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Audited metric definitions end-to-end and fixed the main inconsistency: summary/report/tests now use attempts_per_closed_task (shown as Attempts per Closed Goal) instead of attempts_per_success; failure reason counting is explicitly covered by tests."
+    },
+    {
+      "entry_id": "2026-03-29-024",
+      "goal_id": "2026-03-29-024",
+      "entry_type": "meta",
+      "status": "success",
+      "started_at": "2026-03-29T10:16:10+00:00",
+      "finished_at": "2026-03-29T10:18:56+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Converted entries from mirrored goal snapshots into attempt-history records, added focused attempt-log tests, kept merge and sync flows compatible, and synchronized AGENTS/policy with the new semantics."
+    },
+    {
+      "entry_id": "2026-03-29-025-attempt-001",
+      "goal_id": "2026-03-29-025",
+      "entry_type": "meta",
+      "status": "success",
+      "started_at": "2026-03-29T10:20:41+00:00",
+      "finished_at": "2026-03-29T10:20:45+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Audited historical goals after attempt-log migration. No additional structural backfill was required: all existing goals already have entry counts matching attempts, and the earlier failed-to-successful product path remains represented through separate linked goals 2026-03-29-007 -> 2026-03-29-008."
     }
   ]
 }

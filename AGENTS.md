@@ -52,6 +52,7 @@ Metrics bookkeeping is part of the definition of done.
 Retrospectives must not be mixed into product-delivery goal metrics without classification.
 Reports should make retrospective work and product-development work distinguishable.
 Source of truth should use `goals + entries`, with summary reported by effective goal chains rather than raw linked records.
+Entries should represent attempt history, not a mirrored copy of goal records.
 When reporting current project health, do not present goal-level success alone if entry-level failures exist; surface both the effective goal view and the raw entry view so retry pressure stays visible.
 
 ## Script editing rules

@@ -2,23 +2,23 @@
 
 ## Goal summary
 
-- Closed goals: 20
-- Successes: 20
+- Closed goals: 23
+- Successes: 23
 - Fails: 0
-- Total attempts: 21
+- Total attempts: 24
 - Total cost (USD): 0.638112
 - Total tokens: 1359406
 - Success Rate: 100.00%
-- Attempts per Success: 1.05
+- Attempts per Closed Goal: 1.04
 - Cost per Success (USD): n/a
 - Cost per Success (Tokens): n/a
 
 ## Entry summary
 
-- Closed entries: 21
-- Successes: 20
+- Closed entries: 24
+- Successes: 23
 - Fails: 1
-- Success Rate: 95.24%
+- Success Rate: 95.83%
 - Total cost (USD): 0.638112
 - Total tokens: 1359406
 
@@ -35,7 +35,7 @@
 - Total cost (USD): 0.638112
 - Total tokens: 1359406
 - Success Rate: 100.00%
-- Attempts per Success: 1.20
+- Attempts per Closed Goal: 1.20
 - Cost per Success (USD): n/a
 - Cost per Success (Tokens): n/a
 
@@ -47,23 +47,59 @@
 - Total cost (USD): 0.00
 - Total tokens: 0
 - Success Rate: 100.00%
-- Attempts per Success: 1.00
+- Attempts per Closed Goal: 1.00
 - Cost per Success (USD): n/a
 - Cost per Success (Tokens): n/a
 
 ### meta
-- Closed goals: 11
-- Successes: 11
+- Closed goals: 14
+- Successes: 14
 - Fails: 0
-- Total attempts: 11
+- Total attempts: 14
 - Total cost (USD): 0.00
 - Total tokens: 0
 - Success Rate: 100.00%
-- Attempts per Success: 1.00
+- Attempts per Closed Goal: 1.00
 - Cost per Success (USD): n/a
 - Cost per Success (Tokens): n/a
 
 ## Goal log
+
+### 2026-03-29-025 — Audit historical goals for attempt-log backfill
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T10:20:41+00:00
+- Finished at: 2026-03-29T10:20:45+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Audited historical goals after attempt-log migration. No additional structural backfill was required: all existing goals already have entry counts matching attempts, and the earlier failed-to-successful product path remains represented through separate linked goals 2026-03-29-007 -> 2026-03-29-008.
+
+### 2026-03-29-024 — Turn entries into a real attempt log
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T10:16:10+00:00
+- Finished at: 2026-03-29T10:18:56+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Converted entries from mirrored goal snapshots into attempt-history records, added focused attempt-log tests, kept merge and sync flows compatible, and synchronized AGENTS/policy with the new semantics.
+
+### 2026-03-29-023 — Audit metrics definitions for success rate, attempts, and failure reasons
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T10:10:12+00:00
+- Finished at: 2026-03-29T10:12:08+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Audited metric definitions end-to-end and fixed the main inconsistency: summary/report/tests now use attempts_per_closed_task (shown as Attempts per Closed Goal) instead of attempts_per_success; failure reason counting is explicitly covered by tests.
 
 ### 2026-03-29-022 — Sync metrics policy with goal-era operational rules
 - Goal type: meta
@@ -318,6 +354,36 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-025-attempt-001 — 2026-03-29-025
+- Entry type: meta
+- Status: success
+- Started at: 2026-03-29T10:20:41+00:00
+- Finished at: 2026-03-29T10:20:45+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Audited historical goals after attempt-log migration. No additional structural backfill was required: all existing goals already have entry counts matching attempts, and the earlier failed-to-successful product path remains represented through separate linked goals 2026-03-29-007 -> 2026-03-29-008.
+
+### 2026-03-29-024 — 2026-03-29-024
+- Entry type: meta
+- Status: success
+- Started at: 2026-03-29T10:16:10+00:00
+- Finished at: 2026-03-29T10:18:56+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Converted entries from mirrored goal snapshots into attempt-history records, added focused attempt-log tests, kept merge and sync flows compatible, and synchronized AGENTS/policy with the new semantics.
+
+### 2026-03-29-023 — 2026-03-29-023
+- Entry type: meta
+- Status: success
+- Started at: 2026-03-29T10:10:12+00:00
+- Finished at: 2026-03-29T10:12:08+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Audited metric definitions end-to-end and fixed the main inconsistency: summary/report/tests now use attempts_per_closed_task (shown as Attempts per Closed Goal) instead of attempts_per_success; failure reason counting is explicitly covered by tests.
 
 ### 2026-03-29-022 — 2026-03-29-022
 - Entry type: meta
