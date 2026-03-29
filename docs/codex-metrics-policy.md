@@ -39,6 +39,7 @@ Apply this policy to engineering work where Codex materially contributes to a us
 - A goal is not done until metrics and reporting are updated.
 - Honest partial visibility is better than brittle all-or-nothing reporting.
 - Goal-level success must not hide retry pressure from the underlying attempt history.
+- Product, retrospective, and meta work should remain distinguishable in stored records and reporting.
 
 ## Core Model
 
@@ -53,6 +54,12 @@ A goal may require multiple attempts or linked follow-up goals.
 One execution pass or inferred history record for the same goal.
 
 Entries exist to preserve attempt history and failure visibility. They are not a mirrored copy of final goal state.
+
+Use goals and entries together as the source model:
+
+- goals represent requested outcomes
+- entries represent attempt history
+- summary reporting should be derived from effective goal chains, not raw duplicated records
 
 ### Success
 
@@ -194,6 +201,9 @@ If there is a mismatch, the structured metrics file wins.
 4. Recompute summary metrics.
 5. Regenerate the human-readable report.
 
+For `product` goals, record timestamps close to the real work window when practical.
+Avoid post-hoc zero-duration closeouts that make later cost recovery less reliable.
+
 ## Validation Rules
 
 Use strict validation. Invalid state must fail loudly.
@@ -262,6 +272,8 @@ If `closed_goals = 0`, set to `null`.
 ### Failure Reasons
 
 Count failure reasons from diagnostic failed entries only.
+
+Inferred attempt-history entries may preserve history shape, but they must not pollute diagnostic failure-reason reporting.
 
 ## Product Quality Review
 

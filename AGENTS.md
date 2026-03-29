@@ -36,38 +36,8 @@ Generated files:
 - `metrics/codex_metrics.json`
 - `docs/codex-metrics.md`
 
-## Required Workflow
-
-For every engineering task involving the metrics system:
-
-1. create or continue a goal record
-2. set or confirm the goal type:
-   - `product` for product or engineering delivery
-   - `retro` for retrospective analysis and retro writeups
-   - `meta` for bookkeeping, audits, process/tooling governance, and non-product support work
-   - for new goals, always pass the goal type explicitly
-   - for new goals, prefer omitting `--task-id` and let the updater generate the goal id
-   - after attempt history exists, do not reclassify the goal to another type; start a new linked goal instead if the work was mis-scoped
-   - if a new goal intentionally continues or supersedes a prior closed goal, link it explicitly with `--continuation-of` or `--supersedes-task-id`
-3. update attempts on each new implementation pass for the same goal
-4. update cost or tokens when available
-5. close the goal as `success` or `fail`
-6. regenerate:
-   - `metrics/codex_metrics.json`
-   - `docs/codex-metrics.md`
-
-Metrics bookkeeping is part of the definition of done.
-
-Keep these invariants intact:
-
-- retrospectives must not be mixed into product-delivery goal metrics without classification
-- reports should make retrospective work and product-development work distinguishable
-- source of truth should use `goals + entries`, with summary reported by effective goal chains rather than raw linked records
-- entries should represent attempt history, not a mirrored copy of goal records
-- do not present goal-level success alone if entry-level failures exist
-- inferred attempt-history entries may preserve history shape, but they must not pollute diagnostic failure-reason reporting
-- for `product` goals, record boundaries close to the real work window; avoid post-hoc zero-duration closeouts because they degrade automatic cost recovery
-- after fixing a recovery or telemetry path, re-evaluate whether the remaining gap is still a code problem or has shifted to workflow/data-fidelity constraints
+For the codex-metrics workflow, goal semantics, reporting invariants, and update/close rules, follow `docs/codex-metrics-policy.md`.
+Treat metrics bookkeeping as part of the definition of done for this repository.
 
 ## Script editing rules
 

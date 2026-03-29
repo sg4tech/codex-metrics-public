@@ -2,31 +2,31 @@
 
 ## Goal summary
 
-- Closed goals: 131
-- Successes: 131
+- Closed goals: 132
+- Successes: 132
 - Fails: 0
-- Total attempts: 137
-- Known total cost (USD): 197.607646
-- Known total tokens: 141769523
+- Total attempts: 138
+- Known total cost (USD): 199.411636
+- Known total tokens: 143065072
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.05
-- Known cost coverage: 110/131 successful goals
-- Known token coverage: 110/131 successful goals
-- Complete cost coverage: 110/131 successful goals
-- Complete token coverage: 110/131 successful goals
-- Known Cost per Success (USD): 1.796433
-- Known Cost per Success (Tokens): 1288813.85
-- Complete Cost per Covered Success (USD): 1.796433
-- Complete Cost per Covered Success (Tokens): 1288813.85
+- Known cost coverage: 111/132 successful goals
+- Known token coverage: 111/132 successful goals
+- Complete cost coverage: 111/132 successful goals
+- Complete token coverage: 111/132 successful goals
+- Known Cost per Success (USD): 1.796501
+- Known Cost per Success (Tokens): 1288874.52
+- Complete Cost per Covered Success (USD): 1.796501
+- Complete Cost per Covered Success (Tokens): 1288874.52
 
 ## Entry summary
 
-- Closed entries: 137
-- Successes: 136
+- Closed entries: 138
+- Successes: 137
 - Fails: 1
-- Success Rate: 99.27%
-- Known total cost (USD): 196.710266
-- Known total tokens: 141053544
+- Success Rate: 99.28%
+- Known total cost (USD): 198.514256
+- Known total tokens: 142349093
 
 ## Operator review
 
@@ -77,24 +77,37 @@
 - Complete Cost per Covered Success (Tokens): 379205.27
 
 ### meta
-- Closed goals: 57
-- Successes: 57
+- Closed goals: 58
+- Successes: 58
 - Fails: 0
-- Total attempts: 57
-- Known total cost (USD): 87.499892
-- Known total tokens: 62717814
+- Total attempts: 58
+- Known total cost (USD): 89.303882
+- Known total tokens: 64013363
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 49/57 successful goals
-- Known token coverage: 49/57 successful goals
-- Complete cost coverage: 49/57 successful goals
-- Complete token coverage: 49/57 successful goals
-- Known Cost per Success (USD): 1.785712
-- Known Cost per Success (Tokens): 1279955.39
-- Complete Cost per Covered Success (USD): 1.785712
-- Complete Cost per Covered Success (Tokens): 1279955.39
+- Known cost coverage: 50/58 successful goals
+- Known token coverage: 50/58 successful goals
+- Complete cost coverage: 50/58 successful goals
+- Complete token coverage: 50/58 successful goals
+- Known Cost per Success (USD): 1.786078
+- Known Cost per Success (Tokens): 1280267.26
+- Complete Cost per Covered Success (USD): 1.786078
+- Complete Cost per Covered Success (Tokens): 1280267.26
 
 ## Goal log
+
+### 2026-03-29-138 — Deduplicate local AGENTS against reusable codex-metrics policy
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T19:29:40+00:00
+- Finished at: 2026-03-29T19:30:46+00:00
+- Cost (USD): 1.80399
+- Tokens: 1295549
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Deduplicated local AGENTS against reusable codex-metrics policy: reduced AGENTS to repo-local tooling and process guardrails, moved reusable reporting/workflow semantics into policy, and verified with make verify.
 
 ### 2026-03-29-137 — Add make target for rebuild and global self-install
 - Goal type: product
@@ -1865,6 +1878,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-138-attempt-001 — 2026-03-29-138
+- Entry type: meta
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T19:29:40+00:00
+- Finished at: 2026-03-29T19:30:46+00:00
+- Cost (USD): 1.80399
+- Tokens: 1295549
+- Failure reason: n/a
+- Notes: Deduplicated local AGENTS against reusable codex-metrics policy: reduced AGENTS to repo-local tooling and process guardrails, moved reusable reporting/workflow semantics into policy, and verified with make verify.
 
 ### 2026-03-29-137-attempt-001 — 2026-03-29-137
 - Entry type: product
