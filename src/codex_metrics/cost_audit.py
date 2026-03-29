@@ -96,6 +96,14 @@ def _classify_goal_cost_coverage(
             suggested_next_action="Capture explicit goal boundaries before expecting automatic cost recovery.",
         )
 
+    if goal.started_at == goal.finished_at:
+        return _build_candidate(
+            goal,
+            category="incomplete_goal_window",
+            reason="goal is closed with a zero-duration recovery window, which is usually too narrow for automatic cost capture",
+            suggested_next_action="Start the goal before the real Codex work begins and close it after the work ends so usage falls inside the recorded window.",
+        )
+
     if not codex_state_path.exists() or not codex_logs_path.exists():
         return _build_candidate(
             goal,

@@ -2,31 +2,31 @@
 
 ## Goal summary
 
-- Closed goals: 98
-- Successes: 98
+- Closed goals: 99
+- Successes: 99
 - Fails: 0
-- Total attempts: 102
-- Known total cost (USD): 134.658855
-- Known total tokens: 96561704
+- Total attempts: 103
+- Known total cost (USD): 135.076254
+- Known total tokens: 96857586
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 78/98 successful goals
-- Known token coverage: 78/98 successful goals
-- Complete cost coverage: 78/98 successful goals
-- Complete token coverage: 78/98 successful goals
-- Known Cost per Success (USD): 1.726396
-- Known Cost per Success (Tokens): 1237970.56
-- Complete Cost per Covered Success (USD): 1.726396
-- Complete Cost per Covered Success (Tokens): 1237970.56
+- Known cost coverage: 80/99 successful goals
+- Known token coverage: 80/99 successful goals
+- Complete cost coverage: 80/99 successful goals
+- Complete token coverage: 80/99 successful goals
+- Known Cost per Success (USD): 1.688453
+- Known Cost per Success (Tokens): 1210719.82
+- Complete Cost per Covered Success (USD): 1.688453
+- Complete Cost per Covered Success (Tokens): 1210719.82
 
 ## Entry summary
 
-- Closed entries: 102
-- Successes: 101
+- Closed entries: 103
+- Successes: 102
 - Fails: 1
-- Success Rate: 99.02%
-- Known total cost (USD): 133.761475
-- Known total tokens: 95845725
+- Success Rate: 99.03%
+- Known total cost (USD): 134.178874
+- Known total tokens: 96141607
 
 ## Operator review
 
@@ -45,18 +45,18 @@
 - Successes: 21
 - Fails: 0
 - Total attempts: 25
-- Known total cost (USD): 41.722462
-- Known total tokens: 29999550
+- Known total cost (USD): 41.999556
+- Known total tokens: 30197846
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.19
-- Known cost coverage: 17/21 successful goals
-- Known token coverage: 17/21 successful goals
-- Complete cost coverage: 17/21 successful goals
-- Complete token coverage: 17/21 successful goals
-- Known Cost per Success (USD): 2.454262
-- Known Cost per Success (Tokens): 1764679.41
-- Complete Cost per Covered Success (USD): 2.454262
-- Complete Cost per Covered Success (Tokens): 1764679.41
+- Known cost coverage: 18/21 successful goals
+- Known token coverage: 18/21 successful goals
+- Complete cost coverage: 18/21 successful goals
+- Complete token coverage: 18/21 successful goals
+- Known Cost per Success (USD): 2.333309
+- Known Cost per Success (Tokens): 1677658.11
+- Complete Cost per Covered Success (USD): 2.333309
+- Complete Cost per Covered Success (Tokens): 1677658.11
 
 ### retro
 - Closed goals: 23
@@ -77,24 +77,37 @@
 - Complete Cost per Covered Success (Tokens): 377563.20
 
 ### meta
-- Closed goals: 54
-- Successes: 54
+- Closed goals: 55
+- Successes: 55
 - Fails: 0
-- Total attempts: 54
-- Known total cost (USD): 84.972139
-- Known total tokens: 60898706
+- Total attempts: 55
+- Known total cost (USD): 85.112444
+- Known total tokens: 60996292
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 46/54 successful goals
-- Known token coverage: 46/54 successful goals
-- Complete cost coverage: 46/54 successful goals
-- Complete token coverage: 46/54 successful goals
-- Known Cost per Success (USD): 1.84722
-- Known Cost per Success (Tokens): 1323884.91
-- Complete Cost per Covered Success (USD): 1.84722
-- Complete Cost per Covered Success (Tokens): 1323884.91
+- Known cost coverage: 47/55 successful goals
+- Known token coverage: 47/55 successful goals
+- Complete cost coverage: 47/55 successful goals
+- Complete token coverage: 47/55 successful goals
+- Known Cost per Success (USD): 1.810903
+- Known Cost per Success (Tokens): 1297793.45
+- Complete Cost per Covered Success (USD): 1.810903
+- Complete Cost per Covered Success (Tokens): 1297793.45
 
 ## Goal log
+
+### 2026-03-29-105 — Clarify zero-duration cost audit windows
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T17:31:28+00:00
+- Finished at: 2026-03-29T17:31:28+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Reclassified zero-duration product goal windows from no_usage_data_found to incomplete_goal_window so cost audit points at too-narrow recorded boundaries instead of blaming telemetry absence.
 
 ### 2026-03-29-104 — Backfill exact-fit reviews for historical product goals
 - Goal type: meta
@@ -103,8 +116,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T17:24:00+00:00
 - Finished at: 2026-03-29T17:24:01+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.140305
+- Tokens: 97586
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Reviewed unannotated one-attempt product goals and backfilled exact_fit only where confidence was high: no supersede chain, no fail history, accepted outcome notes, and single-attempt closure.
@@ -168,8 +181,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T17:09:49+00:00
 - Finished at: 2026-03-29T17:09:50+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.277094
+- Tokens: 198296
 - Failure reason: n/a
 - Result fit: exact_fit
 - Notes: Added session token_count fallback for Codex usage recovery, verified with tests, and backfilled historical usage via sync-codex-usage.
@@ -467,8 +480,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T13:29:18+00:00
 - Finished at: n/a
-- Cost (USD): 1.094154
-- Tokens: 2365464
+- Cost (USD): 0.290358
+- Tokens: 619964
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Improve manual goal ID conflict messaging and document auto-ID as the default path for new goals.
@@ -883,8 +896,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T11:13:17+00:00
 - Finished at: n/a
-- Cost (USD): 1.091982
-- Tokens: 2355804
+- Cost (USD): 0.290358
+- Tokens: 619964
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Prevent invalid merge states in merge_tasks and mark inferred entries explicitly in the markdown report.
@@ -1065,8 +1078,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:36:36+00:00
 - Finished at: n/a
-- Cost (USD): 1.091982
-- Tokens: 2355804
+- Cost (USD): 0.290358
+- Tokens: 619964
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Continue safe refactoring by making summary and effective-goal logic more explicit and modular without changing persisted schema or CLI behavior.
@@ -1437,14 +1450,25 @@
 
 ## Entry log
 
+### 2026-03-29-105-attempt-001 — 2026-03-29-105
+- Entry type: meta
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T17:31:28+00:00
+- Finished at: 2026-03-29T17:31:28+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Reclassified zero-duration product goal windows from no_usage_data_found to incomplete_goal_window so cost audit points at too-narrow recorded boundaries instead of blaming telemetry absence.
+
 ### 2026-03-29-104-attempt-001 — 2026-03-29-104
 - Entry type: meta
 - Inferred: no
 - Status: success
 - Started at: 2026-03-29T17:24:00+00:00
 - Finished at: 2026-03-29T17:24:01+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.140305
+- Tokens: 97586
 - Failure reason: n/a
 - Notes: Reviewed unannotated one-attempt product goals and backfilled exact_fit only where confidence was high: no supersede chain, no fail history, accepted outcome notes, and single-attempt closure.
 
@@ -1498,8 +1522,8 @@
 - Status: success
 - Started at: 2026-03-29T17:09:49+00:00
 - Finished at: 2026-03-29T17:09:50+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.277094
+- Tokens: 198296
 - Failure reason: n/a
 - Notes: Added session token_count fallback for Codex usage recovery, verified with tests, and backfilled historical usage via sync-codex-usage.
 

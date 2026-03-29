@@ -43,6 +43,45 @@ def test_cost_audit_flags_incomplete_goal_window(tmp_path: Path) -> None:
     assert report.candidates[0].category == "incomplete_goal_window"
 
 
+def test_cost_audit_flags_zero_duration_goal_window(tmp_path: Path) -> None:
+    state_path = tmp_path / "state.sqlite"
+    logs_path = tmp_path / "logs.sqlite"
+    state_path.touch()
+    logs_path.touch()
+
+    report = audit_cost_coverage(
+        {
+            "goals": [
+                {
+                    "goal_id": "goal-1",
+                    "title": "Zero-duration window",
+                    "goal_type": "product",
+                    "supersedes_goal_id": None,
+                    "status": "success",
+                    "attempts": 1,
+                    "started_at": "2026-03-29T09:00:00+00:00",
+                    "finished_at": "2026-03-29T09:00:00+00:00",
+                    "cost_usd": None,
+                    "tokens_total": None,
+                    "failure_reason": None,
+                    "notes": None,
+                }
+            ]
+        },
+        pricing_path=tmp_path / "pricing.json",
+        codex_state_path=state_path,
+        codex_logs_path=logs_path,
+        cwd=tmp_path,
+        codex_thread_id=None,
+        find_thread_id=lambda _state, _cwd, _thread_id: "thread-1",
+        resolve_usage_window=lambda *_args: (None, None),
+    )
+
+    assert len(report.candidates) == 1
+    assert report.candidates[0].category == "incomplete_goal_window"
+    assert "zero-duration" in report.candidates[0].reason
+
+
 def test_cost_audit_flags_missing_telemetry_files(tmp_path: Path) -> None:
     report = audit_cost_coverage(
         {
