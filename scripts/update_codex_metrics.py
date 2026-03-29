@@ -54,6 +54,7 @@ class AttemptEntryRecord:
     entry_id: str
     goal_id: str
     entry_type: str
+    inferred: bool
     status: str
     started_at: str | None
     finished_at: str | None
@@ -112,6 +113,7 @@ def entry_from_dict(entry: dict[str, Any]) -> AttemptEntryRecord:
         entry_id=entry["entry_id"],
         goal_id=entry["goal_id"],
         entry_type=entry["entry_type"],
+        inferred=bool(entry.get("inferred", False)),
         status=entry["status"],
         started_at=entry.get("started_at"),
         finished_at=entry.get("finished_at"),
@@ -290,6 +292,8 @@ def validate_entry_record(entry: dict[str, Any]) -> None:
         raise ValueError("entry_type cannot be empty")
 
     validate_status(entry_record.status)
+    if "inferred" in entry and not isinstance(entry["inferred"], bool):
+        raise ValueError("Invalid type for entry field: inferred")
     if entry_record.cost_usd is not None:
         validate_non_negative_float(entry_record.cost_usd, "cost_usd")
     if entry_record.tokens_total is not None:
@@ -955,6 +959,8 @@ def compute_entry_summary(entries: list[AttemptEntryRecord]) -> dict[str, Any]:
     total_tokens_raw = sum_known_numeric_values(closed_entries, "tokens_total", int)
     failure_reason_counts: dict[str, int] = {}
     for entry in fails:
+        if entry.inferred:
+            continue
         reason = entry.failure_reason or "other"
         failure_reason_counts[reason] = failure_reason_counts.get(reason, 0) + 1
 
@@ -1140,6 +1146,7 @@ def build_attempt_entry(
     *,
     entries: list[dict[str, Any]],
     goal: dict[str, Any],
+    inferred: bool,
     status: str,
     started_at: str | None,
     finished_at: str | None,
@@ -1153,6 +1160,7 @@ def build_attempt_entry(
             entry_id=next_entry_id(entries, goal["goal_id"]),
             goal_id=goal["goal_id"],
             entry_type=goal["goal_type"],
+            inferred=inferred,
             status=status,
             started_at=started_at,
             finished_at=finished_at,
@@ -1170,35 +1178,44 @@ def close_open_attempt_entry(entry: dict[str, Any], finished_at: str | None, not
     if entry["status"] != "in_progress":
         return
     entry["status"] = "fail"
-    entry["failure_reason"] = entry.get("failure_reason") or "other"
+    entry["inferred"] = True
+    entry["failure_reason"] = entry.get("failure_reason")
     entry["finished_at"] = finished_at or now_utc_iso()
     if notes:
         existing_notes = entry.get("notes")
         entry["notes"] = notes if not existing_notes else f"{existing_notes} | {notes}"
 
 
-def sync_goal_attempt_entries(
-    data: dict[str, Any],
-    goal: dict[str, Any],
-    previous_goal: dict[str, Any] | None,
+def trim_excess_attempt_entries(
+    entries: list[dict[str, Any]],
+    goal_entries: list[dict[str, Any]],
+    current_attempts: int,
 ) -> None:
-    entries: list[dict[str, Any]] = data["entries"]
-    goal_entries = get_goal_entries(entries, goal["goal_id"])
-    goal_entries.sort(key=lambda entry: entry.get("started_at") or "")
-
-    current_attempts = int(goal.get("attempts") or 0)
-
     while len(goal_entries) > current_attempts:
         removed_entry = goal_entries.pop()
         entries.remove(removed_entry)
 
+
+def close_previous_open_attempt(
+    goal_entries: list[dict[str, Any]],
+    current_attempts: int,
+    finished_at: str | None,
+) -> None:
     if current_attempts > len(goal_entries) and goal_entries:
         close_open_attempt_entry(
             goal_entries[-1],
-            finished_at=goal.get("finished_at"),
+            finished_at=finished_at,
             notes="Inferred failed attempt because a newer attempt was started.",
         )
 
+
+def append_missing_attempt_entries(
+    *,
+    entries: list[dict[str, Any]],
+    goal_entries: list[dict[str, Any]],
+    goal: dict[str, Any],
+    current_attempts: int,
+) -> None:
     while len(goal_entries) < current_attempts:
         is_latest_attempt = len(goal_entries) + 1 == current_attempts
         inferred_failed_attempt = not is_latest_attempt
@@ -1213,28 +1230,38 @@ def sync_goal_attempt_entries(
         entry = build_attempt_entry(
             entries=entries,
             goal=goal,
+            inferred=inferred_failed_attempt,
             status=entry_status,
             started_at=started_at,
             finished_at=entry_finished_at,
             cost_usd=None,
             tokens_total=None,
-            failure_reason=(goal.get("failure_reason") if entry_status == "fail" and is_latest_attempt else "other" if inferred_failed_attempt else None),
+            failure_reason=goal.get("failure_reason") if entry_status == "fail" and is_latest_attempt else None,
             notes=notes,
         )
         entries.append(entry)
         goal_entries.append(entry)
 
-    if current_attempts == 0 or not goal_entries:
-        return
 
+def update_latest_attempt_entry(goal_entries: list[dict[str, Any]], goal: dict[str, Any]) -> dict[str, Any] | None:
+    if not goal_entries:
+        return None
     latest_entry = goal_entries[-1]
     latest_entry["entry_type"] = goal["goal_type"]
+    latest_entry["inferred"] = bool(latest_entry.get("inferred", False))
     latest_entry["status"] = goal["status"]
     latest_entry["started_at"] = latest_entry.get("started_at") or goal.get("started_at")
     latest_entry["finished_at"] = goal.get("finished_at") if goal["status"] in {"success", "fail"} else None
     latest_entry["failure_reason"] = goal.get("failure_reason")
     latest_entry["notes"] = goal.get("notes")
+    return latest_entry
 
+
+def apply_attempt_usage_deltas(
+    latest_entry: dict[str, Any],
+    goal: dict[str, Any],
+    previous_goal: dict[str, Any] | None,
+) -> None:
     previous_cost = None if previous_goal is None else previous_goal.get("cost_usd")
     previous_tokens = None if previous_goal is None else previous_goal.get("tokens_total")
     cost_delta = compute_numeric_delta(previous_cost, goal.get("cost_usd"))
@@ -1248,7 +1275,44 @@ def sync_goal_attempt_entries(
     elif previous_goal is None and goal.get("tokens_total") is not None:
         latest_entry["tokens_total"] = goal.get("tokens_total")
 
-    validate_entry_record(latest_entry)
+
+def validate_goal_entries(goal_entries: list[dict[str, Any]]) -> None:
+    for entry in goal_entries:
+        validate_entry_record(entry)
+
+
+def sync_goal_attempt_entries(
+    data: dict[str, Any],
+    goal: dict[str, Any],
+    previous_goal: dict[str, Any] | None,
+) -> None:
+    entries: list[dict[str, Any]] = data["entries"]
+    goal_entries = get_goal_entries(entries, goal["goal_id"])
+    goal_entries.sort(key=lambda entry: entry.get("started_at") or "")
+
+    current_attempts = int(goal.get("attempts") or 0)
+
+    trim_excess_attempt_entries(entries, goal_entries, current_attempts)
+    close_previous_open_attempt(
+        goal_entries,
+        current_attempts,
+        goal.get("finished_at"),
+    )
+    append_missing_attempt_entries(
+        entries=entries,
+        goal_entries=goal_entries,
+        goal=goal,
+        current_attempts=current_attempts,
+    )
+
+    if current_attempts == 0 or not goal_entries:
+        return
+
+    latest_entry = update_latest_attempt_entry(goal_entries, goal)
+    if latest_entry is None:
+        return
+    apply_attempt_usage_deltas(latest_entry, goal, previous_goal)
+    validate_goal_entries(goal_entries)
 
 
 def init_files(metrics_path: Path, report_path: Path, force: bool = False) -> None:

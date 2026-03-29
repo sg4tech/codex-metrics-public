@@ -1,21 +1,21 @@
 {
   "summary": {
-    "closed_tasks": 33,
-    "successes": 33,
+    "closed_tasks": 34,
+    "successes": 34,
     "fails": 0,
-    "total_attempts": 34,
+    "total_attempts": 35,
     "total_cost_usd": 1.159366,
     "total_tokens": 2461072,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.0303030303030303,
+    "attempts_per_closed_task": 1.0294117647058822,
     "cost_per_success_usd": null,
     "cost_per_success_tokens": null,
     "by_goal_type": {
       "meta": {
-        "closed_tasks": 22,
-        "successes": 22,
+        "closed_tasks": 23,
+        "successes": 23,
         "fails": 0,
-        "total_attempts": 22,
+        "total_attempts": 23,
         "total_cost_usd": 0.2658,
         "total_tokens": 569068,
         "success_rate": 1.0,
@@ -50,10 +50,10 @@
     },
     "by_task_type": {
       "meta": {
-        "closed_tasks": 22,
-        "successes": 22,
+        "closed_tasks": 23,
+        "successes": 23,
         "fails": 0,
-        "total_attempts": 22,
+        "total_attempts": 23,
         "total_cost_usd": 0.2658,
         "total_tokens": 569068,
         "success_rate": 1.0,
@@ -87,10 +87,10 @@
       }
     },
     "entries": {
-      "closed_entries": 34,
-      "successes": 33,
+      "closed_entries": 35,
+      "successes": 34,
       "fails": 1,
-      "success_rate": 0.9705882352941176,
+      "success_rate": 0.9714285714285714,
       "total_cost_usd": 1.159366,
       "total_tokens": 2461072,
       "failure_reasons": {
@@ -588,6 +588,20 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Reviewed commits, retros, and current metrics state. No new unresolved historical product bugs found beyond already documented issues around task boundaries, partial cost completeness, and stale-read validation procedure."
+    },
+    {
+      "goal_id": "2026-03-29-037",
+      "title": "Decompose attempt sync and isolate inferred failures",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T10:53:18+00:00",
+      "finished_at": "2026-03-29T10:56:25+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Decomposed sync_goal_attempt_entries into smaller policy helpers and excluded inferred synthetic failures from diagnostic failure-reason reporting."
     }
   ],
   "entries": [
@@ -1010,6 +1024,19 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Reviewed commits, retros, and current metrics state. No new unresolved historical product bugs found beyond already documented issues around task boundaries, partial cost completeness, and stale-read validation procedure."
+    },
+    {
+      "entry_id": "2026-03-29-037-attempt-001",
+      "goal_id": "2026-03-29-037",
+      "entry_type": "meta",
+      "status": "success",
+      "started_at": "2026-03-29T10:53:18+00:00",
+      "finished_at": "2026-03-29T10:56:25+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Decomposed sync_goal_attempt_entries into smaller policy helpers and excluded inferred synthetic failures from diagnostic failure-reason reporting.",
+      "inferred": false
     }
   ]
 }

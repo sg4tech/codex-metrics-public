@@ -413,15 +413,17 @@ def test_entries_preserve_prior_attempt_when_new_attempt_starts(repo: Path) -> N
 
     assert len(entries) == 2
     assert entries[0]["status"] == "fail"
-    assert entries[0]["failure_reason"] == "other"
+    assert entries[0]["inferred"] is True
+    assert entries[0]["failure_reason"] is None
     assert entries[1]["status"] == "success"
+    assert entries[1]["inferred"] is False
     assert entries[1]["failure_reason"] is None
     assert entries[1]["cost_usd"] == 0.2
     assert entries[1]["tokens_total"] == 500
     assert data["summary"]["entries"]["closed_entries"] == 2
     assert data["summary"]["entries"]["successes"] == 1
     assert data["summary"]["entries"]["fails"] == 1
-    assert data["summary"]["entries"]["failure_reasons"] == {"other": 1}
+    assert data["summary"]["entries"]["failure_reasons"] == {}
 
 
 def test_update_can_auto_sync_cost_and_tokens_from_codex_logs(repo: Path) -> None:
@@ -495,7 +497,7 @@ def test_close_fail_updates_summary(repo: Path) -> None:
     assert data["summary"]["attempts_per_closed_task"] == 3.0
     assert data["summary"]["cost_per_success_usd"] is None
     assert data["summary"]["cost_per_success_tokens"] is None
-    assert data["summary"]["entries"]["failure_reasons"] == {"other": 2, "validation_failed": 1}
+    assert data["summary"]["entries"]["failure_reasons"] == {"validation_failed": 1}
 
     task = data["tasks"][0]
     assert task["failure_reason"] == "validation_failed"
@@ -546,7 +548,7 @@ def test_multiple_tasks_summary(repo: Path) -> None:
     assert summary["cost_per_success_tokens"] == 500.0
     assert summary["by_task_type"]["product"]["closed_tasks"] == 2
     assert summary["by_task_type"]["product"]["fails"] == 1
-    assert summary["entries"]["failure_reasons"] == {"other": 5}
+    assert summary["entries"]["failure_reasons"] == {"other": 1}
 
 
 def test_invalid_failure_reason_fails(repo: Path) -> None:

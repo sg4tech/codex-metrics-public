@@ -119,6 +119,7 @@ def test_compute_entry_summary_counts_failure_reasons_from_failed_entries_only()
                 entry_id="entry-1",
                 goal_id="goal-1",
                 entry_type="product",
+                inferred=False,
                 status="success",
                 started_at=None,
                 finished_at=None,
@@ -131,6 +132,7 @@ def test_compute_entry_summary_counts_failure_reasons_from_failed_entries_only()
                 entry_id="entry-2",
                 goal_id="goal-1",
                 entry_type="product",
+                inferred=False,
                 status="fail",
                 started_at=None,
                 finished_at=None,
@@ -143,6 +145,7 @@ def test_compute_entry_summary_counts_failure_reasons_from_failed_entries_only()
                 entry_id="entry-3",
                 goal_id="goal-2",
                 entry_type="product",
+                inferred=True,
                 status="fail",
                 started_at=None,
                 finished_at=None,
@@ -160,7 +163,7 @@ def test_compute_entry_summary_counts_failure_reasons_from_failed_entries_only()
     assert summary["success_rate"] == 1 / 3
     assert summary["total_cost_usd"] == 0.2
     assert summary["total_tokens"] == 300
-    assert summary["failure_reasons"] == {"other": 1, "unclear_task": 1}
+    assert summary["failure_reasons"] == {"unclear_task": 1}
 
 
 def test_sync_goal_attempt_entries_creates_and_closes_attempt_history() -> None:
@@ -182,6 +185,7 @@ def test_sync_goal_attempt_entries_creates_and_closes_attempt_history() -> None:
             "entry_id": "goal-1-attempt-001",
             "goal_id": "goal-1",
             "entry_type": "product",
+            "inferred": False,
             "status": "in_progress",
             "started_at": "2026-03-29T09:00:00+00:00",
             "finished_at": None,
@@ -209,9 +213,11 @@ def test_sync_goal_attempt_entries_creates_and_closes_attempt_history() -> None:
     entries = sorted(data["entries"], key=lambda entry: entry["entry_id"])
     assert len(entries) == 2
     assert entries[0]["status"] == "fail"
-    assert entries[0]["failure_reason"] == "other"
+    assert entries[0]["inferred"] is True
+    assert entries[0]["failure_reason"] is None
     assert entries[0]["finished_at"] == "2026-03-29T09:10:00+00:00"
     assert entries[1]["status"] == "success"
+    assert entries[1]["inferred"] is False
     assert entries[1]["failure_reason"] is None
     assert entries[1]["cost_usd"] == 0.2
     assert entries[1]["tokens_total"] == 500

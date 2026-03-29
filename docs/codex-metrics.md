@@ -2,10 +2,10 @@
 
 ## Goal summary
 
-- Closed goals: 33
-- Successes: 33
+- Closed goals: 34
+- Successes: 34
 - Fails: 0
-- Total attempts: 34
+- Total attempts: 35
 - Total cost (USD): 1.159366
 - Total tokens: 2461072
 - Success Rate: 100.00%
@@ -15,10 +15,10 @@
 
 ## Entry summary
 
-- Closed entries: 34
-- Successes: 33
+- Closed entries: 35
+- Successes: 34
 - Fails: 1
-- Success Rate: 97.06%
+- Success Rate: 97.14%
 - Total cost (USD): 1.159366
 - Total tokens: 2461072
 
@@ -52,10 +52,10 @@
 - Cost per Success (Tokens): n/a
 
 ### meta
-- Closed goals: 22
-- Successes: 22
+- Closed goals: 23
+- Successes: 23
 - Fails: 0
-- Total attempts: 22
+- Total attempts: 23
 - Total cost (USD): 0.2658
 - Total tokens: 569068
 - Success Rate: 100.00%
@@ -64,6 +64,18 @@
 - Cost per Success (Tokens): n/a
 
 ## Goal log
+
+### 2026-03-29-037 — Decompose attempt sync and isolate inferred failures
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T10:53:18+00:00
+- Finished at: 2026-03-29T10:56:25+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Decomposed sync_goal_attempt_entries into smaller policy helpers and excluded inferred synthetic failures from diagnostic failure-reason reporting.
 
 ### 2026-03-29-036 — Re-audit metrics history for unresolved bugs
 - Goal type: meta
@@ -486,6 +498,16 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-037-attempt-001 — 2026-03-29-037
+- Entry type: meta
+- Status: success
+- Started at: 2026-03-29T10:53:18+00:00
+- Finished at: 2026-03-29T10:56:25+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Decomposed sync_goal_attempt_entries into smaller policy helpers and excluded inferred synthetic failures from diagnostic failure-reason reporting.
 
 ### 2026-03-29-036-attempt-001 — 2026-03-29-036
 - Entry type: meta

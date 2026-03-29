@@ -106,6 +106,7 @@ Each entry record must contain:
 
 Entries are attempt-history records.
 They must not be treated as a mirrored copy of final goal state when the goal has multiple attempts.
+If attempt history must be inferred from counts rather than observed directly, those inferred entries are operational history only and must not distort diagnostic failure-reason metrics.
 
 ## Allowed goal types
 
@@ -194,6 +195,7 @@ They must be available both:
 
 Reports must not present effective goal-level success alone when the raw entry history still contains failed attempts.
 Entry-level summary and failure reasons should remain visible alongside goal-level summary so retry pressure is not hidden by supersession or successful later replacements.
+Failure-reason breakdown should count diagnostic failed entries, not synthetic inferred failures created only to preserve attempt history shape.
 
 ### Success Rate
 Formula:
