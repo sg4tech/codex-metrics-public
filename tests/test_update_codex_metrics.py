@@ -213,6 +213,72 @@ def test_invalid_failure_reason_fails(repo: Path) -> None:
     assert result.returncode != 0
 
 
+def test_new_task_requires_title(repo: Path) -> None:
+    assert run_cmd(repo, "init").returncode == 0
+
+    result = run_cmd(repo, "update", "--task-id", "missing-title")
+
+    assert result.returncode != 0
+    assert "title is required when creating a new task" in result.stderr
+
+
+def test_existing_task_can_be_updated_without_title_and_keeps_started_at(repo: Path) -> None:
+    assert run_cmd(repo, "init").returncode == 0
+
+    started_at = "2026-03-29T09:00:00+00:00"
+    finished_at = "2026-03-29T09:10:00+00:00"
+
+    create_result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "task-with-times",
+        "--title",
+        "Task with timestamps",
+        "--started-at",
+        started_at,
+    )
+    assert create_result.returncode == 0, create_result.stderr
+
+    close_result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "task-with-times",
+        "--status",
+        "success",
+        "--attempts-delta",
+        "1",
+        "--finished-at",
+        finished_at,
+    )
+    assert close_result.returncode == 0, close_result.stderr
+
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    task = data["tasks"][0]
+
+    assert task["title"] == "Task with timestamps"
+    assert task["started_at"] == started_at
+    assert task["finished_at"] == finished_at
+    assert task["attempts"] == 1
+
+
+@pytest.mark.parametrize(
+    ("flag", "value"),
+    [
+        ("--attempts-delta", "-1"),
+        ("--attempts", "-1"),
+    ],
+)
+def test_negative_attempt_values_fail(repo: Path, flag: str, value: str) -> None:
+    assert run_cmd(repo, "init").returncode == 0
+    assert run_cmd(repo, "update", "--task-id", "attempt-task", "--title", "Attempt Task").returncode == 0
+
+    result = run_cmd(repo, "update", "--task-id", "attempt-task", flag, value)
+
+    assert result.returncode != 0
+
+
 @pytest.mark.parametrize(
     ("flag", "value"),
     [
@@ -237,3 +303,39 @@ def test_show_command(repo: Path) -> None:
     assert result.returncode == 0
     assert "Codex Metrics Summary" in result.stdout
     assert "Closed tasks: 0" in result.stdout
+
+
+def test_report_sorts_tasks_by_started_at_descending(repo: Path) -> None:
+    assert run_cmd(repo, "init").returncode == 0
+
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "older",
+        "--title",
+        "Older task",
+        "--started-at",
+        "2026-03-29T08:00:00+00:00",
+        "--status",
+        "success",
+    ).returncode == 0
+
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "newer",
+        "--title",
+        "Newer task",
+        "--started-at",
+        "2026-03-29T09:00:00+00:00",
+        "--status",
+        "success",
+    ).returncode == 0
+
+    report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
+    newer_index = report.index("### newer")
+    older_index = report.index("### older")
+
+    assert newer_index < older_index

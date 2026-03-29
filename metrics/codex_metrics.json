@@ -1,9 +1,9 @@
 {
   "summary": {
-    "closed_tasks": 3,
-    "successes": 3,
+    "closed_tasks": 4,
+    "successes": 4,
     "fails": 0,
-    "total_attempts": 3,
+    "total_attempts": 4,
     "total_cost_usd": 0.0,
     "total_tokens": 0,
     "success_rate": 1.0,
@@ -47,6 +47,18 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Added repository .gitignore for caches, local virtualenvs, IDE settings, and OS noise; verified required metrics/report/retro files are not ignored."
+    },
+    {
+      "task_id": "2026-03-29-005",
+      "title": "Assess and improve updater test coverage",
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T08:44:40+00:00",
+      "finished_at": "2026-03-29T08:45:36+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Expanded tests to cover missing stateful CLI behavior: required title on create, updating existing tasks without title, explicit timestamps, negative attempts, and report ordering; 15 tests passed and smoke flow validated."
     }
   ]
 }

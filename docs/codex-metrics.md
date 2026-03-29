@@ -2,10 +2,10 @@
 
 ## Current summary
 
-- Closed tasks: 3
-- Successes: 3
+- Closed tasks: 4
+- Successes: 4
 - Fails: 0
-- Total attempts: 3
+- Total attempts: 4
 - Total cost (USD): 0.00
 - Total tokens: 0
 - Success Rate: 100.00%
@@ -14,6 +14,16 @@
 - Cost per Success (Tokens): n/a
 
 ## Task log
+
+### 2026-03-29-005 — Assess and improve updater test coverage
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T08:44:40+00:00
+- Finished at: 2026-03-29T08:45:36+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Expanded tests to cover missing stateful CLI behavior: required title on create, updating existing tasks without title, explicit timestamps, negative attempts, and report ordering; 15 tests passed and smoke flow validated.
 
 ### 2026-03-29-004 — Add repository .gitignore for non-source artifacts
 - Status: success
