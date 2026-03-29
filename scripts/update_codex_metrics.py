@@ -1123,12 +1123,12 @@ def get_goal_entries(entries: list[dict[str, Any]], goal_id: str) -> list[dict[s
 
 def ensure_goal_type_update_allowed(
     entries: list[dict[str, Any]],
-    goal: dict[str, Any],
+    goal: GoalRecord,
     new_goal_type: str | None,
 ) -> None:
-    if new_goal_type is None or new_goal_type == goal["goal_type"]:
+    if new_goal_type is None or new_goal_type == goal.goal_type:
         return
-    if get_goal_entries(entries, goal["goal_id"]):
+    if get_goal_entries(entries, goal.goal_id):
         raise ValueError("goal_type cannot be changed after attempt history exists")
 
 
@@ -1347,7 +1347,7 @@ def create_goal_record(
     task_type: str | None,
     linked_task_id: str | None,
     started_at: str | None,
-) -> dict[str, Any]:
+) -> GoalRecord:
     if title is None:
         raise ValueError("title is required when creating a new task")
     if task_type is None:
@@ -1373,14 +1373,13 @@ def create_goal_record(
         failure_reason=None,
         notes=None,
     )
-    task = goal_to_dict(new_goal)
-    tasks.append(task)
-    return task
+    tasks.append(goal_to_dict(new_goal))
+    return new_goal
 
 
 def resolve_goal_usage_updates(
     *,
-    task: dict[str, Any],
+    task: GoalRecord,
     cost_usd_add: float | None,
     cost_usd_set: float | None,
     tokens_add: int | None,
@@ -1415,8 +1414,8 @@ def resolve_goal_usage_updates(
             state_path=codex_state_path,
             logs_path=codex_logs_path,
             cwd=cwd,
-            started_at=started_at if started_at is not None else task.get("started_at"),
-            finished_at=finished_at if finished_at is not None else task.get("finished_at"),
+            started_at=started_at if started_at is not None else task.started_at,
+            finished_at=finished_at if finished_at is not None else task.finished_at,
             pricing_path=pricing_path,
             thread_id=codex_thread_id,
         )
@@ -1427,7 +1426,7 @@ def resolve_goal_usage_updates(
 def apply_goal_updates(
     *,
     entries: list[dict[str, Any]],
-    task: dict[str, Any],
+    task: GoalRecord,
     title: str | None,
     task_type: str | None,
     status: str | None,
@@ -1449,72 +1448,72 @@ def apply_goal_updates(
     if title is not None:
         if not title.strip():
             raise ValueError("title cannot be empty")
-        task["title"] = title
+        task.title = title
     if task_type is not None:
         validate_task_type(task_type)
         ensure_goal_type_update_allowed(entries, task, task_type)
-        task["goal_type"] = task_type
+        task.goal_type = task_type
     if status is not None:
         validate_status(status)
-        task["status"] = status
+        task.status = status
     if attempts_abs is not None:
         validate_non_negative_int(attempts_abs, "attempts")
-        task["attempts"] = attempts_abs
+        task.attempts = attempts_abs
     if attempts_delta is not None:
         validate_non_negative_int(attempts_delta, "attempts_delta")
-        task["attempts"] = int(task.get("attempts") or 0) + attempts_delta
+        task.attempts = task.attempts + attempts_delta
 
     if cost_usd_set is not None:
         validate_non_negative_float(cost_usd_set, "cost_usd")
-        task["cost_usd"] = cost_usd_set
+        task.cost_usd = cost_usd_set
     elif cost_usd_add is not None:
         validate_non_negative_float(cost_usd_add, "cost_usd_add")
-        current_cost = task.get("cost_usd") or 0.0
-        task["cost_usd"] = round_usd(float(current_cost) + cost_usd_add)
+        current_cost = task.cost_usd or 0.0
+        task.cost_usd = round_usd(float(current_cost) + cost_usd_add)
     elif usage_cost_usd is not None:
-        current_cost = task.get("cost_usd") or 0.0
-        task["cost_usd"] = round_usd(float(current_cost) + usage_cost_usd)
+        current_cost = task.cost_usd or 0.0
+        task.cost_usd = round_usd(float(current_cost) + usage_cost_usd)
     elif auto_cost_usd is not None:
-        task["cost_usd"] = auto_cost_usd
+        task.cost_usd = auto_cost_usd
 
     if tokens_set is not None:
         validate_non_negative_int(tokens_set, "tokens")
-        task["tokens_total"] = tokens_set
+        task.tokens_total = tokens_set
     elif tokens_add is not None:
         validate_non_negative_int(tokens_add, "tokens_add")
-        current_tokens = int(task.get("tokens_total") or 0)
-        task["tokens_total"] = current_tokens + tokens_add
+        current_tokens = task.tokens_total or 0
+        task.tokens_total = current_tokens + tokens_add
     elif usage_total_tokens is not None:
-        current_tokens = int(task.get("tokens_total") or 0)
-        task["tokens_total"] = current_tokens + usage_total_tokens
+        current_tokens = task.tokens_total or 0
+        task.tokens_total = current_tokens + usage_total_tokens
     elif auto_total_tokens is not None:
-        task["tokens_total"] = auto_total_tokens
+        task.tokens_total = auto_total_tokens
 
     if failure_reason is not None:
         validate_failure_reason(failure_reason)
-        task["failure_reason"] = failure_reason
+        task.failure_reason = failure_reason
 
     if notes is not None:
-        task["notes"] = notes
+        task.notes = notes
     if started_at is not None:
-        task["started_at"] = started_at
+        task.started_at = started_at
     if finished_at is not None:
-        task["finished_at"] = finished_at
+        task.finished_at = finished_at
 
 
-def finalize_goal_update(task: dict[str, Any]) -> None:
-    if task["status"] in {"success", "fail"} and not task.get("finished_at"):
+def finalize_goal_update(task: GoalRecord) -> None:
+    if task.status in {"success", "fail"} and not task.finished_at:
         finished_dt = now_utc_datetime()
-        started_at_value = task.get("started_at")
+        started_at_value = task.started_at
         if started_at_value is not None:
             started_dt = parse_iso_datetime(started_at_value, "started_at")
             if finished_dt < started_dt:
                 finished_dt = started_dt
-        task["finished_at"] = finished_dt.isoformat()
-    if task["status"] == "success":
-        task["failure_reason"] = None
+        task.finished_at = finished_dt.isoformat()
+    if task.status == "success":
+        task.failure_reason = None
 
-    validate_goal_record(task)
+    validate_goal_record(goal_to_dict(task))
 
 
 def upsert_task(
@@ -1566,7 +1565,7 @@ def upsert_task(
         )
         task_index = len(tasks) - 1
 
-    task: dict[str, Any] = tasks[task_index]
+    task = goal_from_dict(tasks[task_index])
     usage_cost_usd, usage_total_tokens, auto_cost_usd, auto_total_tokens = (
         resolve_goal_usage_updates(
             task=task,
@@ -1609,8 +1608,10 @@ def upsert_task(
         finished_at=finished_at,
     )
     finalize_goal_update(task)
+    task_dict = goal_to_dict(task)
+    tasks[task_index] = task_dict
 
-    return task
+    return task_dict
 
 
 def build_parser() -> argparse.ArgumentParser:

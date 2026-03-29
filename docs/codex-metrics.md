@@ -2,10 +2,10 @@
 
 ## Goal summary
 
-- Closed goals: 36
-- Successes: 36
+- Closed goals: 38
+- Successes: 38
 - Fails: 0
-- Total attempts: 37
+- Total attempts: 39
 - Total cost (USD): 1.159366
 - Total tokens: 2461072
 - Success Rate: 100.00%
@@ -15,10 +15,10 @@
 
 ## Entry summary
 
-- Closed entries: 37
-- Successes: 36
+- Closed entries: 39
+- Successes: 38
 - Fails: 1
-- Success Rate: 97.30%
+- Success Rate: 97.44%
 - Total cost (USD): 1.159366
 - Total tokens: 2461072
 
@@ -40,10 +40,10 @@
 - Cost per Success (Tokens): n/a
 
 ### retro
-- Closed goals: 7
-- Successes: 7
+- Closed goals: 8
+- Successes: 8
 - Fails: 0
-- Total attempts: 7
+- Total attempts: 8
 - Total cost (USD): 0.255454
 - Total tokens: 532598
 - Success Rate: 100.00%
@@ -52,10 +52,10 @@
 - Cost per Success (Tokens): n/a
 
 ### meta
-- Closed goals: 24
-- Successes: 24
+- Closed goals: 25
+- Successes: 25
 - Fails: 0
-- Total attempts: 24
+- Total attempts: 25
 - Total cost (USD): 0.2658
 - Total tokens: 569068
 - Success Rate: 100.00%
@@ -64,6 +64,30 @@
 - Cost per Success (Tokens): n/a
 
 ## Goal log
+
+### 2026-03-29-041 — Retro for final high-ROI refactor step
+- Goal type: retro
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T11:04:42+00:00
+- Finished at: 2026-03-29T11:04:58+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Recorded that moving update flow to typed domain boundaries was the final high-ROI refactor before diminishing returns and that further refactoring should now be demand-driven.
+
+### 2026-03-29-040 — Move update flow closer to typed domain boundary
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T11:03:21+00:00
+- Finished at: 2026-03-29T11:04:17+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Moved the update/application path closer to the typed domain boundary by mutating GoalRecord internally and serializing back to dict only at persistence boundaries.
 
 ### 2026-03-29-039 — Close high-value architectural tails
 - Goal type: meta
@@ -522,6 +546,26 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-041-attempt-001 — 2026-03-29-041
+- Entry type: retro
+- Status: success
+- Started at: 2026-03-29T11:04:42+00:00
+- Finished at: 2026-03-29T11:04:58+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Recorded that moving update flow to typed domain boundaries was the final high-ROI refactor before diminishing returns and that further refactoring should now be demand-driven.
+
+### 2026-03-29-040-attempt-001 — 2026-03-29-040
+- Entry type: meta
+- Status: success
+- Started at: 2026-03-29T11:03:21+00:00
+- Finished at: 2026-03-29T11:04:17+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Moved the update/application path closer to the typed domain boundary by mutating GoalRecord internally and serializing back to dict only at persistence boundaries.
 
 ### 2026-03-29-039-attempt-001 — 2026-03-29-039
 - Entry type: meta
