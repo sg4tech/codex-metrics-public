@@ -545,6 +545,12 @@ def test_bootstrap_creates_scaffold_files(repo: Path) -> None:
 
     policy_text = policy_path.read_text(encoding="utf-8")
     assert "Codex Metrics Policy" in policy_text
+    assert "## What This Is" in policy_text
+    assert "Use it to make Codex-assisted work auditable" in policy_text
+    assert "## When It Applies" in policy_text
+    assert "### First Task Checklist" in policy_text
+    assert "Record a retry or another implementation pass on the same goal" in policy_text
+    assert "The local `AGENTS.md` should point agents to this file." in policy_text
     assert "Metrics bookkeeping is mandatory." in policy_text
     assert "If you are using a standalone self-host binary that is not on `PATH`" in policy_text
     assert "`~/bin/codex-metrics`" in policy_text
@@ -552,14 +558,14 @@ def test_bootstrap_creates_scaffold_files(repo: Path) -> None:
     agents_text = agents_path.read_text(encoding="utf-8")
     assert "# AGENTS.md" in agents_text
     assert "<!-- codex-metrics:start -->" in agents_text
+    assert "### Read first" in agents_text
+    assert "Before starting or continuing any engineering task, always read:" in agents_text
+    assert "- `AGENTS.md`" in agents_text
     assert "docs/codex-metrics-policy.md" in agents_text
-    assert "Use `codex-metrics ...` if the CLI is installed on `PATH`." in agents_text
-    assert "./codex-metrics" in agents_text
-    assert "`~/bin/codex-metrics`" in agents_text
-    assert "install-self" in agents_text
-    assert "At the start of a meaningful task, create or continue a goal" in agents_text
-    assert "--attempts-delta 1 --notes \"Retry\"" in agents_text
-    assert "codex-metrics update" in agents_text
+    assert "The rules in `docs/codex-metrics-policy.md` are mandatory" in agents_text
+    assert "Generated artifacts:" not in agents_text
+    assert "Do not edit generated metrics files manually" not in agents_text
+    assert "codex-metrics update" not in agents_text
 
 
 def test_bootstrap_appends_single_managed_block_to_existing_agents(repo: Path) -> None:
@@ -671,8 +677,6 @@ def test_bootstrap_custom_paths_render_relative_agents_links(repo: Path) -> None
 
     assert result.returncode == 0, result.stderr
     agents_text = (repo / "guide" / "AGENTS.md").read_text(encoding="utf-8")
-    assert "`../custom/metrics.json`" in agents_text
-    assert "`../custom/report.md`" in agents_text
     assert "`../rules/policy.md`" in agents_text
 
 

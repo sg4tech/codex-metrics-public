@@ -2,6 +2,34 @@
 
 This policy defines the minimum workflow for tracking Codex-assisted engineering work in a repository.
 
+The local `AGENTS.md` should point agents to this file.
+Put the operational rules for codex-metrics here, not in duplicated AGENTS prose.
+
+## What This Is
+
+`codex-metrics` is the repository-local system for tracking:
+
+- requested outcomes as goals
+- implementation passes and retries as attempts
+- final success or failure state
+- optional token and USD cost signals
+
+Use it to make Codex-assisted work auditable instead of leaving the history only in chat transcripts.
+
+## When It Applies
+
+Follow this policy for meaningful Codex-assisted engineering work in this repository.
+
+That normally includes:
+
+- product or engineering delivery
+- bug fixes
+- refactors
+- tooling changes
+- retrospective writeups
+
+Do not treat it as optional bookkeeping after the fact. Goal tracking is part of the task workflow itself.
+
 ## Purpose
 
 Use this policy to answer four practical questions:
@@ -27,7 +55,23 @@ Use this policy to answer four practical questions:
 
 If they disagree, the structured metrics file wins.
 
+## Key Terms
+
+- `goal`: one requested outcome or task
+- `attempt`: one implementation pass, retry, or meaningful follow-up on that goal
+- `goal_type`: whether the work is `product`, `retro`, or `meta`
+- `failure_reason`: the main reason a failed attempt or failed goal did not succeed
+
 ## Required Goal Workflow
+
+### First Task Checklist
+
+When you start working in a bootstrapped repository:
+
+1. Confirm how to invoke the CLI in this repository.
+2. Read this policy before changing code.
+3. Start or continue the correct goal before doing substantial implementation work.
+4. Update the same goal as you continue, instead of creating unrelated duplicate goals for retries.
 
 ### At Goal Start
 
@@ -87,6 +131,12 @@ Create or continue a goal:
 
 ```bash
 codex-metrics update --title "Add CSV import" --task-type product --attempts-delta 1
+```
+
+Record a retry or another implementation pass on the same goal:
+
+```bash
+codex-metrics update --task-id <goal-id> --attempts-delta 1 --notes "Retry"
 ```
 
 Close a goal:

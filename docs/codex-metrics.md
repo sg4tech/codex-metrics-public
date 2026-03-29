@@ -2,31 +2,31 @@
 
 ## Goal summary
 
-- Closed goals: 125
-- Successes: 125
+- Closed goals: 130
+- Successes: 130
 - Fails: 0
-- Total attempts: 130
-- Known total cost (USD): 188.140381
-- Known total tokens: 134941629
+- Total attempts: 136
+- Known total cost (USD): 195.404617
+- Known total tokens: 140178468
 - Success Rate: 100.00%
-- Attempts per Closed Goal: 1.04
-- Known cost coverage: 104/125 successful goals
-- Known token coverage: 104/125 successful goals
-- Complete cost coverage: 104/125 successful goals
-- Complete token coverage: 104/125 successful goals
-- Known Cost per Success (USD): 1.809042
-- Known Cost per Success (Tokens): 1297515.66
-- Complete Cost per Covered Success (USD): 1.809042
-- Complete Cost per Covered Success (Tokens): 1297515.66
+- Attempts per Closed Goal: 1.05
+- Known cost coverage: 109/130 successful goals
+- Known token coverage: 109/130 successful goals
+- Complete cost coverage: 109/130 successful goals
+- Complete token coverage: 109/130 successful goals
+- Known Cost per Success (USD): 1.792703
+- Known Cost per Success (Tokens): 1286040.99
+- Complete Cost per Covered Success (USD): 1.792703
+- Complete Cost per Covered Success (Tokens): 1286040.99
 
 ## Entry summary
 
-- Closed entries: 130
-- Successes: 129
+- Closed entries: 136
+- Successes: 135
 - Fails: 1
-- Success Rate: 99.23%
-- Known total cost (USD): 187.243001
-- Known total tokens: 134225650
+- Success Rate: 99.26%
+- Known total cost (USD): 194.507237
+- Known total tokens: 139462489
 
 ## Operator review
 
@@ -41,40 +41,40 @@
 - unclear_task: 1
 
 ### product
-- Closed goals: 39
-- Successes: 39
+- Closed goals: 42
+- Successes: 42
 - Fails: 0
-- Total attempts: 44
-- Known total cost (USD): 89.920737
-- Known total tokens: 64593728
+- Total attempts: 48
+- Known total cost (USD): 96.187109
+- Known total tokens: 69118138
 - Success Rate: 100.00%
-- Attempts per Closed Goal: 1.13
-- Known cost coverage: 35/39 successful goals
-- Known token coverage: 35/39 successful goals
-- Complete cost coverage: 35/39 successful goals
-- Complete token coverage: 35/39 successful goals
-- Known Cost per Success (USD): 2.569164
-- Known Cost per Success (Tokens): 1845535.09
-- Complete Cost per Covered Success (USD): 2.569164
-- Complete Cost per Covered Success (Tokens): 1845535.09
+- Attempts per Closed Goal: 1.14
+- Known cost coverage: 38/42 successful goals
+- Known token coverage: 38/42 successful goals
+- Complete cost coverage: 38/42 successful goals
+- Complete token coverage: 38/42 successful goals
+- Known Cost per Success (USD): 2.53124
+- Known Cost per Success (Tokens): 1818898.37
+- Complete Cost per Covered Success (USD): 2.53124
+- Complete Cost per Covered Success (Tokens): 1818898.37
 
 ### retro
-- Closed goals: 29
-- Successes: 29
+- Closed goals: 31
+- Successes: 31
 - Fails: 0
-- Total attempts: 29
-- Known total cost (USD): 10.719752
-- Known total tokens: 7630087
+- Total attempts: 31
+- Known total cost (USD): 11.717616
+- Known total tokens: 8342516
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 20/29 successful goals
-- Known token coverage: 20/29 successful goals
-- Complete cost coverage: 20/29 successful goals
-- Complete token coverage: 20/29 successful goals
-- Known Cost per Success (USD): 0.535988
-- Known Cost per Success (Tokens): 381504.35
-- Complete Cost per Covered Success (USD): 0.535988
-- Complete Cost per Covered Success (Tokens): 381504.35
+- Known cost coverage: 22/31 successful goals
+- Known token coverage: 22/31 successful goals
+- Complete cost coverage: 22/31 successful goals
+- Complete token coverage: 22/31 successful goals
+- Known Cost per Success (USD): 0.532619
+- Known Cost per Success (Tokens): 379205.27
+- Complete Cost per Covered Success (USD): 0.532619
+- Complete Cost per Covered Success (Tokens): 379205.27
 
 ### meta
 - Closed goals: 57
@@ -95,6 +95,71 @@
 - Complete Cost per Covered Success (Tokens): 1279955.39
 
 ## Goal log
+
+### 2026-03-29-136 — AGENTS vs policy boundary retrospective
+- Goal type: retro
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T19:23:09+00:00
+- Finished at: 2026-03-29T19:23:32+00:00
+- Cost (USD): 0.532484
+- Tokens: 381218
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Added retrospective for the AGENTS vs policy boundary drift in bootstrap-generated instructions, documenting why AGENTS should remain a read-first include while the policy owns the codex-metrics operational contract.
+
+### 2026-03-29-135 — Remove generated-artifact usage rules from AGENTS include block
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T19:21:11+00:00
+- Finished at: 2026-03-29T19:22:27+00:00
+- Cost (USD): 2.324499
+- Tokens: 1682932
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Removed generated-artifact references and manual-edit rules from the bootstrap-generated AGENTS include block so it now only points agents to AGENTS.md and the codex-metrics policy; kept the operational details in the exported policy template; verified with bootstrap-focused tests and full make verify.
+
+### 2026-03-29-134 — Clarify codex-metrics policy for newly bootstrapped agents
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T19:19:19+00:00
+- Finished at: 2026-03-29T19:20:16+00:00
+- Cost (USD): 2.017368
+- Tokens: 1455541
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Clarified the exported codex-metrics policy for newly bootstrapped agents by adding What This Is, When It Applies, Key Terms, First Task Checklist, and an explicit retry command example; verified with bootstrap-focused tests and full make verify.
+
+### 2026-03-29-133 — Move codex-metrics usage contract from AGENTS block into policy template
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 2
+- Started at: 2026-03-29T19:16:24+00:00
+- Finished at: 2026-03-29T19:17:29+00:00
+- Cost (USD): 1.924505
+- Tokens: 1385937
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Refined the bootstrap-generated AGENTS block to an explicit Read first include pointing to AGENTS.md and docs/codex-metrics-policy.md with mandatory-policy wording; verified with bootstrap-focused tests and full make verify.
+
+### 2026-03-29-132 — Installer hardening retrospective
+- Goal type: retro
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T19:14:37+00:00
+- Finished at: 2026-03-29T19:15:03+00:00
+- Cost (USD): 0.46538
+- Tokens: 331211
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Added installer hardening retrospective covering stale standalone artifacts, PATH discoverability, launcher correctness, and the opt-in shell-profile update model for install-self.
 
 ### 2026-03-29-131 — Add optional shell profile update to install-self
 - Goal type: product
@@ -1787,6 +1852,72 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-136-attempt-001 — 2026-03-29-136
+- Entry type: retro
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T19:23:09+00:00
+- Finished at: 2026-03-29T19:23:32+00:00
+- Cost (USD): 0.532484
+- Tokens: 381218
+- Failure reason: n/a
+- Notes: Added retrospective for the AGENTS vs policy boundary drift in bootstrap-generated instructions, documenting why AGENTS should remain a read-first include while the policy owns the codex-metrics operational contract.
+
+### 2026-03-29-135-attempt-001 — 2026-03-29-135
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T19:21:11+00:00
+- Finished at: 2026-03-29T19:22:27+00:00
+- Cost (USD): 2.324499
+- Tokens: 1682932
+- Failure reason: n/a
+- Notes: Removed generated-artifact references and manual-edit rules from the bootstrap-generated AGENTS include block so it now only points agents to AGENTS.md and the codex-metrics policy; kept the operational details in the exported policy template; verified with bootstrap-focused tests and full make verify.
+
+### 2026-03-29-134-attempt-001 — 2026-03-29-134
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T19:19:19+00:00
+- Finished at: 2026-03-29T19:20:16+00:00
+- Cost (USD): 2.017368
+- Tokens: 1455541
+- Failure reason: n/a
+- Notes: Clarified the exported codex-metrics policy for newly bootstrapped agents by adding What This Is, When It Applies, Key Terms, First Task Checklist, and an explicit retry command example; verified with bootstrap-focused tests and full make verify.
+
+### 2026-03-29-133-attempt-001 — 2026-03-29-133
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T19:16:24+00:00
+- Finished at: 2026-03-29T19:17:29+00:00
+- Cost (USD): 1.924505
+- Tokens: 1385937
+- Failure reason: n/a
+- Notes: Narrowed the bootstrap-generated AGENTS block to a policy include/reference plus artifact pointers, moved the operational usage contract fully into the exported policy template, updated regression tests to enforce that boundary, and verified with targeted bootstrap tests and make verify.
+
+### 2026-03-29-133-attempt-002 — 2026-03-29-133
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T19:16:24+00:00
+- Finished at: 2026-03-29T19:17:29+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Refined the bootstrap-generated AGENTS block to an explicit Read first include pointing to AGENTS.md and docs/codex-metrics-policy.md with mandatory-policy wording; verified with bootstrap-focused tests and full make verify.
+
+### 2026-03-29-132-attempt-001 — 2026-03-29-132
+- Entry type: retro
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T19:14:37+00:00
+- Finished at: 2026-03-29T19:15:03+00:00
+- Cost (USD): 0.46538
+- Tokens: 331211
+- Failure reason: n/a
+- Notes: Added installer hardening retrospective covering stale standalone artifacts, PATH discoverability, launcher correctness, and the opt-in shell-profile update model for install-self.
 
 ### 2026-03-29-131-attempt-001 — 2026-03-29-131
 - Entry type: product

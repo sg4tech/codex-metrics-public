@@ -56,35 +56,16 @@ def path_for_agents(target_path: Path, *, agents_path: Path) -> Path:
 
 def render_agents_block(*, policy_path: Path, metrics_path: Path, report_path: Path) -> str:
     policy_label = policy_path.as_posix()
-    metrics_label = metrics_path.as_posix()
-    report_label = report_path.as_posix()
+    del metrics_path
+    del report_path
     return (
         f"{START_MARKER}\n"
         "## Codex Metrics\n\n"
-        "Use `codex-metrics` to track goal, attempt, failure, and cost history for Codex-assisted work.\n\n"
-        "Generated artifacts:\n\n"
-        f"- `{metrics_label}`\n"
-        f"- `{report_label}`\n\n"
-        "Policy:\n\n"
+        "### Read first\n\n"
+        "Before starting or continuing any engineering task, always read:\n\n"
+        "- `AGENTS.md`\n"
         f"- `{policy_label}`\n\n"
-        "Command invocation:\n\n"
-        "- Use `codex-metrics ...` if the CLI is installed on `PATH`.\n"
-        "- If this repository uses a standalone self-host binary, invoke it by path, for example `./codex-metrics ...` or `/path/to/codex-metrics ...`.\n\n"
-        "Preferred standalone setup on macOS/Linux:\n\n"
-        "- Run `/path/to/codex-metrics install-self` once to install a stable `~/bin/codex-metrics` entrypoint.\n"
-        "- Then use `codex-metrics ...` from there instead of copying binaries into each repository.\n\n"
-        "Required workflow for Codex agents:\n\n"
-        "1. Read `AGENTS.md` and the policy file above before starting work.\n"
-        "2. At the start of a meaningful task, create or continue a goal with an explicit `--task-type` for new goals.\n"
-        "3. On each new implementation pass for the same goal, increment attempts.\n"
-        "4. When the task is finished, close the goal as `success` or `fail` and record a dominant failure reason for failures.\n"
-        "5. Use `show` to review the current summary after meaningful updates.\n\n"
-        "Typical commands:\n\n"
-        "1. `codex-metrics update --title \"...\" --task-type product --attempts-delta 1`\n"
-        "2. `codex-metrics update --task-id <goal-id> --attempts-delta 1 --notes \"Retry\"`\n"
-        "3. `codex-metrics update --task-id <goal-id> --status success --notes \"Validated\"`\n"
-        "4. `codex-metrics show`\n\n"
-        "Do not edit generated metrics files manually when the CLI can regenerate them.\n"
+        f"The rules in `{policy_label}` are mandatory and are part of this repository's operating instructions.\n\n"
         f"{END_MARKER}\n"
     )
 
