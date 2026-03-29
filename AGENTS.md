@@ -65,6 +65,8 @@ Keep these invariants intact:
 - entries should represent attempt history, not a mirrored copy of goal records
 - do not present goal-level success alone if entry-level failures exist
 - inferred attempt-history entries may preserve history shape, but they must not pollute diagnostic failure-reason reporting
+- for `product` goals, record boundaries close to the real work window; avoid post-hoc zero-duration closeouts because they degrade automatic cost recovery
+- after fixing a recovery or telemetry path, re-evaluate whether the remaining gap is still a code problem or has shifted to workflow/data-fidelity constraints
 
 ## Script editing rules
 
