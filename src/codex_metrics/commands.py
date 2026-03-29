@@ -128,6 +128,33 @@ def _shell_path_snippet(target_dir: Path) -> tuple[str, str]:
     return "your shell profile", export_line
 
 
+def _shell_profile_path() -> Path | None:
+    shell_name = Path(os.environ.get("SHELL", "")).name
+    home = Path.home()
+    if shell_name == "zsh":
+        return home / ".zshrc"
+    if shell_name == "bash":
+        return home / ".bashrc"
+    return None
+
+
+def _ensure_profile_has_path_line(profile_path: Path, export_line: str) -> bool:
+    if profile_path.exists():
+        existing_text = profile_path.read_text(encoding="utf-8")
+    else:
+        existing_text = ""
+    if export_line in existing_text:
+        return False
+
+    updated = existing_text.rstrip("\n")
+    if updated:
+        updated += "\n"
+    updated += f"{export_line}\n"
+    profile_path.parent.mkdir(parents=True, exist_ok=True)
+    profile_path.write_text(updated, encoding="utf-8")
+    return True
+
+
 def _write_python_launcher(target_path: Path, *, python_executable: Path, source_path: Path) -> None:
     launcher = (
         "#!/bin/sh\n"
@@ -190,9 +217,19 @@ def handle_install_self(args: Namespace, _cli_module: CommandRuntime) -> int:
     print(f"{verb} {source_path} -> {target_path}")
     if not _path_dir_is_available(target_path.parent):
         profile_name, export_line = _shell_path_snippet(target_path.parent)
-        print(f"Warning: {target_path.parent.expanduser()} is not on PATH.")
-        print(f"Add this line to {profile_name}:")
-        print(export_line)
+        profile_path = _shell_profile_path()
+        if args.write_shell_profile:
+            if profile_path is None:
+                raise ValueError("Cannot determine shell profile automatically for this shell; add PATH manually.")
+            changed = _ensure_profile_has_path_line(profile_path, export_line)
+            if changed:
+                print(f"Added PATH update to {profile_path}")
+            else:
+                print(f"PATH update already present in {profile_path}")
+        else:
+            print(f"Warning: {target_path.parent.expanduser()} is not on PATH.")
+            print(f"Add this line to {profile_name}:")
+            print(export_line)
         print("Then reopen your shell before running `codex-metrics` by command name.")
     return 0
 

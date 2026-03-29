@@ -2,31 +2,31 @@
 
 ## Goal summary
 
-- Closed goals: 124
-- Successes: 124
+- Closed goals: 125
+- Successes: 125
 - Fails: 0
-- Total attempts: 129
-- Known total cost (USD): 186.393424
-- Known total tokens: 133672867
+- Total attempts: 130
+- Known total cost (USD): 188.140381
+- Known total tokens: 134941629
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 103/124 successful goals
-- Known token coverage: 103/124 successful goals
-- Complete cost coverage: 103/124 successful goals
-- Complete token coverage: 103/124 successful goals
-- Known Cost per Success (USD): 1.809645
-- Known Cost per Success (Tokens): 1297794.83
-- Complete Cost per Covered Success (USD): 1.809645
-- Complete Cost per Covered Success (Tokens): 1297794.83
+- Known cost coverage: 104/125 successful goals
+- Known token coverage: 104/125 successful goals
+- Complete cost coverage: 104/125 successful goals
+- Complete token coverage: 104/125 successful goals
+- Known Cost per Success (USD): 1.809042
+- Known Cost per Success (Tokens): 1297515.66
+- Complete Cost per Covered Success (USD): 1.809042
+- Complete Cost per Covered Success (Tokens): 1297515.66
 
 ## Entry summary
 
-- Closed entries: 129
-- Successes: 128
+- Closed entries: 130
+- Successes: 129
 - Fails: 1
-- Success Rate: 99.22%
-- Known total cost (USD): 185.496044
-- Known total tokens: 132956888
+- Success Rate: 99.23%
+- Known total cost (USD): 187.243001
+- Known total tokens: 134225650
 
 ## Operator review
 
@@ -41,22 +41,22 @@
 - unclear_task: 1
 
 ### product
-- Closed goals: 38
-- Successes: 38
+- Closed goals: 39
+- Successes: 39
 - Fails: 0
-- Total attempts: 43
-- Known total cost (USD): 88.17378
-- Known total tokens: 63324966
+- Total attempts: 44
+- Known total cost (USD): 89.920737
+- Known total tokens: 64593728
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.13
-- Known cost coverage: 34/38 successful goals
-- Known token coverage: 34/38 successful goals
-- Complete cost coverage: 34/38 successful goals
-- Complete token coverage: 34/38 successful goals
-- Known Cost per Success (USD): 2.593346
-- Known Cost per Success (Tokens): 1862499.00
-- Complete Cost per Covered Success (USD): 2.593346
-- Complete Cost per Covered Success (Tokens): 1862499.00
+- Known cost coverage: 35/39 successful goals
+- Known token coverage: 35/39 successful goals
+- Complete cost coverage: 35/39 successful goals
+- Complete token coverage: 35/39 successful goals
+- Known Cost per Success (USD): 2.569164
+- Known Cost per Success (Tokens): 1845535.09
+- Complete Cost per Covered Success (USD): 2.569164
+- Complete Cost per Covered Success (Tokens): 1845535.09
 
 ### retro
 - Closed goals: 29
@@ -95,6 +95,19 @@
 - Complete Cost per Covered Success (Tokens): 1279955.39
 
 ## Goal log
+
+### 2026-03-29-131 — Add optional shell profile update to install-self
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T19:12:09+00:00
+- Finished at: 2026-03-29T19:13:18+00:00
+- Cost (USD): 1.746957
+- Tokens: 1268762
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Added opt-in shell profile update support to install-self via --write-shell-profile, so installer can append the target directory to ~/.zshrc or ~/.bashrc when it is not already on PATH; kept default behavior non-destructive, added regression tests for profile writing and idempotency, updated README, and verified with targeted tests plus make verify.
 
 ### 2026-03-29-130 — Rebuild standalone binary after install-self addition
 - Goal type: product
@@ -1774,6 +1787,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-131-attempt-001 — 2026-03-29-131
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T19:12:09+00:00
+- Finished at: 2026-03-29T19:13:18+00:00
+- Cost (USD): 1.746957
+- Tokens: 1268762
+- Failure reason: n/a
+- Notes: Added opt-in shell profile update support to install-self via --write-shell-profile, so installer can append the target directory to ~/.zshrc or ~/.bashrc when it is not already on PATH; kept default behavior non-destructive, added regression tests for profile writing and idempotency, updated README, and verified with targeted tests plus make verify.
 
 ### 2026-03-29-130-attempt-001 — 2026-03-29-130
 - Entry type: product

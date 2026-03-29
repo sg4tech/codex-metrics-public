@@ -59,6 +59,12 @@ codex-metrics --help
 
 This keeps one stable command on `PATH` and avoids copying a separate binary into each repository.
 If `~/bin` is not yet on `PATH`, `install-self` will print the exact `export PATH=...` line to add to your shell profile.
+If you want the installer to append that line automatically for your detected shell:
+
+```bash
+/absolute/path/to/codex-metrics install-self --write-shell-profile
+exec $SHELL -l
+```
 
 Preferred install from source for a standalone CLI:
 

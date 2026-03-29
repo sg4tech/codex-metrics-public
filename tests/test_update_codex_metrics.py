@@ -450,6 +450,43 @@ def test_install_self_skips_path_warning_when_target_dir_is_already_on_path(repo
     assert "Warning:" not in result.stdout
 
 
+def test_install_self_can_write_shell_profile(repo: Path) -> None:
+    install_dir = repo / "bin"
+    fake_home = repo / "home"
+
+    result = run_cmd(
+        repo,
+        "install-self",
+        "--target-dir",
+        str(install_dir),
+        "--write-shell-profile",
+        extra_env={"HOME": str(fake_home), "SHELL": "/bin/zsh", "PATH": "/usr/bin:/bin"},
+    )
+
+    assert result.returncode == 0, result.stderr
+    zshrc_path = fake_home / ".zshrc"
+    assert zshrc_path.exists()
+    zshrc_text = zshrc_path.read_text(encoding="utf-8")
+    assert f'export PATH="{install_dir}:$PATH"' in zshrc_text
+    assert f"Added PATH update to {zshrc_path}" in result.stdout
+    assert "Warning:" not in result.stdout
+
+
+def test_install_self_write_shell_profile_is_idempotent(repo: Path) -> None:
+    install_dir = repo / "bin"
+    fake_home = repo / "home"
+    extra_env = {"HOME": str(fake_home), "SHELL": "/bin/zsh", "PATH": "/usr/bin:/bin"}
+
+    first_result = run_cmd(repo, "install-self", "--target-dir", str(install_dir), "--write-shell-profile", extra_env=extra_env)
+    second_result = run_cmd(repo, "install-self", "--target-dir", str(install_dir), "--write-shell-profile", extra_env=extra_env)
+
+    assert first_result.returncode == 0, first_result.stderr
+    assert second_result.returncode == 0, second_result.stderr
+    zshrc_text = (fake_home / ".zshrc").read_text(encoding="utf-8")
+    assert zshrc_text.count(f'export PATH="{install_dir}:$PATH"') == 1
+    assert "PATH update already present" in second_result.stdout
+
+
 def test_init_refuses_to_overwrite_without_force(repo: Path) -> None:
     assert run_cmd(repo, "init").returncode == 0
 

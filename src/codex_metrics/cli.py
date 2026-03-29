@@ -727,6 +727,11 @@ def build_parser() -> argparse.ArgumentParser:
     install_self_parser.add_argument("--target-path")
     install_self_parser.add_argument("--command-name", default="codex-metrics")
     install_self_parser.add_argument("--copy", action="store_true", help="Copy the executable instead of creating a symlink")
+    install_self_parser.add_argument(
+        "--write-shell-profile",
+        action="store_true",
+        help="Append the target directory to the detected shell profile when it is not already on PATH",
+    )
 
     completion_parser = subparsers.add_parser(
         "completion",
