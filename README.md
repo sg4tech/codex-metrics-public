@@ -36,10 +36,31 @@ Requirements:
 
 - Python 3.11+
 
-Install from a checkout:
+Preferred install when a standalone release binary is available:
 
 ```bash
-python -m pip install .
+# macOS / Linux
+chmod +x ./codex-metrics
+./codex-metrics --help
+
+# Windows
+.\codex-metrics.exe --help
+```
+
+Preferred install from source for a standalone CLI:
+
+```bash
+pipx install .
+```
+
+Fallback install from a checkout:
+
+```bash
+# macOS / Linux
+python3 -m pip install .
+
+# Windows
+py -m pip install .
 ```
 
 Show CLI help after install:
@@ -122,10 +143,30 @@ codex-metrics show
 
 Use this flow when you want to add `codex-metrics` to a different local repository.
 
-Install from this checkout:
+Preferred install from a standalone release binary:
 
 ```bash
-python -m pip install /Users/viktor/PycharmProjects/codex-metrics
+# macOS / Linux
+/path/to/codex-metrics bootstrap --dry-run
+
+# Windows
+C:\path\to\codex-metrics.exe bootstrap --dry-run
+```
+
+Preferred install from source:
+
+```bash
+pipx install /Users/viktor/PycharmProjects/codex-metrics
+```
+
+Fallback install:
+
+```bash
+# macOS / Linux
+python3 -m pip install /Users/viktor/PycharmProjects/codex-metrics
+
+# Windows
+py -m pip install C:\path\to\codex-metrics
 ```
 
 Move into the target repository and preview the scaffold:
@@ -169,13 +210,36 @@ When a new version of `codex-metrics` is released, update the installed package 
 Update from a local checkout:
 
 ```bash
-python -m pip install --upgrade /Users/viktor/PycharmProjects/codex-metrics
+# preferred
+pipx install --force /Users/viktor/PycharmProjects/codex-metrics
+
+# macOS / Linux fallback
+python3 -m pip install --upgrade /Users/viktor/PycharmProjects/codex-metrics
+
+# Windows fallback
+py -m pip install --upgrade C:\path\to\codex-metrics
+```
+
+Update from a standalone release binary by replacing the downloaded binary with the newer release artifact, then reconciling the target repository scaffold:
+
+```bash
+cd /path/to/another-repo
+/path/to/codex-metrics bootstrap --dry-run
+/path/to/codex-metrics bootstrap
+/path/to/codex-metrics show
 ```
 
 Update from a built wheel or release artifact:
 
 ```bash
-python -m pip install --upgrade /path/to/dist/codex_metrics-0.1.0-py3-none-any.whl
+# preferred
+pipx install --force /path/to/dist/codex_metrics-0.1.0-py3-none-any.whl
+
+# macOS / Linux fallback
+python3 -m pip install --upgrade /path/to/dist/codex_metrics-0.1.0-py3-none-any.whl
+
+# Windows fallback
+py -m pip install --upgrade C:\path\to\codex_metrics-0.1.0-py3-none-any.whl
 ```
 
 Then move into the already-bootstrapped target repository and preview what would change:
@@ -223,14 +287,28 @@ This produces:
 
 These artifacts are the intended release payload for GitHub Releases and for installing the tool into other projects.
 
+Build a standalone binary for the current platform:
+
+```bash
+make package-standalone
+```
+
+This produces:
+
+- macOS / Linux: `dist/standalone/codex-metrics`
+- Windows: `dist/standalone/codex-metrics.exe`
+
+The standalone build is intended for downstream users who should not need `pipx` or direct `pip install` just to run the CLI.
+
 ## Release Notes
 
 Recommended release flow:
 
 1. run `make verify`
 2. build `wheel` and `sdist` with `make package`
-3. smoke-check the built wheel in a clean virtualenv
-4. attach the artifacts from `dist/` to a GitHub Release
+3. build platform-specific standalone artifacts in CI
+4. smoke-check both the built wheel and standalone binaries
+5. attach the artifacts from `dist/` and standalone CI uploads to a GitHub Release
 
 ## Working Notes
 

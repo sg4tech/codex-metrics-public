@@ -8,6 +8,7 @@ import sqlite3
 import sys
 from datetime import datetime, timezone  # noqa: F401
 from decimal import Decimal
+from importlib import resources
 from pathlib import Path
 from typing import Any
 
@@ -110,7 +111,6 @@ validate_task_type = domain.validate_task_type
 
 METRICS_JSON_PATH = Path("metrics/codex_metrics.json")
 REPORT_MD_PATH = Path("docs/codex-metrics.md")
-PRICING_JSON_PATH = Path(__file__).resolve().parent / "data" / "model_pricing.json"
 CODEX_STATE_PATH = Path.home() / ".codex" / "state_5.sqlite"
 CODEX_LOGS_PATH = Path.home() / ".codex" / "logs_1.sqlite"
 USAGE_FIELD_PATTERNS = {
@@ -128,6 +128,13 @@ atomic_write_text = storage.atomic_write_text
 save_metrics = storage.save_metrics
 metrics_lock_path = storage.metrics_lock_path
 metrics_mutation_lock = storage.metrics_mutation_lock
+
+
+def default_pricing_path() -> Path:
+    return Path(str(resources.files("codex_metrics").joinpath("data/model_pricing.json")))
+
+
+PRICING_JSON_PATH = default_pricing_path()
 
 
 def load_pricing(path: Path) -> dict[str, dict[str, float | None]]:

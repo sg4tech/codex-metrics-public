@@ -2,31 +2,31 @@
 
 ## Goal summary
 
-- Closed goals: 112
-- Successes: 112
+- Closed goals: 115
+- Successes: 115
 - Fails: 0
-- Total attempts: 116
-- Known total cost (USD): 150.90073
-- Known total tokens: 108172255
+- Total attempts: 119
+- Known total cost (USD): 174.1631
+- Known total tokens: 124948788
 - Success Rate: 100.00%
-- Attempts per Closed Goal: 1.04
-- Known cost coverage: 91/112 successful goals
-- Known token coverage: 91/112 successful goals
-- Complete cost coverage: 91/112 successful goals
-- Complete token coverage: 91/112 successful goals
-- Known Cost per Success (USD): 1.65825
-- Known Cost per Success (Tokens): 1188706.10
-- Complete Cost per Covered Success (USD): 1.65825
-- Complete Cost per Covered Success (Tokens): 1188706.10
+- Attempts per Closed Goal: 1.03
+- Known cost coverage: 94/115 successful goals
+- Known token coverage: 94/115 successful goals
+- Complete cost coverage: 94/115 successful goals
+- Complete token coverage: 94/115 successful goals
+- Known Cost per Success (USD): 1.852799
+- Known Cost per Success (Tokens): 1329242.43
+- Complete Cost per Covered Success (USD): 1.852799
+- Complete Cost per Covered Success (Tokens): 1329242.43
 
 ## Entry summary
 
-- Closed entries: 116
-- Successes: 115
+- Closed entries: 119
+- Successes: 118
 - Fails: 1
-- Success Rate: 99.14%
-- Known total cost (USD): 150.00335
-- Known total tokens: 107456276
+- Success Rate: 99.16%
+- Known total cost (USD): 173.26572
+- Known total tokens: 124232809
 
 ## Operator review
 
@@ -41,22 +41,22 @@
 - unclear_task: 1
 
 ### product
-- Closed goals: 28
-- Successes: 28
+- Closed goals: 31
+- Successes: 31
 - Fails: 0
-- Total attempts: 32
-- Known total cost (USD): 53.184273
-- Known total tokens: 38179622
+- Total attempts: 35
+- Known total cost (USD): 76.446643
+- Known total tokens: 54956155
 - Success Rate: 100.00%
-- Attempts per Closed Goal: 1.14
-- Known cost coverage: 24/28 successful goals
-- Known token coverage: 24/28 successful goals
-- Complete cost coverage: 24/28 successful goals
-- Complete token coverage: 24/28 successful goals
-- Known Cost per Success (USD): 2.216011
-- Known Cost per Success (Tokens): 1590817.58
-- Complete Cost per Covered Success (USD): 2.216011
-- Complete Cost per Covered Success (Tokens): 1590817.58
+- Attempts per Closed Goal: 1.13
+- Known cost coverage: 27/31 successful goals
+- Known token coverage: 27/31 successful goals
+- Complete cost coverage: 27/31 successful goals
+- Complete token coverage: 27/31 successful goals
+- Known Cost per Success (USD): 2.831357
+- Known Cost per Success (Tokens): 2035413.15
+- Complete Cost per Covered Success (USD): 2.831357
+- Complete Cost per Covered Success (Tokens): 2035413.15
 
 ### retro
 - Closed goals: 27
@@ -95,6 +95,45 @@
 - Complete Cost per Covered Success (Tokens): 1279955.39
 
 ## Goal log
+
+### 2026-03-29-121 — Build standalone codex-metrics binaries for macOS, Linux, and Windows
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T18:25:17+00:00
+- Finished at: 2026-03-29T18:31:49+00:00
+- Cost (USD): 10.708834
+- Tokens: 7731169
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Built standalone codex-metrics binaries via PyInstaller one-file packaging, added package-standalone target, added macOS/Linux/Windows CI matrix artifacts, updated README for standalone install/update flow, and validated with make verify, make package-standalone, local macOS standalone --help, and bootstrap/show smoke checks.
+
+### 2026-03-29-120 — Add standalone distribution artifact
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T18:24:26+00:00
+- Finished at: 2026-03-29T18:31:31+00:00
+- Cost (USD): 11.216061
+- Tokens: 8080252
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Added a practical standalone binary build path with PyInstaller one-file packaging, a local make target, CI matrix builds for macOS/Linux/Windows, and README guidance. Also made default pricing data loading freeze-friendly and locally verified the macOS binary with package-standalone plus standalone --help and bootstrap/show smoke checks.
+
+### 2026-03-29-119 — Make install instructions platform-safe
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T18:22:27+00:00
+- Finished at: 2026-03-29T18:23:12+00:00
+- Cost (USD): 1.337475
+- Tokens: 965112
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Updated README install and upgrade instructions to use pipx as the preferred standalone CLI path and python3/py as platform-specific fallbacks instead of assuming a bare python executable. Verified with make verify.
 
 ### 2026-03-29-118 — Add upgrade instructions for downstream repositories
 - Goal type: product
@@ -1618,6 +1657,39 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-121-attempt-001 — 2026-03-29-121
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T18:25:17+00:00
+- Finished at: 2026-03-29T18:31:49+00:00
+- Cost (USD): 10.708834
+- Tokens: 7731169
+- Failure reason: n/a
+- Notes: Built standalone codex-metrics binaries via PyInstaller one-file packaging, added package-standalone target, added macOS/Linux/Windows CI matrix artifacts, updated README for standalone install/update flow, and validated with make verify, make package-standalone, local macOS standalone --help, and bootstrap/show smoke checks.
+
+### 2026-03-29-120-attempt-001 — 2026-03-29-120
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T18:24:26+00:00
+- Finished at: 2026-03-29T18:31:31+00:00
+- Cost (USD): 11.216061
+- Tokens: 8080252
+- Failure reason: n/a
+- Notes: Added a practical standalone binary build path with PyInstaller one-file packaging, a local make target, CI matrix builds for macOS/Linux/Windows, and README guidance. Also made default pricing data loading freeze-friendly and locally verified the macOS binary with package-standalone plus standalone --help and bootstrap/show smoke checks.
+
+### 2026-03-29-119-attempt-001 — 2026-03-29-119
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T18:22:27+00:00
+- Finished at: 2026-03-29T18:23:12+00:00
+- Cost (USD): 1.337475
+- Tokens: 965112
+- Failure reason: n/a
+- Notes: Updated README install and upgrade instructions to use pipx as the preferred standalone CLI path and python3/py as platform-specific fallbacks instead of assuming a bare python executable. Verified with make verify.
 
 ### 2026-03-29-118-attempt-001 — 2026-03-29-118
 - Entry type: product
