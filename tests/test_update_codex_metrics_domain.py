@@ -16,26 +16,42 @@ SPEC.loader.exec_module(MODULE)
 def test_compute_summary_block_uses_closed_goals_for_attempt_average() -> None:
     summary = MODULE.compute_summary_block(
         [
-            {
-                "status": "success",
-                "attempts": 2,
-                "cost_usd": 0.5,
-                "cost_usd_known": 0.5,
-                "cost_complete": True,
-                "tokens_total": 500,
-                "tokens_total_known": 500,
-                "tokens_complete": True,
-            },
-            {
-                "status": "fail",
-                "attempts": 4,
-                "cost_usd": None,
-                "cost_usd_known": None,
-                "cost_complete": False,
-                "tokens_total": None,
-                "tokens_total_known": None,
-                "tokens_complete": False,
-            },
+            MODULE.EffectiveGoalRecord(
+                goal_id="goal-1",
+                title="Goal one",
+                goal_type="product",
+                status="success",
+                attempts=2,
+                started_at=None,
+                finished_at=None,
+                cost_usd=0.5,
+                cost_usd_known=0.5,
+                cost_complete=True,
+                tokens_total=500,
+                tokens_total_known=500,
+                tokens_complete=True,
+                failure_reason=None,
+                notes=None,
+                supersedes_goal_id=None,
+            ),
+            MODULE.EffectiveGoalRecord(
+                goal_id="goal-2",
+                title="Goal two",
+                goal_type="product",
+                status="fail",
+                attempts=4,
+                started_at=None,
+                finished_at=None,
+                cost_usd=None,
+                cost_usd_known=None,
+                cost_complete=False,
+                tokens_total=None,
+                tokens_total_known=None,
+                tokens_complete=False,
+                failure_reason="other",
+                notes=None,
+                supersedes_goal_id=None,
+            ),
         ]
     )
 
@@ -52,71 +68,89 @@ def test_compute_summary_block_uses_closed_goals_for_attempt_average() -> None:
 def test_build_effective_goals_merges_superseded_chain_attempts_and_known_cost() -> None:
     effective_goals = MODULE.build_effective_goals(
         [
-            {
-                "goal_id": "goal-1",
-                "title": "Original goal",
-                "goal_type": "product",
-                "supersedes_goal_id": None,
-                "status": "fail",
-                "attempts": 1,
-                "started_at": "2026-03-29T09:00:00+00:00",
-                "finished_at": "2026-03-29T09:05:00+00:00",
-                "cost_usd": None,
-                "tokens_total": None,
-                "failure_reason": "validation_failed",
-                "notes": "First attempt failed",
-            },
-            {
-                "goal_id": "goal-2",
-                "title": "Replacement goal",
-                "goal_type": "product",
-                "supersedes_goal_id": "goal-1",
-                "status": "success",
-                "attempts": 2,
-                "started_at": "2026-03-29T09:06:00+00:00",
-                "finished_at": "2026-03-29T09:10:00+00:00",
-                "cost_usd": 0.25,
-                "tokens_total": 1000,
-                "failure_reason": None,
-                "notes": "Second chain succeeded",
-            },
+            MODULE.GoalRecord(
+                goal_id="goal-1",
+                title="Original goal",
+                goal_type="product",
+                supersedes_goal_id=None,
+                status="fail",
+                attempts=1,
+                started_at="2026-03-29T09:00:00+00:00",
+                finished_at="2026-03-29T09:05:00+00:00",
+                cost_usd=None,
+                tokens_total=None,
+                failure_reason="validation_failed",
+                notes="First attempt failed",
+            ),
+            MODULE.GoalRecord(
+                goal_id="goal-2",
+                title="Replacement goal",
+                goal_type="product",
+                supersedes_goal_id="goal-1",
+                status="success",
+                attempts=2,
+                started_at="2026-03-29T09:06:00+00:00",
+                finished_at="2026-03-29T09:10:00+00:00",
+                cost_usd=0.25,
+                tokens_total=1000,
+                failure_reason=None,
+                notes="Second chain succeeded",
+            ),
         ]
     )
 
     assert len(effective_goals) == 1
     goal = effective_goals[0]
-    assert goal["goal_id"] == "goal-2"
-    assert goal["status"] == "success"
-    assert goal["attempts"] == 3
-    assert goal["started_at"] == "2026-03-29T09:00:00+00:00"
-    assert goal["finished_at"] == "2026-03-29T09:10:00+00:00"
-    assert goal["cost_usd_known"] == 0.25
-    assert goal["cost_usd"] is None
-    assert goal["tokens_total_known"] == 1000
-    assert goal["tokens_total"] is None
+    assert goal.goal_id == "goal-2"
+    assert goal.status == "success"
+    assert goal.attempts == 3
+    assert goal.started_at == "2026-03-29T09:00:00+00:00"
+    assert goal.finished_at == "2026-03-29T09:10:00+00:00"
+    assert goal.cost_usd_known == 0.25
+    assert goal.cost_usd is None
+    assert goal.tokens_total_known == 1000
+    assert goal.tokens_total is None
 
 
 def test_compute_entry_summary_counts_failure_reasons_from_failed_entries_only() -> None:
     summary = MODULE.compute_entry_summary(
         [
-            {
-                "status": "success",
-                "cost_usd": 0.2,
-                "tokens_total": 300,
-                "failure_reason": None,
-            },
-            {
-                "status": "fail",
-                "cost_usd": None,
-                "tokens_total": None,
-                "failure_reason": "unclear_task",
-            },
-            {
-                "status": "fail",
-                "cost_usd": None,
-                "tokens_total": None,
-                "failure_reason": None,
-            },
+            MODULE.AttemptEntryRecord(
+                entry_id="entry-1",
+                goal_id="goal-1",
+                entry_type="product",
+                status="success",
+                started_at=None,
+                finished_at=None,
+                cost_usd=0.2,
+                tokens_total=300,
+                failure_reason=None,
+                notes=None,
+            ),
+            MODULE.AttemptEntryRecord(
+                entry_id="entry-2",
+                goal_id="goal-1",
+                entry_type="product",
+                status="fail",
+                started_at=None,
+                finished_at=None,
+                cost_usd=None,
+                tokens_total=None,
+                failure_reason="unclear_task",
+                notes=None,
+            ),
+            MODULE.AttemptEntryRecord(
+                entry_id="entry-3",
+                goal_id="goal-2",
+                entry_type="product",
+                status="fail",
+                started_at=None,
+                finished_at=None,
+                cost_usd=None,
+                tokens_total=None,
+                failure_reason=None,
+                notes=None,
+            ),
         ]
     )
 

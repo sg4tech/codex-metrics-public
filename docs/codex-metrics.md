@@ -2,25 +2,25 @@
 
 ## Goal summary
 
-- Closed goals: 28
-- Successes: 28
+- Closed goals: 32
+- Successes: 32
 - Fails: 0
-- Total attempts: 29
-- Total cost (USD): 0.638112
-- Total tokens: 1359406
+- Total attempts: 33
+- Total cost (USD): 1.159366
+- Total tokens: 2461072
 - Success Rate: 100.00%
-- Attempts per Closed Goal: 1.04
+- Attempts per Closed Goal: 1.03
 - Cost per Success (USD): n/a
 - Cost per Success (Tokens): n/a
 
 ## Entry summary
 
-- Closed entries: 29
-- Successes: 28
+- Closed entries: 33
+- Successes: 32
 - Fails: 1
-- Success Rate: 96.55%
-- Total cost (USD): 0.638112
-- Total tokens: 1359406
+- Success Rate: 96.97%
+- Total cost (USD): 1.159366
+- Total tokens: 2461072
 
 ## By goal type
 
@@ -40,30 +40,78 @@
 - Cost per Success (Tokens): n/a
 
 ### retro
-- Closed goals: 5
-- Successes: 5
+- Closed goals: 6
+- Successes: 6
 - Fails: 0
-- Total attempts: 5
-- Total cost (USD): 0.00
-- Total tokens: 0
+- Total attempts: 6
+- Total cost (USD): 0.255454
+- Total tokens: 532598
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
 - Cost per Success (USD): n/a
 - Cost per Success (Tokens): n/a
 
 ### meta
-- Closed goals: 18
-- Successes: 18
+- Closed goals: 21
+- Successes: 21
 - Fails: 0
-- Total attempts: 18
-- Total cost (USD): 0.00
-- Total tokens: 0
+- Total attempts: 21
+- Total cost (USD): 0.2658
+- Total tokens: 569068
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
 - Cost per Success (USD): n/a
 - Cost per Success (Tokens): n/a
 
 ## Goal log
+
+### 2026-03-29-035 — Codify sequential validation rule for updater
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T10:49:21+00:00
+- Finished at: 2026-03-29T10:49:39+00:00
+- Cost (USD): 0.2658
+- Tokens: 569068
+- Failure reason: n/a
+- Notes: Added permanent sequential-validation rules to AGENTS.md and codex-metrics-policy.md so dependent updater commands are not validated in parallel.
+
+### 2026-03-29-034 — Document parallel validation false-positive retro
+- Goal type: retro
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T10:48:13+00:00
+- Finished at: 2026-03-29T10:48:30+00:00
+- Cost (USD): 0.255454
+- Tokens: 532598
+- Failure reason: n/a
+- Notes: Recorded the lesson that dependent updater commands must be validated sequentially because parallel update/show can produce stale-read false positives.
+
+### 2026-03-29-033 — Move summary logic to typed records
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T10:44:55+00:00
+- Finished at: 2026-03-29T10:47:12+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Moved summary and effective-goal computation to typed GoalRecord, AttemptEntryRecord, and EffectiveGoalRecord inputs while keeping JSON serialization at the boundary.
+
+### 2026-03-29-032 — Add typed conversion boundary for metrics records
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T10:42:15+00:00
+- Finished at: 2026-03-29T10:44:28+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Added explicit dict-to-record and record-to-dict helpers and applied them to validation and internal record creation without changing CLI or persisted schema.
 
 ### 2026-03-29-031 — Introduce typed domain structures for metrics internals
 - Goal type: meta
@@ -426,6 +474,46 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-035-attempt-001 — 2026-03-29-035
+- Entry type: meta
+- Status: success
+- Started at: 2026-03-29T10:49:21+00:00
+- Finished at: 2026-03-29T10:49:39+00:00
+- Cost (USD): 0.2658
+- Tokens: 569068
+- Failure reason: n/a
+- Notes: Added permanent sequential-validation rules to AGENTS.md and codex-metrics-policy.md so dependent updater commands are not validated in parallel.
+
+### 2026-03-29-034-attempt-001 — 2026-03-29-034
+- Entry type: retro
+- Status: success
+- Started at: 2026-03-29T10:48:13+00:00
+- Finished at: 2026-03-29T10:48:30+00:00
+- Cost (USD): 0.255454
+- Tokens: 532598
+- Failure reason: n/a
+- Notes: Recorded the lesson that dependent updater commands must be validated sequentially because parallel update/show can produce stale-read false positives.
+
+### 2026-03-29-033-attempt-001 — 2026-03-29-033
+- Entry type: meta
+- Status: success
+- Started at: 2026-03-29T10:44:55+00:00
+- Finished at: 2026-03-29T10:47:12+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Moved summary and effective-goal computation to typed GoalRecord, AttemptEntryRecord, and EffectiveGoalRecord inputs while keeping JSON serialization at the boundary.
+
+### 2026-03-29-032-attempt-001 — 2026-03-29-032
+- Entry type: meta
+- Status: success
+- Started at: 2026-03-29T10:42:15+00:00
+- Finished at: 2026-03-29T10:44:28+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Added explicit dict-to-record and record-to-dict helpers and applied them to validation and internal record creation without changing CLI or persisted schema.
 
 ### 2026-03-29-031-attempt-001 — 2026-03-29-031
 - Entry type: meta

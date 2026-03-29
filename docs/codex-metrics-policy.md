@@ -154,6 +154,9 @@ If there is any mismatch, `metrics/codex_metrics.json` is the source of truth.
 
 Generated metrics files are production-like artifacts for this repository.
 During validation, destructive smoke checks such as `init` should prefer temporary metrics/report paths unless the task explicitly requires regenerating the tracked repository files.
+Dependent updater commands must be validated sequentially.
+Do not run flows such as `update -> show` or `init -> update` in parallel, because the later command can observe stale file state and create a false bug report.
+Parallelism is appropriate only for independent inspections and checks that do not depend on updater writes.
 
 ## Required per-goal workflow
 
@@ -247,6 +250,10 @@ A task is not done until all of the following are true:
 - goal and entry records are updated in `metrics/codex_metrics.json`
 - summary metrics are recalculated
 - readable report is updated in `docs/codex-metrics.md`
+
+Validation must also be procedurally correct:
+- dependent updater commands are executed sequentially
+- any suspected mismatch between `update` output and `show` is rechecked with a sequential `show` before it is treated as a product defect
 
 ## Anti-gaming rules
 

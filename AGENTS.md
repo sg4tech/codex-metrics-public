@@ -87,6 +87,13 @@ python scripts/update_codex_metrics.py show
 
 When running `init` or any destructive regeneration smoke check during validation, prefer temporary metrics/report paths instead of real repository artifacts unless the task explicitly requires regenerating the tracked files.
 Generated metrics files are production-like artifacts for this repository and must not be casually overwritten during smoke testing.
+When validating the updater, run dependent commands sequentially, not in parallel.
+Examples of dependent flows:
+- `update -> show`
+- `init -> update`
+- any later command that relies on files written by an earlier updater command
+Parallel execution is fine only for independent reads and checks such as `ruff`, `mypy`, `pytest`, `rg`, and file inspection.
+If `update` output and a parallel `show` disagree, first rerun `show` sequentially before treating it as a product bug.
 
 ## Retros Rules
 

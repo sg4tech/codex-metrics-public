@@ -10,7 +10,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 METRICS_JSON_PATH = Path("metrics/codex_metrics.json")
 REPORT_MD_PATH = Path("docs/codex-metrics.md")
@@ -81,6 +81,53 @@ class EffectiveGoalRecord:
     failure_reason: str | None
     notes: str | None
     supersedes_goal_id: str | None
+
+
+StatusRecordT = TypeVar("StatusRecordT", GoalRecord, AttemptEntryRecord, EffectiveGoalRecord)
+
+
+def goal_from_dict(goal: dict[str, Any]) -> GoalRecord:
+    return GoalRecord(
+        goal_id=goal["goal_id"],
+        title=goal["title"],
+        goal_type=goal["goal_type"],
+        supersedes_goal_id=goal.get("supersedes_goal_id"),
+        status=goal["status"],
+        attempts=int(goal["attempts"]),
+        started_at=goal.get("started_at"),
+        finished_at=goal.get("finished_at"),
+        cost_usd=None if goal.get("cost_usd") is None else float(goal["cost_usd"]),
+        tokens_total=None if goal.get("tokens_total") is None else int(goal["tokens_total"]),
+        failure_reason=goal.get("failure_reason"),
+        notes=goal.get("notes"),
+    )
+
+
+def goal_to_dict(goal: GoalRecord) -> dict[str, Any]:
+    return asdict(goal)
+
+
+def entry_from_dict(entry: dict[str, Any]) -> AttemptEntryRecord:
+    return AttemptEntryRecord(
+        entry_id=entry["entry_id"],
+        goal_id=entry["goal_id"],
+        entry_type=entry["entry_type"],
+        status=entry["status"],
+        started_at=entry.get("started_at"),
+        finished_at=entry.get("finished_at"),
+        cost_usd=None if entry.get("cost_usd") is None else float(entry["cost_usd"]),
+        tokens_total=None if entry.get("tokens_total") is None else int(entry["tokens_total"]),
+        failure_reason=entry.get("failure_reason"),
+        notes=entry.get("notes"),
+    )
+
+
+def entry_to_dict(entry: AttemptEntryRecord) -> dict[str, Any]:
+    return asdict(entry)
+
+
+def effective_goal_to_dict(goal: EffectiveGoalRecord) -> dict[str, Any]:
+    return asdict(goal)
 
 
 LEGACY_GOAL_SUPERSEDES_MAP = {
@@ -193,21 +240,23 @@ def validate_goal_record(goal: dict[str, Any]) -> None:
         if not isinstance(goal[field_name], allowed_types):
             raise ValueError(f"Invalid type for goal field: {field_name}")
 
-    if not goal["goal_id"].strip():
+    goal_record = goal_from_dict(goal)
+
+    if not goal_record.goal_id.strip():
         raise ValueError("goal_id cannot be empty")
-    if not goal["title"].strip():
+    if not goal_record.title.strip():
         raise ValueError("title cannot be empty")
 
-    validate_task_type(goal["goal_type"])
-    validate_status(goal["status"])
-    validate_non_negative_int(goal["attempts"], "attempts")
+    validate_task_type(goal_record.goal_type)
+    validate_status(goal_record.status)
+    validate_non_negative_int(goal_record.attempts, "attempts")
 
-    if goal["cost_usd"] is not None:
-        validate_non_negative_float(float(goal["cost_usd"]), "cost_usd")
-    if goal["tokens_total"] is not None:
-        validate_non_negative_int(goal["tokens_total"], "tokens_total")
+    if goal_record.cost_usd is not None:
+        validate_non_negative_float(goal_record.cost_usd, "cost_usd")
+    if goal_record.tokens_total is not None:
+        validate_non_negative_int(goal_record.tokens_total, "tokens_total")
 
-    validate_failure_reason(goal["failure_reason"])
+    validate_failure_reason(goal_record.failure_reason)
     validate_task_business_rules(goal)
 
 
@@ -231,19 +280,21 @@ def validate_entry_record(entry: dict[str, Any]) -> None:
         if not isinstance(entry[field_name], allowed_types):
             raise ValueError(f"Invalid type for entry field: {field_name}")
 
-    if not entry["entry_id"].strip():
+    entry_record = entry_from_dict(entry)
+
+    if not entry_record.entry_id.strip():
         raise ValueError("entry_id cannot be empty")
-    if not entry["goal_id"].strip():
+    if not entry_record.goal_id.strip():
         raise ValueError("goal_id cannot be empty")
-    if not entry["entry_type"].strip():
+    if not entry_record.entry_type.strip():
         raise ValueError("entry_type cannot be empty")
 
-    validate_status(entry["status"])
-    if entry["cost_usd"] is not None:
-        validate_non_negative_float(float(entry["cost_usd"]), "cost_usd")
-    if entry["tokens_total"] is not None:
-        validate_non_negative_int(entry["tokens_total"], "tokens_total")
-    validate_failure_reason(entry["failure_reason"])
+    validate_status(entry_record.status)
+    if entry_record.cost_usd is not None:
+        validate_non_negative_float(entry_record.cost_usd, "cost_usd")
+    if entry_record.tokens_total is not None:
+        validate_non_negative_int(entry_record.tokens_total, "tokens_total")
+    validate_failure_reason(entry_record.failure_reason)
 
 
 def validate_metrics_data(data: dict[str, Any], path: Path) -> None:
@@ -711,40 +762,39 @@ def build_merged_notes(kept_task: dict[str, Any], dropped_task: dict[str, Any]) 
     return " | ".join(notes_parts)
 
 
-def get_closed_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [record for record in records if record["status"] in {"success", "fail"}]
+def get_closed_records(records: list[StatusRecordT]) -> list[StatusRecordT]:
+    return [record for record in records if record.status in {"success", "fail"}]
 
 
-def get_successful_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [record for record in records if record["status"] == "success"]
+def get_successful_records(records: list[StatusRecordT]) -> list[StatusRecordT]:
+    return [record for record in records if record.status == "success"]
 
 
-def get_failed_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [record for record in records if record["status"] == "fail"]
+def get_failed_records(records: list[StatusRecordT]) -> list[StatusRecordT]:
+    return [record for record in records if record.status == "fail"]
 
 
 def sum_known_numeric_values(
-    records: list[dict[str, Any]],
+    records: list[EffectiveGoalRecord] | list[AttemptEntryRecord],
     field_name: str,
     cast_type: type[int] | type[float],
 ) -> int | float | None:
-    values = [cast_type(record[field_name]) for record in records if record.get(field_name) is not None]
+    values = [cast_type(value) for record in records if (value := getattr(record, field_name)) is not None]
     if not values:
         return None
     return sum(values)
 
-
-def build_goal_chain(goal_by_id: dict[str, dict[str, Any]], terminal_goal: dict[str, Any]) -> list[dict[str, Any]]:
-    chain: list[dict[str, Any]] = []
+def build_goal_chain(goal_by_id: dict[str, GoalRecord], terminal_goal: GoalRecord) -> list[GoalRecord]:
+    chain: list[GoalRecord] = []
     current_goal = terminal_goal
     visited_goal_ids: set[str] = set()
     while True:
-        goal_id = current_goal["goal_id"]
+        goal_id = current_goal.goal_id
         if goal_id in visited_goal_ids:
             raise ValueError(f"Detected supersession cycle at goal: {goal_id}")
         visited_goal_ids.add(goal_id)
         chain.append(current_goal)
-        previous_goal_id = current_goal.get("supersedes_goal_id")
+        previous_goal_id = current_goal.supersedes_goal_id
         if previous_goal_id is None:
             break
         previous_goal = goal_by_id.get(previous_goal_id)
@@ -756,45 +806,45 @@ def build_goal_chain(goal_by_id: dict[str, dict[str, Any]], terminal_goal: dict[
     return chain
 
 
-def aggregate_chain_costs(chain: list[dict[str, Any]]) -> tuple[float | None, float | None, bool]:
-    known_cost_values = [float(goal["cost_usd"]) for goal in chain if goal.get("cost_usd") is not None]
+def aggregate_chain_costs(chain: list[GoalRecord]) -> tuple[float | None, float | None, bool]:
+    known_cost_values = [goal.cost_usd for goal in chain if goal.cost_usd is not None]
     aggregated_cost_known = round_usd(sum(known_cost_values)) if known_cost_values else None
     is_complete = len(known_cost_values) == len(chain)
     aggregated_cost = aggregated_cost_known if is_complete else None
     return aggregated_cost, aggregated_cost_known, is_complete
 
 
-def aggregate_chain_tokens(chain: list[dict[str, Any]]) -> tuple[int | None, int | None, bool]:
-    known_token_values = [int(goal["tokens_total"]) for goal in chain if goal.get("tokens_total") is not None]
+def aggregate_chain_tokens(chain: list[GoalRecord]) -> tuple[int | None, int | None, bool]:
+    known_token_values = [goal.tokens_total for goal in chain if goal.tokens_total is not None]
     aggregated_tokens_known = sum(known_token_values) if known_token_values else None
     is_complete = len(known_token_values) == len(chain)
     aggregated_tokens = aggregated_tokens_known if is_complete else None
     return aggregated_tokens, aggregated_tokens_known, is_complete
 
 
-def aggregate_chain_timestamps(chain: list[dict[str, Any]]) -> tuple[str | None, str | None]:
+def aggregate_chain_timestamps(chain: list[GoalRecord]) -> tuple[str | None, str | None]:
     started_at = None
     finished_at = None
     for goal in chain:
-        started_at = choose_earliest_timestamp(started_at, goal.get("started_at"))
-        finished_at = choose_latest_timestamp(finished_at, goal.get("finished_at"))
+        started_at = choose_earliest_timestamp(started_at, goal.started_at)
+        finished_at = choose_latest_timestamp(finished_at, goal.finished_at)
     return started_at, finished_at
 
 
 def build_effective_goal_record(
-    terminal_goal: dict[str, Any],
-    chain: list[dict[str, Any]],
+    terminal_goal: GoalRecord,
+    chain: list[GoalRecord],
 ) -> EffectiveGoalRecord:
     aggregated_cost, aggregated_cost_known, cost_complete = aggregate_chain_costs(chain)
     aggregated_tokens, aggregated_tokens_known, tokens_complete = aggregate_chain_tokens(chain)
     started_at, finished_at = aggregate_chain_timestamps(chain)
 
     return EffectiveGoalRecord(
-        goal_id=terminal_goal["goal_id"],
-        title=terminal_goal["title"],
-        goal_type=terminal_goal["goal_type"],
-        status=terminal_goal["status"],
-        attempts=sum(int(goal.get("attempts") or 0) for goal in chain),
+        goal_id=terminal_goal.goal_id,
+        title=terminal_goal.title,
+        goal_type=terminal_goal.goal_type,
+        status=terminal_goal.status,
+        attempts=sum(goal.attempts for goal in chain),
         started_at=started_at,
         finished_at=finished_at,
         cost_usd=aggregated_cost,
@@ -803,9 +853,9 @@ def build_effective_goal_record(
         tokens_total=aggregated_tokens,
         tokens_total_known=aggregated_tokens_known,
         tokens_complete=tokens_complete,
-        failure_reason=terminal_goal.get("failure_reason"),
-        notes=terminal_goal.get("notes"),
-        supersedes_goal_id=terminal_goal.get("supersedes_goal_id"),
+        failure_reason=terminal_goal.failure_reason,
+        notes=terminal_goal.notes,
+        supersedes_goal_id=terminal_goal.supersedes_goal_id,
     )
 
 
@@ -829,12 +879,12 @@ def resolve_linked_task_reference(
     return linked_task_id
 
 
-def compute_summary_block(tasks: list[dict[str, Any]]) -> dict[str, Any]:
+def compute_summary_block(tasks: list[EffectiveGoalRecord]) -> dict[str, Any]:
     closed_tasks = get_closed_records(tasks)
     successes = get_successful_records(closed_tasks)
     fails = get_failed_records(closed_tasks)
 
-    total_attempts = sum(int(t.get("attempts") or 0) for t in closed_tasks)
+    total_attempts = sum(t.attempts for t in closed_tasks)
 
     total_cost_usd_raw = sum_known_numeric_values(closed_tasks, "cost_usd_known", float)
     total_cost_usd = float(total_cost_usd_raw) if total_cost_usd_raw is not None else 0.0
@@ -845,7 +895,7 @@ def compute_summary_block(tasks: list[dict[str, Any]]) -> dict[str, Any]:
     attempts_per_closed_task = (total_attempts / len(closed_tasks)) if closed_tasks else None
 
     success_cost_values = [
-        t["cost_usd"] for t in successes if t.get("cost_complete") and t.get("cost_usd") is not None
+        t.cost_usd for t in successes if t.cost_complete and t.cost_usd is not None
     ]
     cost_per_success_usd = (
         float(sum(success_cost_values)) / len(successes)
@@ -854,9 +904,9 @@ def compute_summary_block(tasks: list[dict[str, Any]]) -> dict[str, Any]:
     )
 
     success_token_values = [
-        int(t["tokens_total"])
+        t.tokens_total
         for t in successes
-        if t.get("tokens_complete") and t.get("tokens_total") is not None
+        if t.tokens_complete and t.tokens_total is not None
     ]
     cost_per_success_tokens = (
         sum(success_token_values) / len(successes)
@@ -878,26 +928,26 @@ def compute_summary_block(tasks: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def build_effective_goals(goals: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    goal_by_id = {goal["goal_id"]: goal for goal in goals}
+def build_effective_goals(goals: list[GoalRecord]) -> list[EffectiveGoalRecord]:
+    goal_by_id = {goal.goal_id: goal for goal in goals}
     superseded_goal_ids = {
-        goal["supersedes_goal_id"]
+        goal.supersedes_goal_id
         for goal in goals
-        if goal.get("supersedes_goal_id") is not None
+        if goal.supersedes_goal_id is not None
     }
-    effective_goals: list[dict[str, Any]] = []
+    effective_goals: list[EffectiveGoalRecord] = []
 
     for terminal_goal in goals:
-        if terminal_goal["goal_id"] in superseded_goal_ids:
+        if terminal_goal.goal_id in superseded_goal_ids:
             continue
 
         chain = build_goal_chain(goal_by_id, terminal_goal)
-        effective_goals.append(asdict(build_effective_goal_record(terminal_goal, chain)))
+        effective_goals.append(build_effective_goal_record(terminal_goal, chain))
 
     return effective_goals
 
 
-def compute_entry_summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
+def compute_entry_summary(entries: list[AttemptEntryRecord]) -> dict[str, Any]:
     closed_entries = get_closed_records(entries)
     successes = get_successful_records(closed_entries)
     fails = get_failed_records(closed_entries)
@@ -905,7 +955,7 @@ def compute_entry_summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
     total_tokens_raw = sum_known_numeric_values(closed_entries, "tokens_total", int)
     failure_reason_counts: dict[str, int] = {}
     for entry in fails:
-        reason = entry.get("failure_reason") or "other"
+        reason = entry.failure_reason or "other"
         failure_reason_counts[reason] = failure_reason_counts.get(reason, 0) + 1
 
     return {
@@ -922,15 +972,17 @@ def compute_entry_summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
 def recompute_summary(data: dict[str, Any]) -> None:
     goals: list[dict[str, Any]] = data["goals"]
     entries: list[dict[str, Any]] = data["entries"]
-    effective_goals = build_effective_goals(goals)
-    summary = compute_summary_block(effective_goals)
+    goal_records = [goal_from_dict(goal) for goal in goals]
+    entry_records = [entry_from_dict(entry) for entry in entries]
+    effective_goal_records = build_effective_goals(goal_records)
+    summary = compute_summary_block(effective_goal_records)
     by_goal_type = {
-        task_type: compute_summary_block([goal for goal in effective_goals if goal.get("goal_type") == task_type])
+        task_type: compute_summary_block([goal for goal in effective_goal_records if goal.goal_type == task_type])
         for task_type in sorted(ALLOWED_TASK_TYPES)
     }
     summary["by_goal_type"] = by_goal_type
     summary["by_task_type"] = by_goal_type
-    summary["entries"] = compute_entry_summary(entries)
+    summary["entries"] = compute_entry_summary(entry_records)
     data["summary"] = summary
 
 
@@ -1096,7 +1148,7 @@ def build_attempt_entry(
     failure_reason: str | None,
     notes: str | None,
 ) -> dict[str, Any]:
-    entry = asdict(
+    entry = entry_to_dict(
         AttemptEntryRecord(
             entry_id=next_entry_id(entries, goal["goal_id"]),
             goal_id=goal["goal_id"],
@@ -1246,7 +1298,7 @@ def create_goal_record(
         failure_reason=None,
         notes=None,
     )
-    task = asdict(new_goal)
+    task = goal_to_dict(new_goal)
     tasks.append(task)
     return task
 

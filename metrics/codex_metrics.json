@@ -1,23 +1,23 @@
 {
   "summary": {
-    "closed_tasks": 28,
-    "successes": 28,
+    "closed_tasks": 32,
+    "successes": 32,
     "fails": 0,
-    "total_attempts": 29,
-    "total_cost_usd": 0.638112,
-    "total_tokens": 1359406,
+    "total_attempts": 33,
+    "total_cost_usd": 1.159366,
+    "total_tokens": 2461072,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.0357142857142858,
+    "attempts_per_closed_task": 1.03125,
     "cost_per_success_usd": null,
     "cost_per_success_tokens": null,
     "by_goal_type": {
       "meta": {
-        "closed_tasks": 18,
-        "successes": 18,
+        "closed_tasks": 21,
+        "successes": 21,
         "fails": 0,
-        "total_attempts": 18,
-        "total_cost_usd": 0.0,
-        "total_tokens": 0,
+        "total_attempts": 21,
+        "total_cost_usd": 0.2658,
+        "total_tokens": 569068,
         "success_rate": 1.0,
         "attempts_per_closed_task": 1.0,
         "cost_per_success_usd": null,
@@ -36,12 +36,12 @@
         "cost_per_success_tokens": null
       },
       "retro": {
-        "closed_tasks": 5,
-        "successes": 5,
+        "closed_tasks": 6,
+        "successes": 6,
         "fails": 0,
-        "total_attempts": 5,
-        "total_cost_usd": 0.0,
-        "total_tokens": 0,
+        "total_attempts": 6,
+        "total_cost_usd": 0.255454,
+        "total_tokens": 532598,
         "success_rate": 1.0,
         "attempts_per_closed_task": 1.0,
         "cost_per_success_usd": null,
@@ -50,12 +50,12 @@
     },
     "by_task_type": {
       "meta": {
-        "closed_tasks": 18,
-        "successes": 18,
+        "closed_tasks": 21,
+        "successes": 21,
         "fails": 0,
-        "total_attempts": 18,
-        "total_cost_usd": 0.0,
-        "total_tokens": 0,
+        "total_attempts": 21,
+        "total_cost_usd": 0.2658,
+        "total_tokens": 569068,
         "success_rate": 1.0,
         "attempts_per_closed_task": 1.0,
         "cost_per_success_usd": null,
@@ -74,12 +74,12 @@
         "cost_per_success_tokens": null
       },
       "retro": {
-        "closed_tasks": 5,
-        "successes": 5,
+        "closed_tasks": 6,
+        "successes": 6,
         "fails": 0,
-        "total_attempts": 5,
-        "total_cost_usd": 0.0,
-        "total_tokens": 0,
+        "total_attempts": 6,
+        "total_cost_usd": 0.255454,
+        "total_tokens": 532598,
         "success_rate": 1.0,
         "attempts_per_closed_task": 1.0,
         "cost_per_success_usd": null,
@@ -87,12 +87,12 @@
       }
     },
     "entries": {
-      "closed_entries": 29,
-      "successes": 28,
+      "closed_entries": 33,
+      "successes": 32,
       "fails": 1,
-      "success_rate": 0.9655172413793104,
-      "total_cost_usd": 0.638112,
-      "total_tokens": 1359406,
+      "success_rate": 0.9696969696969697,
+      "total_cost_usd": 1.159366,
+      "total_tokens": 2461072,
       "failure_reasons": {
         "unclear_task": 1
       }
@@ -518,6 +518,62 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Introduced typed internal records for attempt entries and effective goals, and switched the corresponding helper paths to use those structures without changing the persisted JSON schema or CLI behavior."
+    },
+    {
+      "goal_id": "2026-03-29-032",
+      "title": "Add typed conversion boundary for metrics records",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T10:42:15+00:00",
+      "finished_at": "2026-03-29T10:44:28+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Added explicit dict-to-record and record-to-dict helpers and applied them to validation and internal record creation without changing CLI or persisted schema."
+    },
+    {
+      "goal_id": "2026-03-29-033",
+      "title": "Move summary logic to typed records",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T10:44:55+00:00",
+      "finished_at": "2026-03-29T10:47:12+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Moved summary and effective-goal computation to typed GoalRecord, AttemptEntryRecord, and EffectiveGoalRecord inputs while keeping JSON serialization at the boundary."
+    },
+    {
+      "goal_id": "2026-03-29-034",
+      "title": "Document parallel validation false-positive retro",
+      "goal_type": "retro",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T10:48:13+00:00",
+      "finished_at": "2026-03-29T10:48:30+00:00",
+      "cost_usd": 0.255454,
+      "tokens_total": 532598,
+      "failure_reason": null,
+      "notes": "Recorded the lesson that dependent updater commands must be validated sequentially because parallel update/show can produce stale-read false positives."
+    },
+    {
+      "goal_id": "2026-03-29-035",
+      "title": "Codify sequential validation rule for updater",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T10:49:21+00:00",
+      "finished_at": "2026-03-29T10:49:39+00:00",
+      "cost_usd": 0.2658,
+      "tokens_total": 569068,
+      "failure_reason": null,
+      "notes": "Added permanent sequential-validation rules to AGENTS.md and codex-metrics-policy.md so dependent updater commands are not validated in parallel."
     }
   ],
   "entries": [
@@ -880,6 +936,54 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Introduced typed internal records for attempt entries and effective goals, and switched the corresponding helper paths to use those structures without changing the persisted JSON schema or CLI behavior."
+    },
+    {
+      "entry_id": "2026-03-29-032-attempt-001",
+      "goal_id": "2026-03-29-032",
+      "entry_type": "meta",
+      "status": "success",
+      "started_at": "2026-03-29T10:42:15+00:00",
+      "finished_at": "2026-03-29T10:44:28+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Added explicit dict-to-record and record-to-dict helpers and applied them to validation and internal record creation without changing CLI or persisted schema."
+    },
+    {
+      "entry_id": "2026-03-29-033-attempt-001",
+      "goal_id": "2026-03-29-033",
+      "entry_type": "meta",
+      "status": "success",
+      "started_at": "2026-03-29T10:44:55+00:00",
+      "finished_at": "2026-03-29T10:47:12+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Moved summary and effective-goal computation to typed GoalRecord, AttemptEntryRecord, and EffectiveGoalRecord inputs while keeping JSON serialization at the boundary."
+    },
+    {
+      "entry_id": "2026-03-29-034-attempt-001",
+      "goal_id": "2026-03-29-034",
+      "entry_type": "retro",
+      "status": "success",
+      "started_at": "2026-03-29T10:48:13+00:00",
+      "finished_at": "2026-03-29T10:48:30+00:00",
+      "cost_usd": 0.255454,
+      "tokens_total": 532598,
+      "failure_reason": null,
+      "notes": "Recorded the lesson that dependent updater commands must be validated sequentially because parallel update/show can produce stale-read false positives."
+    },
+    {
+      "entry_id": "2026-03-29-035-attempt-001",
+      "goal_id": "2026-03-29-035",
+      "entry_type": "meta",
+      "status": "success",
+      "started_at": "2026-03-29T10:49:21+00:00",
+      "finished_at": "2026-03-29T10:49:39+00:00",
+      "cost_usd": 0.2658,
+      "tokens_total": 569068,
+      "failure_reason": null,
+      "notes": "Added permanent sequential-validation rules to AGENTS.md and codex-metrics-policy.md so dependent updater commands are not validated in parallel."
     }
   ]
 }
