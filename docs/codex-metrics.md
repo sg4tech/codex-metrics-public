@@ -2,31 +2,31 @@
 
 ## Goal summary
 
-- Closed goals: 123
-- Successes: 123
+- Closed goals: 124
+- Successes: 124
 - Fails: 0
-- Total attempts: 128
-- Known total cost (USD): 185.160793
-- Known total tokens: 132780556
+- Total attempts: 129
+- Known total cost (USD): 186.393424
+- Known total tokens: 133672867
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 102/123 successful goals
-- Known token coverage: 102/123 successful goals
-- Complete cost coverage: 102/123 successful goals
-- Complete token coverage: 102/123 successful goals
-- Known Cost per Success (USD): 1.815302
-- Known Cost per Success (Tokens): 1301770.16
-- Complete Cost per Covered Success (USD): 1.815302
-- Complete Cost per Covered Success (Tokens): 1301770.16
+- Known cost coverage: 103/124 successful goals
+- Known token coverage: 103/124 successful goals
+- Complete cost coverage: 103/124 successful goals
+- Complete token coverage: 103/124 successful goals
+- Known Cost per Success (USD): 1.809645
+- Known Cost per Success (Tokens): 1297794.83
+- Complete Cost per Covered Success (USD): 1.809645
+- Complete Cost per Covered Success (Tokens): 1297794.83
 
 ## Entry summary
 
-- Closed entries: 128
-- Successes: 127
+- Closed entries: 129
+- Successes: 128
 - Fails: 1
 - Success Rate: 99.22%
-- Known total cost (USD): 184.263413
-- Known total tokens: 132064577
+- Known total cost (USD): 185.496044
+- Known total tokens: 132956888
 
 ## Operator review
 
@@ -41,22 +41,22 @@
 - unclear_task: 1
 
 ### product
-- Closed goals: 37
-- Successes: 37
+- Closed goals: 38
+- Successes: 38
 - Fails: 0
-- Total attempts: 42
-- Known total cost (USD): 86.941149
-- Known total tokens: 62432655
+- Total attempts: 43
+- Known total cost (USD): 88.17378
+- Known total tokens: 63324966
 - Success Rate: 100.00%
-- Attempts per Closed Goal: 1.14
-- Known cost coverage: 33/37 successful goals
-- Known token coverage: 33/37 successful goals
-- Complete cost coverage: 33/37 successful goals
-- Complete token coverage: 33/37 successful goals
-- Known Cost per Success (USD): 2.63458
-- Known Cost per Success (Tokens): 1891898.64
-- Complete Cost per Covered Success (USD): 2.63458
-- Complete Cost per Covered Success (Tokens): 1891898.64
+- Attempts per Closed Goal: 1.13
+- Known cost coverage: 34/38 successful goals
+- Known token coverage: 34/38 successful goals
+- Complete cost coverage: 34/38 successful goals
+- Complete token coverage: 34/38 successful goals
+- Known Cost per Success (USD): 2.593346
+- Known Cost per Success (Tokens): 1862499.00
+- Complete Cost per Covered Success (USD): 2.593346
+- Complete Cost per Covered Success (Tokens): 1862499.00
 
 ### retro
 - Closed goals: 29
@@ -95,6 +95,19 @@
 - Complete Cost per Covered Success (Tokens): 1279955.39
 
 ## Goal log
+
+### 2026-03-29-130 — Rebuild standalone binary after install-self addition
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T19:07:43+00:00
+- Finished at: 2026-03-29T19:08:21+00:00
+- Cost (USD): 1.232631
+- Tokens: 892311
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Rebuilt the standalone binary after adding install-self, verified that dist/standalone/codex-metrics now exposes install-self in top-level help and install-self --help, and confirmed the earlier invalid-choice error came from an outdated standalone artifact built before the new command existed.
 
 ### 2026-03-29-129 — Add self-install command for standalone binary
 - Goal type: product
@@ -1761,6 +1774,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-130-attempt-001 — 2026-03-29-130
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T19:07:43+00:00
+- Finished at: 2026-03-29T19:08:21+00:00
+- Cost (USD): 1.232631
+- Tokens: 892311
+- Failure reason: n/a
+- Notes: Rebuilt the standalone binary after adding install-self, verified that dist/standalone/codex-metrics now exposes install-self in top-level help and install-self --help, and confirmed the earlier invalid-choice error came from an outdated standalone artifact built before the new command existed.
 
 ### 2026-03-29-129-attempt-001 — 2026-03-29-129
 - Entry type: product
