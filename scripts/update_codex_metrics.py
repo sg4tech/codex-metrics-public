@@ -677,6 +677,76 @@ def build_merged_notes(kept_task: dict[str, Any], dropped_task: dict[str, Any]) 
     return " | ".join(notes_parts)
 
 
+def get_closed_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [record for record in records if record["status"] in {"success", "fail"}]
+
+
+def get_successful_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [record for record in records if record["status"] == "success"]
+
+
+def get_failed_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [record for record in records if record["status"] == "fail"]
+
+
+def sum_known_numeric_values(
+    records: list[dict[str, Any]],
+    field_name: str,
+    cast_type: type[int] | type[float],
+) -> int | float | None:
+    values = [cast_type(record[field_name]) for record in records if record.get(field_name) is not None]
+    if not values:
+        return None
+    return sum(values)
+
+
+def build_goal_chain(goal_by_id: dict[str, dict[str, Any]], terminal_goal: dict[str, Any]) -> list[dict[str, Any]]:
+    chain: list[dict[str, Any]] = []
+    current_goal = terminal_goal
+    visited_goal_ids: set[str] = set()
+    while True:
+        goal_id = current_goal["goal_id"]
+        if goal_id in visited_goal_ids:
+            raise ValueError(f"Detected supersession cycle at goal: {goal_id}")
+        visited_goal_ids.add(goal_id)
+        chain.append(current_goal)
+        previous_goal_id = current_goal.get("supersedes_goal_id")
+        if previous_goal_id is None:
+            break
+        previous_goal = goal_by_id.get(previous_goal_id)
+        if previous_goal is None:
+            raise ValueError(f"Referenced superseded goal not found: {previous_goal_id}")
+        current_goal = previous_goal
+
+    chain.reverse()
+    return chain
+
+
+def aggregate_chain_costs(chain: list[dict[str, Any]]) -> tuple[float | None, float | None, bool]:
+    known_cost_values = [float(goal["cost_usd"]) for goal in chain if goal.get("cost_usd") is not None]
+    aggregated_cost_known = round_usd(sum(known_cost_values)) if known_cost_values else None
+    is_complete = len(known_cost_values) == len(chain)
+    aggregated_cost = aggregated_cost_known if is_complete else None
+    return aggregated_cost, aggregated_cost_known, is_complete
+
+
+def aggregate_chain_tokens(chain: list[dict[str, Any]]) -> tuple[int | None, int | None, bool]:
+    known_token_values = [int(goal["tokens_total"]) for goal in chain if goal.get("tokens_total") is not None]
+    aggregated_tokens_known = sum(known_token_values) if known_token_values else None
+    is_complete = len(known_token_values) == len(chain)
+    aggregated_tokens = aggregated_tokens_known if is_complete else None
+    return aggregated_tokens, aggregated_tokens_known, is_complete
+
+
+def aggregate_chain_timestamps(chain: list[dict[str, Any]]) -> tuple[str | None, str | None]:
+    started_at = None
+    finished_at = None
+    for goal in chain:
+        started_at = choose_earliest_timestamp(started_at, goal.get("started_at"))
+        finished_at = choose_latest_timestamp(finished_at, goal.get("finished_at"))
+    return started_at, finished_at
+
+
 def resolve_linked_task_reference(
     tasks: list[dict[str, Any]],
     continuation_of: str | None,
@@ -698,29 +768,34 @@ def resolve_linked_task_reference(
 
 
 def compute_summary_block(tasks: list[dict[str, Any]]) -> dict[str, Any]:
-    closed_tasks = [t for t in tasks if t["status"] in {"success", "fail"}]
-    successes = [t for t in closed_tasks if t["status"] == "success"]
-    fails = [t for t in closed_tasks if t["status"] == "fail"]
+    closed_tasks = get_closed_records(tasks)
+    successes = get_successful_records(closed_tasks)
+    fails = get_failed_records(closed_tasks)
 
     total_attempts = sum(int(t.get("attempts") or 0) for t in closed_tasks)
 
-    usd_values = [t["cost_usd_known"] for t in closed_tasks if t.get("cost_usd_known") is not None]
-    total_cost_usd = float(sum(usd_values)) if usd_values else 0.0
-
-    token_values = [int(t["tokens_total_known"]) for t in closed_tasks if t.get("tokens_total_known") is not None]
-    total_tokens = sum(token_values) if token_values else 0
+    total_cost_usd_raw = sum_known_numeric_values(closed_tasks, "cost_usd_known", float)
+    total_cost_usd = float(total_cost_usd_raw) if total_cost_usd_raw is not None else 0.0
+    total_tokens_raw = sum_known_numeric_values(closed_tasks, "tokens_total_known", int)
+    total_tokens = int(total_tokens_raw) if total_tokens_raw is not None else 0
 
     success_rate = (len(successes) / len(closed_tasks)) if closed_tasks else None
     attempts_per_closed_task = (total_attempts / len(closed_tasks)) if closed_tasks else None
 
-    success_cost_values = [t["cost_usd"] for t in successes if t.get("cost_complete") and t.get("cost_usd") is not None]
+    success_cost_values = [
+        t["cost_usd"] for t in successes if t.get("cost_complete") and t.get("cost_usd") is not None
+    ]
     cost_per_success_usd = (
         float(sum(success_cost_values)) / len(successes)
         if successes and len(success_cost_values) == len(successes)
         else None
     )
 
-    success_token_values = [int(t["tokens_total"]) for t in successes if t.get("tokens_complete") and t.get("tokens_total") is not None]
+    success_token_values = [
+        int(t["tokens_total"])
+        for t in successes
+        if t.get("tokens_complete") and t.get("tokens_total") is not None
+    ]
     cost_per_success_tokens = (
         sum(success_token_values) / len(successes)
         if successes and len(success_token_values) == len(successes)
@@ -754,35 +829,10 @@ def build_effective_goals(goals: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if terminal_goal["goal_id"] in superseded_goal_ids:
             continue
 
-        chain: list[dict[str, Any]] = []
-        current_goal = terminal_goal
-        visited_goal_ids: set[str] = set()
-        while True:
-            goal_id = current_goal["goal_id"]
-            if goal_id in visited_goal_ids:
-                raise ValueError(f"Detected supersession cycle at goal: {goal_id}")
-            visited_goal_ids.add(goal_id)
-            chain.append(current_goal)
-            previous_goal_id = current_goal.get("supersedes_goal_id")
-            if previous_goal_id is None:
-                break
-            previous_goal = goal_by_id.get(previous_goal_id)
-            if previous_goal is None:
-                raise ValueError(f"Referenced superseded goal not found: {previous_goal_id}")
-            current_goal = previous_goal
-
-        chain.reverse()
-        known_cost_values = [float(goal["cost_usd"]) for goal in chain if goal.get("cost_usd") is not None]
-        aggregated_cost_known = round_usd(sum(known_cost_values)) if known_cost_values else None
-        aggregated_cost = aggregated_cost_known if len(known_cost_values) == len(chain) else None
-        known_token_values = [int(goal["tokens_total"]) for goal in chain if goal.get("tokens_total") is not None]
-        aggregated_tokens_known = sum(known_token_values) if known_token_values else None
-        aggregated_tokens = aggregated_tokens_known if len(known_token_values) == len(chain) else None
-        started_at = None
-        finished_at = None
-        for goal in chain:
-            started_at = choose_earliest_timestamp(started_at, goal.get("started_at"))
-            finished_at = choose_latest_timestamp(finished_at, goal.get("finished_at"))
+        chain = build_goal_chain(goal_by_id, terminal_goal)
+        aggregated_cost, aggregated_cost_known, cost_complete = aggregate_chain_costs(chain)
+        aggregated_tokens, aggregated_tokens_known, tokens_complete = aggregate_chain_tokens(chain)
+        started_at, finished_at = aggregate_chain_timestamps(chain)
 
         effective_goals.append(
             {
@@ -795,10 +845,10 @@ def build_effective_goals(goals: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "finished_at": finished_at,
                 "cost_usd": aggregated_cost,
                 "cost_usd_known": aggregated_cost_known,
-                "cost_complete": len(known_cost_values) == len(chain),
+                "cost_complete": cost_complete,
                 "tokens_total": aggregated_tokens,
                 "tokens_total_known": aggregated_tokens_known,
-                "tokens_complete": len(known_token_values) == len(chain),
+                "tokens_complete": tokens_complete,
                 "failure_reason": terminal_goal.get("failure_reason"),
                 "notes": terminal_goal.get("notes"),
                 "supersedes_goal_id": terminal_goal.get("supersedes_goal_id"),
@@ -809,11 +859,11 @@ def build_effective_goals(goals: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def compute_entry_summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
-    closed_entries = [entry for entry in entries if entry["status"] in {"success", "fail"}]
-    successes = [entry for entry in closed_entries if entry["status"] == "success"]
-    fails = [entry for entry in closed_entries if entry["status"] == "fail"]
-    usd_values = [float(entry["cost_usd"]) for entry in closed_entries if entry.get("cost_usd") is not None]
-    token_values = [int(entry["tokens_total"]) for entry in closed_entries if entry.get("tokens_total") is not None]
+    closed_entries = get_closed_records(entries)
+    successes = get_successful_records(closed_entries)
+    fails = get_failed_records(closed_entries)
+    total_cost_usd_raw = sum_known_numeric_values(closed_entries, "cost_usd", float)
+    total_tokens_raw = sum_known_numeric_values(closed_entries, "tokens_total", int)
     failure_reason_counts: dict[str, int] = {}
     for entry in fails:
         reason = entry.get("failure_reason") or "other"
@@ -824,8 +874,8 @@ def compute_entry_summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
         "successes": len(successes),
         "fails": len(fails),
         "success_rate": (len(successes) / len(closed_entries)) if closed_entries else None,
-        "total_cost_usd": round_usd(sum(usd_values)) if usd_values else 0.0,
-        "total_tokens": sum(token_values) if token_values else 0,
+        "total_cost_usd": round_usd(float(total_cost_usd_raw)) if total_cost_usd_raw is not None else 0.0,
+        "total_tokens": int(total_tokens_raw) if total_tokens_raw is not None else 0,
         "failure_reasons": dict(sorted(failure_reason_counts.items())),
     }
 

@@ -490,6 +490,20 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Safely decomposed upsert_task into smaller internal steps for goal creation, usage resolution, update application, and final validation, while preserving CLI behavior and keeping ruff, mypy, and 46 tests green."
+    },
+    {
+      "goal_id": "2026-03-29-030",
+      "title": "Refactor goal and summary domain helpers",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "in_progress",
+      "attempts": 1,
+      "started_at": "2026-03-29T10:36:36+00:00",
+      "finished_at": null,
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Continue safe refactoring by making summary and effective-goal logic more explicit and modular without changing persisted schema or CLI behavior."
     }
   ],
   "entries": [
@@ -828,6 +842,18 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Safely decomposed upsert_task into smaller internal steps for goal creation, usage resolution, update application, and final validation, while preserving CLI behavior and keeping ruff, mypy, and 46 tests green."
+    },
+    {
+      "entry_id": "2026-03-29-030-attempt-001",
+      "goal_id": "2026-03-29-030",
+      "entry_type": "meta",
+      "status": "in_progress",
+      "started_at": "2026-03-29T10:36:36+00:00",
+      "finished_at": null,
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Continue safe refactoring by making summary and effective-goal logic more explicit and modular without changing persisted schema or CLI behavior."
     }
   ]
 }

@@ -65,6 +65,18 @@
 
 ## Goal log
 
+### 2026-03-29-030 — Refactor goal and summary domain helpers
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: in_progress
+- Attempts: 1
+- Started at: 2026-03-29T10:36:36+00:00
+- Finished at: n/a
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Continue safe refactoring by making summary and effective-goal logic more explicit and modular without changing persisted schema or CLI behavior.
+
 ### 2026-03-29-029 — Refactor updater application flow into smaller steps
 - Goal type: meta
 - Supersedes goal: n/a
@@ -402,6 +414,16 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-030-attempt-001 — 2026-03-29-030
+- Entry type: meta
+- Status: in_progress
+- Started at: 2026-03-29T10:36:36+00:00
+- Finished at: n/a
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Continue safe refactoring by making summary and effective-goal logic more explicit and modular without changing persisted schema or CLI behavior.
 
 ### 2026-03-29-029-attempt-001 — 2026-03-29-029
 - Entry type: meta
