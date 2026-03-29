@@ -2,18 +2,18 @@
 
 ## Goal summary
 
-- Closed goals: 136
-- Successes: 136
+- Closed goals: 137
+- Successes: 137
 - Fails: 0
-- Total attempts: 142
+- Total attempts: 143
 - Known total cost (USD): 206.022869
 - Known total tokens: 147815880
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 115/136 successful goals
-- Known token coverage: 115/136 successful goals
-- Complete cost coverage: 115/136 successful goals
-- Complete token coverage: 115/136 successful goals
+- Known cost coverage: 115/137 successful goals
+- Known token coverage: 115/137 successful goals
+- Complete cost coverage: 115/137 successful goals
+- Complete token coverage: 115/137 successful goals
 - Known Cost per Success (USD): 1.791503
 - Known Cost per Success (Tokens): 1285355.48
 - Complete Cost per Covered Success (USD): 1.791503
@@ -21,8 +21,8 @@
 
 ## Entry summary
 
-- Closed entries: 142
-- Successes: 141
+- Closed entries: 143
+- Successes: 142
 - Fails: 1
 - Success Rate: 99.30%
 - Known total cost (USD): 205.125489
@@ -41,18 +41,18 @@
 - unclear_task: 1
 
 ### product
-- Closed goals: 44
-- Successes: 44
+- Closed goals: 45
+- Successes: 45
 - Fails: 0
-- Total attempts: 50
+- Total attempts: 51
 - Known total cost (USD): 101.235054
 - Known total tokens: 72723888
 - Success Rate: 100.00%
-- Attempts per Closed Goal: 1.14
-- Known cost coverage: 40/44 successful goals
-- Known token coverage: 40/44 successful goals
-- Complete cost coverage: 40/44 successful goals
-- Complete token coverage: 40/44 successful goals
+- Attempts per Closed Goal: 1.13
+- Known cost coverage: 40/45 successful goals
+- Known token coverage: 40/45 successful goals
+- Complete cost coverage: 40/45 successful goals
+- Complete token coverage: 40/45 successful goals
 - Known Cost per Success (USD): 2.530876
 - Known Cost per Success (Tokens): 1818097.20
 - Complete Cost per Covered Success (USD): 2.530876
@@ -95,6 +95,19 @@
 - Complete Cost per Covered Success (Tokens): 1279226.83
 
 ## Goal log
+
+### 2026-03-29-143 — Draft stage-based task lifecycle pilot
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T20:15:57+00:00
+- Finished at: 2026-03-29T20:15:58+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Result fit: exact_fit
+- Notes: Added a lightweight lifecycle pilot doc with lead-owned stage transitions, stage definitions, operating rules, and criteria for when to automate stage support in the tool.
 
 ### 2026-03-29-142 — Add high-level start-task, continue-task, and finish-task commands
 - Goal type: product
@@ -1930,6 +1943,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-143-attempt-001 — 2026-03-29-143
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T20:15:57+00:00
+- Finished at: 2026-03-29T20:15:58+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Added a lightweight lifecycle pilot doc with lead-owned stage transitions, stage definitions, operating rules, and criteria for when to automate stage support in the tool.
 
 ### 2026-03-29-142-attempt-001 — 2026-03-29-142
 - Entry type: product

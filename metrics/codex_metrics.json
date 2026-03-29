@@ -1,13 +1,13 @@
 {
   "summary": {
-    "closed_tasks": 136,
-    "successes": 136,
+    "closed_tasks": 137,
+    "successes": 137,
     "fails": 0,
-    "total_attempts": 142,
+    "total_attempts": 143,
     "total_cost_usd": 206.022869,
     "total_tokens": 147815880,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.0441176470588236,
+    "attempts_per_closed_task": 1.0437956204379562,
     "known_cost_successes": 115,
     "known_token_successes": 115,
     "complete_cost_successes": 115,
@@ -40,14 +40,14 @@
         "cost_per_success_tokens": null
       },
       "product": {
-        "closed_tasks": 44,
-        "successes": 44,
+        "closed_tasks": 45,
+        "successes": 45,
         "fails": 0,
-        "total_attempts": 50,
+        "total_attempts": 51,
         "total_cost_usd": 101.235054,
         "total_tokens": 72723888,
         "success_rate": 1.0,
-        "attempts_per_closed_task": 1.1363636363636365,
+        "attempts_per_closed_task": 1.1333333333333333,
         "known_cost_successes": 40,
         "known_token_successes": 40,
         "complete_cost_successes": 40,
@@ -102,14 +102,14 @@
         "cost_per_success_tokens": null
       },
       "product": {
-        "closed_tasks": 44,
-        "successes": 44,
+        "closed_tasks": 45,
+        "successes": 45,
         "fails": 0,
-        "total_attempts": 50,
+        "total_attempts": 51,
         "total_cost_usd": 101.235054,
         "total_tokens": 72723888,
         "success_rate": 1.0,
-        "attempts_per_closed_task": 1.1363636363636365,
+        "attempts_per_closed_task": 1.1333333333333333,
         "known_cost_successes": 40,
         "known_token_successes": 40,
         "complete_cost_successes": 40,
@@ -143,10 +143,10 @@
       }
     },
     "entries": {
-      "closed_entries": 142,
-      "successes": 141,
+      "closed_entries": 143,
+      "successes": 142,
       "fails": 1,
-      "success_rate": 0.9929577464788732,
+      "success_rate": 0.993006993006993,
       "total_cost_usd": 205.125489,
       "total_tokens": 147099901,
       "failure_reasons": {
@@ -2269,6 +2269,21 @@
       "failure_reason": null,
       "notes": "Added start-task, continue-task, and finish-task commands as high-level wrappers around update, with tests and docs.",
       "result_fit": null
+    },
+    {
+      "goal_id": "2026-03-29-143",
+      "title": "Draft stage-based task lifecycle pilot",
+      "goal_type": "product",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T20:15:57+00:00",
+      "finished_at": "2026-03-29T20:15:58+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Added a lightweight lifecycle pilot doc with lead-owned stage transitions, stage definitions, operating rules, and criteria for when to automate stage support in the tool.",
+      "result_fit": "exact_fit"
     }
   ],
   "entries": [
@@ -4156,6 +4171,19 @@
       "tokens_total": 2014695,
       "failure_reason": null,
       "notes": "Added start-task, continue-task, and finish-task commands as high-level wrappers around update, with tests and docs."
+    },
+    {
+      "entry_id": "2026-03-29-143-attempt-001",
+      "goal_id": "2026-03-29-143",
+      "entry_type": "product",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T20:15:57+00:00",
+      "finished_at": "2026-03-29T20:15:58+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Added a lightweight lifecycle pilot doc with lead-owned stage transitions, stage definitions, operating rules, and criteria for when to automate stage support in the tool."
     }
   ]
 }
