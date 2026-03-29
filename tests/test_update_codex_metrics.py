@@ -773,7 +773,39 @@ def test_goal_type_cannot_change_after_attempt_history_exists(repo: Path) -> Non
     )
 
     assert result.returncode != 0
-    assert "goal_type cannot be changed after attempt history exists" in result.stderr
+    assert "goal_id already exists as a product goal" in result.stderr
+    assert "omit it for auto-generation" in result.stderr
+
+
+def test_reused_manual_goal_id_guides_user_to_auto_generation(repo: Path) -> None:
+    assert run_cmd(repo, "init").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "existing-goal",
+        "--title",
+        "Existing goal",
+        "--task-type",
+        "product",
+        "--attempts-delta",
+        "1",
+    ).returncode == 0
+
+    result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "existing-goal",
+        "--title",
+        "New goal with reused id",
+        "--task-type",
+        "meta",
+    )
+
+    assert result.returncode != 0
+    assert "goal_id already exists as a product goal" in result.stderr
+    assert "use a new --task-id or omit it for auto-generation" in result.stderr
 
 
 def test_unknown_pricing_model_fails(repo: Path) -> None:
@@ -1564,7 +1596,9 @@ def test_help_includes_goal_language_and_examples(repo: Path) -> None:
     assert "Examples:" in result.stdout
     assert "--supersedes-task-id" in update_help.stdout
     assert "Stable goal identifier." in update_help.stdout
-    assert "generate one." in update_help.stdout
+    assert "Omit this for new goals" in update_help.stdout
+    assert "%(prog)s --title \"Improve CLI help\"" not in update_help.stdout
+    assert "--title \"Improve CLI help\" --task-type product --attempts-delta 1" in update_help.stdout
 
 
 def test_sync_codex_usage_backfills_existing_tasks(repo: Path) -> None:

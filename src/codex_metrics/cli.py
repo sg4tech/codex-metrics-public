@@ -1314,7 +1314,10 @@ def ensure_goal_type_update_allowed(
     if new_goal_type is None or new_goal_type == goal.goal_type:
         return
     if get_goal_entries(entries, goal.goal_id):
-        raise ValueError("goal_type cannot be changed after attempt history exists")
+        raise ValueError(
+            f"goal_id already exists as a {goal.goal_type} goal; "
+            "use a new --task-id or omit it for auto-generation to create a new goal"
+        )
 
 
 def next_entry_id(entries: list[dict[str, Any]], goal_id: str) -> str:
@@ -1837,7 +1840,8 @@ def build_parser() -> argparse.ArgumentParser:
         description="Track goal, attempt, failure, and cost metrics for Codex-driven work.",
         epilog=(
             "Examples:\n"
-            "  %(prog)s update --task-id 2026-03-29-001 --title \"Add CSV import\" --task-type product --attempts-delta 1\n"
+            "  %(prog)s update --title \"Add CSV import\" --task-type product --attempts-delta 1\n"
+            "  %(prog)s update --task-id 2026-03-29-001 --status success --notes \"Validated\"\n"
             "  %(prog)s update --task-id 2026-03-29-002 --title \"Retry CSV import\" --task-type product --supersedes-task-id 2026-03-29-001 --status success\n"
             "  %(prog)s sync-codex-usage\n"
         ),
@@ -1858,18 +1862,26 @@ def build_parser() -> argparse.ArgumentParser:
         "update",
         help="Create or update a goal record",
         description=(
-            "Create a new goal or update an existing one. Use --attempts-delta for a new implementation pass, "
-            "--supersedes-task-id for a replacement goal, and --task-type explicitly for new goals."
+            "Create a new goal or update an existing one. For new goals, omit --task-id and let the updater "
+            "generate one. Use --attempts-delta for a new implementation pass, --supersedes-task-id for a "
+            "replacement goal, and --task-type explicitly for new goals."
         ),
         epilog=(
             "Examples:\n"
-            "  %(prog)s --task-id 2026-03-29-010 --title \"Improve CLI help\" --task-type product --attempts-delta 1\n"
+            "  %(prog)s --title \"Improve CLI help\" --task-type product --attempts-delta 1\n"
+            "  %(prog)s --task-id 2026-03-29-010 --status success --notes \"Validated\"\n"
             "  %(prog)s --task-id 2026-03-29-011 --title \"Retry CLI help\" --task-type product --supersedes-task-id 2026-03-29-010 --status success\n"
-            "  %(prog)s --task-id 2026-03-29-012 --title \"Write retro\" --task-type retro --attempts-delta 1 --status success\n"
+            "  %(prog)s --title \"Write retro\" --task-type retro --attempts-delta 1 --status success\n"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    update_parser.add_argument("--task-id", help="Stable goal identifier. If omitted, the updater will generate one.")
+    update_parser.add_argument(
+        "--task-id",
+        help=(
+            "Stable goal identifier. Omit this for new goals and let the updater generate one. "
+            "Pass it when updating an existing goal or replaying history."
+        ),
+    )
     update_parser.add_argument("--title", help="Goal title. Required for new goals.")
     update_parser.add_argument("--task-type", choices=sorted(ALLOWED_TASK_TYPES), help="Goal classification for new goals")
     linked_task_group = update_parser.add_mutually_exclusive_group()

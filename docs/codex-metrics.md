@@ -2,18 +2,18 @@
 
 ## Goal summary
 
-- Closed goals: 70
-- Successes: 70
+- Closed goals: 71
+- Successes: 71
 - Fails: 0
-- Total attempts: 74
+- Total attempts: 75
 - Known total cost (USD): 1.269228
 - Known total tokens: 2696460
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.06
-- Known cost coverage: 4/70 successful goals
-- Known token coverage: 4/70 successful goals
-- Complete cost coverage: 2/70 successful goals
-- Complete token coverage: 2/70 successful goals
+- Known cost coverage: 4/71 successful goals
+- Known token coverage: 4/71 successful goals
+- Complete cost coverage: 2/71 successful goals
+- Complete token coverage: 2/71 successful goals
 - Known Cost per Success (USD): 0.317307
 - Known Cost per Success (Tokens): 674115.00
 - Complete Cost per Covered Success (USD): 0.260627
@@ -21,10 +21,10 @@
 
 ## Entry summary
 
-- Closed entries: 74
-- Successes: 73
+- Closed entries: 75
+- Successes: 74
 - Fails: 1
-- Success Rate: 98.65%
+- Success Rate: 98.67%
 - Known total cost (USD): 1.269228
 - Known total tokens: 2696460
 
@@ -77,24 +77,48 @@
 - Complete Cost per Covered Success (Tokens): 532598.00
 
 ### meta
-- Closed goals: 38
-- Successes: 38
+- Closed goals: 39
+- Successes: 39
 - Fails: 0
-- Total attempts: 38
+- Total attempts: 39
 - Known total cost (USD): 0.2658
 - Known total tokens: 569068
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 1/38 successful goals
-- Known token coverage: 1/38 successful goals
-- Complete cost coverage: 1/38 successful goals
-- Complete token coverage: 1/38 successful goals
+- Known cost coverage: 1/39 successful goals
+- Known token coverage: 1/39 successful goals
+- Complete cost coverage: 1/39 successful goals
+- Complete token coverage: 1/39 successful goals
 - Known Cost per Success (USD): 0.2658
 - Known Cost per Success (Tokens): 569068.00
 - Complete Cost per Covered Success (USD): 0.2658
 - Complete Cost per Covered Success (Tokens): 569068.00
 
 ## Goal log
+
+### 2026-03-29-077 — Clarify manual goal id conflicts
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T13:30:34+00:00
+- Finished at: 2026-03-29T13:32:38+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Clarified auto-id default path and manual id conflict guidance
+
+### 2026-03-29-076 — Prefer auto-generated goal IDs by default
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: in_progress
+- Attempts: 1
+- Started at: 2026-03-29T13:29:18+00:00
+- Finished at: n/a
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Improve manual goal ID conflict messaging and document auto-ID as the default path for new goals.
 
 ### 2026-03-29-075 — Retrospective for installable CLI packaging milestone
 - Goal type: retro
@@ -985,6 +1009,28 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-077-attempt-001 — 2026-03-29-077
+- Entry type: meta
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T13:30:34+00:00
+- Finished at: 2026-03-29T13:32:38+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Clarified auto-id default path and manual id conflict guidance
+
+### 2026-03-29-076-attempt-001 — 2026-03-29-076
+- Entry type: meta
+- Inferred: no
+- Status: in_progress
+- Started at: 2026-03-29T13:29:18+00:00
+- Finished at: n/a
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Improve manual goal ID conflict messaging and document auto-ID as the default path for new goals.
 
 ### 2026-03-29-075-attempt-001 — 2026-03-29-075
 - Entry type: retro

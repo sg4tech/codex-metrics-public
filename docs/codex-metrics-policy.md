@@ -130,6 +130,7 @@ Use:
 Rules:
 
 - always set `goal_type` explicitly for new goals
+- for new goals, prefer generated goal ids; reserve explicit ids for updating existing goals, imports, or historical backfill
 - if a new goal intentionally continues or supersedes a prior closed goal, record the link explicitly
 - once attempt history exists, do not change `goal_type` in place; start a new linked goal instead
 
