@@ -14,7 +14,8 @@ This repository is an internal local operator tool. It is meant to help track wh
 - retry pressure
 - token and cost signals
 
-The core CLI lives in `scripts/update_codex_metrics.py`.
+The installable CLI lives in the `codex_metrics` package and exposes the `codex-metrics` command.
+The repository also keeps `scripts/update_codex_metrics.py` as a compatibility shim for local workflows.
 
 ## Main Outputs
 
@@ -32,10 +33,21 @@ Repository workflow and policy live in:
 
 Requirements:
 
-- Python 3.14
-- local virtual environment in `.venv`
+- Python 3.11+
 
-Show CLI help:
+Install from a checkout:
+
+```bash
+python -m pip install .
+```
+
+Show CLI help after install:
+
+```bash
+codex-metrics --help
+```
+
+Repository-local help without installation:
 
 ```bash
 ./.venv/bin/python scripts/update_codex_metrics.py --help
@@ -52,31 +64,39 @@ make verify
 Initialize metrics files:
 
 ```bash
-./.venv/bin/python scripts/update_codex_metrics.py init
+codex-metrics init
 ```
 
 Create or update a goal record:
 
 ```bash
-./.venv/bin/python scripts/update_codex_metrics.py update --help
+codex-metrics update --help
 ```
 
 Show the current summary:
 
 ```bash
-./.venv/bin/python scripts/update_codex_metrics.py show
+codex-metrics show
 ```
 
 Backfill usage and cost from local Codex logs:
 
 ```bash
-./.venv/bin/python scripts/update_codex_metrics.py sync-codex-usage --help
+codex-metrics sync-codex-usage --help
 ```
 
 Merge a split or superseded goal record:
 
 ```bash
-./.venv/bin/python scripts/update_codex_metrics.py merge-tasks --help
+codex-metrics merge-tasks --help
+```
+
+Typical end-to-end flow:
+
+```bash
+codex-metrics init
+codex-metrics update --title "Add CSV import" --task-type product --attempts-delta 1
+codex-metrics show
 ```
 
 ## Validation Commands
@@ -88,6 +108,28 @@ Available `make` targets:
 - `make test`
 - `make verify`
 - `make coverage`
+
+Build distributable artifacts:
+
+```bash
+make package
+```
+
+This produces:
+
+- `dist/*.whl`
+- `dist/*.tar.gz`
+
+These artifacts are the intended release payload for GitHub Releases and for installing the tool into other projects.
+
+## Release Notes
+
+Recommended release flow:
+
+1. run `make verify`
+2. build `wheel` and `sdist` with `make package`
+3. smoke-check the built wheel in a clean virtualenv
+4. attach the artifacts from `dist/` to a GitHub Release
 
 ## Working Notes
 

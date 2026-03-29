@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -13,6 +14,7 @@ import pytest
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = Path("scripts/update_codex_metrics.py")
 ABS_SCRIPT = WORKSPACE_ROOT / "scripts" / "update_codex_metrics.py"
+ABS_SRC = WORKSPACE_ROOT / "src"
 PRICING = WORKSPACE_ROOT / "pricing" / "model_pricing.json"
 
 
@@ -47,6 +49,27 @@ def run_cmd(
     cmd = build_cmd(*args)
     return subprocess.run(
         cmd,
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+        env=env,
+    )
+
+
+def run_module_cmd(
+    tmp_path: Path,
+    *args: str,
+    extra_env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    existing_pythonpath = env.get("PYTHONPATH")
+    src_path = str(tmp_path / "src")
+    env["PYTHONPATH"] = src_path if not existing_pythonpath else f"{src_path}{os.pathsep}{existing_pythonpath}"
+    if extra_env is not None:
+        env.update(extra_env)
+    return subprocess.run(
+        [sys.executable, "-m", "codex_metrics", *args],
         cwd=tmp_path,
         text=True,
         capture_output=True,
@@ -187,6 +210,7 @@ def repo(tmp_path: Path) -> Path:
 
     script_target = tmp_path / "scripts" / "update_codex_metrics.py"
     script_target.write_text(ABS_SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
+    shutil.copytree(ABS_SRC, tmp_path / "src")
     pricing_target = tmp_path / "pricing" / "model_pricing.json"
     pricing_target.write_text(PRICING.read_text(encoding="utf-8"), encoding="utf-8")
     return tmp_path
@@ -215,6 +239,13 @@ def test_init_creates_files(repo: Path) -> None:
     report = report_path.read_text(encoding="utf-8")
     assert "Codex Metrics" in report
     assert "_No goals recorded yet._" in report
+
+
+def test_package_module_entrypoint_runs(repo: Path) -> None:
+    result = run_module_cmd(repo, "--help")
+
+    assert result.returncode == 0, result.stderr
+    assert "Track goal, attempt, failure, and cost metrics" in result.stdout
 
 
 def test_init_refuses_to_overwrite_without_force(repo: Path) -> None:

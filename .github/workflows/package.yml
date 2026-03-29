@@ -1,0 +1,41 @@
+name: package
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build coverage mypy pytest ruff setuptools wheel
+
+      - name: Verify
+        run: make verify
+
+      - name: Build package
+        run: python -m build
+
+      - name: Smoke check installed CLI
+        run: |
+          python -m pip install --force-reinstall dist/*.whl
+          codex-metrics --help
+
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-metrics-dist
+          path: dist/*

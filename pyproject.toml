@@ -1,3 +1,27 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codex-metrics"
+version = "0.1.0"
+description = "CLI for tracking Codex task metrics, attempt history, and usage-derived cost."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+codex-metrics = "codex_metrics.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+codex_metrics = ["data/*.json"]
+
 [tool.ruff]
 target-version = "py314"
 line-length = 100
@@ -17,6 +41,7 @@ check_untyped_defs = true
 no_implicit_optional = true
 disallow_incomplete_defs = true
 files = [
+  "src/codex_metrics",
   "scripts/update_codex_metrics.py",
 ]
 exclude = [
@@ -27,7 +52,7 @@ exclude = [
 branch = true
 parallel = true
 source = [
-  "scripts",
+  "codex_metrics",
 ]
 
 [tool.coverage.report]

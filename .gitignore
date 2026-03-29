@@ -19,3 +19,8 @@ venv/
 
 # Runtime lock files
 *.lock
+
+# Packaging artifacts
+build/
+dist/
+*.egg-info/

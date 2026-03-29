@@ -1,13 +1,13 @@
 {
   "summary": {
-    "closed_tasks": 68,
-    "successes": 68,
+    "closed_tasks": 69,
+    "successes": 69,
     "fails": 0,
-    "total_attempts": 72,
+    "total_attempts": 73,
     "total_cost_usd": 1.269228,
     "total_tokens": 2696460,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.0588235294117647,
+    "attempts_per_closed_task": 1.0579710144927537,
     "known_cost_successes": 4,
     "known_token_successes": 4,
     "complete_cost_successes": 2,
@@ -40,14 +40,14 @@
         "cost_per_success_tokens": null
       },
       "product": {
-        "closed_tasks": 15,
-        "successes": 15,
+        "closed_tasks": 16,
+        "successes": 16,
         "fails": 0,
-        "total_attempts": 19,
+        "total_attempts": 20,
         "total_cost_usd": 0.747974,
         "total_tokens": 1594794,
         "success_rate": 1.0,
-        "attempts_per_closed_task": 1.2666666666666666,
+        "attempts_per_closed_task": 1.25,
         "known_cost_successes": 2,
         "known_token_successes": 2,
         "complete_cost_successes": 0,
@@ -102,14 +102,14 @@
         "cost_per_success_tokens": null
       },
       "product": {
-        "closed_tasks": 15,
-        "successes": 15,
+        "closed_tasks": 16,
+        "successes": 16,
         "fails": 0,
-        "total_attempts": 19,
+        "total_attempts": 20,
         "total_cost_usd": 0.747974,
         "total_tokens": 1594794,
         "success_rate": 1.0,
-        "attempts_per_closed_task": 1.2666666666666666,
+        "attempts_per_closed_task": 1.25,
         "known_cost_successes": 2,
         "known_token_successes": 2,
         "complete_cost_successes": 0,
@@ -143,10 +143,10 @@
       }
     },
     "entries": {
-      "closed_entries": 72,
-      "successes": 71,
+      "closed_entries": 73,
+      "successes": 72,
       "fails": 1,
-      "success_rate": 0.9861111111111112,
+      "success_rate": 0.9863013698630136,
       "total_cost_usd": 1.269228,
       "total_tokens": 2696460,
       "failure_reasons": {
@@ -1162,6 +1162,20 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Aligned README terminology with the current goal-based model and clarified that goal-level outcome summary should be read together with entry-level retry history."
+    },
+    {
+      "goal_id": "2026-03-29-074",
+      "title": "Package codex-metrics as installable public CLI",
+      "goal_type": "product",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T13:14:12+00:00",
+      "finished_at": "2026-03-29T13:21:29+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Packaged codex-metrics as an installable src-layout CLI with a console script entrypoint, bundled pricing data, a compatibility shim under scripts/, packaging docs, a GitHub build workflow, and validated wheel installation in a clean venv."
     }
   ],
   "entries": [
@@ -2091,6 +2105,19 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Aligned README terminology with the current goal-based model and clarified that goal-level outcome summary should be read together with entry-level retry history."
+    },
+    {
+      "entry_id": "2026-03-29-074-attempt-001",
+      "goal_id": "2026-03-29-074",
+      "entry_type": "product",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T13:14:12+00:00",
+      "finished_at": "2026-03-29T13:21:29+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Packaged codex-metrics as an installable src-layout CLI with a console script entrypoint, bundled pricing data, a compatibility shim under scripts/, packaging docs, a GitHub build workflow, and validated wheel installation in a clean venv."
     }
   ]
 }

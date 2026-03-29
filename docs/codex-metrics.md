@@ -2,18 +2,18 @@
 
 ## Goal summary
 
-- Closed goals: 68
-- Successes: 68
+- Closed goals: 69
+- Successes: 69
 - Fails: 0
-- Total attempts: 72
+- Total attempts: 73
 - Known total cost (USD): 1.269228
 - Known total tokens: 2696460
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.06
-- Known cost coverage: 4/68 successful goals
-- Known token coverage: 4/68 successful goals
-- Complete cost coverage: 2/68 successful goals
-- Complete token coverage: 2/68 successful goals
+- Known cost coverage: 4/69 successful goals
+- Known token coverage: 4/69 successful goals
+- Complete cost coverage: 2/69 successful goals
+- Complete token coverage: 2/69 successful goals
 - Known Cost per Success (USD): 0.317307
 - Known Cost per Success (Tokens): 674115.00
 - Complete Cost per Covered Success (USD): 0.260627
@@ -21,10 +21,10 @@
 
 ## Entry summary
 
-- Closed entries: 72
-- Successes: 71
+- Closed entries: 73
+- Successes: 72
 - Fails: 1
-- Success Rate: 98.61%
+- Success Rate: 98.63%
 - Known total cost (USD): 1.269228
 - Known total tokens: 2696460
 
@@ -41,18 +41,18 @@
 - unclear_task: 1
 
 ### product
-- Closed goals: 15
-- Successes: 15
+- Closed goals: 16
+- Successes: 16
 - Fails: 0
-- Total attempts: 19
+- Total attempts: 20
 - Known total cost (USD): 0.747974
 - Known total tokens: 1594794
 - Success Rate: 100.00%
-- Attempts per Closed Goal: 1.27
-- Known cost coverage: 2/15 successful goals
-- Known token coverage: 2/15 successful goals
-- Complete cost coverage: 0/15 successful goals
-- Complete token coverage: 0/15 successful goals
+- Attempts per Closed Goal: 1.25
+- Known cost coverage: 2/16 successful goals
+- Known token coverage: 2/16 successful goals
+- Complete cost coverage: 0/16 successful goals
+- Complete token coverage: 0/16 successful goals
 - Known Cost per Success (USD): 0.373987
 - Known Cost per Success (Tokens): 797397.00
 - Complete Cost per Covered Success (USD): n/a
@@ -95,6 +95,18 @@
 - Complete Cost per Covered Success (Tokens): 569068.00
 
 ## Goal log
+
+### 2026-03-29-074 — Package codex-metrics as installable public CLI
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T13:14:12+00:00
+- Finished at: 2026-03-29T13:21:29+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Packaged codex-metrics as an installable src-layout CLI with a console script entrypoint, bundled pricing data, a compatibility shim under scripts/, packaging docs, a GitHub build workflow, and validated wheel installation in a clean venv.
 
 ### 2026-03-29-073 — Align README with goal-based model
 - Goal type: meta
@@ -961,6 +973,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-074-attempt-001 — 2026-03-29-074
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T13:14:12+00:00
+- Finished at: 2026-03-29T13:21:29+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Packaged codex-metrics as an installable src-layout CLI with a console script entrypoint, bundled pricing data, a compatibility shim under scripts/, packaging docs, a GitHub build workflow, and validated wheel installation in a clean venv.
 
 ### 2026-03-29-073-attempt-001 — 2026-03-29-073
 - Entry type: meta
