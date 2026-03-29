@@ -676,6 +676,9 @@ def build_parser() -> argparse.ArgumentParser:
         description="Track goal, attempt, failure, and cost metrics for Codex-driven work.",
         epilog=(
             "Examples:\n"
+            "  %(prog)s start-task --title \"Add CSV import\" --task-type product\n"
+            "  %(prog)s continue-task --task-id 2026-03-29-001 --notes \"Retry after validation failure\"\n"
+            "  %(prog)s finish-task --task-id 2026-03-29-001 --status success --notes \"Validated\"\n"
             "  %(prog)s update --title \"Add CSV import\" --task-type product --attempts-delta 1\n"
             "  %(prog)s update --task-id 2026-03-29-001 --status success --notes \"Validated\"\n"
             "  %(prog)s update --task-id 2026-03-29-002 --title \"Retry CSV import\" --task-type product --supersedes-task-id 2026-03-29-001 --status success\n"
@@ -742,6 +745,98 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     completion_parser.add_argument("shell", choices=("bash", "zsh"))
+
+    start_parser = subparsers.add_parser(
+        "start-task",
+        help="Create a new goal and record the first implementation pass",
+        description=(
+            "Create a new goal with attempts incremented for the first implementation pass. "
+            "Use this when starting meaningful work on a new task."
+        ),
+    )
+    start_parser.add_argument("--title", required=True, help="Goal title")
+    start_parser.add_argument("--task-type", required=True, choices=sorted(ALLOWED_TASK_TYPES), help="Goal classification")
+    start_linked_group = start_parser.add_mutually_exclusive_group()
+    start_linked_group.add_argument("--continuation-of", help="Create a new goal linked to a previous closed goal")
+    start_linked_group.add_argument("--supersedes-task-id", help="Create a replacement goal for a previous closed goal")
+    start_parser.add_argument("--notes", help="Optional note recorded on the goal and latest attempt entry")
+    start_parser.add_argument("--started-at", help="Explicit ISO8601 start timestamp")
+    start_parser.add_argument("--cost-usd-add", type=float, help="Add explicit USD cost")
+    start_parser.add_argument("--tokens-add", type=int, help="Add explicit token count")
+    start_parser.add_argument("--model", help="Pricing model name for token-based cost calculation")
+    start_parser.add_argument("--input-tokens", type=int, help="Input tokens for model-based pricing")
+    start_parser.add_argument("--cached-input-tokens", type=int, help="Cached input tokens for model-based pricing")
+    start_parser.add_argument("--output-tokens", type=int, help="Output tokens for model-based pricing")
+    start_parser.add_argument("--pricing-path", default=str(PRICING_JSON_PATH))
+    start_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
+    start_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
+    start_parser.add_argument("--codex-thread-id")
+    start_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
+    start_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
+
+    continue_parser = subparsers.add_parser(
+        "continue-task",
+        help="Record another implementation pass for an existing goal",
+        description=(
+            "Increment attempts for an existing goal and optionally attach notes, failure reason, "
+            "or usage data for the new pass."
+        ),
+    )
+    continue_parser.add_argument("--task-id", required=True, help="Existing goal identifier")
+    continue_parser.add_argument("--notes", help="Optional note recorded on the goal and latest attempt entry")
+    continue_parser.add_argument(
+        "--failure-reason",
+        choices=sorted(ALLOWED_FAILURE_REASONS),
+        help="Primary failure reason for the new unsuccessful pass",
+    )
+    continue_parser.add_argument("--started-at", help="Explicit ISO8601 timestamp for the new pass")
+    continue_parser.add_argument("--cost-usd-add", type=float, help="Add explicit USD cost")
+    continue_parser.add_argument("--tokens-add", type=int, help="Add explicit token count")
+    continue_parser.add_argument("--model", help="Pricing model name for token-based cost calculation")
+    continue_parser.add_argument("--input-tokens", type=int, help="Input tokens for model-based pricing")
+    continue_parser.add_argument("--cached-input-tokens", type=int, help="Cached input tokens for model-based pricing")
+    continue_parser.add_argument("--output-tokens", type=int, help="Output tokens for model-based pricing")
+    continue_parser.add_argument("--pricing-path", default=str(PRICING_JSON_PATH))
+    continue_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
+    continue_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
+    continue_parser.add_argument("--codex-thread-id")
+    continue_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
+    continue_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
+
+    finish_parser = subparsers.add_parser(
+        "finish-task",
+        help="Close an existing goal as success or fail",
+        description=(
+            "Close an existing goal after implementation work is done. Use --status success for a validated "
+            "completion or --status fail with a dominant failure reason when the goal did not succeed."
+        ),
+    )
+    finish_parser.add_argument("--task-id", required=True, help="Existing goal identifier")
+    finish_parser.add_argument("--status", required=True, choices=("success", "fail"), help="Final goal status")
+    finish_parser.add_argument(
+        "--failure-reason",
+        choices=sorted(ALLOWED_FAILURE_REASONS),
+        help="Primary failure reason. Required when closing a goal as fail.",
+    )
+    finish_parser.add_argument(
+        "--result-fit",
+        choices=sorted(ALLOWED_RESULT_FITS),
+        help="Optional operator quality judgement for closed product goals",
+    )
+    finish_parser.add_argument("--notes", help="Optional note recorded on the goal and latest attempt entry")
+    finish_parser.add_argument("--finished-at", help="Explicit ISO8601 finish timestamp")
+    finish_parser.add_argument("--cost-usd-add", type=float, help="Add explicit USD cost")
+    finish_parser.add_argument("--tokens-add", type=int, help="Add explicit token count")
+    finish_parser.add_argument("--model", help="Pricing model name for token-based cost calculation")
+    finish_parser.add_argument("--input-tokens", type=int, help="Input tokens for model-based pricing")
+    finish_parser.add_argument("--cached-input-tokens", type=int, help="Cached input tokens for model-based pricing")
+    finish_parser.add_argument("--output-tokens", type=int, help="Output tokens for model-based pricing")
+    finish_parser.add_argument("--pricing-path", default=str(PRICING_JSON_PATH))
+    finish_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
+    finish_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
+    finish_parser.add_argument("--codex-thread-id")
+    finish_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
+    finish_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
 
     update_parser = subparsers.add_parser(
         "update",
@@ -998,6 +1093,15 @@ def main() -> int:
     if args.command == "completion":
         print(render_completion(build_parser(), args.shell), end="")
         return 0
+
+    if args.command == "start-task":
+        return commands.handle_start_task(args, sys.modules[__name__])
+
+    if args.command == "continue-task":
+        return commands.handle_continue_task(args, sys.modules[__name__])
+
+    if args.command == "finish-task":
+        return commands.handle_finish_task(args, sys.modules[__name__])
 
     if args.command == "audit-history":
         return commands.handle_audit_history(args, sys.modules[__name__])

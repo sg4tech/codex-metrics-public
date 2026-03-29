@@ -2,31 +2,31 @@
 
 ## Goal summary
 
-- Closed goals: 135
-- Successes: 135
+- Closed goals: 136
+- Successes: 136
 - Fails: 0
-- Total attempts: 141
-- Known total cost (USD): 203.177953
-- Known total tokens: 145801185
+- Total attempts: 142
+- Known total cost (USD): 206.022869
+- Known total tokens: 147815880
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 114/135 successful goals
-- Known token coverage: 114/135 successful goals
-- Complete cost coverage: 114/135 successful goals
-- Complete token coverage: 114/135 successful goals
-- Known Cost per Success (USD): 1.782263
-- Known Cost per Success (Tokens): 1278957.76
-- Complete Cost per Covered Success (USD): 1.782263
-- Complete Cost per Covered Success (Tokens): 1278957.76
+- Known cost coverage: 115/136 successful goals
+- Known token coverage: 115/136 successful goals
+- Complete cost coverage: 115/136 successful goals
+- Complete token coverage: 115/136 successful goals
+- Known Cost per Success (USD): 1.791503
+- Known Cost per Success (Tokens): 1285355.48
+- Complete Cost per Covered Success (USD): 1.791503
+- Complete Cost per Covered Success (Tokens): 1285355.48
 
 ## Entry summary
 
-- Closed entries: 141
-- Successes: 140
+- Closed entries: 142
+- Successes: 141
 - Fails: 1
-- Success Rate: 99.29%
-- Known total cost (USD): 202.280573
-- Known total tokens: 145085206
+- Success Rate: 99.30%
+- Known total cost (USD): 205.125489
+- Known total tokens: 147099901
 
 ## Operator review
 
@@ -41,22 +41,22 @@
 - unclear_task: 1
 
 ### product
-- Closed goals: 43
-- Successes: 43
+- Closed goals: 44
+- Successes: 44
 - Fails: 0
-- Total attempts: 49
-- Known total cost (USD): 98.390138
-- Known total tokens: 70709193
+- Total attempts: 50
+- Known total cost (USD): 101.235054
+- Known total tokens: 72723888
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.14
-- Known cost coverage: 39/43 successful goals
-- Known token coverage: 39/43 successful goals
-- Complete cost coverage: 39/43 successful goals
-- Complete token coverage: 39/43 successful goals
-- Known Cost per Success (USD): 2.522824
-- Known Cost per Success (Tokens): 1813056.23
-- Complete Cost per Covered Success (USD): 2.522824
-- Complete Cost per Covered Success (Tokens): 1813056.23
+- Known cost coverage: 40/44 successful goals
+- Known token coverage: 40/44 successful goals
+- Complete cost coverage: 40/44 successful goals
+- Complete token coverage: 40/44 successful goals
+- Known Cost per Success (USD): 2.530876
+- Known Cost per Success (Tokens): 1818097.20
+- Complete Cost per Covered Success (USD): 2.530876
+- Complete Cost per Covered Success (Tokens): 1818097.20
 
 ### retro
 - Closed goals: 32
@@ -95,6 +95,19 @@
 - Complete Cost per Covered Success (Tokens): 1279226.83
 
 ## Goal log
+
+### 2026-03-29-142 — Add high-level start-task, continue-task, and finish-task commands
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T20:09:49+00:00
+- Finished at: 2026-03-29T20:13:21+00:00
+- Cost (USD): 2.844916
+- Tokens: 2014695
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Added start-task, continue-task, and finish-task commands as high-level wrappers around update, with tests and docs.
 
 ### 2026-03-29-141 — Slim codex-metrics policy to a minimal agent-facing contract
 - Goal type: meta
@@ -1917,6 +1930,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-142-attempt-001 — 2026-03-29-142
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T20:09:49+00:00
+- Finished at: 2026-03-29T20:13:21+00:00
+- Cost (USD): 2.844916
+- Tokens: 2014695
+- Failure reason: n/a
+- Notes: Added start-task, continue-task, and finish-task commands as high-level wrappers around update, with tests and docs.
 
 ### 2026-03-29-141-attempt-001 — 2026-03-29-141
 - Entry type: meta

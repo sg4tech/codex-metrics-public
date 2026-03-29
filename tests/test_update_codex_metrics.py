@@ -2225,20 +2225,120 @@ def test_show_reports_known_cost_coverage_when_complete_cost_is_unavailable(repo
 def test_help_includes_goal_language_and_examples(repo: Path) -> None:
     result = run_cmd(repo, "--help")
     update_help = run_cmd(repo, "update", "--help")
+    start_help = run_cmd(repo, "start-task", "--help")
+    continue_help = run_cmd(repo, "continue-task", "--help")
+    finish_help = run_cmd(repo, "finish-task", "--help")
 
     assert result.returncode == 0, result.stderr
     assert update_help.returncode == 0, update_help.stderr
+    assert start_help.returncode == 0, start_help.stderr
+    assert continue_help.returncode == 0, continue_help.stderr
+    assert finish_help.returncode == 0, finish_help.stderr
     assert "Track goal, attempt, failure, and cost metrics" in result.stdout
     assert "Create or update a goal record" in result.stdout
+    assert "start-task" in result.stdout
+    assert "continue-task" in result.stdout
+    assert "finish-task" in result.stdout
     assert "Print current summary and operator review" in result.stdout
     assert "Examples:" in result.stdout
     assert "audit-history" in result.stdout
     assert "audit-cost-coverage" in result.stdout
+    assert "start-task --title \"Add CSV import\" --task-type product" in result.stdout
     assert "--supersedes-task-id" in update_help.stdout
     assert "Stable goal identifier." in update_help.stdout
     assert "Omit this for new goals" in update_help.stdout
     assert "%(prog)s --title \"Improve CLI help\"" not in update_help.stdout
     assert "--title \"Improve CLI help\" --task-type product --attempts-delta 1" in update_help.stdout
+    assert "--title" in start_help.stdout
+    assert "--task-type" in start_help.stdout
+    assert "--task-id" in continue_help.stdout
+    assert "--status {success,fail}" in finish_help.stdout
+
+
+def test_high_level_task_commands_cover_start_continue_finish_flow(repo: Path) -> None:
+    start_result = run_cmd(
+        repo,
+        "start-task",
+        "--title",
+        "Ship concise onboarding flow",
+        "--task-type",
+        "product",
+        "--notes",
+        "First implementation pass",
+    )
+
+    assert start_result.returncode == 0, start_result.stderr
+    assert "Updated goal" in start_result.stdout
+    first_goal_id = next(
+        line.removeprefix("Updated goal ").strip()
+        for line in start_result.stdout.splitlines()
+        if line.startswith("Updated goal ")
+    )
+
+    continue_result = run_cmd(
+        repo,
+        "continue-task",
+        "--task-id",
+        first_goal_id,
+        "--notes",
+        "Retry after review feedback",
+        "--failure-reason",
+        "validation_failed",
+    )
+
+    assert continue_result.returncode == 0, continue_result.stderr
+    assert f"Updated goal {first_goal_id}" in continue_result.stdout
+    assert "Attempts: 2" in continue_result.stdout
+
+    finish_result = run_cmd(
+        repo,
+        "finish-task",
+        "--task-id",
+        first_goal_id,
+        "--status",
+        "success",
+        "--notes",
+        "Validated and done",
+    )
+
+    assert finish_result.returncode == 0, finish_result.stderr
+    assert f"Updated goal {first_goal_id}" in finish_result.stdout
+    assert "Status: success" in finish_result.stdout
+
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    goal = next(task for task in data["tasks"] if task["task_id"] == first_goal_id)
+    assert goal["status"] == "success"
+    assert goal["attempts"] == 2
+    assert goal["notes"] == "Validated and done"
+
+
+def test_finish_task_fail_requires_failure_reason(repo: Path) -> None:
+    start_result = run_cmd(
+        repo,
+        "start-task",
+        "--title",
+        "Failing task",
+        "--task-type",
+        "product",
+    )
+    assert start_result.returncode == 0, start_result.stderr
+    goal_id = next(
+        line.removeprefix("Updated goal ").strip()
+        for line in start_result.stdout.splitlines()
+        if line.startswith("Updated goal ")
+    )
+
+    finish_result = run_cmd(
+        repo,
+        "finish-task",
+        "--task-id",
+        goal_id,
+        "--status",
+        "fail",
+    )
+
+    assert finish_result.returncode == 1
+    assert "failure_reason" in finish_result.stderr
 
 
 def test_audit_history_command_reports_suspicious_goals(repo: Path) -> None:

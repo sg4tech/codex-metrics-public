@@ -404,3 +404,94 @@ def handle_update(args: Namespace, cli_module: CommandRuntime) -> int:
     print(f"Attempts: {task['attempts']}")
     cli_module.print_summary(data)
     return 0
+
+
+def _build_update_namespace(args: Namespace, **overrides: Any) -> Namespace:
+    values = {
+        "task_id": None,
+        "title": None,
+        "task_type": None,
+        "continuation_of": None,
+        "supersedes_task_id": None,
+        "status": None,
+        "attempts_delta": None,
+        "attempts": None,
+        "cost_usd_add": None,
+        "cost_usd": None,
+        "tokens_add": None,
+        "tokens": None,
+        "failure_reason": None,
+        "result_fit": None,
+        "notes": None,
+        "started_at": None,
+        "finished_at": None,
+        "model": None,
+        "input_tokens": None,
+        "cached_input_tokens": None,
+        "output_tokens": None,
+        "pricing_path": getattr(args, "pricing_path", None),
+        "codex_state_path": getattr(args, "codex_state_path", None),
+        "codex_logs_path": getattr(args, "codex_logs_path", None),
+        "codex_thread_id": getattr(args, "codex_thread_id", None),
+        "metrics_path": getattr(args, "metrics_path", None),
+        "report_path": getattr(args, "report_path", None),
+    }
+    values.update(overrides)
+    return Namespace(**values)
+
+
+def handle_start_task(args: Namespace, cli_module: CommandRuntime) -> int:
+    update_args = _build_update_namespace(
+        args,
+        title=args.title,
+        task_type=args.task_type,
+        continuation_of=args.continuation_of,
+        supersedes_task_id=args.supersedes_task_id,
+        attempts_delta=1,
+        notes=args.notes,
+        started_at=args.started_at,
+        model=args.model,
+        input_tokens=args.input_tokens,
+        cached_input_tokens=args.cached_input_tokens,
+        output_tokens=args.output_tokens,
+        cost_usd_add=args.cost_usd_add,
+        tokens_add=args.tokens_add,
+    )
+    return handle_update(update_args, cli_module)
+
+
+def handle_continue_task(args: Namespace, cli_module: CommandRuntime) -> int:
+    update_args = _build_update_namespace(
+        args,
+        task_id=args.task_id,
+        attempts_delta=1,
+        notes=args.notes,
+        failure_reason=args.failure_reason,
+        started_at=args.started_at,
+        model=args.model,
+        input_tokens=args.input_tokens,
+        cached_input_tokens=args.cached_input_tokens,
+        output_tokens=args.output_tokens,
+        cost_usd_add=args.cost_usd_add,
+        tokens_add=args.tokens_add,
+    )
+    return handle_update(update_args, cli_module)
+
+
+def handle_finish_task(args: Namespace, cli_module: CommandRuntime) -> int:
+    update_args = _build_update_namespace(
+        args,
+        task_id=args.task_id,
+        status=args.status,
+        failure_reason=args.failure_reason,
+        result_fit=args.result_fit,
+        notes=args.notes,
+        finished_at=args.finished_at,
+        model=args.model,
+        input_tokens=args.input_tokens,
+        cached_input_tokens=args.cached_input_tokens,
+        output_tokens=args.output_tokens,
+        cost_usd_add=args.cost_usd_add,
+        tokens_add=args.tokens_add,
+    )
+    return handle_update(update_args, cli_module)

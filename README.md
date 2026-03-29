@@ -166,7 +166,9 @@ Typical end-to-end flow:
 
 ```bash
 codex-metrics init
-codex-metrics update --title "Add CSV import" --task-type product --attempts-delta 1
+codex-metrics start-task --title "Add CSV import" --task-type product
+codex-metrics continue-task --task-id <goal-id> --notes "Retry after review"
+codex-metrics finish-task --task-id <goal-id> --status success --notes "Validated"
 codex-metrics show
 ```
 
@@ -236,9 +238,9 @@ If the target repo already has a conflicting `docs/codex-metrics-policy.md` and 
 First-task flow after bootstrap:
 
 ```bash
-/path/to/codex-metrics update --title "My first task" --task-type product --attempts-delta 1
+/path/to/codex-metrics start-task --title "My first task" --task-type product
 /path/to/codex-metrics show
-/path/to/codex-metrics update --task-id <goal-id> --status success --notes "Done"
+/path/to/codex-metrics finish-task --task-id <goal-id> --status success --notes "Done"
 ```
 
 If you instead installed the package with `pipx` or `pip`, then the shorter `codex-metrics ...` form should work because the command is placed on `PATH`.
