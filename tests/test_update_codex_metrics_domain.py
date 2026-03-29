@@ -284,6 +284,49 @@ def test_compute_numeric_delta_returns_none_for_non_positive_change() -> None:
     assert MODULE.compute_numeric_delta(5, 8) == 3
 
 
+def test_parse_iso_datetime_rejects_missing_timezone() -> None:
+    with pytest.raises(ValueError, match="timezone offset is required"):
+        MODULE.parse_iso_datetime("2026-03-29T12:00:00", "started_at")
+
+
+def test_validate_goal_record_rejects_missing_required_field() -> None:
+    with pytest.raises(ValueError, match="Missing required goal field: title"):
+        MODULE.validate_goal_record(
+            {
+                "goal_id": "goal-1",
+                "goal_type": "product",
+                "supersedes_goal_id": None,
+                "status": "in_progress",
+                "attempts": 0,
+                "started_at": None,
+                "finished_at": None,
+                "cost_usd": None,
+                "tokens_total": None,
+                "failure_reason": None,
+                "notes": None,
+            }
+        )
+
+
+def test_validate_entry_record_rejects_non_bool_inferred_flag() -> None:
+    with pytest.raises(ValueError, match="Invalid type for entry field: inferred"):
+        MODULE.validate_entry_record(
+            {
+                "entry_id": "goal-1-attempt-001",
+                "goal_id": "goal-1",
+                "entry_type": "product",
+                "inferred": "yes",
+                "status": "in_progress",
+                "started_at": "2026-03-29T09:00:00+00:00",
+                "finished_at": None,
+                "cost_usd": None,
+                "tokens_total": None,
+                "failure_reason": None,
+                "notes": None,
+            }
+        )
+
+
 def test_validate_metrics_data_rejects_supersession_cycle(tmp_path: Path) -> None:
     metrics_path = tmp_path / "metrics.json"
     data = {
@@ -323,6 +366,34 @@ def test_validate_metrics_data_rejects_supersession_cycle(tmp_path: Path) -> Non
 
     with pytest.raises(ValueError, match="Detected supersession cycle"):
         MODULE.validate_metrics_data(data, metrics_path)
+
+
+def test_validate_metrics_data_rejects_unknown_superseded_goal(tmp_path: Path) -> None:
+    metrics_path = tmp_path / "metrics.json"
+    with pytest.raises(ValueError, match="Referenced superseded goal not found: missing-goal"):
+        MODULE.validate_metrics_data(
+            {
+                "summary": {},
+                "goals": [
+                    {
+                        "goal_id": "goal-a",
+                        "title": "Goal A",
+                        "goal_type": "product",
+                        "supersedes_goal_id": "missing-goal",
+                        "status": "success",
+                        "attempts": 1,
+                        "started_at": "2026-03-29T09:00:00+00:00",
+                        "finished_at": "2026-03-29T09:01:00+00:00",
+                        "cost_usd": None,
+                        "tokens_total": None,
+                        "failure_reason": None,
+                        "notes": None,
+                    }
+                ],
+                "entries": [],
+            },
+            metrics_path,
+        )
 
 
 def test_sync_goal_attempt_entries_creates_and_closes_attempt_history() -> None:
@@ -380,6 +451,188 @@ def test_sync_goal_attempt_entries_creates_and_closes_attempt_history() -> None:
     assert entries[1]["failure_reason"] is None
     assert entries[1]["cost_usd"] == 0.2
     assert entries[1]["tokens_total"] == 500
+
+
+def test_sync_goal_attempt_entries_trims_excess_entries_when_attempts_drop() -> None:
+    data = {
+        "entries": [
+            {
+                "entry_id": "goal-1-attempt-001",
+                "goal_id": "goal-1",
+                "entry_type": "product",
+                "inferred": False,
+                "status": "fail",
+                "started_at": "2026-03-29T09:00:00+00:00",
+                "finished_at": "2026-03-29T09:01:00+00:00",
+                "cost_usd": None,
+                "tokens_total": None,
+                "failure_reason": "validation_failed",
+                "notes": "Attempt one",
+            },
+            {
+                "entry_id": "goal-1-attempt-002",
+                "goal_id": "goal-1",
+                "entry_type": "product",
+                "inferred": False,
+                "status": "success",
+                "started_at": "2026-03-29T09:02:00+00:00",
+                "finished_at": "2026-03-29T09:03:00+00:00",
+                "cost_usd": 0.1,
+                "tokens_total": 200,
+                "failure_reason": None,
+                "notes": "Attempt two",
+            },
+        ]
+    }
+    goal = {
+        "goal_id": "goal-1",
+        "goal_type": "product",
+        "status": "success",
+        "attempts": 1,
+        "started_at": "2026-03-29T09:00:00+00:00",
+        "finished_at": "2026-03-29T09:03:00+00:00",
+        "cost_usd": 0.1,
+        "tokens_total": 200,
+        "failure_reason": None,
+        "notes": "Compressed history",
+    }
+
+    MODULE.sync_goal_attempt_entries(data, goal, None)
+
+    assert [entry["entry_id"] for entry in data["entries"]] == ["goal-1-attempt-001"]
+
+
+def test_apply_attempt_usage_deltas_uses_initial_goal_values_without_previous_goal() -> None:
+    latest_entry = {"cost_usd": None, "tokens_total": None}
+
+    MODULE.apply_attempt_usage_deltas(
+        latest_entry,
+        {"cost_usd": 0.25, "tokens_total": 123},
+        None,
+    )
+
+    assert latest_entry["cost_usd"] == 0.25
+    assert latest_entry["tokens_total"] == 123
+
+
+def test_update_latest_attempt_entry_returns_none_for_empty_entries() -> None:
+    assert MODULE.update_latest_attempt_entry([], {"goal_type": "product", "status": "success"}) is None
+
+
+def test_ensure_goal_type_update_allowed_rejects_existing_attempt_history() -> None:
+    goal = MODULE.GoalRecord(
+        goal_id="goal-1",
+        title="Goal one",
+        goal_type="product",
+        supersedes_goal_id=None,
+        status="in_progress",
+        attempts=1,
+        started_at="2026-03-29T09:00:00+00:00",
+        finished_at=None,
+        cost_usd=None,
+        tokens_total=None,
+        failure_reason=None,
+        notes=None,
+    )
+
+    with pytest.raises(ValueError, match="goal_id already exists as a product goal"):
+        MODULE.ensure_goal_type_update_allowed(
+            [{"entry_id": "goal-1-attempt-001", "goal_id": "goal-1"}],
+            goal,
+            "meta",
+        )
+
+
+def test_create_goal_record_rejects_linked_goal_type_mismatch() -> None:
+    tasks = [
+        {
+            "goal_id": "goal-1",
+            "title": "Retro goal",
+            "goal_type": "retro",
+            "supersedes_goal_id": None,
+            "status": "success",
+            "attempts": 1,
+            "started_at": "2026-03-29T09:00:00+00:00",
+            "finished_at": "2026-03-29T09:01:00+00:00",
+            "cost_usd": None,
+            "tokens_total": None,
+            "failure_reason": None,
+            "notes": None,
+        }
+    ]
+
+    with pytest.raises(ValueError, match="linked tasks must use the same task_type"):
+        MODULE.create_goal_record(
+            tasks=tasks,
+            task_id="goal-2",
+            title="Product follow-up",
+            task_type="product",
+            linked_task_id="goal-1",
+            started_at="2026-03-29T09:02:00+00:00",
+        )
+
+
+def test_apply_goal_updates_rejects_blank_title() -> None:
+    task = MODULE.GoalRecord(
+        goal_id="goal-1",
+        title="Original",
+        goal_type="product",
+        supersedes_goal_id=None,
+        status="in_progress",
+        attempts=0,
+        started_at="2026-03-29T09:00:00+00:00",
+        finished_at=None,
+        cost_usd=None,
+        tokens_total=None,
+        failure_reason=None,
+        notes=None,
+    )
+
+    with pytest.raises(ValueError, match="title cannot be empty"):
+        MODULE.apply_goal_updates(
+            entries=[],
+            task=task,
+            title="   ",
+            task_type=None,
+            status=None,
+            attempts_delta=None,
+            attempts_abs=None,
+            cost_usd_add=None,
+            cost_usd_set=None,
+            tokens_add=None,
+            tokens_set=None,
+            usage_cost_usd=None,
+            usage_total_tokens=None,
+            auto_cost_usd=None,
+            auto_total_tokens=None,
+            failure_reason=None,
+            notes=None,
+            started_at=None,
+            finished_at=None,
+        )
+
+
+def test_finalize_goal_update_sets_attempts_and_clears_failure_reason_on_success() -> None:
+    task = MODULE.GoalRecord(
+        goal_id="goal-1",
+        title="Ship change",
+        goal_type="product",
+        supersedes_goal_id=None,
+        status="success",
+        attempts=0,
+        started_at="2026-03-29T09:00:00+00:00",
+        finished_at=None,
+        cost_usd=None,
+        tokens_total=None,
+        failure_reason="validation_failed",
+        notes=None,
+    )
+
+    MODULE.finalize_goal_update(task)
+
+    assert task.attempts == 1
+    assert task.failure_reason is None
+    assert task.finished_at is not None
 
 
 def test_parse_usage_event_extracts_expected_fields() -> None:

@@ -1,13 +1,13 @@
 {
   "summary": {
-    "closed_tasks": 82,
-    "successes": 82,
+    "closed_tasks": 84,
+    "successes": 84,
     "fails": 0,
-    "total_attempts": 86,
+    "total_attempts": 88,
     "total_cost_usd": 1.269228,
     "total_tokens": 2696460,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.048780487804878,
+    "attempts_per_closed_task": 1.0476190476190477,
     "known_cost_successes": 4,
     "known_token_successes": 4,
     "complete_cost_successes": 2,
@@ -20,10 +20,10 @@
     "cost_per_success_tokens": null,
     "by_goal_type": {
       "meta": {
-        "closed_tasks": 49,
-        "successes": 49,
+        "closed_tasks": 50,
+        "successes": 50,
         "fails": 0,
-        "total_attempts": 49,
+        "total_attempts": 50,
         "total_cost_usd": 0.2658,
         "total_tokens": 569068,
         "success_rate": 1.0,
@@ -60,10 +60,10 @@
         "cost_per_success_tokens": null
       },
       "retro": {
-        "closed_tasks": 17,
-        "successes": 17,
+        "closed_tasks": 18,
+        "successes": 18,
         "fails": 0,
-        "total_attempts": 17,
+        "total_attempts": 18,
         "total_cost_usd": 0.255454,
         "total_tokens": 532598,
         "success_rate": 1.0,
@@ -82,10 +82,10 @@
     },
     "by_task_type": {
       "meta": {
-        "closed_tasks": 49,
-        "successes": 49,
+        "closed_tasks": 50,
+        "successes": 50,
         "fails": 0,
-        "total_attempts": 49,
+        "total_attempts": 50,
         "total_cost_usd": 0.2658,
         "total_tokens": 569068,
         "success_rate": 1.0,
@@ -122,10 +122,10 @@
         "cost_per_success_tokens": null
       },
       "retro": {
-        "closed_tasks": 17,
-        "successes": 17,
+        "closed_tasks": 18,
+        "successes": 18,
         "fails": 0,
-        "total_attempts": 17,
+        "total_attempts": 18,
         "total_cost_usd": 0.255454,
         "total_tokens": 532598,
         "success_rate": 1.0,
@@ -143,10 +143,10 @@
       }
     },
     "entries": {
-      "closed_entries": 86,
-      "successes": 85,
+      "closed_entries": 88,
+      "successes": 87,
       "fails": 1,
-      "success_rate": 0.9883720930232558,
+      "success_rate": 0.9886363636363636,
       "total_cost_usd": 1.269228,
       "total_tokens": 2696460,
       "failure_reasons": {
@@ -1372,6 +1372,34 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Extracted record models, validation, summary computation, and attempt-sync helpers into src/codex_metrics/domain.py while preserving the existing CLI surface via imports and re-exports; verify and coverage remained green after restoring datetime/timezone compatibility for the shim-exported module surface."
+    },
+    {
+      "goal_id": "2026-03-29-089",
+      "title": "Increase domain edge-case coverage",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T14:15:22+00:00",
+      "finished_at": "2026-03-29T14:17:14+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Added focused domain tests for validation failures, unknown supersession references, attempt-history trimming and fallback paths, goal-type guardrails, and create/update/finalize edge cases; domain coverage rose to 90% and total coverage to 91% with full verify green."
+    },
+    {
+      "goal_id": "2026-03-29-090",
+      "title": "Write retro for domain coverage and layered refactor",
+      "goal_type": "retro",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T14:17:56+00:00",
+      "finished_at": "2026-03-29T14:18:35+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Logged the retrospective for the layered CLI decomposition and the follow-up domain coverage pass in docs/retros, then reran the repository verify flow successfully."
     }
   ],
   "entries": [
@@ -2496,6 +2524,32 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Extracted record models, validation, summary computation, and attempt-sync helpers into src/codex_metrics/domain.py while preserving the existing CLI surface via imports and re-exports; verify and coverage remained green after restoring datetime/timezone compatibility for the shim-exported module surface."
+    },
+    {
+      "entry_id": "2026-03-29-089-attempt-001",
+      "goal_id": "2026-03-29-089",
+      "entry_type": "meta",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T14:15:22+00:00",
+      "finished_at": "2026-03-29T14:17:14+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Added focused domain tests for validation failures, unknown supersession references, attempt-history trimming and fallback paths, goal-type guardrails, and create/update/finalize edge cases; domain coverage rose to 90% and total coverage to 91% with full verify green."
+    },
+    {
+      "entry_id": "2026-03-29-090-attempt-001",
+      "goal_id": "2026-03-29-090",
+      "entry_type": "retro",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T14:17:56+00:00",
+      "finished_at": "2026-03-29T14:18:35+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Logged the retrospective for the layered CLI decomposition and the follow-up domain coverage pass in docs/retros, then reran the repository verify flow successfully."
     }
   ]
 }
