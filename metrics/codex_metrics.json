@@ -1,13 +1,13 @@
 {
   "summary": {
-    "closed_tasks": 97,
-    "successes": 97,
+    "closed_tasks": 98,
+    "successes": 98,
     "fails": 0,
-    "total_attempts": 101,
+    "total_attempts": 102,
     "total_cost_usd": 134.658855,
     "total_tokens": 96561704,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.041237113402062,
+    "attempts_per_closed_task": 1.0408163265306123,
     "known_cost_successes": 78,
     "known_token_successes": 78,
     "complete_cost_successes": 78,
@@ -20,10 +20,10 @@
     "cost_per_success_tokens": null,
     "by_goal_type": {
       "meta": {
-        "closed_tasks": 53,
-        "successes": 53,
+        "closed_tasks": 54,
+        "successes": 54,
         "fails": 0,
-        "total_attempts": 53,
+        "total_attempts": 54,
         "total_cost_usd": 84.972139,
         "total_tokens": 60898706,
         "success_rate": 1.0,
@@ -82,10 +82,10 @@
     },
     "by_task_type": {
       "meta": {
-        "closed_tasks": 53,
-        "successes": 53,
+        "closed_tasks": 54,
+        "successes": 54,
         "fails": 0,
-        "total_attempts": 53,
+        "total_attempts": 54,
         "total_cost_usd": 84.972139,
         "total_tokens": 60898706,
         "success_rate": 1.0,
@@ -143,10 +143,10 @@
       }
     },
     "entries": {
-      "closed_entries": 101,
-      "successes": 100,
+      "closed_entries": 102,
+      "successes": 101,
       "fails": 1,
-      "success_rate": 0.9900990099009901,
+      "success_rate": 0.9901960784313726,
       "total_cost_usd": 133.761475,
       "total_tokens": 95845725,
       "failure_reasons": {
@@ -168,7 +168,7 @@
       "tokens_total": 26758,
       "failure_reason": null,
       "notes": "Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.",
-      "result_fit": null
+      "result_fit": "exact_fit"
     },
     {
       "goal_id": "2026-03-29-003",
@@ -198,7 +198,7 @@
       "tokens_total": 213969,
       "failure_reason": null,
       "notes": "Added repository .gitignore for caches, local virtualenvs, IDE settings, and OS noise; verified required metrics/report/retro files are not ignored.",
-      "result_fit": null
+      "result_fit": "exact_fit"
     },
     {
       "goal_id": "2026-03-29-005",
@@ -228,7 +228,7 @@
       "tokens_total": 1717937,
       "failure_reason": null,
       "notes": "Added strict task-record validation, status/failure_reason and timestamp business rules, safe init with --force, concise CLI error messages, 22 passing tests, and sequential smoke validation for init/update/show.",
-      "result_fit": null
+      "result_fit": "exact_fit"
     },
     {
       "goal_id": "2026-03-29-007",
@@ -963,7 +963,7 @@
       "tokens_total": 1594498,
       "failure_reason": null,
       "notes": "Added a short product framing document covering primary user, JTBD, workflow, decisions supported, scope, and north star metric, and marked the product-vision TODO item complete.",
-      "result_fit": null
+      "result_fit": "exact_fit"
     },
     {
       "goal_id": "2026-03-29-056",
@@ -978,7 +978,7 @@
       "tokens_total": 1486023,
       "failure_reason": null,
       "notes": "Rewrote the product framing from the user's actual goals: operator-centric, quality-first, profit-aware, and cost-constrained Codex usage, then marked the vision TODO done.",
-      "result_fit": null
+      "result_fit": "exact_fit"
     },
     {
       "goal_id": "2026-03-29-057",
@@ -993,7 +993,7 @@
       "tokens_total": 947168,
       "failure_reason": null,
       "notes": "Clarified that current quality-related metrics are working proxies to be refined empirically rather than treated as final truth.",
-      "result_fit": null
+      "result_fit": "exact_fit"
     },
     {
       "goal_id": "2026-03-29-058",
@@ -1008,7 +1008,7 @@
       "tokens_total": 579825,
       "failure_reason": null,
       "notes": "Recorded the confirmed product-discovery context: outcome miss is the clearest quality failure, cost is a business signal, failure reasons are for debugging, and final quality/cost metrics remain intentionally open.",
-      "result_fit": null
+      "result_fit": "exact_fit"
     },
     {
       "goal_id": "2026-03-29-059",
@@ -1023,7 +1023,7 @@
       "tokens_total": 597372,
       "failure_reason": null,
       "notes": "Audited the cost layer: total cost uses known spend, but cost per success requires complete cost chains for all successes, which makes it unavailable in most real operator views. Recommended a product change toward explicit known-cost coverage and a known-only average.",
-      "result_fit": null
+      "result_fit": "exact_fit"
     },
     {
       "goal_id": "2026-03-29-060",
@@ -1038,7 +1038,7 @@
       "tokens_total": 5716890,
       "failure_reason": null,
       "notes": "Upgraded cost reporting to separate known spend from complete chain completeness by adding known-cost coverage and known-only average cost metrics alongside the stricter complete cost-per-success KPI.",
-      "result_fit": null
+      "result_fit": "exact_fit"
     },
     {
       "goal_id": "2026-03-29-061",
@@ -1053,7 +1053,7 @@
       "tokens_total": 2700534,
       "failure_reason": null,
       "notes": "Added operator-facing review guidance to CLI show output and markdown report, with tests covering review heuristics and report rendering.",
-      "result_fit": null
+      "result_fit": "exact_fit"
     },
     {
       "goal_id": "2026-03-29-062",
@@ -1098,7 +1098,7 @@
       "tokens_total": 2335708,
       "failure_reason": null,
       "notes": "Replaced brittle complete-cost display with complete coverage and covered-success averages, clarified the operator review wording, and closed the TODO item about always-null complete cost reporting.",
-      "result_fit": null
+      "result_fit": "exact_fit"
     },
     {
       "goal_id": "2026-03-29-065",
@@ -1143,7 +1143,7 @@
       "tokens_total": 161090,
       "failure_reason": null,
       "notes": "Added README.md with minimal public-facing project description, quick start, validated CLI commands, and local verification entrypoints.",
-      "result_fit": null
+      "result_fit": "exact_fit"
     },
     {
       "goal_id": "2026-03-29-068",
@@ -1188,7 +1188,7 @@
       "tokens_total": 1084382,
       "failure_reason": null,
       "notes": "Added internal goal ID generation for new tasks, made --task-id optional for creation, protected mutating commands with an exclusive metrics lock, switched report/metrics writes to atomic replace, and added regression coverage for auto-id and parallel creation.",
-      "result_fit": null
+      "result_fit": "exact_fit"
     },
     {
       "goal_id": "2026-03-29-071",
@@ -1248,7 +1248,7 @@
       "tokens_total": 1090261,
       "failure_reason": null,
       "notes": "Packaged codex-metrics as an installable src-layout CLI with a console script entrypoint, bundled pricing data, a compatibility shim under scripts/, packaging docs, a GitHub build workflow, and validated wheel installation in a clean venv.",
-      "result_fit": null
+      "result_fit": "exact_fit"
     },
     {
       "goal_id": "2026-03-29-075",
@@ -1683,6 +1683,21 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Captured the telemetry format mismatch root cause with 5 Whys and Theory of Constraints after adding session telemetry fallback and validating live usage recovery.",
+      "result_fit": null
+    },
+    {
+      "goal_id": "2026-03-29-104",
+      "title": "Backfill exact-fit reviews for historical product goals",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T17:24:00+00:00",
+      "finished_at": "2026-03-29T17:24:01+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Reviewed unannotated one-attempt product goals and backfilled exact_fit only where confidence was high: no supersede chain, no fail history, accepted outcome notes, and single-attempt closure.",
       "result_fit": null
     }
   ],
@@ -3038,6 +3053,19 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Captured the telemetry format mismatch root cause with 5 Whys and Theory of Constraints after adding session telemetry fallback and validating live usage recovery."
+    },
+    {
+      "entry_id": "2026-03-29-104-attempt-001",
+      "goal_id": "2026-03-29-104",
+      "entry_type": "meta",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T17:24:00+00:00",
+      "finished_at": "2026-03-29T17:24:01+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Reviewed unannotated one-attempt product goals and backfilled exact_fit only where confidence was high: no supersede chain, no fail history, accepted outcome notes, and single-attempt closure."
     }
   ]
 }

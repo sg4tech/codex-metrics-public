@@ -2,18 +2,18 @@
 
 ## Goal summary
 
-- Closed goals: 97
-- Successes: 97
+- Closed goals: 98
+- Successes: 98
 - Fails: 0
-- Total attempts: 101
+- Total attempts: 102
 - Known total cost (USD): 134.658855
 - Known total tokens: 96561704
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 78/97 successful goals
-- Known token coverage: 78/97 successful goals
-- Complete cost coverage: 78/97 successful goals
-- Complete token coverage: 78/97 successful goals
+- Known cost coverage: 78/98 successful goals
+- Known token coverage: 78/98 successful goals
+- Complete cost coverage: 78/98 successful goals
+- Complete token coverage: 78/98 successful goals
 - Known Cost per Success (USD): 1.726396
 - Known Cost per Success (Tokens): 1237970.56
 - Complete Cost per Covered Success (USD): 1.726396
@@ -21,10 +21,10 @@
 
 ## Entry summary
 
-- Closed entries: 101
-- Successes: 100
+- Closed entries: 102
+- Successes: 101
 - Fails: 1
-- Success Rate: 99.01%
+- Success Rate: 99.02%
 - Known total cost (USD): 133.761475
 - Known total tokens: 95845725
 
@@ -77,24 +77,37 @@
 - Complete Cost per Covered Success (Tokens): 377563.20
 
 ### meta
-- Closed goals: 53
-- Successes: 53
+- Closed goals: 54
+- Successes: 54
 - Fails: 0
-- Total attempts: 53
+- Total attempts: 54
 - Known total cost (USD): 84.972139
 - Known total tokens: 60898706
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 46/53 successful goals
-- Known token coverage: 46/53 successful goals
-- Complete cost coverage: 46/53 successful goals
-- Complete token coverage: 46/53 successful goals
+- Known cost coverage: 46/54 successful goals
+- Known token coverage: 46/54 successful goals
+- Complete cost coverage: 46/54 successful goals
+- Complete token coverage: 46/54 successful goals
 - Known Cost per Success (USD): 1.84722
 - Known Cost per Success (Tokens): 1323884.91
 - Complete Cost per Covered Success (USD): 1.84722
 - Complete Cost per Covered Success (Tokens): 1323884.91
 
 ## Goal log
+
+### 2026-03-29-104 — Backfill exact-fit reviews for historical product goals
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T17:24:00+00:00
+- Finished at: 2026-03-29T17:24:01+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Reviewed unannotated one-attempt product goals and backfilled exact_fit only where confidence was high: no supersede chain, no fail history, accepted outcome notes, and single-attempt closure.
 
 ### 2026-03-29-103 — Record usage recovery format mismatch retrospective
 - Goal type: retro
@@ -483,7 +496,7 @@
 - Cost (USD): 1.520141
 - Tokens: 1090261
 - Failure reason: n/a
-- Result fit: n/a
+- Result fit: exact_fit
 - Notes: Packaged codex-metrics as an installable src-layout CLI with a console script entrypoint, bundled pricing data, a compatibility shim under scripts/, packaging docs, a GitHub build workflow, and validated wheel installation in a clean venv.
 
 ### 2026-03-29-073 — Align README with goal-based model
@@ -535,7 +548,7 @@
 - Cost (USD): 1.522879
 - Tokens: 1084382
 - Failure reason: n/a
-- Result fit: n/a
+- Result fit: exact_fit
 - Notes: Added internal goal ID generation for new tasks, made --task-id optional for creation, protected mutating commands with an exclusive metrics lock, switched report/metrics writes to atomic replace, and added regression coverage for auto-id and parallel creation.
 
 ### 2026-03-29-069 — Improve CLI usability help and examples
@@ -574,7 +587,7 @@
 - Cost (USD): 0.222571
 - Tokens: 161090
 - Failure reason: n/a
-- Result fit: n/a
+- Result fit: exact_fit
 - Notes: Added README.md with minimal public-facing project description, quick start, validated CLI commands, and local verification entrypoints.
 
 ### 2026-03-29-066 — Clean up AGENTS operational guidance
@@ -613,7 +626,7 @@
 - Cost (USD): 3.286696
 - Tokens: 2335708
 - Failure reason: n/a
-- Result fit: n/a
+- Result fit: exact_fit
 - Notes: Replaced brittle complete-cost display with complete coverage and covered-success averages, clarified the operator review wording, and closed the TODO item about always-null complete cost reporting.
 
 ### 2026-03-29-063 — Repeat code review and close TODO
@@ -652,7 +665,7 @@
 - Cost (USD): 3.621946
 - Tokens: 2700534
 - Failure reason: n/a
-- Result fit: n/a
+- Result fit: exact_fit
 - Notes: Added operator-facing review guidance to CLI show output and markdown report, with tests covering review heuristics and report rendering.
 
 ### 2026-03-29-060 — Improve cost reporting semantics
@@ -665,7 +678,7 @@
 - Cost (USD): 7.932878
 - Tokens: 5716890
 - Failure reason: n/a
-- Result fit: n/a
+- Result fit: exact_fit
 - Notes: Upgraded cost reporting to separate known spend from complete chain completeness by adding known-cost coverage and known-only average cost metrics alongside the stricter complete cost-per-success KPI.
 
 ### 2026-03-29-059 — Audit cost reporting product semantics
@@ -678,7 +691,7 @@
 - Cost (USD): 0.833691
 - Tokens: 597372
 - Failure reason: n/a
-- Result fit: n/a
+- Result fit: exact_fit
 - Notes: Audited the cost layer: total cost uses known spend, but cost per success requires complete cost chains for all successes, which makes it unavailable in most real operator views. Recommended a product change toward explicit known-cost coverage and a known-only average.
 
 ### 2026-03-29-058 — Capture product-framing discovery state
@@ -691,7 +704,7 @@
 - Cost (USD): 0.803564
 - Tokens: 579825
 - Failure reason: n/a
-- Result fit: n/a
+- Result fit: exact_fit
 - Notes: Recorded the confirmed product-discovery context: outcome miss is the clearest quality failure, cost is a business signal, failure reasons are for debugging, and final quality/cost metrics remain intentionally open.
 
 ### 2026-03-29-057 — Clarify quality metrics as working proxies
@@ -704,7 +717,7 @@
 - Cost (USD): 1.307536
 - Tokens: 947168
 - Failure reason: n/a
-- Result fit: n/a
+- Result fit: exact_fit
 - Notes: Clarified that current quality-related metrics are working proxies to be refined empirically rather than treated as final truth.
 
 ### 2026-03-29-056 — Refine product vision from operator goals
@@ -717,7 +730,7 @@
 - Cost (USD): 2.074761
 - Tokens: 1486023
 - Failure reason: n/a
-- Result fit: n/a
+- Result fit: exact_fit
 - Notes: Rewrote the product framing from the user's actual goals: operator-centric, quality-first, profit-aware, and cost-constrained Codex usage, then marked the vision TODO done.
 
 ### 2026-03-29-055 — Define product framing for codex-metrics
@@ -730,7 +743,7 @@
 - Cost (USD): 2.211704
 - Tokens: 1594498
 - Failure reason: n/a
-- Result fit: n/a
+- Result fit: exact_fit
 - Notes: Added a short product framing document covering primary user, JTBD, workflow, decisions supported, scope, and north star metric, and marked the product-vision TODO item complete.
 
 ### 2026-03-29-054 — PM retrospective for overall metrics work
@@ -1367,7 +1380,7 @@
 - Cost (USD): 2.412746
 - Tokens: 1717937
 - Failure reason: n/a
-- Result fit: n/a
+- Result fit: exact_fit
 - Notes: Added strict task-record validation, status/failure_reason and timestamp business rules, safe init with --force, concise CLI error messages, 22 passing tests, and sequential smoke validation for init/update/show.
 
 ### 2026-03-29-005 — Assess and improve updater test coverage
@@ -1393,7 +1406,7 @@
 - Cost (USD): 0.302261
 - Tokens: 213969
 - Failure reason: n/a
-- Result fit: n/a
+- Result fit: exact_fit
 - Notes: Added repository .gitignore for caches, local virtualenvs, IDE settings, and OS noise; verified required metrics/report/retro files are not ignored.
 
 ### 2026-03-29-003 — Add first retrospective and checkpoint commit
@@ -1419,10 +1432,21 @@
 - Cost (USD): 0.041469
 - Tokens: 26758
 - Failure reason: n/a
-- Result fit: n/a
+- Result fit: exact_fit
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-104-attempt-001 — 2026-03-29-104
+- Entry type: meta
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T17:24:00+00:00
+- Finished at: 2026-03-29T17:24:01+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Reviewed unannotated one-attempt product goals and backfilled exact_fit only where confidence was high: no supersede chain, no fail history, accepted outcome notes, and single-attempt closure.
 
 ### 2026-03-29-103-attempt-001 — 2026-03-29-103
 - Entry type: retro
