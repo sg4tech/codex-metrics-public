@@ -1,13 +1,13 @@
 {
   "summary": {
-    "closed_tasks": 91,
-    "successes": 91,
+    "closed_tasks": 92,
+    "successes": 92,
     "fails": 0,
-    "total_attempts": 95,
+    "total_attempts": 96,
     "total_cost_usd": 1.269228,
     "total_tokens": 2696460,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.043956043956044,
+    "attempts_per_closed_task": 1.0434782608695652,
     "known_cost_successes": 4,
     "known_token_successes": 4,
     "complete_cost_successes": 2,
@@ -60,10 +60,10 @@
         "cost_per_success_tokens": null
       },
       "retro": {
-        "closed_tasks": 20,
-        "successes": 20,
+        "closed_tasks": 21,
+        "successes": 21,
         "fails": 0,
-        "total_attempts": 20,
+        "total_attempts": 21,
         "total_cost_usd": 0.255454,
         "total_tokens": 532598,
         "success_rate": 1.0,
@@ -122,10 +122,10 @@
         "cost_per_success_tokens": null
       },
       "retro": {
-        "closed_tasks": 20,
-        "successes": 20,
+        "closed_tasks": 21,
+        "successes": 21,
         "fails": 0,
-        "total_attempts": 20,
+        "total_attempts": 21,
         "total_cost_usd": 0.255454,
         "total_tokens": 532598,
         "success_rate": 1.0,
@@ -143,10 +143,10 @@
       }
     },
     "entries": {
-      "closed_entries": 95,
-      "successes": 94,
+      "closed_entries": 96,
+      "successes": 95,
       "fails": 1,
-      "success_rate": 0.9894736842105263,
+      "success_rate": 0.9895833333333334,
       "total_cost_usd": 1.269228,
       "total_tokens": 2696460,
       "failure_reasons": {
@@ -1594,6 +1594,21 @@
       "failure_reason": null,
       "notes": "Added audit-cost-coverage command with reason buckets and tests.",
       "result_fit": "exact_fit"
+    },
+    {
+      "goal_id": "2026-03-29-098",
+      "title": "Record cost coverage audit retrospective",
+      "goal_type": "retro",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T16:58:15+00:00",
+      "finished_at": "2026-03-29T16:58:15+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Logged the cost coverage audit retro and documented the new bottleneck in cost capture/recovery.",
+      "result_fit": null
     }
   ],
   "entries": [
@@ -2838,6 +2853,19 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Added audit-cost-coverage command with reason buckets and tests."
+    },
+    {
+      "entry_id": "2026-03-29-098-attempt-001",
+      "goal_id": "2026-03-29-098",
+      "entry_type": "retro",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T16:58:15+00:00",
+      "finished_at": "2026-03-29T16:58:15+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Logged the cost coverage audit retro and documented the new bottleneck in cost capture/recovery."
     }
   ]
 }
