@@ -2,23 +2,23 @@
 
 ## Goal summary
 
-- Closed goals: 38
-- Successes: 38
+- Closed goals: 41
+- Successes: 41
 - Fails: 0
-- Total attempts: 39
+- Total attempts: 42
 - Total cost (USD): 1.159366
 - Total tokens: 2461072
 - Success Rate: 100.00%
-- Attempts per Closed Goal: 1.03
+- Attempts per Closed Goal: 1.02
 - Cost per Success (USD): n/a
 - Cost per Success (Tokens): n/a
 
 ## Entry summary
 
-- Closed entries: 39
-- Successes: 38
+- Closed entries: 42
+- Successes: 41
 - Fails: 1
-- Success Rate: 97.44%
+- Success Rate: 97.62%
 - Total cost (USD): 1.159366
 - Total tokens: 2461072
 
@@ -40,10 +40,10 @@
 - Cost per Success (Tokens): n/a
 
 ### retro
-- Closed goals: 8
-- Successes: 8
+- Closed goals: 9
+- Successes: 9
 - Fails: 0
-- Total attempts: 8
+- Total attempts: 9
 - Total cost (USD): 0.255454
 - Total tokens: 532598
 - Success Rate: 100.00%
@@ -52,10 +52,10 @@
 - Cost per Success (Tokens): n/a
 
 ### meta
-- Closed goals: 25
-- Successes: 25
+- Closed goals: 27
+- Successes: 27
 - Fails: 0
-- Total attempts: 25
+- Total attempts: 27
 - Total cost (USD): 0.2658
 - Total tokens: 569068
 - Success Rate: 100.00%
@@ -64,6 +64,54 @@
 - Cost per Success (Tokens): n/a
 
 ## Goal log
+
+### 2026-03-29-045 — Retro for missing merge invariant tests
+- Goal type: retro
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T11:15:42+00:00
+- Finished at: 2026-03-29T11:16:17+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Recorded that mutating commands need tests for happy path, invalid-state rejection, and summary/report consistency, and codified that rule in AGENTS.md and the metrics policy.
+
+### 2026-03-29-044 — Fix merge invariants and inferred entry visibility
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: in_progress
+- Attempts: 1
+- Started at: 2026-03-29T11:13:17+00:00
+- Finished at: n/a
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Prevent invalid merge states in merge_tasks and mark inferred entries explicitly in the markdown report.
+
+### 2026-03-29-043 — Fix merge invariants and inferred entry reporting
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T11:12:43+00:00
+- Finished at: 2026-03-29T11:14:38+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Fixed merge_tasks to reject cross-type merges and supersession cycles, and marked inferred entries explicitly in the markdown report.
+
+### 2026-03-29-042 — Audit code for duplication after refactor
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T11:06:05+00:00
+- Finished at: 2026-03-29T11:06:12+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Audited the updater for copy-pasted logic. No severe duplication found; remaining repetition is concentrated in report rendering, merge/sync dict mutation, and a few parallel cost/token update branches.
 
 ### 2026-03-29-041 — Retro for final high-ROI refactor step
 - Goal type: retro
@@ -547,8 +595,53 @@
 
 ## Entry log
 
+### 2026-03-29-045-attempt-001 — 2026-03-29-045
+- Entry type: retro
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T11:15:42+00:00
+- Finished at: 2026-03-29T11:16:17+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Recorded that mutating commands need tests for happy path, invalid-state rejection, and summary/report consistency, and codified that rule in AGENTS.md and the metrics policy.
+
+### 2026-03-29-044-attempt-001 — 2026-03-29-044
+- Entry type: meta
+- Inferred: no
+- Status: in_progress
+- Started at: 2026-03-29T11:13:17+00:00
+- Finished at: n/a
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Prevent invalid merge states in merge_tasks and mark inferred entries explicitly in the markdown report.
+
+### 2026-03-29-043-attempt-001 — 2026-03-29-043
+- Entry type: meta
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T11:12:43+00:00
+- Finished at: 2026-03-29T11:14:38+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Fixed merge_tasks to reject cross-type merges and supersession cycles, and marked inferred entries explicitly in the markdown report.
+
+### 2026-03-29-042-attempt-001 — 2026-03-29-042
+- Entry type: meta
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T11:06:05+00:00
+- Finished at: 2026-03-29T11:06:12+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Audited the updater for copy-pasted logic. No severe duplication found; remaining repetition is concentrated in report rendering, merge/sync dict mutation, and a few parallel cost/token update branches.
+
 ### 2026-03-29-041-attempt-001 — 2026-03-29-041
 - Entry type: retro
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T11:04:42+00:00
 - Finished at: 2026-03-29T11:04:58+00:00
@@ -559,6 +652,7 @@
 
 ### 2026-03-29-040-attempt-001 — 2026-03-29-040
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T11:03:21+00:00
 - Finished at: 2026-03-29T11:04:17+00:00
@@ -569,6 +663,7 @@
 
 ### 2026-03-29-039-attempt-001 — 2026-03-29-039
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T11:00:29+00:00
 - Finished at: 2026-03-29T11:01:29+00:00
@@ -579,6 +674,7 @@
 
 ### 2026-03-29-038-attempt-001 — 2026-03-29-038
 - Entry type: retro
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:57:39+00:00
 - Finished at: 2026-03-29T10:58:17+00:00
@@ -589,6 +685,7 @@
 
 ### 2026-03-29-037-attempt-001 — 2026-03-29-037
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:53:18+00:00
 - Finished at: 2026-03-29T10:56:25+00:00
@@ -599,6 +696,7 @@
 
 ### 2026-03-29-036-attempt-001 — 2026-03-29-036
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:50:48+00:00
 - Finished at: 2026-03-29T10:50:58+00:00
@@ -609,6 +707,7 @@
 
 ### 2026-03-29-035-attempt-001 — 2026-03-29-035
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:49:21+00:00
 - Finished at: 2026-03-29T10:49:39+00:00
@@ -619,6 +718,7 @@
 
 ### 2026-03-29-034-attempt-001 — 2026-03-29-034
 - Entry type: retro
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:48:13+00:00
 - Finished at: 2026-03-29T10:48:30+00:00
@@ -629,6 +729,7 @@
 
 ### 2026-03-29-033-attempt-001 — 2026-03-29-033
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:44:55+00:00
 - Finished at: 2026-03-29T10:47:12+00:00
@@ -639,6 +740,7 @@
 
 ### 2026-03-29-032-attempt-001 — 2026-03-29-032
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:42:15+00:00
 - Finished at: 2026-03-29T10:44:28+00:00
@@ -649,6 +751,7 @@
 
 ### 2026-03-29-031-attempt-001 — 2026-03-29-031
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:38:32+00:00
 - Finished at: 2026-03-29T10:39:37+00:00
@@ -659,6 +762,7 @@
 
 ### 2026-03-29-030-attempt-001 — 2026-03-29-030
 - Entry type: meta
+- Inferred: no
 - Status: in_progress
 - Started at: 2026-03-29T10:36:36+00:00
 - Finished at: n/a
@@ -669,6 +773,7 @@
 
 ### 2026-03-29-029-attempt-001 — 2026-03-29-029
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:34:28+00:00
 - Finished at: 2026-03-29T10:35:53+00:00
@@ -679,6 +784,7 @@
 
 ### 2026-03-29-028-attempt-001 — 2026-03-29-028
 - Entry type: retro
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:32:31+00:00
 - Finished at: 2026-03-29T10:32:52+00:00
@@ -689,6 +795,7 @@
 
 ### 2026-03-29-027-attempt-001 — 2026-03-29-027
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:29:33+00:00
 - Finished at: 2026-03-29T10:31:54+00:00
@@ -699,6 +806,7 @@
 
 ### 2026-03-29-026-attempt-001 — 2026-03-29-026
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:26:26+00:00
 - Finished at: 2026-03-29T10:27:56+00:00
@@ -709,6 +817,7 @@
 
 ### 2026-03-29-025-attempt-001 — 2026-03-29-025
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:20:41+00:00
 - Finished at: 2026-03-29T10:20:45+00:00
@@ -719,6 +828,7 @@
 
 ### 2026-03-29-024 — 2026-03-29-024
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:16:10+00:00
 - Finished at: 2026-03-29T10:18:56+00:00
@@ -729,6 +839,7 @@
 
 ### 2026-03-29-023 — 2026-03-29-023
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:10:12+00:00
 - Finished at: 2026-03-29T10:12:08+00:00
@@ -739,6 +850,7 @@
 
 ### 2026-03-29-022 — 2026-03-29-022
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:08:49+00:00
 - Finished at: 2026-03-29T10:09:00+00:00
@@ -749,6 +861,7 @@
 
 ### 2026-03-29-021 — 2026-03-29-021
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:07:06+00:00
 - Finished at: 2026-03-29T10:07:18+00:00
@@ -759,6 +872,7 @@
 
 ### 2026-03-29-020 — 2026-03-29-020
 - Entry type: retro
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:03:48+00:00
 - Finished at: 2026-03-29T10:04:17+00:00
@@ -769,6 +883,7 @@
 
 ### 2026-03-29-019 — 2026-03-29-019
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T10:00:52+00:00
 - Finished at: 2026-03-29T10:02:07+00:00
@@ -779,6 +894,7 @@
 
 ### 2026-03-29-018 — 2026-03-29-018
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T09:47:56+00:00
 - Finished at: 2026-03-29T09:57:49+00:00
@@ -789,6 +905,7 @@
 
 ### 2026-03-29-017 — 2026-03-29-017
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T09:42:56+00:00
 - Finished at: 2026-03-29T09:43:05+00:00
@@ -799,6 +916,7 @@
 
 ### 2026-03-29-016 — 2026-03-29-016
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T09:38:38+00:00
 - Finished at: 2026-03-29T09:40:40+00:00
@@ -809,6 +927,7 @@
 
 ### 2026-03-29-015 — 2026-03-29-015
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T09:35:35+00:00
 - Finished at: 2026-03-29T09:37:23+00:00
@@ -819,6 +938,7 @@
 
 ### 2026-03-29-014 — 2026-03-29-014
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T09:30:13+00:00
 - Finished at: 2026-03-29T09:33:48+00:00
@@ -829,6 +949,7 @@
 
 ### 2026-03-29-013 — 2026-03-29-013
 - Entry type: retro
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T09:26:02+00:00
 - Finished at: 2026-03-29T09:26:43+00:00
@@ -839,6 +960,7 @@
 
 ### 2026-03-29-012 — 2026-03-29-012
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T09:22:33+00:00
 - Finished at: 2026-03-29T09:24:42+00:00
@@ -849,6 +971,7 @@
 
 ### 2026-03-29-011 — 2026-03-29-011
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T09:20:58+00:00
 - Finished at: 2026-03-29T09:21:27+00:00
@@ -859,6 +982,7 @@
 
 ### 2026-03-29-010 — 2026-03-29-010
 - Entry type: meta
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T09:20:00+00:00
 - Finished at: 2026-03-29T09:20:14+00:00
@@ -869,6 +993,7 @@
 
 ### 2026-03-29-009 — 2026-03-29-009
 - Entry type: retro
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T09:16:33+00:00
 - Finished at: 2026-03-29T09:17:13+00:00
@@ -879,6 +1004,7 @@
 
 ### 2026-03-29-008 — 2026-03-29-008
 - Entry type: product
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T09:08:21+00:00
 - Finished at: 2026-03-29T09:14:00+00:00
@@ -889,6 +1015,7 @@
 
 ### 2026-03-29-007 — 2026-03-29-007
 - Entry type: product
+- Inferred: no
 - Status: fail
 - Started at: 2026-03-29T09:01:23+00:00
 - Finished at: 2026-03-29T09:05:24+00:00
@@ -899,6 +1026,7 @@
 
 ### 2026-03-29-006 — 2026-03-29-006
 - Entry type: product
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T08:49:39+00:00
 - Finished at: 2026-03-29T08:51:56+00:00
@@ -909,6 +1037,7 @@
 
 ### 2026-03-29-005 — 2026-03-29-005
 - Entry type: product
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T08:44:40+00:00
 - Finished at: 2026-03-29T08:45:36+00:00
@@ -919,6 +1048,7 @@
 
 ### 2026-03-29-004 — 2026-03-29-004
 - Entry type: product
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T08:41:51+00:00
 - Finished at: 2026-03-29T08:42:12+00:00
@@ -929,6 +1059,7 @@
 
 ### 2026-03-29-003 — 2026-03-29-003
 - Entry type: retro
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T08:38:27+00:00
 - Finished at: 2026-03-29T08:39:27+00:00
@@ -939,6 +1070,7 @@
 
 ### 2026-03-29-002 — 2026-03-29-002
 - Entry type: product
+- Inferred: no
 - Status: success
 - Started at: 2026-03-29T08:31:25+00:00
 - Finished at: 2026-03-29T08:31:31+00:00

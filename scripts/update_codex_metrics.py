@@ -1097,6 +1097,7 @@ def generate_report_md(data: dict[str, Any]) -> str:
             [
                 f"### {entry['entry_id']} — {entry['goal_id']}",
                 f"- Entry type: {entry['entry_type']}",
+                f"- Inferred: {'yes' if entry.get('inferred') else 'no'}",
                 f"- Status: {entry['status']}",
                 f"- Started at: {entry['started_at'] or 'n/a'}",
                 f"- Finished at: {entry['finished_at'] or 'n/a'}",
@@ -1751,6 +1752,10 @@ def merge_tasks(data: dict[str, Any], keep_task_id: str, drop_task_id: str) -> d
     dropped_task = tasks[drop_index]
     if kept_task["status"] not in {"success", "fail"} or dropped_task["status"] not in {"success", "fail"}:
         raise ValueError("only closed goals can be merged")
+    if kept_task["goal_type"] != dropped_task["goal_type"]:
+        raise ValueError("only goals with the same goal_type can be merged")
+    if dropped_task.get("supersedes_goal_id") == keep_task_id:
+        raise ValueError("merge would create a supersession cycle")
 
     kept_task["attempts"] = int(kept_task["attempts"]) + int(dropped_task["attempts"])
     kept_task["started_at"] = choose_earliest_timestamp(kept_task.get("started_at"), dropped_task.get("started_at"))

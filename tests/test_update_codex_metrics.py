@@ -1403,6 +1403,90 @@ def test_merge_tasks_rejects_in_progress_tasks(repo: Path) -> None:
     assert "only closed goals can be merged" in result.stderr
 
 
+def test_merge_tasks_rejects_different_goal_types(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "product-task",
+        "--title",
+        "Product task",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+    ).returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "retro-task",
+        "--title",
+        "Retro task",
+        "--task-type",
+        "retro",
+        "--status",
+        "success",
+    ).returncode == 0
+
+    result = run_cmd(
+        repo,
+        "merge-tasks",
+        "--keep-task-id",
+        "product-task",
+        "--drop-task-id",
+        "retro-task",
+    )
+
+    assert result.returncode != 0
+    assert "only goals with the same goal_type can be merged" in result.stderr
+
+
+def test_merge_tasks_rejects_supersession_cycle(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "task-a",
+        "--title",
+        "Original task",
+        "--task-type",
+        "product",
+        "--status",
+        "fail",
+        "--failure-reason",
+        "validation_failed",
+    ).returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "task-b",
+        "--title",
+        "Replacement task",
+        "--task-type",
+        "product",
+        "--supersedes-task-id",
+        "task-a",
+        "--status",
+        "success",
+    ).returncode == 0
+
+    result = run_cmd(
+        repo,
+        "merge-tasks",
+        "--keep-task-id",
+        "task-a",
+        "--drop-task-id",
+        "task-b",
+    )
+
+    assert result.returncode != 0
+    assert "merge would create a supersession cycle" in result.stderr
+
+
 def test_report_sorts_tasks_by_started_at_descending(repo: Path) -> None:
     assert run_cmd(repo, "init").returncode == 0
 
@@ -1441,3 +1525,41 @@ def test_report_sorts_tasks_by_started_at_descending(repo: Path) -> None:
     older_index = report.index("### older")
 
     assert newer_index < older_index
+
+
+def test_report_marks_inferred_entries(repo: Path) -> None:
+    assert run_cmd(repo, "init").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "task-inferred",
+        "--title",
+        "Task inferred",
+        "--task-type",
+        "product",
+        "--attempts-delta",
+        "1",
+    ).returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "task-inferred",
+        "--attempts-delta",
+        "1",
+        "--notes",
+        "Second attempt started",
+    ).returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "task-inferred",
+        "--status",
+        "success",
+    ).returncode == 0
+
+    report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
+    assert "- Inferred: yes" in report
+    assert "- Inferred: no" in report

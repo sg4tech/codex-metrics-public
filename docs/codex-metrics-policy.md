@@ -186,6 +186,16 @@ Codex must:
 4. recompute summary metrics
 5. update the human-readable report
 
+### Required test design for mutating commands
+
+For commands that mutate goal history, entry history, classification, or summary state, test coverage should include all three categories when practical:
+
+1. happy path
+2. invalid-state rejection
+3. summary/report consistency after mutation
+
+This rule is especially important for commands such as `update`, `merge-tasks`, and usage sync flows.
+
 ## Summary metrics
 
 The following summary metrics must be recalculated after every closed effective goal.

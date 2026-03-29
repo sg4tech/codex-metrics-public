@@ -1,21 +1,21 @@
 {
   "summary": {
-    "closed_tasks": 38,
-    "successes": 38,
+    "closed_tasks": 41,
+    "successes": 41,
     "fails": 0,
-    "total_attempts": 39,
+    "total_attempts": 42,
     "total_cost_usd": 1.159366,
     "total_tokens": 2461072,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.0263157894736843,
+    "attempts_per_closed_task": 1.024390243902439,
     "cost_per_success_usd": null,
     "cost_per_success_tokens": null,
     "by_goal_type": {
       "meta": {
-        "closed_tasks": 25,
-        "successes": 25,
+        "closed_tasks": 27,
+        "successes": 27,
         "fails": 0,
-        "total_attempts": 25,
+        "total_attempts": 27,
         "total_cost_usd": 0.2658,
         "total_tokens": 569068,
         "success_rate": 1.0,
@@ -36,10 +36,10 @@
         "cost_per_success_tokens": null
       },
       "retro": {
-        "closed_tasks": 8,
-        "successes": 8,
+        "closed_tasks": 9,
+        "successes": 9,
         "fails": 0,
-        "total_attempts": 8,
+        "total_attempts": 9,
         "total_cost_usd": 0.255454,
         "total_tokens": 532598,
         "success_rate": 1.0,
@@ -50,10 +50,10 @@
     },
     "by_task_type": {
       "meta": {
-        "closed_tasks": 25,
-        "successes": 25,
+        "closed_tasks": 27,
+        "successes": 27,
         "fails": 0,
-        "total_attempts": 25,
+        "total_attempts": 27,
         "total_cost_usd": 0.2658,
         "total_tokens": 569068,
         "success_rate": 1.0,
@@ -74,10 +74,10 @@
         "cost_per_success_tokens": null
       },
       "retro": {
-        "closed_tasks": 8,
-        "successes": 8,
+        "closed_tasks": 9,
+        "successes": 9,
         "fails": 0,
-        "total_attempts": 8,
+        "total_attempts": 9,
         "total_cost_usd": 0.255454,
         "total_tokens": 532598,
         "success_rate": 1.0,
@@ -87,10 +87,10 @@
       }
     },
     "entries": {
-      "closed_entries": 39,
-      "successes": 38,
+      "closed_entries": 42,
+      "successes": 41,
       "fails": 1,
-      "success_rate": 0.9743589743589743,
+      "success_rate": 0.9761904761904762,
       "total_cost_usd": 1.159366,
       "total_tokens": 2461072,
       "failure_reasons": {
@@ -658,6 +658,62 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Recorded that moving update flow to typed domain boundaries was the final high-ROI refactor before diminishing returns and that further refactoring should now be demand-driven."
+    },
+    {
+      "goal_id": "2026-03-29-042",
+      "title": "Audit code for duplication after refactor",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T11:06:05+00:00",
+      "finished_at": "2026-03-29T11:06:12+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Audited the updater for copy-pasted logic. No severe duplication found; remaining repetition is concentrated in report rendering, merge/sync dict mutation, and a few parallel cost/token update branches."
+    },
+    {
+      "goal_id": "2026-03-29-043",
+      "title": "Fix merge invariants and inferred entry reporting",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T11:12:43+00:00",
+      "finished_at": "2026-03-29T11:14:38+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Fixed merge_tasks to reject cross-type merges and supersession cycles, and marked inferred entries explicitly in the markdown report."
+    },
+    {
+      "goal_id": "2026-03-29-044",
+      "title": "Fix merge invariants and inferred entry visibility",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "in_progress",
+      "attempts": 1,
+      "started_at": "2026-03-29T11:13:17+00:00",
+      "finished_at": null,
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Prevent invalid merge states in merge_tasks and mark inferred entries explicitly in the markdown report."
+    },
+    {
+      "goal_id": "2026-03-29-045",
+      "title": "Retro for missing merge invariant tests",
+      "goal_type": "retro",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T11:15:42+00:00",
+      "finished_at": "2026-03-29T11:16:17+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Recorded that mutating commands need tests for happy path, invalid-state rejection, and summary/report consistency, and codified that rule in AGENTS.md and the metrics policy."
     }
   ],
   "entries": [
@@ -1145,6 +1201,58 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Recorded that moving update flow to typed domain boundaries was the final high-ROI refactor before diminishing returns and that further refactoring should now be demand-driven."
+    },
+    {
+      "entry_id": "2026-03-29-042-attempt-001",
+      "goal_id": "2026-03-29-042",
+      "entry_type": "meta",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T11:06:05+00:00",
+      "finished_at": "2026-03-29T11:06:12+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Audited the updater for copy-pasted logic. No severe duplication found; remaining repetition is concentrated in report rendering, merge/sync dict mutation, and a few parallel cost/token update branches."
+    },
+    {
+      "entry_id": "2026-03-29-043-attempt-001",
+      "goal_id": "2026-03-29-043",
+      "entry_type": "meta",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T11:12:43+00:00",
+      "finished_at": "2026-03-29T11:14:38+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Fixed merge_tasks to reject cross-type merges and supersession cycles, and marked inferred entries explicitly in the markdown report."
+    },
+    {
+      "entry_id": "2026-03-29-044-attempt-001",
+      "goal_id": "2026-03-29-044",
+      "entry_type": "meta",
+      "inferred": false,
+      "status": "in_progress",
+      "started_at": "2026-03-29T11:13:17+00:00",
+      "finished_at": null,
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Prevent invalid merge states in merge_tasks and mark inferred entries explicitly in the markdown report."
+    },
+    {
+      "entry_id": "2026-03-29-045-attempt-001",
+      "goal_id": "2026-03-29-045",
+      "entry_type": "retro",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T11:15:42+00:00",
+      "finished_at": "2026-03-29T11:16:17+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Recorded that mutating commands need tests for happy path, invalid-state rejection, and summary/report consistency, and codified that rule in AGENTS.md and the metrics policy."
     }
   ]
 }

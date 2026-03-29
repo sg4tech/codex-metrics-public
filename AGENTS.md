@@ -65,6 +65,10 @@ When editing `scripts/update_codex_metrics.py`:
 - prefer additive changes over breaking changes
 - keep the code simple and readable
 - add or update tests together with behavior changes
+- for mutating commands such as `update`, `merge-tasks`, and sync flows, cover three test buckets when practical:
+  - happy path
+  - invalid-state rejection
+  - summary/report consistency after mutation
 - do not manually patch generated outputs when the script can regenerate them
 - validate inputs strictly
 - fail loudly on invalid state instead of silently continuing
