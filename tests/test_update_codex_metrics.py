@@ -1521,6 +1521,21 @@ def test_show_reports_known_cost_coverage_when_complete_cost_is_unavailable(repo
     assert "- Full cost coverage is still partial; treat complete covered-success averages as strict subset signals." in report_text
 
 
+def test_help_includes_goal_language_and_examples(repo: Path) -> None:
+    result = run_cmd(repo, "--help")
+    update_help = run_cmd(repo, "update", "--help")
+
+    assert result.returncode == 0, result.stderr
+    assert update_help.returncode == 0, update_help.stderr
+    assert "Track goal, attempt, failure, and cost metrics" in result.stdout
+    assert "Create or update a goal record" in result.stdout
+    assert "Print current summary and operator review" in result.stdout
+    assert "Examples:" in result.stdout
+    assert "--supersedes-task-id" in update_help.stdout
+    assert "Stable goal identifier." in update_help.stdout
+    assert "generate one." in update_help.stdout
+
+
 def test_sync_codex_usage_backfills_existing_tasks(repo: Path) -> None:
     state_path, logs_path = create_codex_usage_sources(repo)
     assert run_cmd(repo, "init", "--force").returncode == 0

@@ -1833,47 +1833,82 @@ def upsert_task(
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Update Codex task metrics")
+    parser = argparse.ArgumentParser(
+        description="Track goal, attempt, failure, and cost metrics for Codex-driven work.",
+        epilog=(
+            "Examples:\n"
+            "  %(prog)s update --task-id 2026-03-29-001 --title \"Add CSV import\" --task-type product --attempts-delta 1\n"
+            "  %(prog)s update --task-id 2026-03-29-002 --title \"Retry CSV import\" --task-type product --supersedes-task-id 2026-03-29-001 --status success\n"
+            "  %(prog)s sync-codex-usage\n"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    init_parser = subparsers.add_parser("init", help="Initialize metrics files")
+    init_parser = subparsers.add_parser(
+        "init",
+        help="Initialize metrics and report files",
+        description="Create empty metrics and report files.",
+    )
     init_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     init_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
     init_parser.add_argument("--force", action="store_true", help="Overwrite existing metrics files")
 
-    update_parser = subparsers.add_parser("update", help="Create or update a task")
-    update_parser.add_argument("--task-id")
-    update_parser.add_argument("--title")
-    update_parser.add_argument("--task-type", choices=sorted(ALLOWED_TASK_TYPES))
+    update_parser = subparsers.add_parser(
+        "update",
+        help="Create or update a goal record",
+        description=(
+            "Create a new goal or update an existing one. Use --attempts-delta for a new implementation pass, "
+            "--supersedes-task-id for a replacement goal, and --task-type explicitly for new goals."
+        ),
+        epilog=(
+            "Examples:\n"
+            "  %(prog)s --task-id 2026-03-29-010 --title \"Improve CLI help\" --task-type product --attempts-delta 1\n"
+            "  %(prog)s --task-id 2026-03-29-011 --title \"Retry CLI help\" --task-type product --supersedes-task-id 2026-03-29-010 --status success\n"
+            "  %(prog)s --task-id 2026-03-29-012 --title \"Write retro\" --task-type retro --attempts-delta 1 --status success\n"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    update_parser.add_argument("--task-id", help="Stable goal identifier. If omitted, the updater will generate one.")
+    update_parser.add_argument("--title", help="Goal title. Required for new goals.")
+    update_parser.add_argument("--task-type", choices=sorted(ALLOWED_TASK_TYPES), help="Goal classification for new goals")
     linked_task_group = update_parser.add_mutually_exclusive_group()
-    linked_task_group.add_argument("--continuation-of")
-    linked_task_group.add_argument("--supersedes-task-id")
-    update_parser.add_argument("--status", choices=sorted(ALLOWED_STATUSES))
-    update_parser.add_argument("--attempts-delta", type=int)
-    update_parser.add_argument("--attempts", type=int)
-    update_parser.add_argument("--cost-usd-add", type=float)
-    update_parser.add_argument("--cost-usd", type=float)
-    update_parser.add_argument("--tokens-add", type=int)
-    update_parser.add_argument("--tokens", type=int)
-    update_parser.add_argument("--model")
-    update_parser.add_argument("--input-tokens", type=int)
-    update_parser.add_argument("--cached-input-tokens", type=int)
-    update_parser.add_argument("--output-tokens", type=int)
+    linked_task_group.add_argument("--continuation-of", help="Create a new goal linked to a previous closed goal")
+    linked_task_group.add_argument("--supersedes-task-id", help="Create a replacement goal for a previous closed goal")
+    update_parser.add_argument("--status", choices=sorted(ALLOWED_STATUSES), help="Goal status")
+    update_parser.add_argument("--attempts-delta", type=int, help="Increment attempts by this amount")
+    update_parser.add_argument("--attempts", type=int, help="Set absolute attempts count")
+    update_parser.add_argument("--cost-usd-add", type=float, help="Add explicit USD cost")
+    update_parser.add_argument("--cost-usd", type=float, help="Set explicit USD cost")
+    update_parser.add_argument("--tokens-add", type=int, help="Add explicit token count")
+    update_parser.add_argument("--tokens", type=int, help="Set explicit token count")
+    update_parser.add_argument("--model", help="Pricing model name for token-based cost calculation")
+    update_parser.add_argument("--input-tokens", type=int, help="Input tokens for model-based pricing")
+    update_parser.add_argument("--cached-input-tokens", type=int, help="Cached input tokens for model-based pricing")
+    update_parser.add_argument("--output-tokens", type=int, help="Output tokens for model-based pricing")
     update_parser.add_argument("--pricing-path", default=str(PRICING_JSON_PATH))
     update_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
     update_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
     update_parser.add_argument("--codex-thread-id")
-    update_parser.add_argument("--failure-reason", choices=sorted(ALLOWED_FAILURE_REASONS))
-    update_parser.add_argument("--notes")
-    update_parser.add_argument("--started-at")
-    update_parser.add_argument("--finished-at")
+    update_parser.add_argument("--failure-reason", choices=sorted(ALLOWED_FAILURE_REASONS), help="Primary failure reason for a failed goal")
+    update_parser.add_argument("--notes", help="Optional note recorded on the goal and latest attempt entry")
+    update_parser.add_argument("--started-at", help="Explicit ISO8601 start timestamp")
+    update_parser.add_argument("--finished-at", help="Explicit ISO8601 finish timestamp")
     update_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     update_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
 
-    show_parser = subparsers.add_parser("show", help="Print current summary")
+    show_parser = subparsers.add_parser(
+        "show",
+        help="Print current summary and operator review",
+        description="Print the current summary, cost coverage, and operator review.",
+    )
     show_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
 
-    sync_parser = subparsers.add_parser("sync-codex-usage", help="Backfill usage and cost from local Codex logs")
+    sync_parser = subparsers.add_parser(
+        "sync-codex-usage",
+        help="Backfill usage and cost from local Codex logs",
+        description="Backfill known cost and token totals from local Codex telemetry.",
+    )
     sync_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     sync_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
     sync_parser.add_argument("--pricing-path", default=str(PRICING_JSON_PATH))
@@ -1881,9 +1916,13 @@ def build_parser() -> argparse.ArgumentParser:
     sync_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
     sync_parser.add_argument("--codex-thread-id")
 
-    merge_parser = subparsers.add_parser("merge-tasks", help="Merge a dropped split task into a kept task")
-    merge_parser.add_argument("--keep-task-id", required=True)
-    merge_parser.add_argument("--drop-task-id", required=True)
+    merge_parser = subparsers.add_parser(
+        "merge-tasks",
+        help="Merge a dropped split goal into a kept goal",
+        description="Recombine mistakenly split goal history into one kept goal.",
+    )
+    merge_parser.add_argument("--keep-task-id", required=True, help="Goal that should remain after the merge")
+    merge_parser.add_argument("--drop-task-id", required=True, help="Goal that should be merged into the kept goal")
     merge_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     merge_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
 

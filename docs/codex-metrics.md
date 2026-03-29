@@ -5,11 +5,11 @@
 - Closed goals: 66
 - Successes: 66
 - Fails: 0
-- Total attempts: 69
+- Total attempts: 70
 - Known total cost (USD): 1.269228
 - Known total tokens: 2696460
 - Success Rate: 100.00%
-- Attempts per Closed Goal: 1.05
+- Attempts per Closed Goal: 1.06
 - Known cost coverage: 4/66 successful goals
 - Known token coverage: 4/66 successful goals
 - Complete cost coverage: 2/66 successful goals
@@ -21,10 +21,10 @@
 
 ## Entry summary
 
-- Closed entries: 69
-- Successes: 68
+- Closed entries: 70
+- Successes: 69
 - Fails: 1
-- Success Rate: 98.55%
+- Success Rate: 98.57%
 - Known total cost (USD): 1.269228
 - Known total tokens: 2696460
 
@@ -44,11 +44,11 @@
 - Closed goals: 15
 - Successes: 15
 - Fails: 0
-- Total attempts: 18
+- Total attempts: 19
 - Known total cost (USD): 0.747974
 - Known total tokens: 1594794
 - Success Rate: 100.00%
-- Attempts per Closed Goal: 1.20
+- Attempts per Closed Goal: 1.27
 - Known cost coverage: 2/15 successful goals
 - Known token coverage: 2/15 successful goals
 - Complete cost coverage: 0/15 successful goals
@@ -124,13 +124,13 @@
 - Goal type: product
 - Supersedes goal: 2026-03-29-067
 - Status: success
-- Attempts: 2
+- Attempts: 3
 - Started at: 2026-03-29T12:55:45+00:00
 - Finished at: 2026-03-29T12:56:02+00:00
 - Cost (USD): 0.109862
 - Tokens: 235388
 - Failure reason: n/a
-- Notes: Improve argparse help text and examples so the tool is easier to adopt and reuse without changing CLI behavior.
+- Notes: Improved argparse help text, examples, and command descriptions without changing CLI behavior, then closed the usability TODO item.
 
 ### 2026-03-29-068 — Minimize and generalize Codex Metrics Policy
 - Goal type: meta
@@ -981,6 +981,17 @@
 - Tokens: n/a
 - Failure reason: n/a
 - Notes: Improve argparse help text and examples so the tool is easier to adopt and reuse without changing CLI behavior.
+
+### 2026-03-29-069-attempt-003 — 2026-03-29-069
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T12:55:45+00:00
+- Finished at: 2026-03-29T12:56:02+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Improved argparse help text, examples, and command descriptions without changing CLI behavior, then closed the usability TODO item.
 
 ### 2026-03-29-068-attempt-001 — 2026-03-29-068
 - Entry type: meta

@@ -3,11 +3,11 @@
     "closed_tasks": 66,
     "successes": 66,
     "fails": 0,
-    "total_attempts": 69,
+    "total_attempts": 70,
     "total_cost_usd": 1.269228,
     "total_tokens": 2696460,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.0454545454545454,
+    "attempts_per_closed_task": 1.0606060606060606,
     "known_cost_successes": 4,
     "known_token_successes": 4,
     "complete_cost_successes": 2,
@@ -43,11 +43,11 @@
         "closed_tasks": 15,
         "successes": 15,
         "fails": 0,
-        "total_attempts": 18,
+        "total_attempts": 19,
         "total_cost_usd": 0.747974,
         "total_tokens": 1594794,
         "success_rate": 1.0,
-        "attempts_per_closed_task": 1.2,
+        "attempts_per_closed_task": 1.2666666666666666,
         "known_cost_successes": 2,
         "known_token_successes": 2,
         "complete_cost_successes": 0,
@@ -105,11 +105,11 @@
         "closed_tasks": 15,
         "successes": 15,
         "fails": 0,
-        "total_attempts": 18,
+        "total_attempts": 19,
         "total_cost_usd": 0.747974,
         "total_tokens": 1594794,
         "success_rate": 1.0,
-        "attempts_per_closed_task": 1.2,
+        "attempts_per_closed_task": 1.2666666666666666,
         "known_cost_successes": 2,
         "known_token_successes": 2,
         "complete_cost_successes": 0,
@@ -143,10 +143,10 @@
       }
     },
     "entries": {
-      "closed_entries": 69,
-      "successes": 68,
+      "closed_entries": 70,
+      "successes": 69,
       "fails": 1,
-      "success_rate": 0.9855072463768116,
+      "success_rate": 0.9857142857142858,
       "total_cost_usd": 1.269228,
       "total_tokens": 2696460,
       "failure_reasons": {
@@ -1099,13 +1099,13 @@
       "goal_type": "product",
       "supersedes_goal_id": "2026-03-29-067",
       "status": "success",
-      "attempts": 2,
+      "attempts": 3,
       "started_at": "2026-03-29T12:55:45+00:00",
       "finished_at": "2026-03-29T12:56:02+00:00",
       "cost_usd": 0.109862,
       "tokens_total": 235388,
       "failure_reason": null,
-      "notes": "Improve argparse help text and examples so the tool is easier to adopt and reuse without changing CLI behavior."
+      "notes": "Improved argparse help text, examples, and command descriptions without changing CLI behavior, then closed the usability TODO item."
     },
     {
       "goal_id": "2026-03-29-070",
@@ -2024,6 +2024,19 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Added retrospective documenting the concurrent goal-id collision bug, its source-of-truth boundary failure, and the permanent fixes: internal id generation, mutation locking, atomic writes, and regression coverage."
+    },
+    {
+      "entry_id": "2026-03-29-069-attempt-003",
+      "goal_id": "2026-03-29-069",
+      "entry_type": "product",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T12:55:45+00:00",
+      "finished_at": "2026-03-29T12:56:02+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Improved argparse help text, examples, and command descriptions without changing CLI behavior, then closed the usability TODO item."
     }
   ]
 }
