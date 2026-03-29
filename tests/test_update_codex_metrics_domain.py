@@ -6,6 +6,8 @@ import sqlite3
 import sys
 from pathlib import Path
 
+import pytest
+
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "update_codex_metrics.py"
 SPEC = importlib.util.spec_from_file_location("update_codex_metrics_module", SCRIPT_PATH)
 assert SPEC is not None
@@ -322,3 +324,57 @@ def test_resolve_codex_usage_window_returns_none_without_matching_thread(
         finished_at="2026-03-29T09:10:00+00:00",
         pricing_path=pricing_path,
     ) == (None, None)
+
+
+def test_load_pricing_rejects_negative_values(tmp_path: Path) -> None:
+    pricing_path = tmp_path / "pricing.json"
+    pricing_path.write_text(
+        json.dumps(
+            {
+                "models": {
+                    "gpt-5": {
+                        "input_per_million_usd": -1.0,
+                        "cached_input_per_million_usd": 0.125,
+                        "output_per_million_usd": 10.0,
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Pricing value cannot be negative"):
+        MODULE.load_pricing(pricing_path)
+
+
+def test_load_pricing_requires_all_fields(tmp_path: Path) -> None:
+    pricing_path = tmp_path / "pricing.json"
+    pricing_path.write_text(
+        json.dumps(
+            {
+                "models": {
+                    "gpt-5": {
+                        "input_per_million_usd": 1.25,
+                        "output_per_million_usd": 10.0,
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Missing pricing field"):
+        MODULE.load_pricing(pricing_path)
+
+
+def test_resolve_usage_costs_requires_token_fields_when_model_is_given() -> None:
+    with pytest.raises(ValueError, match="At least one usage token field is required"):
+        MODULE.resolve_usage_costs(
+            pricing_path=SCRIPT_PATH.parents[1] / "pricing" / "model_pricing.json",
+            model="gpt-5",
+            input_tokens=None,
+            cached_input_tokens=None,
+            output_tokens=None,
+            explicit_cost_fields_used=False,
+            explicit_token_fields_used=False,
+        )

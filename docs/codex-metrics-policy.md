@@ -160,6 +160,8 @@ Dependent updater commands must be validated sequentially.
 Do not run flows such as `update -> show` or `init -> update` in parallel, because the later command can observe stale file state and create a false bug report.
 Parallelism is appropriate only for independent inspections and checks that do not depend on updater writes.
 
+When the repository provides a canonical local validation entrypoint such as `make verify`, prefer that command for the standard lint + typecheck + test stack before adding extra targeted smoke checks.
+
 ## Required per-goal workflow
 
 ### At goal start

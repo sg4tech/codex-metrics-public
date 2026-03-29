@@ -91,6 +91,12 @@ python scripts/update_codex_metrics.py init
 python scripts/update_codex_metrics.py show
 ```
 
+When available, prefer the repository's canonical local validation entrypoint:
+
+```bash
+make verify
+```
+
 When running `init` or any destructive regeneration smoke check during validation, prefer temporary metrics/report paths instead of real repository artifacts unless the task explicitly requires regenerating the tracked files.
 Generated metrics files are production-like artifacts for this repository and must not be casually overwritten during smoke testing.
 When validating the updater, run dependent commands sequentially, not in parallel.

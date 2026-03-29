@@ -1,21 +1,21 @@
 {
   "summary": {
-    "closed_tasks": 45,
-    "successes": 45,
+    "closed_tasks": 46,
+    "successes": 46,
     "fails": 0,
-    "total_attempts": 46,
+    "total_attempts": 47,
     "total_cost_usd": 1.159366,
     "total_tokens": 2461072,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.0222222222222221,
+    "attempts_per_closed_task": 1.0217391304347827,
     "cost_per_success_usd": null,
     "cost_per_success_tokens": null,
     "by_goal_type": {
       "meta": {
-        "closed_tasks": 30,
-        "successes": 30,
+        "closed_tasks": 31,
+        "successes": 31,
         "fails": 0,
-        "total_attempts": 30,
+        "total_attempts": 31,
         "total_cost_usd": 0.2658,
         "total_tokens": 569068,
         "success_rate": 1.0,
@@ -50,10 +50,10 @@
     },
     "by_task_type": {
       "meta": {
-        "closed_tasks": 30,
-        "successes": 30,
+        "closed_tasks": 31,
+        "successes": 31,
         "fails": 0,
-        "total_attempts": 30,
+        "total_attempts": 31,
         "total_cost_usd": 0.2658,
         "total_tokens": 569068,
         "success_rate": 1.0,
@@ -87,10 +87,10 @@
       }
     },
     "entries": {
-      "closed_entries": 46,
-      "successes": 45,
+      "closed_entries": 47,
+      "successes": 46,
       "fails": 1,
-      "success_rate": 0.9782608695652174,
+      "success_rate": 0.9787234042553191,
       "total_cost_usd": 1.159366,
       "total_tokens": 2461072,
       "failure_reasons": {
@@ -770,6 +770,20 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Documented why coverage-driven test selection had better ROI than broad test expansion, and kept verify-flow as a permanent guardrail."
+    },
+    {
+      "goal_id": "2026-03-29-050",
+      "title": "Expand pricing and usage-sync coverage",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T11:33:35+00:00",
+      "finished_at": "2026-03-29T11:35:22+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Expanded high-ROI coverage for pricing validation and usage-sync no-op paths, then documented make verify as the canonical local validation flow."
     }
   ],
   "entries": [
@@ -1361,6 +1375,19 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Documented why coverage-driven test selection had better ROI than broad test expansion, and kept verify-flow as a permanent guardrail."
+    },
+    {
+      "entry_id": "2026-03-29-050-attempt-001",
+      "goal_id": "2026-03-29-050",
+      "entry_type": "meta",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T11:33:35+00:00",
+      "finished_at": "2026-03-29T11:35:22+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Expanded high-ROI coverage for pricing validation and usage-sync no-op paths, then documented make verify as the canonical local validation flow."
     }
   ]
 }

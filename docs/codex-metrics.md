@@ -2,10 +2,10 @@
 
 ## Goal summary
 
-- Closed goals: 45
-- Successes: 45
+- Closed goals: 46
+- Successes: 46
 - Fails: 0
-- Total attempts: 46
+- Total attempts: 47
 - Total cost (USD): 1.159366
 - Total tokens: 2461072
 - Success Rate: 100.00%
@@ -15,10 +15,10 @@
 
 ## Entry summary
 
-- Closed entries: 46
-- Successes: 45
+- Closed entries: 47
+- Successes: 46
 - Fails: 1
-- Success Rate: 97.83%
+- Success Rate: 97.87%
 - Total cost (USD): 1.159366
 - Total tokens: 2461072
 
@@ -52,10 +52,10 @@
 - Cost per Success (Tokens): n/a
 
 ### meta
-- Closed goals: 30
-- Successes: 30
+- Closed goals: 31
+- Successes: 31
 - Fails: 0
-- Total attempts: 30
+- Total attempts: 31
 - Total cost (USD): 0.2658
 - Total tokens: 569068
 - Success Rate: 100.00%
@@ -64,6 +64,18 @@
 - Cost per Success (Tokens): n/a
 
 ## Goal log
+
+### 2026-03-29-050 — Expand pricing and usage-sync coverage
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T11:33:35+00:00
+- Finished at: 2026-03-29T11:35:22+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Expanded high-ROI coverage for pricing validation and usage-sync no-op paths, then documented make verify as the canonical local validation flow.
 
 ### 2026-03-29-049 — Retro for high-ROI coverage expansion
 - Goal type: retro
@@ -642,6 +654,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-050-attempt-001 — 2026-03-29-050
+- Entry type: meta
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T11:33:35+00:00
+- Finished at: 2026-03-29T11:35:22+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Expanded high-ROI coverage for pricing validation and usage-sync no-op paths, then documented make verify as the canonical local validation flow.
 
 ### 2026-03-29-049-attempt-001 — 2026-03-29-049
 - Entry type: retro

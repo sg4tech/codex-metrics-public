@@ -1351,6 +1351,47 @@ def test_sync_codex_usage_backfills_existing_tasks(repo: Path) -> None:
     assert task["cost_usd"] == 0.006263
 
 
+def test_sync_codex_usage_is_noop_when_no_matching_thread_is_found(repo: Path) -> None:
+    state_path, logs_path = create_codex_usage_sources(repo, cwd=str(repo / "other-worktree"))
+    assert run_cmd(repo, "init", "--force").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "no-sync-task",
+        "--title",
+        "No Sync Task",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+        "--started-at",
+        "2026-03-29T09:00:00+00:00",
+        "--finished-at",
+        "2026-03-29T09:10:00+00:00",
+        "--codex-state-path",
+        str(repo / "missing_state.sqlite"),
+        "--codex-logs-path",
+        str(repo / "missing_logs.sqlite"),
+    ).returncode == 0
+
+    sync_result = run_cmd(
+        repo,
+        "sync-codex-usage",
+        "--codex-state-path",
+        str(state_path),
+        "--codex-logs-path",
+        str(logs_path),
+    )
+
+    assert sync_result.returncode == 0, sync_result.stderr
+    assert "Synchronized Codex usage for 0 task(s)" in sync_result.stdout
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    task = data["tasks"][0]
+    assert task["tokens_total"] is None
+    assert task["cost_usd"] is None
+
+
 def test_merge_tasks_combines_attempt_history_into_kept_task(repo: Path) -> None:
     assert run_cmd(repo, "init", "--force").returncode == 0
     assert run_cmd(
