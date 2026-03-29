@@ -2,18 +2,48 @@
 
 ## Current summary
 
-- Closed tasks: 5
-- Successes: 5
+- Closed tasks: 8
+- Successes: 8
 - Fails: 0
-- Total attempts: 5
-- Total cost (USD): 0.00
-- Total tokens: 0
+- Total attempts: 8
+- Total cost (USD): 0.638112
+- Total tokens: 1359406
 - Success Rate: 100.00%
 - Attempts per Success: 1.00
 - Cost per Success (USD): n/a
 - Cost per Success (Tokens): n/a
 
 ## Task log
+
+### 2026-03-29-009 — Add retrospective and commit automatic usage sync checkpoint
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T09:16:33+00:00
+- Finished at: 2026-03-29T09:17:13+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Added a retrospective for the automatic usage sync milestone, verified 29 passing tests, and completed CLI smoke validation before creating the checkpoint commit.
+
+### 2026-03-29-008 — Investigate fully automatic usage ingestion
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T09:08:21+00:00
+- Finished at: 2026-03-29T09:14:00+00:00
+- Cost (USD): 0.638112
+- Tokens: 1359406
+- Failure reason: n/a
+- Notes: Implemented fully automatic Codex usage ingestion from local SQLite telemetry, added sync-codex-usage backfill command, validated with 29 tests, and confirmed that current-task usage auto-populates when local response.completed events exist.
+
+### 2026-03-29-007 — Implement practical cost tracking workflow
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T09:01:23+00:00
+- Finished at: 2026-03-29T09:05:24+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Added pricing-based cost tracking from model + usage tokens, tracked pricing config, precise USD display, conflict validation, 27 passing tests, and smoke validation for init/update/show with calculated cost.
 
 ### 2026-03-29-006 — Harden metrics business validation and safe init
 - Status: success

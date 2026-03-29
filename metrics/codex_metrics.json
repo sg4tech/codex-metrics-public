@@ -1,11 +1,11 @@
 {
   "summary": {
-    "closed_tasks": 5,
-    "successes": 5,
+    "closed_tasks": 8,
+    "successes": 8,
     "fails": 0,
-    "total_attempts": 5,
-    "total_cost_usd": 0.0,
-    "total_tokens": 0,
+    "total_attempts": 8,
+    "total_cost_usd": 0.638112,
+    "total_tokens": 1359406,
     "success_rate": 1.0,
     "attempts_per_success": 1.0,
     "cost_per_success_usd": null,
@@ -71,6 +71,42 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Added strict task-record validation, status/failure_reason and timestamp business rules, safe init with --force, concise CLI error messages, 22 passing tests, and sequential smoke validation for init/update/show."
+    },
+    {
+      "task_id": "2026-03-29-007",
+      "title": "Implement practical cost tracking workflow",
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T09:01:23+00:00",
+      "finished_at": "2026-03-29T09:05:24+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Added pricing-based cost tracking from model + usage tokens, tracked pricing config, precise USD display, conflict validation, 27 passing tests, and smoke validation for init/update/show with calculated cost."
+    },
+    {
+      "task_id": "2026-03-29-008",
+      "title": "Investigate fully automatic usage ingestion",
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T09:08:21+00:00",
+      "finished_at": "2026-03-29T09:14:00+00:00",
+      "cost_usd": 0.638112,
+      "tokens_total": 1359406,
+      "failure_reason": null,
+      "notes": "Implemented fully automatic Codex usage ingestion from local SQLite telemetry, added sync-codex-usage backfill command, validated with 29 tests, and confirmed that current-task usage auto-populates when local response.completed events exist."
+    },
+    {
+      "task_id": "2026-03-29-009",
+      "title": "Add retrospective and commit automatic usage sync checkpoint",
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T09:16:33+00:00",
+      "finished_at": "2026-03-29T09:17:13+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Added a retrospective for the automatic usage sync milestone, verified 29 passing tests, and completed CLI smoke validation before creating the checkpoint commit."
     }
   ]
 }

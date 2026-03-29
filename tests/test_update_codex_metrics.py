@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -10,6 +11,7 @@ import pytest
 
 
 SCRIPT = Path("scripts/update_codex_metrics.py")
+PRICING = Path("pricing/model_pricing.json")
 
 
 def run_cmd(tmp_path: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -26,14 +28,117 @@ def read_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def create_codex_usage_sources(
+    repo: Path,
+    thread_id: str = "thread-123",
+    cwd: str | None = None,
+    event_timestamp: str = "2026-03-29T09:05:00.000Z",
+    model: str = "gpt-5",
+    input_tokens: int = 1000,
+    cached_input_tokens: int = 100,
+    output_tokens: int = 500,
+    reasoning_tokens: int = 0,
+    tool_tokens: int = 0,
+) -> tuple[Path, Path]:
+    state_path = repo / "codex_state.sqlite"
+    logs_path = repo / "codex_logs.sqlite"
+    resolved_cwd = cwd or str(repo)
+
+    with sqlite3.connect(state_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE threads (
+                id TEXT PRIMARY KEY,
+                rollout_path TEXT NOT NULL DEFAULT '',
+                created_at INTEGER NOT NULL DEFAULT 0,
+                updated_at INTEGER NOT NULL DEFAULT 0,
+                source TEXT NOT NULL DEFAULT '',
+                model_provider TEXT NOT NULL DEFAULT '',
+                cwd TEXT NOT NULL,
+                title TEXT NOT NULL DEFAULT '',
+                sandbox_policy TEXT NOT NULL DEFAULT '',
+                approval_mode TEXT NOT NULL DEFAULT '',
+                tokens_used INTEGER NOT NULL DEFAULT 0,
+                has_user_event INTEGER NOT NULL DEFAULT 0,
+                archived INTEGER NOT NULL DEFAULT 0,
+                archived_at INTEGER,
+                git_sha TEXT,
+                git_branch TEXT,
+                git_origin_url TEXT,
+                cli_version TEXT NOT NULL DEFAULT '',
+                first_user_message TEXT NOT NULL DEFAULT '',
+                agent_nickname TEXT,
+                agent_role TEXT,
+                memory_mode TEXT NOT NULL DEFAULT 'enabled',
+                model TEXT,
+                reasoning_effort TEXT,
+                agent_path TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO threads (
+                id, cwd, model_provider, model, created_at, updated_at, title, sandbox_policy, approval_mode, source
+            ) VALUES (?, ?, 'openai', ?, 0, 0, 'Test Thread', 'workspace-write', 'default', 'desktop')
+            """,
+            (thread_id, resolved_cwd, model),
+        )
+
+    with sqlite3.connect(logs_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts INTEGER NOT NULL DEFAULT 0,
+                ts_nanos INTEGER NOT NULL DEFAULT 0,
+                level TEXT NOT NULL DEFAULT 'INFO',
+                target TEXT NOT NULL DEFAULT 'log',
+                feedback_log_body TEXT,
+                module_path TEXT,
+                file TEXT,
+                line INTEGER,
+                thread_id TEXT,
+                process_uuid TEXT,
+                estimated_bytes INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO logs (feedback_log_body, thread_id)
+            VALUES (?, ?)
+            """,
+            (
+                "event.name=\"codex.sse_event\" "
+                "event.kind=response.completed "
+                f"input_token_count={input_tokens} "
+                f"output_token_count={output_tokens} "
+                f"cached_token_count={cached_input_tokens} "
+                f"reasoning_token_count={reasoning_tokens} "
+                f"tool_token_count={tool_tokens} "
+                f"event.timestamp={event_timestamp} "
+                f"conversation.id={thread_id} "
+                f"model={model} "
+                f"slug={model}",
+                thread_id,
+            ),
+        )
+
+    return state_path, logs_path
+
+
 @pytest.fixture
 def repo(tmp_path: Path) -> Path:
     (tmp_path / "scripts").mkdir(parents=True, exist_ok=True)
     (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
     (tmp_path / "metrics").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "pricing").mkdir(parents=True, exist_ok=True)
 
     script_target = tmp_path / "scripts" / "update_codex_metrics.py"
     script_target.write_text(SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
+    pricing_target = tmp_path / "pricing" / "model_pricing.json"
+    pricing_target.write_text(PRICING.read_text(encoding="utf-8"), encoding="utf-8")
     return tmp_path
 
 
@@ -133,6 +238,71 @@ def test_create_task_and_close_success(repo: Path) -> None:
     assert task["tokens_total"] == 1000
     assert task["cost_usd"] == 0.25
     assert task["finished_at"] is not None
+
+
+def test_update_can_compute_cost_from_model_pricing(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+
+    result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "priced-task",
+        "--title",
+        "Priced task",
+        "--attempts-delta",
+        "1",
+        "--model",
+        "gpt-5",
+        "--input-tokens",
+        "1000",
+        "--cached-input-tokens",
+        "100",
+        "--output-tokens",
+        "500",
+        "--status",
+        "success",
+    )
+    assert result.returncode == 0, result.stderr
+
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    task = data["tasks"][0]
+
+    assert task["tokens_total"] == 1600
+    assert task["cost_usd"] == 0.006263
+    assert data["summary"]["total_cost_usd"] == 0.006263
+    assert data["summary"]["total_tokens"] == 1600
+
+
+def test_update_can_auto_sync_cost_and_tokens_from_codex_logs(repo: Path) -> None:
+    state_path, logs_path = create_codex_usage_sources(repo)
+    assert run_cmd(repo, "init", "--force").returncode == 0
+
+    result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "auto-usage",
+        "--title",
+        "Auto usage",
+        "--status",
+        "success",
+        "--started-at",
+        "2026-03-29T09:00:00+00:00",
+        "--finished-at",
+        "2026-03-29T09:10:00+00:00",
+        "--codex-state-path",
+        str(state_path),
+        "--codex-logs-path",
+        str(logs_path),
+    )
+    assert result.returncode == 0, result.stderr
+
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    task = data["tasks"][0]
+
+    assert task["tokens_total"] == 1600
+    assert task["cost_usd"] == 0.006263
 
 
 def test_close_fail_updates_summary(repo: Path) -> None:
@@ -236,6 +406,28 @@ def test_invalid_failure_reason_fails(repo: Path) -> None:
     assert result.returncode != 0
 
 
+def test_unknown_pricing_model_fails(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+
+    result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "unknown-model",
+        "--title",
+        "Unknown model",
+        "--model",
+        "not-a-model",
+        "--input-tokens",
+        "100",
+        "--output-tokens",
+        "50",
+    )
+
+    assert result.returncode != 0
+    assert "Unknown pricing model" in result.stderr
+
+
 def test_new_task_requires_title(repo: Path) -> None:
     assert run_cmd(repo, "init").returncode == 0
 
@@ -243,6 +435,50 @@ def test_new_task_requires_title(repo: Path) -> None:
 
     assert result.returncode != 0
     assert "title is required when creating a new task" in result.stderr
+
+
+def test_pricing_usage_cannot_mix_with_explicit_cost_or_tokens(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+
+    result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "mixed-pricing",
+        "--title",
+        "Mixed pricing",
+        "--model",
+        "gpt-5",
+        "--input-tokens",
+        "100",
+        "--output-tokens",
+        "50",
+        "--cost-usd-add",
+        "0.1",
+    )
+
+    assert result.returncode != 0
+    assert "cannot be combined" in result.stderr
+
+
+def test_cached_tokens_require_cached_rate_support(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+
+    result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "cached-pro",
+        "--title",
+        "Cached Pro",
+        "--model",
+        "gpt-5-pro",
+        "--cached-input-tokens",
+        "100",
+    )
+
+    assert result.returncode != 0
+    assert "does not support cached input pricing" in result.stderr
 
 
 def test_invalid_metrics_file_format_fails(repo: Path) -> None:
@@ -407,6 +643,72 @@ def test_show_command(repo: Path) -> None:
     assert result.returncode == 0
     assert "Codex Metrics Summary" in result.stdout
     assert "Closed tasks: 0" in result.stdout
+
+
+def test_show_preserves_small_usd_precision(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "precision-task",
+        "--title",
+        "Precision Task",
+        "--status",
+        "success",
+        "--model",
+        "gpt-5",
+        "--input-tokens",
+        "1000",
+        "--cached-input-tokens",
+        "100",
+        "--output-tokens",
+        "500",
+    ).returncode == 0
+
+    result = run_cmd(repo, "show")
+
+    assert result.returncode == 0, result.stderr
+    assert "Total cost (USD): 0.006263" in result.stdout
+    assert "Cost per Success (USD): 0.006263" in result.stdout
+
+
+def test_sync_codex_usage_backfills_existing_tasks(repo: Path) -> None:
+    state_path, logs_path = create_codex_usage_sources(repo)
+    assert run_cmd(repo, "init", "--force").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "backfill-task",
+        "--title",
+        "Backfill Task",
+        "--status",
+        "success",
+        "--started-at",
+        "2026-03-29T09:00:00+00:00",
+        "--finished-at",
+        "2026-03-29T09:10:00+00:00",
+        "--codex-state-path",
+        str(repo / "missing_state.sqlite"),
+        "--codex-logs-path",
+        str(repo / "missing_logs.sqlite"),
+    ).returncode == 0
+
+    sync_result = run_cmd(
+        repo,
+        "sync-codex-usage",
+        "--codex-state-path",
+        str(state_path),
+        "--codex-logs-path",
+        str(logs_path),
+    )
+
+    assert sync_result.returncode == 0, sync_result.stderr
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    task = data["tasks"][0]
+    assert task["tokens_total"] == 1600
+    assert task["cost_usd"] == 0.006263
 
 
 def test_report_sorts_tasks_by_started_at_descending(repo: Path) -> None:

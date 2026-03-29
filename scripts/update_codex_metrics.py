@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 import argparse
+from decimal import Decimal, ROUND_HALF_UP
 import json
+import re
+import sqlite3
 import sys
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
@@ -12,6 +15,9 @@ from typing import Any
 
 METRICS_JSON_PATH = Path("metrics/codex_metrics.json")
 REPORT_MD_PATH = Path("docs/codex-metrics.md")
+PRICING_JSON_PATH = Path("pricing/model_pricing.json")
+CODEX_STATE_PATH = Path.home() / ".codex" / "state_5.sqlite"
+CODEX_LOGS_PATH = Path.home() / ".codex" / "logs_1.sqlite"
 
 
 ALLOWED_STATUSES = {"in_progress", "success", "fail"}
@@ -39,6 +45,17 @@ class TaskRecord:
     tokens_total: int | None
     failure_reason: str | None
     notes: str | None
+
+
+USAGE_FIELD_PATTERNS = {
+    "input_tokens": re.compile(r"\binput_token_count=(\d+)"),
+    "cached_input_tokens": re.compile(r"\bcached_token_count=(\d+)"),
+    "output_tokens": re.compile(r"\boutput_token_count=(\d+)"),
+    "reasoning_tokens": re.compile(r"\breasoning_token_count=(\d+)"),
+    "tool_tokens": re.compile(r"\btool_token_count=(\d+)"),
+    "model": re.compile(r"\bmodel=([^ ]+)"),
+    "timestamp": re.compile(r"\bevent\.timestamp=([^ ]+)"),
+}
 
 
 def now_utc_iso() -> str:
@@ -69,6 +86,16 @@ def default_metrics() -> dict[str, Any]:
         },
         "tasks": [],
     }
+
+
+def round_usd(value: Decimal | float) -> float:
+    decimal_value = value if isinstance(value, Decimal) else Decimal(str(value))
+    return float(decimal_value.quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP))
+
+
+def parse_iso_datetime_flexible(value: str, field_name: str) -> datetime:
+    normalized = value.replace("Z", "+00:00")
+    return parse_iso_datetime(normalized, field_name)
 
 
 def parse_iso_datetime(value: str, field_name: str) -> datetime:
@@ -136,6 +163,223 @@ def validate_metrics_data(data: dict[str, Any], path: Path) -> None:
         if task_id in task_ids:
             raise ValueError(f"Duplicate task_id found: {task_id}")
         task_ids.add(task_id)
+
+
+def load_pricing(path: Path) -> dict[str, dict[str, float | None]]:
+    if not path.exists():
+        raise ValueError(f"Pricing file not found: {path}")
+    with path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    models = data.get("models")
+    if not isinstance(models, dict):
+        raise ValueError(f"Invalid pricing file format: {path}")
+
+    validated_models: dict[str, dict[str, float | None]] = {}
+    for model_name, config in models.items():
+        if not isinstance(config, dict):
+            raise ValueError(f"Invalid pricing config for model: {model_name}")
+        required_fields = ("input_per_million_usd", "cached_input_per_million_usd", "output_per_million_usd")
+        validated_config: dict[str, float | None] = {}
+        for field_name in required_fields:
+            if field_name not in config:
+                raise ValueError(f"Missing pricing field {field_name} for model: {model_name}")
+            value = config[field_name]
+            if value is not None and not isinstance(value, (int, float)):
+                raise ValueError(f"Invalid pricing value for {model_name}.{field_name}")
+            if isinstance(value, (int, float)) and value < 0:
+                raise ValueError(f"Pricing value cannot be negative for {model_name}.{field_name}")
+            validated_config[field_name] = None if value is None else float(value)
+        validated_models[model_name] = validated_config
+    return validated_models
+
+
+def parse_usage_event(body: str) -> dict[str, Any] | None:
+    if 'event.name="codex.sse_event"' not in body or "event.kind=response.completed" not in body:
+        return None
+
+    timestamp_match = USAGE_FIELD_PATTERNS["timestamp"].search(body)
+    model_match = USAGE_FIELD_PATTERNS["model"].search(body)
+    input_match = USAGE_FIELD_PATTERNS["input_tokens"].search(body)
+    output_match = USAGE_FIELD_PATTERNS["output_tokens"].search(body)
+    cached_match = USAGE_FIELD_PATTERNS["cached_input_tokens"].search(body)
+    if timestamp_match is None or model_match is None or input_match is None or output_match is None or cached_match is None:
+        return None
+
+    parsed: dict[str, Any] = {
+        "timestamp": parse_iso_datetime_flexible(timestamp_match.group(1), "event.timestamp"),
+        "model": model_match.group(1),
+        "input_tokens": int(input_match.group(1)),
+        "cached_input_tokens": int(cached_match.group(1)),
+        "output_tokens": int(output_match.group(1)),
+    }
+
+    for field_name in ("reasoning_tokens", "tool_tokens"):
+        match = USAGE_FIELD_PATTERNS[field_name].search(body)
+        parsed[field_name] = int(match.group(1)) if match is not None else 0
+
+    return parsed
+
+
+def resolve_pricing_model_alias(model: str, pricing: dict[str, dict[str, float | None]]) -> str:
+    if model in pricing:
+        return model
+
+    alias_candidates = [model]
+    if model.endswith(".4"):
+        alias_candidates.append(model.rsplit(".4", maxsplit=1)[0])
+    if model.endswith(".4-mini"):
+        alias_candidates.append(model.rsplit(".4-mini", maxsplit=1)[0] + "-mini")
+
+    for candidate in alias_candidates:
+        if candidate in pricing:
+            return candidate
+    raise ValueError(f"Unknown pricing model: {model}")
+
+
+def compute_event_cost_usd(event: dict[str, Any], pricing: dict[str, dict[str, float | None]]) -> float:
+    pricing_model = resolve_pricing_model_alias(event["model"], pricing)
+    model_pricing = pricing[pricing_model]
+    cached_rate = model_pricing["cached_input_per_million_usd"]
+    if event["cached_input_tokens"] > 0 and cached_rate is None:
+        raise ValueError(f"Model {event['model']} does not support cached input pricing")
+
+    input_cost = Decimal(str(model_pricing["input_per_million_usd"])) * Decimal(event["input_tokens"]) / Decimal(1_000_000)
+    cached_input_cost = Decimal("0")
+    if cached_rate is not None:
+        cached_input_cost = Decimal(str(cached_rate)) * Decimal(event["cached_input_tokens"]) / Decimal(1_000_000)
+    output_cost = Decimal(str(model_pricing["output_per_million_usd"])) * Decimal(event["output_tokens"]) / Decimal(1_000_000)
+    return round_usd(input_cost + cached_input_cost + output_cost)
+
+
+def find_codex_thread_id(state_path: Path, cwd: Path, thread_id: str | None) -> str | None:
+    if not state_path.exists():
+        return None
+
+    with sqlite3.connect(state_path) as conn:
+        conn.row_factory = sqlite3.Row
+        if thread_id is not None:
+            row = conn.execute("SELECT id FROM threads WHERE id = ?", (thread_id,)).fetchone()
+            return None if row is None else str(row["id"])
+
+        row = conn.execute(
+            """
+            SELECT id
+            FROM threads
+            WHERE cwd = ?
+            ORDER BY updated_at DESC
+            LIMIT 1
+            """,
+            (str(cwd),),
+        ).fetchone()
+    return None if row is None else str(row["id"])
+
+
+def resolve_codex_usage_window(
+    state_path: Path,
+    logs_path: Path,
+    cwd: Path,
+    started_at: str | None,
+    finished_at: str | None,
+    pricing_path: Path,
+    thread_id: str | None = None,
+) -> tuple[float | None, int | None]:
+    if started_at is None or not state_path.exists() or not logs_path.exists():
+        return None, None
+
+    started_dt = parse_iso_datetime(started_at, "started_at")
+    finished_dt = parse_iso_datetime(finished_at, "finished_at") if finished_at is not None else now_utc_datetime()
+    if finished_dt < started_dt:
+        raise ValueError("finished_at cannot be earlier than started_at")
+
+    resolved_thread_id = find_codex_thread_id(state_path, cwd, thread_id)
+    if resolved_thread_id is None:
+        return None, None
+
+    pricing = load_pricing(pricing_path)
+    usage_events: list[dict[str, Any]] = []
+    with sqlite3.connect(logs_path) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """
+            SELECT feedback_log_body
+            FROM logs
+            WHERE feedback_log_body LIKE ?
+              AND feedback_log_body LIKE '%event.name="codex.sse_event"%'
+              AND feedback_log_body LIKE '%event.kind=response.completed%'
+            ORDER BY id ASC
+            """,
+            (f"%conversation.id={resolved_thread_id}%",),
+        ).fetchall()
+
+    for row in rows:
+        body = row["feedback_log_body"]
+        if body is None:
+            continue
+        event = parse_usage_event(str(body))
+        if event is None:
+            continue
+        if started_dt <= event["timestamp"] <= finished_dt:
+            usage_events.append(event)
+
+    if not usage_events:
+        return None, None
+
+    total_cost = 0.0
+    total_tokens = 0
+    for event in usage_events:
+        total_cost = round_usd(total_cost + compute_event_cost_usd(event, pricing))
+        total_tokens += (
+            event["input_tokens"]
+            + event["cached_input_tokens"]
+            + event["output_tokens"]
+            + event["reasoning_tokens"]
+            + event["tool_tokens"]
+        )
+    return total_cost, total_tokens
+
+
+def resolve_usage_costs(
+    pricing_path: Path,
+    model: str | None,
+    input_tokens: int | None,
+    cached_input_tokens: int | None,
+    output_tokens: int | None,
+    explicit_cost_fields_used: bool,
+    explicit_token_fields_used: bool,
+) -> tuple[float | None, int | None]:
+    usage_fields_used = any(value is not None for value in (input_tokens, cached_input_tokens, output_tokens))
+    if model is None and not usage_fields_used:
+        return None, None
+    if model is None:
+        raise ValueError("model is required when usage token flags are provided")
+    if not usage_fields_used:
+        raise ValueError("At least one usage token field is required when model is provided")
+    if explicit_cost_fields_used or explicit_token_fields_used:
+        raise ValueError("model-based usage pricing cannot be combined with explicit cost/token flags")
+
+    input_tokens_value = input_tokens or 0
+    cached_input_tokens_value = cached_input_tokens or 0
+    output_tokens_value = output_tokens or 0
+    validate_non_negative_int(input_tokens_value, "input_tokens")
+    validate_non_negative_int(cached_input_tokens_value, "cached_input_tokens")
+    validate_non_negative_int(output_tokens_value, "output_tokens")
+
+    pricing = load_pricing(pricing_path)
+    pricing_model = resolve_pricing_model_alias(model, pricing)
+    model_pricing = pricing[pricing_model]
+    cached_rate = model_pricing["cached_input_per_million_usd"]
+    if cached_input_tokens_value > 0 and cached_rate is None:
+        raise ValueError(f"Model {model} does not support cached input pricing")
+
+    input_cost = Decimal(str(model_pricing["input_per_million_usd"])) * Decimal(input_tokens_value) / Decimal(1_000_000)
+    cached_input_cost = Decimal("0")
+    if cached_rate is not None:
+        cached_input_cost = Decimal(str(cached_rate)) * Decimal(cached_input_tokens_value) / Decimal(1_000_000)
+    output_cost = Decimal(str(model_pricing["output_per_million_usd"])) * Decimal(output_tokens_value) / Decimal(1_000_000)
+    total_cost = round_usd(input_cost + cached_input_cost + output_cost)
+    total_tokens = input_tokens_value + cached_input_tokens_value + output_tokens_value
+    return total_cost, total_tokens
 
 
 def load_metrics(path: Path) -> dict[str, Any]:
@@ -216,6 +460,18 @@ def format_num(value: float | int | None, decimals: int = 2) -> str:
     return f"{value:.{decimals}f}"
 
 
+def format_usd(value: float | None) -> str:
+    if value is None:
+        return "n/a"
+    formatted = f"{value:.6f}".rstrip("0").rstrip(".")
+    if "." not in formatted:
+        return f"{formatted}.00"
+    fractional_part = formatted.split(".", maxsplit=1)[1]
+    if len(fractional_part) < 2:
+        return formatted + ("0" * (2 - len(fractional_part)))
+    return formatted
+
+
 def recompute_summary(data: dict[str, Any]) -> None:
     tasks: list[dict[str, Any]] = data["tasks"]
 
@@ -253,11 +509,11 @@ def recompute_summary(data: dict[str, Any]) -> None:
         "successes": len(successes),
         "fails": len(fails),
         "total_attempts": total_attempts,
-        "total_cost_usd": round(total_cost_usd, 6),
+        "total_cost_usd": round_usd(total_cost_usd),
         "total_tokens": total_tokens,
         "success_rate": success_rate,
         "attempts_per_success": attempts_per_success,
-        "cost_per_success_usd": round(cost_per_success_usd, 6) if cost_per_success_usd is not None else None,
+        "cost_per_success_usd": round_usd(cost_per_success_usd) if cost_per_success_usd is not None else None,
         "cost_per_success_tokens": cost_per_success_tokens,
     }
 
@@ -275,11 +531,11 @@ def generate_report_md(data: dict[str, Any]) -> str:
         f"- Successes: {summary['successes']}",
         f"- Fails: {summary['fails']}",
         f"- Total attempts: {summary['total_attempts']}",
-        f"- Total cost (USD): {format_num(summary['total_cost_usd'])}",
+        f"- Total cost (USD): {format_usd(summary['total_cost_usd'])}",
         f"- Total tokens: {summary['total_tokens']}",
         f"- Success Rate: {format_pct(summary['success_rate'])}",
         f"- Attempts per Success: {format_num(summary['attempts_per_success'])}",
-        f"- Cost per Success (USD): {format_num(summary['cost_per_success_usd'])}",
+        f"- Cost per Success (USD): {format_usd(summary['cost_per_success_usd'])}",
         f"- Cost per Success (Tokens): {format_num(summary['cost_per_success_tokens'])}",
         "",
         "## Task log",
@@ -299,7 +555,7 @@ def generate_report_md(data: dict[str, Any]) -> str:
                 f"- Attempts: {task['attempts']}",
                 f"- Started at: {task['started_at'] or 'n/a'}",
                 f"- Finished at: {task['finished_at'] or 'n/a'}",
-                f"- Cost (USD): {format_num(task.get('cost_usd'))}",
+                f"- Cost (USD): {format_usd(task.get('cost_usd'))}",
                 f"- Tokens: {format_num(task.get('tokens_total'))}",
                 f"- Failure reason: {task.get('failure_reason') or 'n/a'}",
                 f"- Notes: {task.get('notes') or 'n/a'}",
@@ -344,6 +600,15 @@ def upsert_task(
     notes: str | None,
     started_at: str | None,
     finished_at: str | None,
+    model: str | None,
+    input_tokens: int | None,
+    cached_input_tokens: int | None,
+    output_tokens: int | None,
+    pricing_path: Path,
+    codex_state_path: Path,
+    codex_logs_path: Path,
+    codex_thread_id: str | None,
+    cwd: Path,
 ) -> dict[str, Any]:
     tasks: list[dict[str, Any]] = data["tasks"]
     task_index = get_task_index(tasks, task_id)
@@ -368,6 +633,29 @@ def upsert_task(
 
     task = tasks[task_index]
 
+    explicit_cost_fields_used = cost_usd_add is not None or cost_usd_set is not None
+    explicit_token_fields_used = tokens_add is not None or tokens_set is not None
+    usage_cost_usd, usage_total_tokens = resolve_usage_costs(
+        pricing_path=pricing_path,
+        model=model,
+        input_tokens=input_tokens,
+        cached_input_tokens=cached_input_tokens,
+        output_tokens=output_tokens,
+        explicit_cost_fields_used=explicit_cost_fields_used,
+        explicit_token_fields_used=explicit_token_fields_used,
+    )
+    auto_cost_usd, auto_total_tokens = (None, None)
+    if usage_cost_usd is None and usage_total_tokens is None:
+        auto_cost_usd, auto_total_tokens = resolve_codex_usage_window(
+            state_path=codex_state_path,
+            logs_path=codex_logs_path,
+            cwd=cwd,
+            started_at=started_at if started_at is not None else task.get("started_at"),
+            finished_at=finished_at if finished_at is not None else task.get("finished_at"),
+            pricing_path=pricing_path,
+            thread_id=codex_thread_id,
+        )
+
     if title is not None:
         if not title.strip():
             raise ValueError("title cannot be empty")
@@ -388,7 +676,12 @@ def upsert_task(
     elif cost_usd_add is not None:
         validate_non_negative_float(cost_usd_add, "cost_usd_add")
         current = task.get("cost_usd") or 0.0
-        task["cost_usd"] = round(float(current) + cost_usd_add, 6)
+        task["cost_usd"] = round_usd(float(current) + cost_usd_add)
+    elif usage_cost_usd is not None:
+        current = task.get("cost_usd") or 0.0
+        task["cost_usd"] = round_usd(float(current) + usage_cost_usd)
+    elif auto_cost_usd is not None:
+        task["cost_usd"] = auto_cost_usd
 
     if tokens_set is not None:
         validate_non_negative_int(tokens_set, "tokens")
@@ -397,6 +690,11 @@ def upsert_task(
         validate_non_negative_int(tokens_add, "tokens_add")
         current = int(task.get("tokens_total") or 0)
         task["tokens_total"] = current + tokens_add
+    elif usage_total_tokens is not None:
+        current = int(task.get("tokens_total") or 0)
+        task["tokens_total"] = current + usage_total_tokens
+    elif auto_total_tokens is not None:
+        task["tokens_total"] = auto_total_tokens
 
     if failure_reason is not None:
         validate_failure_reason(failure_reason)
@@ -446,6 +744,14 @@ def build_parser() -> argparse.ArgumentParser:
     update_parser.add_argument("--cost-usd", type=float)
     update_parser.add_argument("--tokens-add", type=int)
     update_parser.add_argument("--tokens", type=int)
+    update_parser.add_argument("--model")
+    update_parser.add_argument("--input-tokens", type=int)
+    update_parser.add_argument("--cached-input-tokens", type=int)
+    update_parser.add_argument("--output-tokens", type=int)
+    update_parser.add_argument("--pricing-path", default=str(PRICING_JSON_PATH))
+    update_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
+    update_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
+    update_parser.add_argument("--codex-thread-id")
     update_parser.add_argument("--failure-reason", choices=sorted(ALLOWED_FAILURE_REASONS))
     update_parser.add_argument("--notes")
     update_parser.add_argument("--started-at")
@@ -455,6 +761,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     show_parser = subparsers.add_parser("show", help="Print current summary")
     show_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
+
+    sync_parser = subparsers.add_parser("sync-codex-usage", help="Backfill usage and cost from local Codex logs")
+    sync_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
+    sync_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
+    sync_parser.add_argument("--pricing-path", default=str(PRICING_JSON_PATH))
+    sync_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
+    sync_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
+    sync_parser.add_argument("--codex-thread-id")
 
     return parser
 
@@ -466,12 +780,47 @@ def print_summary(data: dict[str, Any]) -> None:
     print(f"Successes: {summary['successes']}")
     print(f"Fails: {summary['fails']}")
     print(f"Total attempts: {summary['total_attempts']}")
-    print(f"Total cost (USD): {format_num(summary['total_cost_usd'])}")
+    print(f"Total cost (USD): {format_usd(summary['total_cost_usd'])}")
     print(f"Total tokens: {summary['total_tokens']}")
     print(f"Success Rate: {format_pct(summary['success_rate'])}")
     print(f"Attempts per Success: {format_num(summary['attempts_per_success'])}")
-    print(f"Cost per Success (USD): {format_num(summary['cost_per_success_usd'])}")
+    print(f"Cost per Success (USD): {format_usd(summary['cost_per_success_usd'])}")
     print(f"Cost per Success (Tokens): {format_num(summary['cost_per_success_tokens'])}")
+
+
+def sync_codex_usage(
+    data: dict[str, Any],
+    cwd: Path,
+    pricing_path: Path,
+    codex_state_path: Path,
+    codex_logs_path: Path,
+    codex_thread_id: str | None,
+) -> int:
+    updated_tasks = 0
+    tasks: list[dict[str, Any]] = data["tasks"]
+    for task in tasks:
+        auto_cost_usd, auto_total_tokens = resolve_codex_usage_window(
+            state_path=codex_state_path,
+            logs_path=codex_logs_path,
+            cwd=cwd,
+            started_at=task.get("started_at"),
+            finished_at=task.get("finished_at"),
+            pricing_path=pricing_path,
+            thread_id=codex_thread_id,
+        )
+        if auto_cost_usd is None and auto_total_tokens is None:
+            continue
+        changed = False
+        if auto_cost_usd is not None and task.get("cost_usd") != auto_cost_usd:
+            task["cost_usd"] = auto_cost_usd
+            changed = True
+        if auto_total_tokens is not None and task.get("tokens_total") != auto_total_tokens:
+            task["tokens_total"] = auto_total_tokens
+            changed = True
+        if changed:
+            validate_task_record(task)
+            updated_tasks += 1
+    return updated_tasks
 
 
 def main() -> int:
@@ -492,10 +841,35 @@ def main() -> int:
         print_summary(data)
         return 0
 
+    if args.command == "sync-codex-usage":
+        metrics_path = Path(args.metrics_path)
+        report_path = Path(args.report_path)
+        pricing_path = Path(args.pricing_path)
+        codex_state_path = Path(args.codex_state_path)
+        codex_logs_path = Path(args.codex_logs_path)
+        data = load_metrics(metrics_path)
+        updated_tasks = sync_codex_usage(
+            data=data,
+            cwd=Path.cwd(),
+            pricing_path=pricing_path,
+            codex_state_path=codex_state_path,
+            codex_logs_path=codex_logs_path,
+            codex_thread_id=args.codex_thread_id,
+        )
+        recompute_summary(data)
+        save_metrics(metrics_path, data)
+        save_report(report_path, data)
+        print(f"Synchronized Codex usage for {updated_tasks} task(s)")
+        print_summary(data)
+        return 0
+
     if args.command == "update":
         metrics_path = Path(args.metrics_path)
         report_path = Path(args.report_path)
         data = load_metrics(metrics_path)
+        pricing_path = Path(args.pricing_path)
+        codex_state_path = Path(args.codex_state_path)
+        codex_logs_path = Path(args.codex_logs_path)
 
         task = upsert_task(
             data=data,
@@ -512,6 +886,15 @@ def main() -> int:
             notes=args.notes,
             started_at=args.started_at,
             finished_at=args.finished_at,
+            model=args.model,
+            input_tokens=args.input_tokens,
+            cached_input_tokens=args.cached_input_tokens,
+            output_tokens=args.output_tokens,
+            pricing_path=pricing_path,
+            codex_state_path=codex_state_path,
+            codex_logs_path=codex_logs_path,
+            codex_thread_id=args.codex_thread_id,
+            cwd=Path.cwd(),
         )
 
         recompute_summary(data)
