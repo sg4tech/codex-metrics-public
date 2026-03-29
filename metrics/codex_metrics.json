@@ -1,13 +1,13 @@
 {
   "summary": {
-    "closed_tasks": 100,
-    "successes": 100,
+    "closed_tasks": 101,
+    "successes": 101,
     "fails": 0,
-    "total_attempts": 104,
+    "total_attempts": 105,
     "total_cost_usd": 135.076254,
     "total_tokens": 96857586,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.04,
+    "attempts_per_closed_task": 1.0396039603960396,
     "known_cost_successes": 80,
     "known_token_successes": 80,
     "complete_cost_successes": 80,
@@ -60,10 +60,10 @@
         "cost_per_success_tokens": null
       },
       "retro": {
-        "closed_tasks": 23,
-        "successes": 23,
+        "closed_tasks": 24,
+        "successes": 24,
         "fails": 0,
-        "total_attempts": 23,
+        "total_attempts": 24,
         "total_cost_usd": 7.964254,
         "total_tokens": 5663448,
         "success_rate": 1.0,
@@ -122,10 +122,10 @@
         "cost_per_success_tokens": null
       },
       "retro": {
-        "closed_tasks": 23,
-        "successes": 23,
+        "closed_tasks": 24,
+        "successes": 24,
         "fails": 0,
-        "total_attempts": 23,
+        "total_attempts": 24,
         "total_cost_usd": 7.964254,
         "total_tokens": 5663448,
         "success_rate": 1.0,
@@ -143,10 +143,10 @@
       }
     },
     "entries": {
-      "closed_entries": 104,
-      "successes": 103,
+      "closed_entries": 105,
+      "successes": 104,
       "fails": 1,
-      "success_rate": 0.9903846153846154,
+      "success_rate": 0.9904761904761905,
       "total_cost_usd": 134.178874,
       "total_tokens": 96141607,
       "failure_reasons": {
@@ -1729,6 +1729,21 @@
       "failure_reason": null,
       "notes": "Added a finalize-path guardrail that normalizes zero-duration closed product goals without stored cost/tokens into a one-second recovery window, plus regression tests for normalization and explicit-token exemptions.",
       "result_fit": "exact_fit"
+    },
+    {
+      "goal_id": "2026-03-29-107",
+      "title": "Record zero-duration product window retrospective",
+      "goal_type": "retro",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T17:43:11+00:00",
+      "finished_at": "2026-03-29T17:43:11+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Captured the zero-duration product window incident with 5 Whys and Theory of Constraints after shifting from strict rejection to finalize-path normalization for cost recovery windows.",
+      "result_fit": null
     }
   ],
   "entries": [
@@ -3122,6 +3137,19 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Added a finalize-path guardrail that normalizes zero-duration closed product goals without stored cost/tokens into a one-second recovery window, plus regression tests for normalization and explicit-token exemptions."
+    },
+    {
+      "entry_id": "2026-03-29-107-attempt-001",
+      "goal_id": "2026-03-29-107",
+      "entry_type": "retro",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T17:43:11+00:00",
+      "finished_at": "2026-03-29T17:43:11+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Captured the zero-duration product window incident with 5 Whys and Theory of Constraints after shifting from strict rejection to finalize-path normalization for cost recovery windows."
     }
   ]
 }
