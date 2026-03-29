@@ -2,18 +2,18 @@
 
 ## Goal summary
 
-- Closed goals: 90
-- Successes: 90
+- Closed goals: 91
+- Successes: 91
 - Fails: 0
-- Total attempts: 94
+- Total attempts: 95
 - Known total cost (USD): 1.269228
 - Known total tokens: 2696460
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 4/90 successful goals
-- Known token coverage: 4/90 successful goals
-- Complete cost coverage: 2/90 successful goals
-- Complete token coverage: 2/90 successful goals
+- Known cost coverage: 4/91 successful goals
+- Known token coverage: 4/91 successful goals
+- Complete cost coverage: 2/91 successful goals
+- Complete token coverage: 2/91 successful goals
 - Known Cost per Success (USD): 0.317307
 - Known Cost per Success (Tokens): 674115.00
 - Complete Cost per Covered Success (USD): 0.260627
@@ -21,10 +21,10 @@
 
 ## Entry summary
 
-- Closed entries: 94
-- Successes: 93
+- Closed entries: 95
+- Successes: 94
 - Fails: 1
-- Success Rate: 98.94%
+- Success Rate: 98.95%
 - Known total cost (USD): 1.269228
 - Known total tokens: 2696460
 
@@ -41,18 +41,18 @@
 - unclear_task: 1
 
 ### product
-- Closed goals: 17
-- Successes: 17
+- Closed goals: 18
+- Successes: 18
 - Fails: 0
-- Total attempts: 21
+- Total attempts: 22
 - Known total cost (USD): 0.747974
 - Known total tokens: 1594794
 - Success Rate: 100.00%
-- Attempts per Closed Goal: 1.24
-- Known cost coverage: 2/17 successful goals
-- Known token coverage: 2/17 successful goals
-- Complete cost coverage: 0/17 successful goals
-- Complete token coverage: 0/17 successful goals
+- Attempts per Closed Goal: 1.22
+- Known cost coverage: 2/18 successful goals
+- Known token coverage: 2/18 successful goals
+- Complete cost coverage: 0/18 successful goals
+- Complete token coverage: 0/18 successful goals
 - Known Cost per Success (USD): 0.373987
 - Known Cost per Success (Tokens): 797397.00
 - Complete Cost per Covered Success (USD): n/a
@@ -95,6 +95,19 @@
 - Complete Cost per Covered Success (Tokens): 569068.00
 
 ## Goal log
+
+### 2026-03-29-097 — Add cost coverage audit command
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T16:04:24+00:00
+- Finished at: 2026-03-29T16:04:24+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Result fit: exact_fit
+- Notes: Added audit-cost-coverage command with reason buckets and tests.
 
 ### 2026-03-29-096 — Backfill reviewed result fit for remaining clear audit candidate
 - Goal type: meta
@@ -1332,6 +1345,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-097-attempt-001 — 2026-03-29-097
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-29T16:04:24+00:00
+- Finished at: 2026-03-29T16:04:24+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Added audit-cost-coverage command with reason buckets and tests.
 
 ### 2026-03-29-096-attempt-001 — 2026-03-29-096
 - Entry type: meta

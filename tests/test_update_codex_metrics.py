@@ -1689,6 +1689,7 @@ def test_help_includes_goal_language_and_examples(repo: Path) -> None:
     assert "Print current summary and operator review" in result.stdout
     assert "Examples:" in result.stdout
     assert "audit-history" in result.stdout
+    assert "audit-cost-coverage" in result.stdout
     assert "--supersedes-task-id" in update_help.stdout
     assert "Stable goal identifier." in update_help.stdout
     assert "Omit this for new goals" in update_help.stdout
@@ -1747,6 +1748,54 @@ def test_package_module_supports_audit_history(repo: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     assert "Audit candidates" in result.stdout
+
+
+def test_audit_cost_coverage_reports_sync_gap(repo: Path) -> None:
+    state_path, logs_path = create_codex_usage_sources(repo)
+    assert run_cmd(repo, "init").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "cost-gap-goal",
+        "--title",
+        "Recoverable cost gap",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+        "--started-at",
+        "2026-03-29T09:00:00+00:00",
+        "--finished-at",
+        "2026-03-29T09:10:00+00:00",
+        "--codex-state-path",
+        str(repo / "missing_state.sqlite"),
+        "--codex-logs-path",
+        str(repo / "missing_logs.sqlite"),
+    ).returncode == 0
+
+    result = run_cmd(
+        repo,
+        "audit-cost-coverage",
+        "--codex-state-path",
+        str(state_path),
+        "--codex-logs-path",
+        str(logs_path),
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "Cost coverage audit" in result.stdout
+    assert "[sync_gap]" in result.stdout
+    assert "cost-gap-goal | product | success" in result.stdout
+
+
+def test_package_module_supports_audit_cost_coverage(repo: Path) -> None:
+    assert run_cmd(repo, "init").returncode == 0
+
+    result = run_module_cmd(repo, "audit-cost-coverage")
+
+    assert result.returncode == 0, result.stderr
+    assert "Cost coverage audit" in result.stdout
 
 
 def test_sync_codex_usage_backfills_existing_tasks(repo: Path) -> None:

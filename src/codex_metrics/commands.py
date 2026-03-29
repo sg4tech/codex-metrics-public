@@ -5,6 +5,7 @@ from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import Any, Protocol
 
+from codex_metrics.cost_audit import CostAuditReport
 from codex_metrics.history_audit import AuditReport
 
 
@@ -27,6 +28,17 @@ class CommandRuntime(Protocol):
     def save_report(self, path: Path, data: dict[str, Any]) -> None: ...
     def audit_history(self, data: dict[str, Any]) -> AuditReport: ...
     def render_audit_report(self, report: AuditReport) -> str: ...
+    def audit_cost_coverage(
+        self,
+        data: dict[str, Any],
+        *,
+        pricing_path: Path,
+        codex_state_path: Path,
+        codex_logs_path: Path,
+        codex_thread_id: str | None,
+        cwd: Path,
+    ) -> CostAuditReport: ...
+    def render_cost_audit_report(self, report: CostAuditReport) -> str: ...
     def merge_tasks(self, data: dict[str, Any], keep_task_id: str, drop_task_id: str) -> dict[str, Any]: ...
     def get_task(self, tasks: list[dict[str, Any]], task_id: str) -> dict[str, Any] | None: ...
     def upsert_task(
@@ -90,6 +102,24 @@ def handle_audit_history(args: Namespace, cli_module: CommandRuntime) -> int:
     data = cli_module.load_metrics(metrics_path)
     report = cli_module.audit_history(data)
     print(cli_module.render_audit_report(report))
+    return 0
+
+
+def handle_audit_cost_coverage(args: Namespace, cli_module: CommandRuntime) -> int:
+    metrics_path = Path(args.metrics_path)
+    pricing_path = Path(args.pricing_path)
+    codex_state_path = Path(args.codex_state_path)
+    codex_logs_path = Path(args.codex_logs_path)
+    data = cli_module.load_metrics(metrics_path)
+    report = cli_module.audit_cost_coverage(
+        data,
+        pricing_path=pricing_path,
+        codex_state_path=codex_state_path,
+        codex_logs_path=codex_logs_path,
+        codex_thread_id=args.codex_thread_id,
+        cwd=Path.cwd(),
+    )
+    print(cli_module.render_cost_audit_report(report))
     return 0
 
 

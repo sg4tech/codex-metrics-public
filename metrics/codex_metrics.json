@@ -1,13 +1,13 @@
 {
   "summary": {
-    "closed_tasks": 90,
-    "successes": 90,
+    "closed_tasks": 91,
+    "successes": 91,
     "fails": 0,
-    "total_attempts": 94,
+    "total_attempts": 95,
     "total_cost_usd": 1.269228,
     "total_tokens": 2696460,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.0444444444444445,
+    "attempts_per_closed_task": 1.043956043956044,
     "known_cost_successes": 4,
     "known_token_successes": 4,
     "complete_cost_successes": 2,
@@ -40,14 +40,14 @@
         "cost_per_success_tokens": null
       },
       "product": {
-        "closed_tasks": 17,
-        "successes": 17,
+        "closed_tasks": 18,
+        "successes": 18,
         "fails": 0,
-        "total_attempts": 21,
+        "total_attempts": 22,
         "total_cost_usd": 0.747974,
         "total_tokens": 1594794,
         "success_rate": 1.0,
-        "attempts_per_closed_task": 1.2352941176470589,
+        "attempts_per_closed_task": 1.2222222222222223,
         "known_cost_successes": 2,
         "known_token_successes": 2,
         "complete_cost_successes": 0,
@@ -102,14 +102,14 @@
         "cost_per_success_tokens": null
       },
       "product": {
-        "closed_tasks": 17,
-        "successes": 17,
+        "closed_tasks": 18,
+        "successes": 18,
         "fails": 0,
-        "total_attempts": 21,
+        "total_attempts": 22,
         "total_cost_usd": 0.747974,
         "total_tokens": 1594794,
         "success_rate": 1.0,
-        "attempts_per_closed_task": 1.2352941176470589,
+        "attempts_per_closed_task": 1.2222222222222223,
         "known_cost_successes": 2,
         "known_token_successes": 2,
         "complete_cost_successes": 0,
@@ -143,10 +143,10 @@
       }
     },
     "entries": {
-      "closed_entries": 94,
-      "successes": 93,
+      "closed_entries": 95,
+      "successes": 94,
       "fails": 1,
-      "success_rate": 0.9893617021276596,
+      "success_rate": 0.9894736842105263,
       "total_cost_usd": 1.269228,
       "total_tokens": 2696460,
       "failure_reasons": {
@@ -1579,6 +1579,21 @@
       "failure_reason": null,
       "notes": "Backfilled reviewed result_fit for the last clear manual audit candidate and confirmed the quality audit now only surfaces stale goals and low cost coverage.",
       "result_fit": null
+    },
+    {
+      "goal_id": "2026-03-29-097",
+      "title": "Add cost coverage audit command",
+      "goal_type": "product",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T16:04:24+00:00",
+      "finished_at": "2026-03-29T16:04:24+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Added audit-cost-coverage command with reason buckets and tests.",
+      "result_fit": "exact_fit"
     }
   ],
   "entries": [
@@ -2810,6 +2825,19 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Backfilled reviewed result_fit for the last clear manual audit candidate and confirmed the quality audit now only surfaces stale goals and low cost coverage."
+    },
+    {
+      "entry_id": "2026-03-29-097-attempt-001",
+      "goal_id": "2026-03-29-097",
+      "entry_type": "product",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T16:04:24+00:00",
+      "finished_at": "2026-03-29T16:04:24+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Added audit-cost-coverage command with reason buckets and tests."
     }
   ]
 }

@@ -12,6 +12,12 @@ from pathlib import Path
 from typing import Any
 
 from codex_metrics import domain, reporting, storage
+from codex_metrics.cost_audit import (
+    CostAuditReport,
+)
+from codex_metrics.cost_audit import (
+    render_cost_audit_report as render_cost_coverage_audit_report,
+)
 from codex_metrics.history_audit import (
     audit_history as build_history_audit_report,
 )
@@ -27,6 +33,7 @@ format_pct = reporting.format_pct
 format_usd = reporting.format_usd
 generate_report_md = reporting.generate_report_md
 print_summary = reporting.print_summary
+render_cost_audit_report = render_cost_coverage_audit_report
 render_audit_report = render_history_audit_report
 
 ALLOWED_STATUSES = domain.ALLOWED_STATUSES
@@ -520,6 +527,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  %(prog)s update --title \"Add CSV import\" --task-type product --attempts-delta 1\n"
             "  %(prog)s update --task-id 2026-03-29-001 --status success --notes \"Validated\"\n"
             "  %(prog)s update --task-id 2026-03-29-002 --title \"Retry CSV import\" --task-type product --supersedes-task-id 2026-03-29-001 --status success\n"
+            "  %(prog)s audit-cost-coverage\n"
             "  %(prog)s sync-codex-usage\n"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -608,6 +616,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     audit_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
 
+    cost_audit_parser = subparsers.add_parser(
+        "audit-cost-coverage",
+        help="Explain why product goals are missing cost coverage",
+        description=(
+            "Inspect closed product goals and explain why cost coverage is missing, partial, or recoverable."
+        ),
+    )
+    cost_audit_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
+    cost_audit_parser.add_argument("--pricing-path", default=str(PRICING_JSON_PATH))
+    cost_audit_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
+    cost_audit_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
+    cost_audit_parser.add_argument("--codex-thread-id")
+
     sync_parser = subparsers.add_parser(
         "sync-codex-usage",
         help="Backfill usage and cost from local Codex logs",
@@ -668,6 +689,29 @@ def sync_codex_usage(
             sync_goal_attempt_entries(data, task, previous_task)
             updated_tasks += 1
     return updated_tasks
+
+
+def audit_cost_coverage(
+    data: dict[str, Any],
+    *,
+    pricing_path: Path,
+    codex_state_path: Path,
+    codex_logs_path: Path,
+    codex_thread_id: str | None,
+    cwd: Path,
+) -> CostAuditReport:
+    from codex_metrics.cost_audit import audit_cost_coverage as build_cost_report
+
+    return build_cost_report(
+        data,
+        pricing_path=pricing_path,
+        codex_state_path=codex_state_path,
+        codex_logs_path=codex_logs_path,
+        cwd=cwd,
+        codex_thread_id=codex_thread_id,
+        find_thread_id=find_codex_thread_id,
+        resolve_usage_window=resolve_codex_usage_window,
+    )
 
 
 def merge_tasks(data: dict[str, Any], keep_task_id: str, drop_task_id: str) -> dict[str, Any]:
@@ -747,6 +791,9 @@ def main() -> int:
 
     if args.command == "audit-history":
         return commands.handle_audit_history(args, sys.modules[__name__])
+
+    if args.command == "audit-cost-coverage":
+        return commands.handle_audit_cost_coverage(args, sys.modules[__name__])
 
     if args.command == "sync-codex-usage":
         return commands.handle_sync_codex_usage(args, sys.modules[__name__])

@@ -86,6 +86,12 @@ Audit stored history for likely misses, partial-fit recoveries, stale in-progres
 codex-metrics audit-history
 ```
 
+Audit why closed product goals are still missing cost coverage:
+
+```bash
+codex-metrics audit-cost-coverage
+```
+
 Backfill usage and cost from local Codex logs:
 
 ```bash
