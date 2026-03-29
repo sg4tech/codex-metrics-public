@@ -1,21 +1,21 @@
 {
   "summary": {
-    "closed_tasks": 34,
-    "successes": 34,
+    "closed_tasks": 36,
+    "successes": 36,
     "fails": 0,
-    "total_attempts": 35,
+    "total_attempts": 37,
     "total_cost_usd": 1.159366,
     "total_tokens": 2461072,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.0294117647058822,
+    "attempts_per_closed_task": 1.0277777777777777,
     "cost_per_success_usd": null,
     "cost_per_success_tokens": null,
     "by_goal_type": {
       "meta": {
-        "closed_tasks": 23,
-        "successes": 23,
+        "closed_tasks": 24,
+        "successes": 24,
         "fails": 0,
-        "total_attempts": 23,
+        "total_attempts": 24,
         "total_cost_usd": 0.2658,
         "total_tokens": 569068,
         "success_rate": 1.0,
@@ -36,10 +36,10 @@
         "cost_per_success_tokens": null
       },
       "retro": {
-        "closed_tasks": 6,
-        "successes": 6,
+        "closed_tasks": 7,
+        "successes": 7,
         "fails": 0,
-        "total_attempts": 6,
+        "total_attempts": 7,
         "total_cost_usd": 0.255454,
         "total_tokens": 532598,
         "success_rate": 1.0,
@@ -50,10 +50,10 @@
     },
     "by_task_type": {
       "meta": {
-        "closed_tasks": 23,
-        "successes": 23,
+        "closed_tasks": 24,
+        "successes": 24,
         "fails": 0,
-        "total_attempts": 23,
+        "total_attempts": 24,
         "total_cost_usd": 0.2658,
         "total_tokens": 569068,
         "success_rate": 1.0,
@@ -74,10 +74,10 @@
         "cost_per_success_tokens": null
       },
       "retro": {
-        "closed_tasks": 6,
-        "successes": 6,
+        "closed_tasks": 7,
+        "successes": 7,
         "fails": 0,
-        "total_attempts": 6,
+        "total_attempts": 7,
         "total_cost_usd": 0.255454,
         "total_tokens": 532598,
         "success_rate": 1.0,
@@ -87,10 +87,10 @@
       }
     },
     "entries": {
-      "closed_entries": 35,
-      "successes": 34,
+      "closed_entries": 37,
+      "successes": 36,
       "fails": 1,
-      "success_rate": 0.9714285714285714,
+      "success_rate": 0.972972972972973,
       "total_cost_usd": 1.159366,
       "total_tokens": 2461072,
       "failure_reasons": {
@@ -602,6 +602,34 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Decomposed sync_goal_attempt_entries into smaller policy helpers and excluded inferred synthetic failures from diagnostic failure-reason reporting."
+    },
+    {
+      "goal_id": "2026-03-29-038",
+      "title": "Retro for inferred failure isolation",
+      "goal_type": "retro",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T10:57:39+00:00",
+      "finished_at": "2026-03-29T10:58:17+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Recorded the lesson that inferred attempt history is operational context, not diagnostic failure attribution, and should not pollute failure-reason metrics."
+    },
+    {
+      "goal_id": "2026-03-29-039",
+      "title": "Close high-value architectural tails",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-29T11:00:29+00:00",
+      "finished_at": "2026-03-29T11:01:29+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Closed goal_type drift by forbidding goal reclassification after attempt history exists and synced that invariant into AGENTS.md and codex-metrics-policy.md."
     }
   ],
   "entries": [
@@ -1037,6 +1065,32 @@
       "failure_reason": null,
       "notes": "Decomposed sync_goal_attempt_entries into smaller policy helpers and excluded inferred synthetic failures from diagnostic failure-reason reporting.",
       "inferred": false
+    },
+    {
+      "entry_id": "2026-03-29-038-attempt-001",
+      "goal_id": "2026-03-29-038",
+      "entry_type": "retro",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T10:57:39+00:00",
+      "finished_at": "2026-03-29T10:58:17+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Recorded the lesson that inferred attempt history is operational context, not diagnostic failure attribution, and should not pollute failure-reason metrics."
+    },
+    {
+      "entry_id": "2026-03-29-039-attempt-001",
+      "goal_id": "2026-03-29-039",
+      "entry_type": "meta",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-29T11:00:29+00:00",
+      "finished_at": "2026-03-29T11:01:29+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Closed goal_type drift by forbidding goal reclassification after attempt history exists and synced that invariant into AGENTS.md and codex-metrics-policy.md."
     }
   ]
 }

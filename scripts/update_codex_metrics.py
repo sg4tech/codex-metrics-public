@@ -1121,6 +1121,17 @@ def get_goal_entries(entries: list[dict[str, Any]], goal_id: str) -> list[dict[s
     return [entry for entry in entries if entry.get("goal_id") == goal_id]
 
 
+def ensure_goal_type_update_allowed(
+    entries: list[dict[str, Any]],
+    goal: dict[str, Any],
+    new_goal_type: str | None,
+) -> None:
+    if new_goal_type is None or new_goal_type == goal["goal_type"]:
+        return
+    if get_goal_entries(entries, goal["goal_id"]):
+        raise ValueError("goal_type cannot be changed after attempt history exists")
+
+
 def next_entry_id(entries: list[dict[str, Any]], goal_id: str) -> str:
     existing_ids = {entry["entry_id"] for entry in entries}
     entry_number = 1
@@ -1415,6 +1426,7 @@ def resolve_goal_usage_updates(
 
 def apply_goal_updates(
     *,
+    entries: list[dict[str, Any]],
     task: dict[str, Any],
     title: str | None,
     task_type: str | None,
@@ -1440,6 +1452,7 @@ def apply_goal_updates(
         task["title"] = title
     if task_type is not None:
         validate_task_type(task_type)
+        ensure_goal_type_update_allowed(entries, task, task_type)
         task["goal_type"] = task_type
     if status is not None:
         validate_status(status)
@@ -1533,6 +1546,7 @@ def upsert_task(
     cwd: Path,
 ) -> dict[str, Any]:
     tasks: list[dict[str, Any]] = data["goals"]
+    entries: list[dict[str, Any]] = data["entries"]
     task_index = get_task_index(tasks, task_id)
     linked_task_id = resolve_linked_task_reference(
         tasks=tasks,
@@ -1574,6 +1588,7 @@ def upsert_task(
         )
     )
     apply_goal_updates(
+        entries=entries,
         task=task,
         title=title,
         task_type=task_type,

@@ -121,6 +121,7 @@ Use:
 
 For new goal records, `goal_type` must always be set explicitly.
 If a new goal intentionally continues or supersedes a prior closed goal instead of remaining one goal with more attempts, that relationship must be recorded explicitly.
+After attempt-history entries exist for a goal, `goal_type` must not be changed in place. If classification was wrong, create a new linked goal instead of rewriting history semantics.
 
 ## Allowed status values
 

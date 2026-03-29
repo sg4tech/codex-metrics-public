@@ -2,10 +2,10 @@
 
 ## Goal summary
 
-- Closed goals: 34
-- Successes: 34
+- Closed goals: 36
+- Successes: 36
 - Fails: 0
-- Total attempts: 35
+- Total attempts: 37
 - Total cost (USD): 1.159366
 - Total tokens: 2461072
 - Success Rate: 100.00%
@@ -15,10 +15,10 @@
 
 ## Entry summary
 
-- Closed entries: 35
-- Successes: 34
+- Closed entries: 37
+- Successes: 36
 - Fails: 1
-- Success Rate: 97.14%
+- Success Rate: 97.30%
 - Total cost (USD): 1.159366
 - Total tokens: 2461072
 
@@ -40,10 +40,10 @@
 - Cost per Success (Tokens): n/a
 
 ### retro
-- Closed goals: 6
-- Successes: 6
+- Closed goals: 7
+- Successes: 7
 - Fails: 0
-- Total attempts: 6
+- Total attempts: 7
 - Total cost (USD): 0.255454
 - Total tokens: 532598
 - Success Rate: 100.00%
@@ -52,10 +52,10 @@
 - Cost per Success (Tokens): n/a
 
 ### meta
-- Closed goals: 23
-- Successes: 23
+- Closed goals: 24
+- Successes: 24
 - Fails: 0
-- Total attempts: 23
+- Total attempts: 24
 - Total cost (USD): 0.2658
 - Total tokens: 569068
 - Success Rate: 100.00%
@@ -64,6 +64,30 @@
 - Cost per Success (Tokens): n/a
 
 ## Goal log
+
+### 2026-03-29-039 — Close high-value architectural tails
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T11:00:29+00:00
+- Finished at: 2026-03-29T11:01:29+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Closed goal_type drift by forbidding goal reclassification after attempt history exists and synced that invariant into AGENTS.md and codex-metrics-policy.md.
+
+### 2026-03-29-038 — Retro for inferred failure isolation
+- Goal type: retro
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T10:57:39+00:00
+- Finished at: 2026-03-29T10:58:17+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Recorded the lesson that inferred attempt history is operational context, not diagnostic failure attribution, and should not pollute failure-reason metrics.
 
 ### 2026-03-29-037 — Decompose attempt sync and isolate inferred failures
 - Goal type: meta
@@ -498,6 +522,26 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-29-039-attempt-001 — 2026-03-29-039
+- Entry type: meta
+- Status: success
+- Started at: 2026-03-29T11:00:29+00:00
+- Finished at: 2026-03-29T11:01:29+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Closed goal_type drift by forbidding goal reclassification after attempt history exists and synced that invariant into AGENTS.md and codex-metrics-policy.md.
+
+### 2026-03-29-038-attempt-001 — 2026-03-29-038
+- Entry type: retro
+- Status: success
+- Started at: 2026-03-29T10:57:39+00:00
+- Finished at: 2026-03-29T10:58:17+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Recorded the lesson that inferred attempt history is operational context, not diagnostic failure attribution, and should not pollute failure-reason metrics.
 
 ### 2026-03-29-037-attempt-001 — 2026-03-29-037
 - Entry type: meta

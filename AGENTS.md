@@ -39,6 +39,7 @@ For every engineering task involving the metrics system:
    - `retro` for retrospective analysis and retro writeups
    - `meta` for bookkeeping, audits, process/tooling governance, and non-product support work
    - for new goals, always pass the goal type explicitly
+   - after attempt history exists, do not reclassify the goal to another type; start a new linked goal instead if the work was mis-scoped
    - if a new goal intentionally continues or supersedes a prior closed goal, link it explicitly with `--continuation-of` or `--supersedes-task-id`
 3. update attempts on each new implementation pass for the same goal
 4. update cost or tokens when available

@@ -566,6 +566,34 @@ def test_invalid_failure_reason_fails(repo: Path) -> None:
     assert result.returncode != 0
 
 
+def test_goal_type_cannot_change_after_attempt_history_exists(repo: Path) -> None:
+    assert run_cmd(repo, "init").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "typed-goal",
+        "--title",
+        "Typed Goal",
+        "--task-type",
+        "product",
+        "--attempts-delta",
+        "1",
+    ).returncode == 0
+
+    result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "typed-goal",
+        "--task-type",
+        "meta",
+    )
+
+    assert result.returncode != 0
+    assert "goal_type cannot be changed after attempt history exists" in result.stderr
+
+
 def test_unknown_pricing_model_fails(repo: Path) -> None:
     assert run_cmd(repo, "init", "--force").returncode == 0
 
