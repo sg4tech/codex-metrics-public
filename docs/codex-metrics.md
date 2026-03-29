@@ -2,10 +2,10 @@
 
 ## Current summary
 
-- Closed tasks: 2
-- Successes: 2
+- Closed tasks: 3
+- Successes: 3
 - Fails: 0
-- Total attempts: 2
+- Total attempts: 3
 - Total cost (USD): 0.00
 - Total tokens: 0
 - Success Rate: 100.00%
@@ -14,6 +14,16 @@
 - Cost per Success (Tokens): n/a
 
 ## Task log
+
+### 2026-03-29-004 — Add repository .gitignore for non-source artifacts
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-29T08:41:51+00:00
+- Finished at: 2026-03-29T08:42:12+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Added repository .gitignore for caches, local virtualenvs, IDE settings, and OS noise; verified required metrics/report/retro files are not ignored.
 
 ### 2026-03-29-003 — Add first retrospective and checkpoint commit
 - Status: success
