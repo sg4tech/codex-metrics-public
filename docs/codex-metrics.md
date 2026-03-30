@@ -2,18 +2,18 @@
 
 ## Goal summary
 
-- Closed goals: 149
-- Successes: 149
+- Closed goals: 150
+- Successes: 150
 - Fails: 0
-- Total attempts: 155
+- Total attempts: 156
 - Known total cost (USD): 208.232692
 - Known total tokens: 149406029
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 118/149 successful goals
-- Known token coverage: 118/149 successful goals
-- Complete cost coverage: 118/149 successful goals
-- Complete token coverage: 118/149 successful goals
+- Known cost coverage: 118/150 successful goals
+- Known token coverage: 118/150 successful goals
+- Complete cost coverage: 118/150 successful goals
+- Complete token coverage: 118/150 successful goals
 - Known Cost per Success (USD): 1.764684
 - Known Cost per Success (Tokens): 1266152.79
 - Complete Cost per Covered Success (USD): 1.764684
@@ -21,10 +21,10 @@
 
 ## Entry summary
 
-- Closed entries: 155
-- Successes: 154
+- Closed entries: 156
+- Successes: 155
 - Fails: 1
-- Success Rate: 99.35%
+- Success Rate: 99.36%
 - Known total cost (USD): 207.335312
 - Known total tokens: 148690050
 
@@ -77,24 +77,37 @@
 - Complete Cost per Covered Success (Tokens): 369329.71
 
 ### meta
-- Closed goals: 63
-- Successes: 63
+- Closed goals: 64
+- Successes: 64
 - Fails: 0
-- Total attempts: 63
+- Total attempts: 64
 - Known total cost (USD): 94.544394
 - Known total tokens: 67818228
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 54/63 successful goals
-- Known token coverage: 54/63 successful goals
-- Complete cost coverage: 54/63 successful goals
-- Complete token coverage: 54/63 successful goals
+- Known cost coverage: 54/64 successful goals
+- Known token coverage: 54/64 successful goals
+- Complete cost coverage: 54/64 successful goals
+- Complete token coverage: 54/64 successful goals
 - Known Cost per Success (USD): 1.750822
 - Known Cost per Success (Tokens): 1255893.11
 - Complete Cost per Covered Success (USD): 1.750822
 - Complete Cost per Covered Success (Tokens): 1255893.11
 
 ## Goal log
+
+### 2026-03-30-010 — Align retrospective rules in local and reusable AGENTS
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-30T09:07:54+00:00
+- Finished at: 2026-03-30T09:07:54+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Strengthened local and reusable retrospective rules with explicit minimum sections, scope classification, and a recommendation to use 5 Whys and Theory of Constraints for significant incidents.
 
 ### 2026-03-30-009 — Add reusable process playbook for new projects
 - Goal type: product
@@ -2099,6 +2112,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-30-010-attempt-001 — 2026-03-30-010
+- Entry type: meta
+- Inferred: no
+- Status: success
+- Started at: 2026-03-30T09:07:54+00:00
+- Finished at: 2026-03-30T09:07:54+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Strengthened local and reusable retrospective rules with explicit minimum sections, scope classification, and a recommendation to use 5 Whys and Theory of Constraints for significant incidents.
 
 ### 2026-03-30-009-attempt-001 — 2026-03-30-009
 - Entry type: product

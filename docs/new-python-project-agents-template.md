@@ -150,14 +150,23 @@ If a metric looks wrong or incomplete, diagnose first:
 - Log a retrospective for meaningful bugs, repeated failures, false successes, costly debugging episodes, or process misses.
 - Do not write retros for trivial noise.
 - Keep retros short and operational.
+- Retros should capture at minimum:
+  - situation
+  - what happened
+  - root cause
+  - retrospective
+  - conclusions
+  - permanent changes
+- For significant incidents, prefer using `5 Whys` and `Theory of Constraints`.
 - Every retrospective must end with a classified follow-up:
-  - code change
-  - test
-  - validation rule
-  - local workflow rule
-  - documentation only
+  - local `AGENTS.md`
+  - reusable external policy
+  - tests or code guardrails
+  - retrospective only
   - no action
 - Prefer the narrowest correct scope.
+- Do not promote a lesson into reusable policy unless it is genuinely reusable beyond the local project workflow.
+- `AGENTS.md` stores standing project rules; retros store incident history and lessons.
 
 ## Retrospective Rules
 

@@ -123,6 +123,7 @@ If `update` output and a parallel `show` disagree, first rerun `show` sequential
   - retrospective
   - conclusions
   - permanent changes
+- For significant incidents, prefer using `5 Whys` and `Theory of Constraints` to separate the symptom from the real bottleneck.
 - When a retrospective proposes improvements, classify each proposed change before codifying it:
   - local `AGENTS.md`
   - reusable external policy

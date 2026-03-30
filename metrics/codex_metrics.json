@@ -1,13 +1,13 @@
 {
   "summary": {
-    "closed_tasks": 149,
-    "successes": 149,
+    "closed_tasks": 150,
+    "successes": 150,
     "fails": 0,
-    "total_attempts": 155,
+    "total_attempts": 156,
     "total_cost_usd": 208.232692,
     "total_tokens": 149406029,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.0402684563758389,
+    "attempts_per_closed_task": 1.04,
     "known_cost_successes": 118,
     "known_token_successes": 118,
     "complete_cost_successes": 118,
@@ -20,10 +20,10 @@
     "cost_per_success_tokens": null,
     "by_goal_type": {
       "meta": {
-        "closed_tasks": 63,
-        "successes": 63,
+        "closed_tasks": 64,
+        "successes": 64,
         "fails": 0,
-        "total_attempts": 63,
+        "total_attempts": 64,
         "total_cost_usd": 94.544394,
         "total_tokens": 67818228,
         "success_rate": 1.0,
@@ -82,10 +82,10 @@
     },
     "by_task_type": {
       "meta": {
-        "closed_tasks": 63,
-        "successes": 63,
+        "closed_tasks": 64,
+        "successes": 64,
         "fails": 0,
-        "total_attempts": 63,
+        "total_attempts": 64,
         "total_cost_usd": 94.544394,
         "total_tokens": 67818228,
         "success_rate": 1.0,
@@ -143,10 +143,10 @@
       }
     },
     "entries": {
-      "closed_entries": 155,
-      "successes": 154,
+      "closed_entries": 156,
+      "successes": 155,
       "fails": 1,
-      "success_rate": 0.9935483870967742,
+      "success_rate": 0.9935897435897436,
       "total_cost_usd": 207.335312,
       "total_tokens": 148690050,
       "failure_reasons": {
@@ -2464,6 +2464,21 @@
       "failure_reason": null,
       "notes": "Added a reusable process playbook covering PM discovery, lead-owned task creation, role separation, stage flow, and the rule that development should start from a clarified task rather than a raw request.",
       "result_fit": "exact_fit"
+    },
+    {
+      "goal_id": "2026-03-30-010",
+      "title": "Align retrospective rules in local and reusable AGENTS",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-30T09:07:54+00:00",
+      "finished_at": "2026-03-30T09:07:54+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Strengthened local and reusable retrospective rules with explicit minimum sections, scope classification, and a recommendation to use 5 Whys and Theory of Constraints for significant incidents.",
+      "result_fit": null
     }
   ],
   "entries": [
@@ -4520,6 +4535,19 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Added a reusable process playbook covering PM discovery, lead-owned task creation, role separation, stage flow, and the rule that development should start from a clarified task rather than a raw request."
+    },
+    {
+      "entry_id": "2026-03-30-010-attempt-001",
+      "goal_id": "2026-03-30-010",
+      "entry_type": "meta",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-30T09:07:54+00:00",
+      "finished_at": "2026-03-30T09:07:54+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Strengthened local and reusable retrospective rules with explicit minimum sections, scope classification, and a recommendation to use 5 Whys and Theory of Constraints for significant incidents."
     }
   ]
 }
