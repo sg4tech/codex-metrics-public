@@ -2,18 +2,18 @@
 
 ## Goal summary
 
-- Closed goals: 142
-- Successes: 142
+- Closed goals: 143
+- Successes: 143
 - Fails: 0
-- Total attempts: 148
+- Total attempts: 149
 - Known total cost (USD): 208.232692
 - Known total tokens: 149406029
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 118/142 successful goals
-- Known token coverage: 118/142 successful goals
-- Complete cost coverage: 118/142 successful goals
-- Complete token coverage: 118/142 successful goals
+- Known cost coverage: 118/143 successful goals
+- Known token coverage: 118/143 successful goals
+- Complete cost coverage: 118/143 successful goals
+- Complete token coverage: 118/143 successful goals
 - Known Cost per Success (USD): 1.764684
 - Known Cost per Success (Tokens): 1266152.79
 - Complete Cost per Covered Success (USD): 1.764684
@@ -21,10 +21,10 @@
 
 ## Entry summary
 
-- Closed entries: 148
-- Successes: 147
+- Closed entries: 149
+- Successes: 148
 - Fails: 1
-- Success Rate: 99.32%
+- Success Rate: 99.33%
 - Known total cost (USD): 207.335312
 - Known total tokens: 148690050
 
@@ -41,18 +41,18 @@
 - unclear_task: 1
 
 ### product
-- Closed goals: 47
-- Successes: 47
+- Closed goals: 48
+- Successes: 48
 - Fails: 0
-- Total attempts: 53
+- Total attempts: 54
 - Known total cost (USD): 101.235054
 - Known total tokens: 72723888
 - Success Rate: 100.00%
-- Attempts per Closed Goal: 1.13
-- Known cost coverage: 40/47 successful goals
-- Known token coverage: 40/47 successful goals
-- Complete cost coverage: 40/47 successful goals
-- Complete token coverage: 40/47 successful goals
+- Attempts per Closed Goal: 1.12
+- Known cost coverage: 40/48 successful goals
+- Known token coverage: 40/48 successful goals
+- Complete cost coverage: 40/48 successful goals
+- Complete token coverage: 40/48 successful goals
 - Known Cost per Success (USD): 2.530876
 - Known Cost per Success (Tokens): 1818097.20
 - Complete Cost per Covered Success (USD): 2.530876
@@ -95,6 +95,19 @@
 - Complete Cost per Covered Success (Tokens): 1255893.11
 
 ## Goal log
+
+### 2026-03-30-003 — Broaden reusable Python project AI instructions
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-30T08:45:32+00:00
+- Finished at: 2026-03-30T08:45:33+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Result fit: exact_fit
+- Notes: Expanded the reusable instruction file with canonical verify-flow, layered architecture defaults, compatibility-contract thinking, audit-first metric diagnosis, bootstrap safety, and retrospective scope discipline based on codex-metrics lessons.
 
 ### 2026-03-30-002 — Strengthen reusable AI instructions for Python projects
 - Goal type: product
@@ -2008,6 +2021,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-30-003-attempt-001 — 2026-03-30-003
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-30T08:45:32+00:00
+- Finished at: 2026-03-30T08:45:33+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Expanded the reusable instruction file with canonical verify-flow, layered architecture defaults, compatibility-contract thinking, audit-first metric diagnosis, bootstrap safety, and retrospective scope discipline based on codex-metrics lessons.
 
 ### 2026-03-30-002-attempt-001 — 2026-03-30-002
 - Entry type: product

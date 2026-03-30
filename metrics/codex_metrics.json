@@ -1,13 +1,13 @@
 {
   "summary": {
-    "closed_tasks": 142,
-    "successes": 142,
+    "closed_tasks": 143,
+    "successes": 143,
     "fails": 0,
-    "total_attempts": 148,
+    "total_attempts": 149,
     "total_cost_usd": 208.232692,
     "total_tokens": 149406029,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.0422535211267605,
+    "attempts_per_closed_task": 1.0419580419580419,
     "known_cost_successes": 118,
     "known_token_successes": 118,
     "complete_cost_successes": 118,
@@ -40,14 +40,14 @@
         "cost_per_success_tokens": null
       },
       "product": {
-        "closed_tasks": 47,
-        "successes": 47,
+        "closed_tasks": 48,
+        "successes": 48,
         "fails": 0,
-        "total_attempts": 53,
+        "total_attempts": 54,
         "total_cost_usd": 101.235054,
         "total_tokens": 72723888,
         "success_rate": 1.0,
-        "attempts_per_closed_task": 1.127659574468085,
+        "attempts_per_closed_task": 1.125,
         "known_cost_successes": 40,
         "known_token_successes": 40,
         "complete_cost_successes": 40,
@@ -102,14 +102,14 @@
         "cost_per_success_tokens": null
       },
       "product": {
-        "closed_tasks": 47,
-        "successes": 47,
+        "closed_tasks": 48,
+        "successes": 48,
         "fails": 0,
-        "total_attempts": 53,
+        "total_attempts": 54,
         "total_cost_usd": 101.235054,
         "total_tokens": 72723888,
         "success_rate": 1.0,
-        "attempts_per_closed_task": 1.127659574468085,
+        "attempts_per_closed_task": 1.125,
         "known_cost_successes": 40,
         "known_token_successes": 40,
         "complete_cost_successes": 40,
@@ -143,10 +143,10 @@
       }
     },
     "entries": {
-      "closed_entries": 148,
-      "successes": 147,
+      "closed_entries": 149,
+      "successes": 148,
       "fails": 1,
-      "success_rate": 0.9932432432432432,
+      "success_rate": 0.9932885906040269,
       "total_cost_usd": 207.335312,
       "total_tokens": 148690050,
       "failure_reasons": {
@@ -2359,6 +2359,21 @@
       "failure_reason": null,
       "notes": "Tightened the reusable instruction file to require test-first development, coverage from project start, mandatory lint/type analysis, active anti-copy-paste discipline, and explicit SOLID/DDD/GRASP architectural guidance.",
       "result_fit": "exact_fit"
+    },
+    {
+      "goal_id": "2026-03-30-003",
+      "title": "Broaden reusable Python project AI instructions",
+      "goal_type": "product",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-30T08:45:32+00:00",
+      "finished_at": "2026-03-30T08:45:33+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Expanded the reusable instruction file with canonical verify-flow, layered architecture defaults, compatibility-contract thinking, audit-first metric diagnosis, bootstrap safety, and retrospective scope discipline based on codex-metrics lessons.",
+      "result_fit": "exact_fit"
     }
   ],
   "entries": [
@@ -4324,6 +4339,19 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Tightened the reusable instruction file to require test-first development, coverage from project start, mandatory lint/type analysis, active anti-copy-paste discipline, and explicit SOLID/DDD/GRASP architectural guidance."
+    },
+    {
+      "entry_id": "2026-03-30-003-attempt-001",
+      "goal_id": "2026-03-30-003",
+      "entry_type": "product",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-30T08:45:32+00:00",
+      "finished_at": "2026-03-30T08:45:33+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Expanded the reusable instruction file with canonical verify-flow, layered architecture defaults, compatibility-contract thinking, audit-first metric diagnosis, bootstrap safety, and retrospective scope discipline based on codex-metrics lessons."
     }
   ]
 }

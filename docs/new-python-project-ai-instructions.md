@@ -84,6 +84,10 @@ Minimum expectation:
 
 Do not postpone coverage until “after the project stabilizes”.
 
+Treat the canonical verify command as part of the product contract for the repository.
+
+Do not let validation devolve into a grab-bag of ad hoc commands that different contributors remember differently.
+
 ## Architecture Standard
 
 Prefer designs that stay legible under change.
@@ -131,10 +135,17 @@ The target is shared truth without unnecessary indirection.
 ## Code Structure
 
 - Keep domain logic separate from CLI, storage, and reporting concerns.
+- Separate these layers early:
+  - domain
+  - orchestration or commands
+  - storage
+  - reporting
+  - CLI or entrypoints
 - Use explicit typed boundaries for important records and mutation flows.
 - Prefer dataclasses, typed objects, or schemas over shapeless dictionaries at domain boundaries.
 - Preserve compatibility surfaces during refactors until a breaking change is intentional and verified.
 - Avoid turning one orchestration file into a god-module.
+- Treat shims, public CLI commands, packaged entrypoints, and bootstrap flows as compatibility contracts once users or automation depend on them.
 
 ## Testing Strategy
 
@@ -184,12 +195,18 @@ Do not assume synthetic tests are enough for real integration boundaries.
 
 When an integration depends on real external or local runtime artifacts, add an opt-in smoke check.
 
+For packaging, bootstrap, or installer flows:
+
+- test the real packaged or installed entrypoint
+- not only local source-tree execution
+
 ## Validation Rules
 
 - Fail loudly on invalid state.
 - Add strict validation early.
 - Encode repeated failure modes as tests, types, validation rules, or guardrails.
 - Do not leave important integrity rules as informal convention only.
+- Validate before mutation when a workflow can partially write or scaffold files.
 
 Examples of high-value validation:
 
@@ -198,6 +215,9 @@ Examples of high-value validation:
 - acyclic references
 - non-negative counters and costs
 - stage or lifecycle consistency
+- safe rerun behavior
+- partial existing state handling
+- conflict detection before writes
 
 ## Workflow And Task Boundaries
 
@@ -213,6 +233,11 @@ For product or delivery work:
 - avoid post-hoc zero-duration closeouts
 - keep timing and cost windows honest enough for later analysis
 
+Do not automate a workflow that is not yet manually understood end to end.
+
+First prove the manual flow.
+Then automate only the parts that are stable and clearly helpful.
+
 ## Metrics And Observability
 
 If the project tracks execution metrics:
@@ -221,6 +246,12 @@ If the project tracks execution metrics:
 - do not let top-line success hide failed attempts
 - prefer explicit coverage and covered-subset averages over brittle all-or-nothing KPIs
 - add diagnostic audit views before adding more summary polish
+
+When a metric looks wrong or incomplete, prefer audit-first diagnosis:
+
+- add a diagnostic command, report, or debug lens
+- identify the dominant reason bucket
+- only then change the summary metric or workflow
 
 If the system says data is missing, verify whether:
 
@@ -250,6 +281,14 @@ Do not promote every lesson into broad policy.
 
 Prefer the narrowest correct scope.
 
+Good retrospective follow-up targets:
+
+- code change
+- test
+- validation rule
+- local agent rule
+- reusable policy only when genuinely portable
+
 ## Release And Automation Principles
 
 - Keep a single source of truth for config and important paths.
@@ -257,6 +296,7 @@ Prefer the narrowest correct scope.
 - Validate the real artifact that users run, not only the source tree.
 - Design bootstrap or initializer flows to support safe reruns and partial existing states.
 - Separate preflight checks from writes where possible.
+- Treat bootstrap, scaffolding, installer, and migration flows as first-class product surfaces.
 
 ## Things To Avoid
 
@@ -278,6 +318,10 @@ Use this loop repeatedly:
 5. add or strengthen guardrails
 6. verify strongly
 7. capture the lesson if it is likely to repeat
+
+If a fix changes an integration boundary, add:
+
+8. a targeted diagnostic or smoke check that proves the boundary works in reality
 
 ## What “Done” Means
 
