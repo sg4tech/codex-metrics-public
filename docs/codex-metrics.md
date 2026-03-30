@@ -2,18 +2,18 @@
 
 ## Goal summary
 
-- Closed goals: 143
-- Successes: 143
+- Closed goals: 145
+- Successes: 145
 - Fails: 0
-- Total attempts: 149
+- Total attempts: 151
 - Known total cost (USD): 208.232692
 - Known total tokens: 149406029
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 118/143 successful goals
-- Known token coverage: 118/143 successful goals
-- Complete cost coverage: 118/143 successful goals
-- Complete token coverage: 118/143 successful goals
+- Known cost coverage: 118/145 successful goals
+- Known token coverage: 118/145 successful goals
+- Complete cost coverage: 118/145 successful goals
+- Complete token coverage: 118/145 successful goals
 - Known Cost per Success (USD): 1.764684
 - Known Cost per Success (Tokens): 1266152.79
 - Complete Cost per Covered Success (USD): 1.764684
@@ -21,10 +21,10 @@
 
 ## Entry summary
 
-- Closed entries: 149
-- Successes: 148
+- Closed entries: 151
+- Successes: 150
 - Fails: 1
-- Success Rate: 99.33%
+- Success Rate: 99.34%
 - Known total cost (USD): 207.335312
 - Known total tokens: 148690050
 
@@ -41,18 +41,18 @@
 - unclear_task: 1
 
 ### product
-- Closed goals: 48
-- Successes: 48
+- Closed goals: 49
+- Successes: 49
 - Fails: 0
-- Total attempts: 54
+- Total attempts: 55
 - Known total cost (USD): 101.235054
 - Known total tokens: 72723888
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.12
-- Known cost coverage: 40/48 successful goals
-- Known token coverage: 40/48 successful goals
-- Complete cost coverage: 40/48 successful goals
-- Complete token coverage: 40/48 successful goals
+- Known cost coverage: 40/49 successful goals
+- Known token coverage: 40/49 successful goals
+- Complete cost coverage: 40/49 successful goals
+- Complete token coverage: 40/49 successful goals
 - Known Cost per Success (USD): 2.530876
 - Known Cost per Success (Tokens): 1818097.20
 - Complete Cost per Covered Success (USD): 2.530876
@@ -77,24 +77,50 @@
 - Complete Cost per Covered Success (Tokens): 369329.71
 
 ### meta
-- Closed goals: 62
-- Successes: 62
+- Closed goals: 63
+- Successes: 63
 - Fails: 0
-- Total attempts: 62
+- Total attempts: 63
 - Known total cost (USD): 94.544394
 - Known total tokens: 67818228
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 54/62 successful goals
-- Known token coverage: 54/62 successful goals
-- Complete cost coverage: 54/62 successful goals
-- Complete token coverage: 54/62 successful goals
+- Known cost coverage: 54/63 successful goals
+- Known token coverage: 54/63 successful goals
+- Complete cost coverage: 54/63 successful goals
+- Complete token coverage: 54/63 successful goals
 - Known Cost per Success (USD): 1.750822
 - Known Cost per Success (Tokens): 1255893.11
 - Complete Cost per Covered Success (USD): 1.750822
 - Complete Cost per Covered Success (Tokens): 1255893.11
 
 ## Goal log
+
+### 2026-03-30-005 — Add concise AGENTS template for new Python projects
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-30T08:47:32+00:00
+- Finished at: 2026-03-30T08:47:33+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Result fit: exact_fit
+- Notes: Added a mandatory-rules-only AGENTS template for new Python projects with strict guidance on TDD, coverage, linting, type checking, anti-copy-paste discipline, layered architecture, validation, and definition of done.
+
+### 2026-03-30-004 — Remove IDE project files from git
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-30T08:46:25+00:00
+- Finished at: 2026-03-30T08:46:25+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Removed tracked .idea files from git index while keeping them locally ignored via .gitignore so IDE noise stops polluting repository history.
 
 ### 2026-03-30-003 — Broaden reusable Python project AI instructions
 - Goal type: product
@@ -2021,6 +2047,28 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-30-005-attempt-001 — 2026-03-30-005
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-30T08:47:32+00:00
+- Finished at: 2026-03-30T08:47:33+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Added a mandatory-rules-only AGENTS template for new Python projects with strict guidance on TDD, coverage, linting, type checking, anti-copy-paste discipline, layered architecture, validation, and definition of done.
+
+### 2026-03-30-004-attempt-001 — 2026-03-30-004
+- Entry type: meta
+- Inferred: no
+- Status: success
+- Started at: 2026-03-30T08:46:25+00:00
+- Finished at: 2026-03-30T08:46:25+00:00
+- Cost (USD): n/a
+- Tokens: n/a
+- Failure reason: n/a
+- Notes: Removed tracked .idea files from git index while keeping them locally ignored via .gitignore so IDE noise stops polluting repository history.
 
 ### 2026-03-30-003-attempt-001 — 2026-03-30-003
 - Entry type: product

@@ -1,13 +1,13 @@
 {
   "summary": {
-    "closed_tasks": 143,
-    "successes": 143,
+    "closed_tasks": 145,
+    "successes": 145,
     "fails": 0,
-    "total_attempts": 149,
+    "total_attempts": 151,
     "total_cost_usd": 208.232692,
     "total_tokens": 149406029,
     "success_rate": 1.0,
-    "attempts_per_closed_task": 1.0419580419580419,
+    "attempts_per_closed_task": 1.0413793103448277,
     "known_cost_successes": 118,
     "known_token_successes": 118,
     "complete_cost_successes": 118,
@@ -20,10 +20,10 @@
     "cost_per_success_tokens": null,
     "by_goal_type": {
       "meta": {
-        "closed_tasks": 62,
-        "successes": 62,
+        "closed_tasks": 63,
+        "successes": 63,
         "fails": 0,
-        "total_attempts": 62,
+        "total_attempts": 63,
         "total_cost_usd": 94.544394,
         "total_tokens": 67818228,
         "success_rate": 1.0,
@@ -40,14 +40,14 @@
         "cost_per_success_tokens": null
       },
       "product": {
-        "closed_tasks": 48,
-        "successes": 48,
+        "closed_tasks": 49,
+        "successes": 49,
         "fails": 0,
-        "total_attempts": 54,
+        "total_attempts": 55,
         "total_cost_usd": 101.235054,
         "total_tokens": 72723888,
         "success_rate": 1.0,
-        "attempts_per_closed_task": 1.125,
+        "attempts_per_closed_task": 1.1224489795918366,
         "known_cost_successes": 40,
         "known_token_successes": 40,
         "complete_cost_successes": 40,
@@ -82,10 +82,10 @@
     },
     "by_task_type": {
       "meta": {
-        "closed_tasks": 62,
-        "successes": 62,
+        "closed_tasks": 63,
+        "successes": 63,
         "fails": 0,
-        "total_attempts": 62,
+        "total_attempts": 63,
         "total_cost_usd": 94.544394,
         "total_tokens": 67818228,
         "success_rate": 1.0,
@@ -102,14 +102,14 @@
         "cost_per_success_tokens": null
       },
       "product": {
-        "closed_tasks": 48,
-        "successes": 48,
+        "closed_tasks": 49,
+        "successes": 49,
         "fails": 0,
-        "total_attempts": 54,
+        "total_attempts": 55,
         "total_cost_usd": 101.235054,
         "total_tokens": 72723888,
         "success_rate": 1.0,
-        "attempts_per_closed_task": 1.125,
+        "attempts_per_closed_task": 1.1224489795918366,
         "known_cost_successes": 40,
         "known_token_successes": 40,
         "complete_cost_successes": 40,
@@ -143,10 +143,10 @@
       }
     },
     "entries": {
-      "closed_entries": 149,
-      "successes": 148,
+      "closed_entries": 151,
+      "successes": 150,
       "fails": 1,
-      "success_rate": 0.9932885906040269,
+      "success_rate": 0.9933774834437086,
       "total_cost_usd": 207.335312,
       "total_tokens": 148690050,
       "failure_reasons": {
@@ -2374,6 +2374,36 @@
       "failure_reason": null,
       "notes": "Expanded the reusable instruction file with canonical verify-flow, layered architecture defaults, compatibility-contract thinking, audit-first metric diagnosis, bootstrap safety, and retrospective scope discipline based on codex-metrics lessons.",
       "result_fit": "exact_fit"
+    },
+    {
+      "goal_id": "2026-03-30-004",
+      "title": "Remove IDE project files from git",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-30T08:46:25+00:00",
+      "finished_at": "2026-03-30T08:46:25+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Removed tracked .idea files from git index while keeping them locally ignored via .gitignore so IDE noise stops polluting repository history.",
+      "result_fit": null
+    },
+    {
+      "goal_id": "2026-03-30-005",
+      "title": "Add concise AGENTS template for new Python projects",
+      "goal_type": "product",
+      "supersedes_goal_id": null,
+      "status": "success",
+      "attempts": 1,
+      "started_at": "2026-03-30T08:47:32+00:00",
+      "finished_at": "2026-03-30T08:47:33+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Added a mandatory-rules-only AGENTS template for new Python projects with strict guidance on TDD, coverage, linting, type checking, anti-copy-paste discipline, layered architecture, validation, and definition of done.",
+      "result_fit": "exact_fit"
     }
   ],
   "entries": [
@@ -4352,6 +4382,32 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Expanded the reusable instruction file with canonical verify-flow, layered architecture defaults, compatibility-contract thinking, audit-first metric diagnosis, bootstrap safety, and retrospective scope discipline based on codex-metrics lessons."
+    },
+    {
+      "entry_id": "2026-03-30-004-attempt-001",
+      "goal_id": "2026-03-30-004",
+      "entry_type": "meta",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-30T08:46:25+00:00",
+      "finished_at": "2026-03-30T08:46:25+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Removed tracked .idea files from git index while keeping them locally ignored via .gitignore so IDE noise stops polluting repository history."
+    },
+    {
+      "entry_id": "2026-03-30-005-attempt-001",
+      "goal_id": "2026-03-30-005",
+      "entry_type": "product",
+      "inferred": false,
+      "status": "success",
+      "started_at": "2026-03-30T08:47:32+00:00",
+      "finished_at": "2026-03-30T08:47:33+00:00",
+      "cost_usd": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Added a mandatory-rules-only AGENTS template for new Python projects with strict guidance on TDD, coverage, linting, type checking, anti-copy-paste discipline, layered architecture, validation, and definition of done."
     }
   ]
 }
