@@ -122,3 +122,90 @@ Rules:
   - after cost-by-goal-type or cost-by-quality slices are available
 - Notes:
   - `2026-03-31`: derived from comparing `codex-metrics`, `invest`, and `hhsave` snapshots.
+
+### H-004 — Lead-mediated task flow may improve outcome fit by reducing adjacent work
+
+- Status: `active`
+- Created: `2026-03-31`
+- Statement:
+  - Requiring implementation to start from a lead-owned clarified task may increase exact-fit outcomes by reducing scope drift and adjacent technical work.
+- Why it matters:
+  - If true, process changes around lead mediation are a product lever, not just a team preference.
+- Expected upside:
+  - fewer “technically strong but not requested” outcomes
+  - clearer handoffs from PM intent to implementation
+  - lower retry pressure caused by scope drift
+- Main risks or where this may be wrong:
+  - adds coordination overhead on small tasks
+  - can create a lead bottleneck without improving clarity
+  - may not matter much when one operator is already disciplined
+- Alternatives considered:
+  - direct developer execution from raw request
+  - lightweight checklist without explicit lead mediation
+  - stronger acceptance review only at the end
+- Current confidence:
+  - `medium-low`
+- Evidence status:
+  - supported indirectly by repeated local pain around adjacent work and by the new process playbook
+  - not yet validated through a tracked pilot on multiple real tasks
+- Next re-evaluation trigger:
+  - after 2-5 real tasks are run through the playbook manually
+- Notes:
+  - `2026-03-31`: added after formalizing the reusable process playbook and recognizing that the idea still needs operational validation.
+
+### H-005 — Early PM discovery likely reduces expensive rework more than late technical polishing
+
+- Status: `active`
+- Created: `2026-03-31`
+- Statement:
+  - Clarifying user, JTBD, acceptance criteria, and out-of-scope boundaries before implementation likely reduces rework more than adding more polishing later.
+- Why it matters:
+  - If true, the highest-leverage product improvement is better pre-implementation clarification, not more downstream checking alone.
+- Expected upside:
+  - fewer wrong-problem implementations
+  - fewer false successes
+  - clearer product decisions about what to build next
+- Main risks or where this may be wrong:
+  - the discovery overhead may be unnecessary on very small obvious tasks
+  - some uncertainty only appears after touching the real system
+- Alternatives considered:
+  - minimal upfront discovery with stronger review later
+  - implement-first and clarify through prototypes
+  - rely on retrospective correction after misses
+- Current confidence:
+  - `medium`
+- Evidence status:
+  - supported by the project's repeated pattern that weak framing created misleading or low-ROI work
+  - not yet quantified as a before/after process effect
+- Next re-evaluation trigger:
+  - after a small batch of manually tracked tasks records whether PM discovery reduced misses or partial fits
+- Notes:
+  - `2026-03-31`: derived from repeated retros showing that unclear intent hurt more than missing code polish.
+
+### H-006 — Retros with codified follow-up may reduce repeated failure modes more than retros alone
+
+- Status: `active`
+- Created: `2026-03-31`
+- Statement:
+  - Retros are materially more valuable when they end in a classified follow-up such as a test, guardrail, rule, or explicit no-action decision.
+- Why it matters:
+  - If true, the product and process should treat codified follow-up as the real unit of learning, not the retrospective document by itself.
+- Expected upside:
+  - repeated failures turn into permanent checks faster
+  - less “we wrote it down but nothing changed”
+  - clearer distinction between useful and decorative retrospectives
+- Main risks or where this may be wrong:
+  - can overfit on noisy one-off incidents
+  - may push teams to codify weak lessons too aggressively
+- Alternatives considered:
+  - retrospective logging without required follow-up classification
+  - lightweight oral review without docs
+  - pure testing focus without retros
+- Current confidence:
+  - `high`
+- Evidence status:
+  - strongly supported by this repository's history, where the highest-ROI retros were the ones that became tests, guardrails, AGENTS rules, or workflow changes
+- Next re-evaluation trigger:
+  - if future retros start creating more noise than lasting improvement
+- Notes:
+  - `2026-03-31`: added after explicit PM review of which practices actually helped this project.

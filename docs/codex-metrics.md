@@ -2,31 +2,31 @@
 
 ## Goal summary
 
-- Closed goals: 171
-- Successes: 171
+- Closed goals: 172
+- Successes: 172
 - Fails: 0
-- Total attempts: 177
-- Known total cost (USD): 218.824667
-- Known total tokens: 158316976
+- Total attempts: 178
+- Known total cost (USD): 219.277234
+- Known total tokens: 158630933
 - Success Rate: 100.00%
-- Attempts per Closed Goal: 1.04
-- Known cost coverage: 141/171 successful goals
-- Known token coverage: 141/171 successful goals
-- Complete cost coverage: 141/171 successful goals
-- Complete token coverage: 141/171 successful goals
-- Known Cost per Success (USD): 1.551948
-- Known Cost per Success (Tokens): 1122815.43
-- Complete Cost per Covered Success (USD): 1.551948
-- Complete Cost per Covered Success (Tokens): 1122815.43
+- Attempts per Closed Goal: 1.03
+- Known cost coverage: 142/172 successful goals
+- Known token coverage: 142/172 successful goals
+- Complete cost coverage: 142/172 successful goals
+- Complete token coverage: 142/172 successful goals
+- Known Cost per Success (USD): 1.544206
+- Known Cost per Success (Tokens): 1117119.25
+- Complete Cost per Covered Success (USD): 1.544206
+- Complete Cost per Covered Success (Tokens): 1117119.25
 
 ## Entry summary
 
-- Closed entries: 177
-- Successes: 176
+- Closed entries: 178
+- Successes: 177
 - Fails: 1
 - Success Rate: 99.44%
-- Known total cost (USD): 223.484899
-- Known total tokens: 161519628
+- Known total cost (USD): 223.937466
+- Known total tokens: 161833585
 
 ## Operator review
 
@@ -59,22 +59,22 @@
 - Complete Cost per Covered Success (Tokens): 1468254.04
 
 ### retro
-- Closed goals: 35
-- Successes: 35
+- Closed goals: 36
+- Successes: 36
 - Fails: 0
-- Total attempts: 35
-- Known total cost (USD): 13.227108
-- Known total tokens: 9420068
+- Total attempts: 36
+- Known total cost (USD): 13.679675
+- Known total tokens: 9734025
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 26/35 successful goals
-- Known token coverage: 26/35 successful goals
-- Complete cost coverage: 26/35 successful goals
-- Complete token coverage: 26/35 successful goals
-- Known Cost per Success (USD): 0.508735
-- Known Cost per Success (Tokens): 362310.31
-- Complete Cost per Covered Success (USD): 0.508735
-- Complete Cost per Covered Success (Tokens): 362310.31
+- Known cost coverage: 27/36 successful goals
+- Known token coverage: 27/36 successful goals
+- Complete cost coverage: 27/36 successful goals
+- Complete token coverage: 27/36 successful goals
+- Known Cost per Success (USD): 0.506655
+- Known Cost per Success (Tokens): 360519.44
+- Complete Cost per Covered Success (USD): 0.506655
+- Complete Cost per Covered Success (Tokens): 360519.44
 
 ### meta
 - Closed goals: 74
@@ -95,6 +95,19 @@
 - Complete Cost per Covered Success (Tokens): 1151550.76
 
 ## Goal log
+
+### 2026-03-31-016 — Add PM hypothesis workflow retrospective
+- Goal type: retro
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-31T10:08:02+00:00
+- Finished at: 2026-03-31T10:08:57+00:00
+- Cost (USD): 0.452567
+- Tokens: 313957
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Logged a dedicated retrospective for the shift to hypothesis-driven PM, and extended docs/product-hypotheses.md with process hypotheses about lead-mediated task flow, early PM discovery, and codified retrospective follow-up.
 
 ### 2026-03-31-015 — Formalize PM hypothesis tracking workflow
 - Goal type: meta
@@ -2398,6 +2411,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-31-016-attempt-001 — 2026-03-31-016
+- Entry type: retro
+- Inferred: no
+- Status: success
+- Started at: 2026-03-31T10:08:02+00:00
+- Finished at: 2026-03-31T10:08:57+00:00
+- Cost (USD): 0.452567
+- Tokens: 313957
+- Failure reason: n/a
+- Notes: Logged a dedicated retrospective for the shift to hypothesis-driven PM, and extended docs/product-hypotheses.md with process hypotheses about lead-mediated task flow, early PM discovery, and codified retrospective follow-up.
 
 ### 2026-03-31-015-attempt-001 — 2026-03-31-015
 - Entry type: meta
