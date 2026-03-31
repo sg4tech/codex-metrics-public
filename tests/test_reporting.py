@@ -139,8 +139,24 @@ def test_build_product_quality_summary_excludes_failed_goal_cost_from_success_av
     assert summary.known_cost_per_success_tokens == 1000.0
 
 
-def test_build_quality_review_flags_partial_coverage_and_misses() -> None:
-    review = reporting.build_quality_review(
+def test_build_agent_recommendations_flags_partial_coverage_and_misses() -> None:
+    recommendations = reporting.build_agent_recommendations(
+        {
+            "successes": 3,
+            "known_cost_successes": 2,
+            "known_cost_per_success_usd": 0.5,
+            "complete_cost_successes": 1,
+            "complete_cost_per_covered_success_usd": 0.5,
+            "by_goal_type": {
+                "product": {"closed_tasks": 4},
+                "retro": {"closed_tasks": 0},
+                "meta": {"closed_tasks": 5},
+            },
+            "entries": {
+                "fails": 1,
+                "failure_reasons": {"unclear_task": 1},
+            },
+        },
         reporting.ProductQualitySummary(
             closed_product_goals=4,
             successful_product_goals=3,
@@ -158,12 +174,17 @@ def test_build_quality_review_flags_partial_coverage_and_misses() -> None:
             known_token_successes=2,
             known_cost_per_success_usd=0.5,
             known_cost_per_success_tokens=500.0,
-        )
+        ),
     )
 
-    assert "Product quality review coverage is partial; fit rates reflect a reviewed subset only." in review
-    assert "At least one reviewed product miss exists; inspect why the requested outcome was missed." in review
-    assert "Product retry pressure looks elevated; review scope clarity and acceptance boundaries." in review
+    rendered = [reporting._format_recommendation(recommendation) for recommendation in recommendations]
+
+    assert any("quality_review_coverage" in line for line in rendered)
+    assert any("Backfill result_fit" in line or "Review unreviewed product goals" in line for line in rendered)
+    assert any("quality_miss" in line for line in rendered)
+    assert any("Inspect missed product goals first" in line for line in rendered)
+    assert any("retry_pressure" in line for line in rendered)
+    assert any("entry_failures" in line for line in rendered)
 
 
 def test_generate_report_md_starts_with_product_quality_section() -> None:
@@ -190,8 +211,9 @@ def test_generate_report_md_starts_with_product_quality_section() -> None:
     rendered = reporting.generate_report_md(data)
 
     assert "## Product quality" in rendered
-    assert "## Product quality review" in rendered
+    assert "## Agent recommendations" in rendered
     assert "## Operational summary" in rendered
     assert rendered.index("## Product quality") < rendered.index("## Operational summary")
     assert "- Reviewed result fit: 1/1 closed product goals" in rendered
     assert "- Exact Fit Rate (reviewed): 100.00%" in rendered
+    assert "Next action:" in rendered

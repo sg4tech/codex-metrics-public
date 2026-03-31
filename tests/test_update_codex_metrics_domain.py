@@ -235,7 +235,7 @@ def test_compute_entry_summary_counts_failure_reasons_from_failed_entries_only()
     assert summary["failure_reasons"] == {"unclear_task": 1}
 
 
-def test_build_operator_review_surfaces_retry_and_cost_visibility() -> None:
+def test_build_operator_review_surfaces_agent_diagnoses() -> None:
     review = MODULE.build_operator_review(
         {
             "successes": 3,
@@ -255,11 +255,11 @@ def test_build_operator_review_surfaces_retry_and_cost_visibility() -> None:
         }
     )
 
-    assert "Product sample is still small; treat workflow conclusions as provisional." in review
-    assert "Meta work still outweighs product delivery; validate changes on real product goals." in review
-    assert "Retry pressure exists; inspect failed entries, especially unclear_task." in review
-    assert "Cost visibility is partial; use known-cost metrics as directional, not final." in review
-    assert "Full cost coverage is still partial; treat complete covered-success averages as strict subset signals." in review
+    assert "Product quality review has not started, so result-fit signals are still missing." in review
+    assert "The closed product-goal sample is still small, so workflow conclusions remain provisional." in review
+    assert "Meta work still outweighs product delivery, so local optimizations may not transfer cleanly to real product work." in review
+    assert "Failed entries exist, especially around unclear_task." in review
+    assert "Complete cost coverage is still partial across the full history, so complete covered-success averages are a strict subset view." in review
 
 
 def test_next_goal_id_ignores_malformed_and_other_day_ids() -> None:

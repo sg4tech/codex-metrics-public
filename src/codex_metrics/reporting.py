@@ -30,6 +30,14 @@ class ProductQualitySummary:
     known_cost_per_success_tokens: float | None
 
 
+@dataclass(frozen=True)
+class AgentRecommendation:
+    category: str
+    priority: str
+    diagnosis: str
+    next_action: str
+
+
 def _effective_goals_from_data(data: dict[str, Any]) -> list[EffectiveGoalRecord]:
     return build_effective_goals([goal_from_dict(goal) for goal in data["goals"]])
 
@@ -108,71 +116,198 @@ def format_coverage(known_count: int, total_count: int) -> str:
     return f"{known_count}/{total_count}"
 
 
-def build_operator_review(summary: dict[str, Any]) -> list[str]:
-    review: list[str] = []
+def build_agent_recommendations(summary: dict[str, Any], product_quality: ProductQualitySummary) -> list[AgentRecommendation]:
+    recommendations: list[AgentRecommendation] = []
     product_summary = summary["by_goal_type"]["product"]
     entry_summary = summary["entries"]
     successes = summary["successes"]
 
-    if product_summary["closed_tasks"] == 0:
-        review.append("Need more real product goals before trusting workflow conclusions.")
-    elif product_summary["closed_tasks"] < 5:
-        review.append("Product sample is still small; treat workflow conclusions as provisional.")
+    if product_quality.closed_product_goals == 0:
+        recommendations.append(
+            AgentRecommendation(
+                category="product_sample",
+                priority="high",
+                diagnosis="No closed product goals exist yet, so quality conclusions are not ready.",
+                next_action="Use codex-metrics on real product goals before drawing workflow conclusions.",
+            )
+        )
+        return recommendations
+
+    if product_quality.reviewed_product_goals == 0:
+        recommendations.append(
+            AgentRecommendation(
+                category="quality_review_coverage",
+                priority="high",
+                diagnosis="Product quality review has not started, so result-fit signals are still missing.",
+                next_action="Backfill result_fit for recent closed product goals before trusting quality trends.",
+            )
+        )
+    elif product_quality.unreviewed_product_goals > 0:
+        recommendations.append(
+            AgentRecommendation(
+                category="quality_review_coverage",
+                priority="medium",
+                diagnosis="Product quality review coverage is partial, so fit rates only reflect a reviewed subset.",
+                next_action="Review unreviewed product goals to raise result-fit coverage before making strong workflow decisions.",
+            )
+        )
+
+    if product_quality.miss_goals > 0:
+        recommendations.append(
+            AgentRecommendation(
+                category="quality_miss",
+                priority="high",
+                diagnosis="Reviewed product misses exist, which means at least some requested outcomes still failed outright.",
+                next_action="Inspect missed product goals first and identify whether the dominant issue was scope clarity, context, or execution.",
+            )
+        )
+
+    if product_quality.partial_fit_goals > 0:
+        recommendations.append(
+            AgentRecommendation(
+                category="quality_partial_fit",
+                priority="medium",
+                diagnosis="Reviewed partial-fit outcomes exist, so some product goals only succeeded after correction.",
+                next_action="Inspect the partial-fit product goals and look for acceptance drift or avoidable follow-up work.",
+            )
+        )
+
+    if product_quality.attempts_per_closed_product_goal is not None and product_quality.attempts_per_closed_product_goal > 1.2:
+        recommendations.append(
+            AgentRecommendation(
+                category="retry_pressure",
+                priority="medium",
+                diagnosis="Product retry pressure looks elevated relative to a simple one-pass flow.",
+                next_action="Inspect recent retries and continuation chains to see whether requirements or task boundaries need tightening.",
+            )
+        )
+
+    if product_summary["closed_tasks"] < 5:
+        recommendations.append(
+            AgentRecommendation(
+                category="product_sample",
+                priority="medium",
+                diagnosis="The closed product-goal sample is still small, so workflow conclusions remain provisional.",
+                next_action="Collect more real product-goal history before generalizing from the current trend.",
+            )
+        )
 
     if summary["by_goal_type"]["meta"]["closed_tasks"] > product_summary["closed_tasks"]:
-        review.append("Meta work still outweighs product delivery; validate changes on real product goals.")
+        recommendations.append(
+            AgentRecommendation(
+                category="product_mix",
+                priority="medium",
+                diagnosis="Meta work still outweighs product delivery, so local optimizations may not transfer cleanly to real product work.",
+                next_action="Validate any workflow changes on real product goals before treating them as product-level improvements.",
+            )
+        )
 
     if entry_summary["fails"] > 0:
         top_reason = None
         if entry_summary["failure_reasons"]:
-            top_reason = max(
-                entry_summary["failure_reasons"].items(),
-                key=lambda item: item[1],
-            )[0]
-        if top_reason is None:
-            review.append("Retry pressure exists; inspect failed entries and recent attempts.")
-        else:
-            review.append(f"Retry pressure exists; inspect failed entries, especially {top_reason}.")
-
-    if successes > 0 and summary["known_cost_successes"] < successes:
-        review.append("Cost visibility is partial; use known-cost metrics as directional, not final.")
-
-    if summary["complete_cost_successes"] < successes and summary["known_cost_per_success_usd"] is not None:
-        review.append(
-            "Full cost coverage is still partial; treat complete covered-success averages as strict subset signals."
+            top_reason = max(entry_summary["failure_reasons"].items(), key=lambda item: item[1])[0]
+        recommendations.append(
+            AgentRecommendation(
+                category="entry_failures",
+                priority="medium",
+                diagnosis=(
+                    "Failed entries exist, which means retry pressure is still present in the underlying attempt history."
+                    if top_reason is None
+                    else f"Failed entries exist, especially around {top_reason}."
+                ),
+                next_action=(
+                    "Inspect failed entries and recent attempt chains before concluding that the workflow is stable."
+                    if top_reason is None
+                    else f"Inspect failed entries tagged {top_reason} and the linked goals before recommending further process changes."
+                ),
+            )
         )
 
-    if not review:
-        review.append("Signals look stable; continue collecting product-goal history before changing the workflow.")
+    if product_quality.successful_product_goals > 0 and product_quality.known_cost_successes < product_quality.successful_product_goals:
+        recommendations.append(
+            AgentRecommendation(
+                category="product_cost_coverage",
+                priority="low",
+                diagnosis="Known product cost coverage is still partial, so product cost averages remain directional rather than complete.",
+                next_action="Use product cost views as guidance only and backfill or sync missing usage when cost comparisons matter for a decision.",
+            )
+        )
 
-    return review
+    if successes > 0 and summary["complete_cost_successes"] < successes and summary["known_cost_per_success_usd"] is not None:
+        recommendations.append(
+            AgentRecommendation(
+                category="global_cost_coverage",
+                priority="low",
+                diagnosis="Complete cost coverage is still partial across the full history, so complete covered-success averages are a strict subset view.",
+                next_action="Avoid over-reading complete-cost averages as if they described the whole dataset.",
+            )
+        )
+
+    if not recommendations:
+        recommendations.append(
+            AgentRecommendation(
+                category="stability",
+                priority="low",
+                diagnosis="Current signals look stable enough for another cycle of workflow comparison.",
+                next_action="Keep collecting product-goal history and compare the next workflow change against this baseline.",
+            )
+        )
+
+    return recommendations
+
+
+def build_operator_review(summary: dict[str, Any]) -> list[str]:
+    product_summary = summary["by_goal_type"]["product"]
+    product_quality = ProductQualitySummary(
+        closed_product_goals=product_summary["closed_tasks"],
+        successful_product_goals=product_summary.get("successes", 0),
+        failed_product_goals=product_summary.get("fails", 0),
+        reviewed_product_goals=0,
+        unreviewed_product_goals=product_summary["closed_tasks"],
+        exact_fit_goals=0,
+        partial_fit_goals=0,
+        miss_goals=0,
+        exact_fit_rate_reviewed=None,
+        miss_rate_reviewed=None,
+        review_coverage=0.0 if product_summary["closed_tasks"] else None,
+        attempts_per_closed_product_goal=product_summary.get("attempts_per_closed_task"),
+        known_cost_successes=product_summary.get("known_cost_successes", 0),
+        known_token_successes=product_summary.get("known_token_successes", 0),
+        known_cost_per_success_usd=product_summary.get("known_cost_per_success_usd"),
+        known_cost_per_success_tokens=product_summary.get("known_cost_per_success_tokens"),
+    )
+    return [recommendation.diagnosis for recommendation in build_agent_recommendations(summary, product_quality)]
 
 
 def build_quality_review(summary: ProductQualitySummary) -> list[str]:
-    review: list[str] = []
+    filtered = [
+        recommendation.diagnosis
+        for recommendation in build_agent_recommendations(
+            {
+                "successes": 0,
+                "known_cost_successes": 0,
+                "known_cost_per_success_usd": None,
+                "complete_cost_successes": 0,
+                "complete_cost_per_covered_success_usd": None,
+                "by_goal_type": {
+                    "product": {"closed_tasks": summary.closed_product_goals},
+                    "retro": {"closed_tasks": 0},
+                    "meta": {"closed_tasks": 0},
+                },
+                "entries": {"fails": 0, "failure_reasons": {}},
+            },
+            summary,
+        )
+        if recommendation.category in {"product_sample", "quality_review_coverage", "quality_miss", "quality_partial_fit", "retry_pressure"}
+    ]
+    return filtered
 
-    if summary.closed_product_goals == 0:
-        review.append("No closed product goals yet; quality conclusions are not ready.")
-        return review
 
-    if summary.reviewed_product_goals == 0:
-        review.append("Product quality review has not started; result-fit signals are still missing.")
-    elif summary.unreviewed_product_goals > 0:
-        review.append("Product quality review coverage is partial; fit rates reflect a reviewed subset only.")
-
-    if summary.miss_goals > 0:
-        review.append("At least one reviewed product miss exists; inspect why the requested outcome was missed.")
-
-    if summary.partial_fit_goals > 0:
-        review.append("Reviewed partial-fit outcomes exist; inspect where delivery succeeded only after correction.")
-
-    if summary.attempts_per_closed_product_goal is not None and summary.attempts_per_closed_product_goal > 1.2:
-        review.append("Product retry pressure looks elevated; review scope clarity and acceptance boundaries.")
-
-    if not review:
-        review.append("Reviewed product quality signals look stable enough to compare workflow changes.")
-
-    return review
+def _format_recommendation(recommendation: AgentRecommendation) -> str:
+    return (
+        f"[{recommendation.priority}] {recommendation.category}: "
+        f"{recommendation.diagnosis} Next action: {recommendation.next_action}"
+    )
 
 
 def _product_quality_lines(product_quality: ProductQualitySummary) -> list[str]:
@@ -200,7 +335,7 @@ def _product_quality_lines(product_quality: ProductQualitySummary) -> list[str]:
         f"- Known Product Cost per Success (USD): {format_usd(product_quality.known_cost_per_success_usd)}",
         f"- Known Product Cost per Success (Tokens): {format_num(product_quality.known_cost_per_success_tokens)}",
         "",
-        "## Product quality review",
+        "## Agent recommendations",
         "",
     ]
 
@@ -209,16 +344,15 @@ def generate_report_md(data: dict[str, Any]) -> str:
     summary = data["summary"]
     goals: list[dict[str, Any]] = data["goals"]
     entries: list[dict[str, Any]] = data["entries"]
-    operator_review = build_operator_review(summary)
     product_quality = build_product_quality_summary(data)
-    quality_review = build_quality_review(product_quality)
+    recommendations = build_agent_recommendations(summary, product_quality)
 
     lines: list[str] = [
         "# Codex Metrics",
         "",
     ]
     lines.extend(_product_quality_lines(product_quality))
-    lines.extend(f"- {line}" for line in quality_review)
+    lines.extend(f"- {_format_recommendation(recommendation)}" for recommendation in recommendations)
     lines.extend(
         [
             "",
@@ -250,11 +384,8 @@ def generate_report_md(data: dict[str, Any]) -> str:
             f"- Known total cost (USD): {format_usd(summary['entries']['total_cost_usd'])}",
             f"- Known total tokens: {summary['entries']['total_tokens']}",
             "",
-            "## Operator review",
-            "",
         ]
     )
-    lines.extend(f"- {line}" for line in operator_review)
     lines.extend(
         [
             "",
@@ -358,9 +489,8 @@ def generate_report_md(data: dict[str, Any]) -> str:
 
 def print_summary(data: dict[str, Any]) -> None:
     summary = data["summary"]
-    operator_review = build_operator_review(summary)
     product_quality = build_product_quality_summary(data)
-    quality_review = build_quality_review(product_quality)
+    recommendations = build_agent_recommendations(summary, product_quality)
     print("Codex Metrics Summary")
     print("Product quality:")
     print(f"Closed product goals: {product_quality.closed_product_goals}")
@@ -383,9 +513,9 @@ def print_summary(data: dict[str, Any]) -> None:
     )
     print(f"Known Product Cost per Success (USD): {format_usd(product_quality.known_cost_per_success_usd)}")
     print(f"Known Product Cost per Success (Tokens): {format_num(product_quality.known_cost_per_success_tokens)}")
-    print("Product quality review:")
-    for line in quality_review:
-        print(f"- {line}")
+    print("Agent recommendations:")
+    for recommendation in recommendations:
+        print(f"- {_format_recommendation(recommendation)}")
     print("Operational summary:")
     print(f"Closed goals: {summary['closed_tasks']}")
     print(f"Successes: {summary['successes']}")
@@ -407,9 +537,6 @@ def print_summary(data: dict[str, Any]) -> None:
     print(f"Entry successes: {summary['entries']['successes']}")
     print(f"Entry fails: {summary['entries']['fails']}")
     print(f"Entry Success Rate: {format_pct(summary['entries']['success_rate'])}")
-    print("Operator review:")
-    for line in operator_review:
-        print(f"- {line}")
     for task_type in ("product", "retro", "meta"):
         type_summary = summary["by_goal_type"][task_type]
         print(

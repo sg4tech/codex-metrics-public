@@ -2,59 +2,57 @@
 
 ## Product quality
 
-- Closed product goals: 64
-- Reviewed result fit: 39/64 closed product goals
-- Review coverage: 60.94%
-- Exact fit: 37
+- Closed product goals: 65
+- Reviewed result fit: 40/65 closed product goals
+- Review coverage: 61.54%
+- Exact fit: 38
 - Partial fit: 2
 - Misses: 0
 - Unreviewed: 25
-- Exact Fit Rate (reviewed): 94.87%
+- Exact Fit Rate (reviewed): 95.00%
 - Miss Rate (reviewed): 0.00%
 - Attempts per Closed Product Goal: 1.09
-- Known product cost coverage: 54/64 successful product goals
-- Known Product Cost per Success (USD): 2.025659
-- Known Product Cost per Success (Tokens): 1457311.52
+- Known product cost coverage: 55/65 successful product goals
+- Known Product Cost per Success (USD): 2.069048
+- Known Product Cost per Success (Tokens): 1488230.02
 
-## Product quality review
+## Agent recommendations
 
-- Product quality review coverage is partial; fit rates reflect a reviewed subset only.
-- Reviewed partial-fit outcomes exist; inspect where delivery succeeded only after correction.
+- [medium] quality_review_coverage: Product quality review coverage is partial, so fit rates only reflect a reviewed subset. Next action: Review unreviewed product goals to raise result-fit coverage before making strong workflow decisions.
+- [medium] quality_partial_fit: Reviewed partial-fit outcomes exist, so some product goals only succeeded after correction. Next action: Inspect the partial-fit product goals and look for acceptance drift or avoidable follow-up work.
+- [medium] product_mix: Meta work still outweighs product delivery, so local optimizations may not transfer cleanly to real product work. Next action: Validate any workflow changes on real product goals before treating them as product-level improvements.
+- [medium] entry_failures: Failed entries exist, especially around model_mistake. Next action: Inspect failed entries tagged model_mistake and the linked goals before recommending further process changes.
+- [low] product_cost_coverage: Known product cost coverage is still partial, so product cost averages remain directional rather than complete. Next action: Use product cost views as guidance only and backfill or sync missing usage when cost comparisons matter for a decision.
+- [low] global_cost_coverage: Complete cost coverage is still partial across the full history, so complete covered-success averages are a strict subset view. Next action: Avoid over-reading complete-cost averages as if they described the whole dataset.
 
 ## Operational summary
 
-- Closed goals: 176
-- Successes: 175
+- Closed goals: 177
+- Successes: 176
 - Fails: 1
-- Total attempts: 182
-- Known total cost (USD): 223.574871
-- Known total tokens: 161715052
-- Success Rate: 99.43%
+- Total attempts: 183
+- Known total cost (USD): 227.986952
+- Known total tokens: 164872881
+- Success Rate: 99.44%
 - Attempts per Closed Goal: 1.03
-- Known cost coverage: 145/175 successful goals
-- Known token coverage: 145/175 successful goals
-- Complete cost coverage: 145/175 successful goals
-- Complete token coverage: 145/175 successful goals
-- Known Cost per Success (USD): 1.538504
-- Known Cost per Success (Tokens): 1112874.82
-- Complete Cost per Covered Success (USD): 1.538504
-- Complete Cost per Covered Success (Tokens): 1112874.82
+- Known cost coverage: 146/176 successful goals
+- Known token coverage: 146/176 successful goals
+- Complete cost coverage: 146/176 successful goals
+- Complete token coverage: 146/176 successful goals
+- Known Cost per Success (USD): 1.558186
+- Known Cost per Success (Tokens): 1126881.36
+- Complete Cost per Covered Success (USD): 1.558186
+- Complete Cost per Covered Success (Tokens): 1126881.36
 
 ## Entry summary
 
-- Closed entries: 182
-- Successes: 180
+- Closed entries: 183
+- Successes: 181
 - Fails: 2
-- Success Rate: 98.90%
-- Known total cost (USD): 228.235103
-- Known total tokens: 164917704
+- Success Rate: 98.91%
+- Known total cost (USD): 232.647184
+- Known total tokens: 168075533
 
-## Operator review
-
-- Meta work still outweighs product delivery; validate changes on real product goals.
-- Retry pressure exists; inspect failed entries, especially model_mistake.
-- Cost visibility is partial; use known-cost metrics as directional, not final.
-- Full cost coverage is still partial; treat complete covered-success averages as strict subset signals.
 
 ## By goal type
 
@@ -63,22 +61,22 @@
 - unclear_task: 1
 
 ### product
-- Closed goals: 64
-- Successes: 64
+- Closed goals: 65
+- Successes: 65
 - Fails: 0
-- Total attempts: 70
-- Known total cost (USD): 109.385577
-- Known total tokens: 78694822
+- Total attempts: 71
+- Known total cost (USD): 113.797658
+- Known total tokens: 81852651
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.09
-- Known cost coverage: 54/64 successful goals
-- Known token coverage: 54/64 successful goals
-- Complete cost coverage: 54/64 successful goals
-- Complete token coverage: 54/64 successful goals
-- Known Cost per Success (USD): 2.025659
-- Known Cost per Success (Tokens): 1457311.52
-- Complete Cost per Covered Success (USD): 2.025659
-- Complete Cost per Covered Success (Tokens): 1457311.52
+- Known cost coverage: 55/65 successful goals
+- Known token coverage: 55/65 successful goals
+- Complete cost coverage: 55/65 successful goals
+- Complete token coverage: 55/65 successful goals
+- Known Cost per Success (USD): 2.069048
+- Known Cost per Success (Tokens): 1488230.02
+- Complete Cost per Covered Success (USD): 2.069048
+- Complete Cost per Covered Success (Tokens): 1488230.02
 
 ### retro
 - Closed goals: 38
@@ -117,6 +115,19 @@
 - Complete Cost per Covered Success (Tokens): 1151550.76
 
 ## Goal log
+
+### 2026-03-31-021 — Build agent-first recommendation layer
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-31T12:53:19+00:00
+- Finished at: 2026-03-31T12:56:39+00:00
+- Cost (USD): 4.412081
+- Tokens: 3157829
+- Failure reason: n/a
+- Result fit: exact_fit
+- Notes: Replaced the old observation-style Operator review with a typed agent-first recommendation layer built around category, priority, diagnosis, and next action. Updated CLI show and markdown report to render Agent recommendations, preserved operational metrics as supporting context, expanded tests for recommendation logic and output regression, and verified the full package with make verify.
 
 ### 2026-03-31-020 — Retro agent-first product framing correction
 - Goal type: retro
@@ -2485,6 +2496,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-31-021-attempt-001 — 2026-03-31-021
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-31T12:53:19+00:00
+- Finished at: 2026-03-31T12:56:39+00:00
+- Cost (USD): 4.412081
+- Tokens: 3157829
+- Failure reason: n/a
+- Notes: Replaced the old observation-style Operator review with a typed agent-first recommendation layer built around category, priority, diagnosis, and next action. Updated CLI show and markdown report to render Agent recommendations, preserved operational metrics as supporting context, expanded tests for recommendation logic and output regression, and verified the full package with make verify.
 
 ### 2026-03-31-020-attempt-001 — 2026-03-31-020
 - Entry type: retro

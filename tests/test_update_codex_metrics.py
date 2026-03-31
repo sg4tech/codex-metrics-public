@@ -1906,8 +1906,8 @@ def test_show_command(repo: Path) -> None:
     assert "Codex Metrics Summary" in result.stdout
     assert "Product quality:" in result.stdout
     assert "Reviewed result fit: 0/0 closed product goals" in result.stdout
-    assert "Product quality review:" in result.stdout
-    assert "No closed product goals yet; quality conclusions are not ready." in result.stdout
+    assert "Agent recommendations:" in result.stdout
+    assert "No closed product goals exist yet, so quality conclusions are not ready." in result.stdout
     assert "Operational summary:" in result.stdout
     assert "Closed goals: 0" in result.stdout
     assert "Closed entries: 0" in result.stdout
@@ -2291,14 +2291,14 @@ def test_show_reports_known_cost_coverage_when_complete_cost_is_unavailable(repo
     assert "Complete cost coverage: 0/1 successful goals" in result.stdout
     assert "Known Cost per Success (USD): 0.25" in result.stdout
     assert "Complete Cost per Covered Success (USD): n/a" in result.stdout
-    assert "Operator review:" in result.stdout
-    assert "Full cost coverage is still partial; treat complete covered-success averages as strict subset signals." in result.stdout
+    assert "Agent recommendations:" in result.stdout
+    assert "Complete cost coverage is still partial across the full history" in result.stdout
 
     report_text = (repo / "docs" / "codex-metrics.md").read_text()
     assert "## Product quality" in report_text
     assert "## Operational summary" in report_text
-    assert "## Operator review" in report_text
-    assert "- Full cost coverage is still partial; treat complete covered-success averages as strict subset signals." in report_text
+    assert "## Agent recommendations" in report_text
+    assert "Next action: Avoid over-reading complete-cost averages as if they described the whole dataset." in report_text
 
 
 def test_show_surfaces_reviewed_product_quality_signals(repo: Path) -> None:
@@ -2353,6 +2353,9 @@ def test_show_surfaces_reviewed_product_quality_signals(repo: Path) -> None:
     assert "Exact Fit Rate (reviewed): 50.00%" in result.stdout
     assert "Attempts per Closed Product Goal: 1.50" in result.stdout
     assert "Known Product Cost per Success (USD): 0.50" in result.stdout
+    assert "Agent recommendations:" in result.stdout
+    assert "quality_partial_fit" in result.stdout
+    assert "Inspect the partial-fit product goals" in result.stdout
 
 
 def test_help_includes_goal_language_and_examples(repo: Path) -> None:
