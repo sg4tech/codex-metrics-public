@@ -2,31 +2,31 @@
 
 ## Goal summary
 
-- Closed goals: 160
-- Successes: 160
+- Closed goals: 161
+- Successes: 161
 - Fails: 0
-- Total attempts: 166
-- Known total cost (USD): 220.782324
-- Known total tokens: 159634565
+- Total attempts: 167
+- Known total cost (USD): 220.938961
+- Known total tokens: 159747663
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 128/160 successful goals
-- Known token coverage: 128/160 successful goals
-- Complete cost coverage: 128/160 successful goals
-- Complete token coverage: 128/160 successful goals
-- Known Cost per Success (USD): 1.724862
-- Known Cost per Success (Tokens): 1247145.04
-- Complete Cost per Covered Success (USD): 1.724862
-- Complete Cost per Covered Success (Tokens): 1247145.04
+- Known cost coverage: 129/161 successful goals
+- Known token coverage: 129/161 successful goals
+- Complete cost coverage: 129/161 successful goals
+- Complete token coverage: 129/161 successful goals
+- Known Cost per Success (USD): 1.712705
+- Known Cost per Success (Tokens): 1238353.98
+- Complete Cost per Covered Success (USD): 1.712705
+- Complete Cost per Covered Success (Tokens): 1238353.98
 
 ## Entry summary
 
-- Closed entries: 166
-- Successes: 165
+- Closed entries: 167
+- Successes: 166
 - Fails: 1
 - Success Rate: 99.40%
-- Known total cost (USD): 219.884944
-- Known total tokens: 158918586
+- Known total cost (USD): 220.041581
+- Known total tokens: 159031684
 
 ## Operator review
 
@@ -41,22 +41,22 @@
 - unclear_task: 1
 
 ### product
-- Closed goals: 57
-- Successes: 57
+- Closed goals: 58
+- Successes: 58
 - Fails: 0
-- Total attempts: 63
-- Known total cost (USD): 109.517899
-- Known total tokens: 78692954
+- Total attempts: 64
+- Known total cost (USD): 109.674536
+- Known total tokens: 78806052
 - Success Rate: 100.00%
-- Attempts per Closed Goal: 1.11
-- Known cost coverage: 44/57 successful goals
-- Known token coverage: 44/57 successful goals
-- Complete cost coverage: 44/57 successful goals
-- Complete token coverage: 44/57 successful goals
-- Known Cost per Success (USD): 2.489043
-- Known Cost per Success (Tokens): 1788476.23
-- Complete Cost per Covered Success (USD): 2.489043
-- Complete Cost per Covered Success (Tokens): 1788476.23
+- Attempts per Closed Goal: 1.10
+- Known cost coverage: 45/58 successful goals
+- Known token coverage: 45/58 successful goals
+- Complete cost coverage: 45/58 successful goals
+- Complete token coverage: 45/58 successful goals
+- Known Cost per Success (USD): 2.437212
+- Known Cost per Success (Tokens): 1751245.60
+- Complete Cost per Covered Success (USD): 2.437212
+- Complete Cost per Covered Success (Tokens): 1751245.60
 
 ### retro
 - Closed goals: 34
@@ -95,6 +95,19 @@
 - Complete Cost per Covered Success (Tokens): 1214582.64
 
 ## Goal log
+
+### 2026-03-31-004 — Align local CLI install surfaces
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-31T08:46:21+00:00
+- Finished at: 2026-03-31T08:46:26+00:00
+- Cost (USD): 0.156637
+- Tokens: 113098
+- Failure reason: n/a
+- Result fit: exact_fit
+- Notes: Added make dev-refresh-local using offline editable install, documented editable local refresh versus wheel refresh, reinstalled the local .venv package editable, and verified that source-tree, .venv/bin/codex-metrics, and python -m codex_metrics all report the same version.
 
 ### 2026-03-31-003 — Add explicit CLI version output
 - Goal type: product
@@ -2242,6 +2255,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-31-004-attempt-001 — 2026-03-31-004
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-31T08:46:21+00:00
+- Finished at: 2026-03-31T08:46:26+00:00
+- Cost (USD): 0.156637
+- Tokens: 113098
+- Failure reason: n/a
+- Notes: Added make dev-refresh-local using offline editable install, documented editable local refresh versus wheel refresh, reinstalled the local .venv package editable, and verified that source-tree, .venv/bin/codex-metrics, and python -m codex_metrics all report the same version.
 
 ### 2026-03-31-003-attempt-001 — 2026-03-31-003
 - Entry type: product

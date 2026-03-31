@@ -261,6 +261,16 @@ python3 -m pip install --upgrade /Users/viktor/PycharmProjects/codex-metrics
 py -m pip install --upgrade C:\path\to\codex-metrics
 ```
 
+For active development in this repository, prefer an editable local install so the source tree, `python -m codex_metrics`, and `./.venv/bin/codex-metrics` stay in sync:
+
+```bash
+make dev-refresh-local
+./.venv/bin/codex-metrics --version
+./.venv/bin/python -m codex_metrics --version
+```
+
+Use `make package-refresh-local` only when you intentionally want to verify the built wheel surface, not as the default inner-loop development refresh.
+
 Update from a standalone release binary by replacing the downloaded binary with the newer release artifact, then reconciling the target repository scaffold:
 
 ```bash

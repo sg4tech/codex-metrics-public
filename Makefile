@@ -1,4 +1,4 @@
-.PHONY: lint typecheck test verify coverage package package-standalone package-refresh-local package-refresh-global live-usage-smoke
+.PHONY: lint typecheck test verify coverage dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke
 
 lint:
 	./.venv/bin/ruff check .
@@ -16,6 +16,9 @@ coverage:
 	CODEX_SUBPROCESS_COVERAGE=1 ./.venv/bin/coverage run -m pytest tests/test_update_codex_metrics.py tests/test_update_codex_metrics_domain.py tests/test_history_audit.py
 	./.venv/bin/coverage combine
 	./.venv/bin/coverage report -m
+
+dev-refresh-local:
+	./.venv/bin/python -m pip install --no-deps --no-build-isolation -e .
 
 package:
 	rm -rf build dist src/codex_metrics.egg-info
