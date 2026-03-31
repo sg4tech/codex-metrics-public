@@ -2,31 +2,31 @@
 
 ## Goal summary
 
-- Closed goals: 164
-- Successes: 164
+- Closed goals: 165
+- Successes: 165
 - Fails: 0
-- Total attempts: 170
-- Known total cost (USD): 221.481705
-- Known total tokens: 160140955
+- Total attempts: 171
+- Known total cost (USD): 222.284612
+- Known total tokens: 160733551
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 132/164 successful goals
-- Known token coverage: 132/164 successful goals
-- Complete cost coverage: 132/164 successful goals
-- Complete token coverage: 132/164 successful goals
-- Known Cost per Success (USD): 1.677892
-- Known Cost per Success (Tokens): 1213189.05
-- Complete Cost per Covered Success (USD): 1.677892
-- Complete Cost per Covered Success (Tokens): 1213189.05
+- Known cost coverage: 133/165 successful goals
+- Known token coverage: 133/165 successful goals
+- Complete cost coverage: 133/165 successful goals
+- Complete token coverage: 133/165 successful goals
+- Known Cost per Success (USD): 1.671313
+- Known Cost per Success (Tokens): 1208522.94
+- Complete Cost per Covered Success (USD): 1.671313
+- Complete Cost per Covered Success (Tokens): 1208522.94
 
 ## Entry summary
 
-- Closed entries: 170
-- Successes: 169
+- Closed entries: 171
+- Successes: 170
 - Fails: 1
-- Success Rate: 99.41%
-- Known total cost (USD): 220.584325
-- Known total tokens: 159424976
+- Success Rate: 99.42%
+- Known total cost (USD): 221.387232
+- Known total tokens: 160017572
 
 ## Operator review
 
@@ -41,22 +41,22 @@
 - unclear_task: 1
 
 ### product
-- Closed goals: 60
-- Successes: 60
+- Closed goals: 61
+- Successes: 61
 - Fails: 0
-- Total attempts: 66
-- Known total cost (USD): 110.027096
-- Known total tokens: 79060511
+- Total attempts: 67
+- Known total cost (USD): 110.830003
+- Known total tokens: 79653107
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.10
-- Known cost coverage: 47/60 successful goals
-- Known token coverage: 47/60 successful goals
-- Complete cost coverage: 47/60 successful goals
-- Complete token coverage: 47/60 successful goals
-- Known Cost per Success (USD): 2.341002
-- Known Cost per Success (Tokens): 1682138.53
-- Complete Cost per Covered Success (USD): 2.341002
-- Complete Cost per Covered Success (Tokens): 1682138.53
+- Known cost coverage: 48/61 successful goals
+- Known token coverage: 48/61 successful goals
+- Complete cost coverage: 48/61 successful goals
+- Complete token coverage: 48/61 successful goals
+- Known Cost per Success (USD): 2.308958
+- Known Cost per Success (Tokens): 1659439.73
+- Complete Cost per Covered Success (USD): 2.308958
+- Complete Cost per Covered Success (Tokens): 1659439.73
 
 ### retro
 - Closed goals: 35
@@ -95,6 +95,19 @@
 - Complete Cost per Covered Success (Tokens): 1214582.64
 
 ## Goal log
+
+### 2026-03-31-008 — Bootstrap self repo wrapper
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-31T09:02:35+00:00
+- Finished at: 2026-03-31T09:02:56+00:00
+- Cost (USD): 0.802907
+- Tokens: 592596
+- Failure reason: n/a
+- Result fit: exact_fit
+- Notes: Bootstrapped the codex-metrics repo itself so it now has the same repo-local tools/codex-metrics wrapper flow as downstream projects. Verified the wrapper exists, reports the current version, and runs show successfully.
 
 ### 2026-03-31-007 — Retrospective on automatic CLI versioning
 - Goal type: retro
@@ -2294,6 +2307,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-31-008-attempt-001 — 2026-03-31-008
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-31T09:02:35+00:00
+- Finished at: 2026-03-31T09:02:56+00:00
+- Cost (USD): 0.802907
+- Tokens: 592596
+- Failure reason: n/a
+- Notes: Bootstrapped the codex-metrics repo itself so it now has the same repo-local tools/codex-metrics wrapper flow as downstream projects. Verified the wrapper exists, reports the current version, and runs show successfully.
 
 ### 2026-03-31-007-attempt-001 — 2026-03-31-007
 - Entry type: retro

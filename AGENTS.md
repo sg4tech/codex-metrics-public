@@ -145,3 +145,21 @@ If `update` output and a parallel `show` disagree, first rerun `show` sequential
 - `AGENTS.md` stores project rules; `docs/retros/` stores incident history and lessons.
 - After a meaningful task is completed successfully and the retrospective is logged, create a git commit for the finished checkpoint.
 - Do not create a commit just because lint passed or only a partial technical check succeeded; commit only after the actual task outcome is complete and stabilized.
+
+<!-- codex-metrics:start -->
+## Codex Metrics
+
+### Read first
+
+Before starting or continuing any engineering task, always read:
+
+- `AGENTS.md`
+- `docs/codex-metrics-policy.md`
+
+Use `tools/codex-metrics ...` in this repository.
+
+If `tools/codex-metrics` is unavailable, stop and report an installation or invocation mismatch before proceeding.
+
+The rules in `docs/codex-metrics-policy.md` are mandatory and are part of this repository's operating instructions.
+
+<!-- codex-metrics:end -->

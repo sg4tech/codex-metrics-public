@@ -1,0 +1,2 @@
+#!/bin/sh
+exec '/Users/viktor/PycharmProjects/codex-metrics/.venv/bin/codex-metrics' "$@"
