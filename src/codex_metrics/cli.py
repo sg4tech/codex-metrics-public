@@ -479,9 +479,9 @@ def save_report(path: Path, data: dict[str, Any]) -> None:
     atomic_write_text(path, report)
 
 
-def init_files(metrics_path: Path, report_path: Path, force: bool = False) -> None:
+def init_files(metrics_path: Path, report_path: Path | None, force: bool = False) -> None:
     if not force:
-        existing_paths = [path for path in (metrics_path, report_path) if path.exists()]
+        existing_paths = [path for path in (metrics_path, report_path) if path is not None and path.exists()]
         if existing_paths:
             joined_paths = ", ".join(str(path) for path in existing_paths)
             raise ValueError(
@@ -489,14 +489,15 @@ def init_files(metrics_path: Path, report_path: Path, force: bool = False) -> No
             )
     data = default_metrics()
     save_metrics(metrics_path, data)
-    save_report(report_path, data)
+    if report_path is not None:
+        save_report(report_path, data)
 
 
 def bootstrap_project(
     *,
     target_dir: Path,
     metrics_path: Path,
-    report_path: Path,
+    report_path: Path | None,
     policy_path: Path,
     command_path: Path,
     agents_path: Path,
@@ -698,28 +699,30 @@ def build_parser() -> argparse.ArgumentParser:
 
     init_parser = subparsers.add_parser(
         "init",
-        help="Create only the metrics JSON and markdown report files",
+        help="Create the metrics JSON source of truth",
         description=(
-            "Create the low-level metrics artifacts only: metrics/codex_metrics.json and "
-            "docs/codex-metrics.md. This does not scaffold repository policy or AGENTS.md."
+            "Create the low-level metrics source of truth file. "
+            "Use --write-report when you also want a markdown export."
         ),
     )
     init_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     init_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
+    init_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
     init_parser.add_argument("--force", action="store_true", help="Overwrite existing metrics files")
 
     bootstrap_parser = subparsers.add_parser(
         "bootstrap",
         help="Scaffold codex-metrics into a repository, including AGENTS.md and policy",
         description=(
-            "Create the full codex-metrics repository scaffold: metrics/report artifacts, "
+            "Create the full codex-metrics repository scaffold: metrics artifact, "
             "docs/codex-metrics-policy.md, and a managed codex-metrics block inside AGENTS.md. "
-            "Use this to integrate codex-metrics into a new or existing repository."
+            "Use --write-report when you also want the optional markdown export."
         ),
     )
     bootstrap_parser.add_argument("--target-dir", default=".", help="Repository root to initialize")
     bootstrap_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     bootstrap_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
+    bootstrap_parser.add_argument("--write-report", action="store_true", help="Also create or update the optional markdown report")
     bootstrap_parser.add_argument("--policy-path", default="docs/codex-metrics-policy.md")
     bootstrap_parser.add_argument("--command-path", default="tools/codex-metrics")
     bootstrap_parser.add_argument("--agents-path", default="AGENTS.md")
@@ -781,6 +784,7 @@ def build_parser() -> argparse.ArgumentParser:
     start_parser.add_argument("--codex-thread-id")
     start_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     start_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
+    start_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
 
     continue_parser = subparsers.add_parser(
         "continue-task",
@@ -810,6 +814,7 @@ def build_parser() -> argparse.ArgumentParser:
     continue_parser.add_argument("--codex-thread-id")
     continue_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     continue_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
+    continue_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
 
     finish_parser = subparsers.add_parser(
         "finish-task",
@@ -845,6 +850,7 @@ def build_parser() -> argparse.ArgumentParser:
     finish_parser.add_argument("--codex-thread-id")
     finish_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     finish_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
+    finish_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
 
     update_parser = subparsers.add_parser(
         "update",
@@ -901,6 +907,7 @@ def build_parser() -> argparse.ArgumentParser:
     update_parser.add_argument("--finished-at", help="Explicit ISO8601 finish timestamp")
     update_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     update_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
+    update_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
 
     show_parser = subparsers.add_parser(
         "show",
@@ -939,6 +946,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sync_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     sync_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
+    sync_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
     sync_parser.add_argument("--pricing-path", default=str(PRICING_JSON_PATH))
     sync_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
     sync_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
@@ -953,6 +961,15 @@ def build_parser() -> argparse.ArgumentParser:
     merge_parser.add_argument("--drop-task-id", required=True, help="Goal that should be merged into the kept goal")
     merge_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     merge_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
+    merge_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
+
+    render_report_parser = subparsers.add_parser(
+        "render-report",
+        help="Render the optional markdown report from stored metrics",
+        description="Generate docs/codex-metrics.md on demand from the JSON source of truth.",
+    )
+    render_report_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
+    render_report_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
 
     return parser
 
@@ -1122,6 +1139,9 @@ def main() -> int:
 
     if args.command == "merge-tasks":
         return commands.handle_merge_tasks(args, sys.modules[__name__])
+
+    if args.command == "render-report":
+        return commands.handle_render_report(args, sys.modules[__name__])
 
     if args.command == "update":
         return commands.handle_update(args, sys.modules[__name__])

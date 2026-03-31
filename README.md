@@ -23,7 +23,7 @@ The repository also keeps `scripts/update_codex_metrics.py` as a compatibility s
 The main generated artifacts are:
 
 - `metrics/codex_metrics.json` - source of truth
-- `docs/codex-metrics.md` - generated human-readable report
+- `docs/codex-metrics.md` - optional markdown export rendered on demand
 
 Repository workflow and policy live in:
 
@@ -106,6 +106,12 @@ Initialize metrics files:
 
 ```bash
 codex-metrics init
+```
+
+Render the optional markdown report:
+
+```bash
+codex-metrics render-report
 ```
 
 Bootstrap `codex-metrics` into another repository:
@@ -225,10 +231,15 @@ Apply the scaffold:
 This creates or updates:
 
 - `metrics/codex_metrics.json`
-- `docs/codex-metrics.md`
 - `docs/codex-metrics-policy.md`
 - `tools/codex-metrics` repo-local wrapper
 - `AGENTS.md` with a managed `codex-metrics` block
+
+If you also want the optional markdown export during bootstrap:
+
+```bash
+/path/to/codex-metrics bootstrap --write-report
+```
 
 If the target repo already has a conflicting `docs/codex-metrics-policy.md` and you intentionally want to replace it with the packaged template:
 

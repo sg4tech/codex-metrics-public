@@ -73,7 +73,7 @@ The structured metrics file is the source of truth.
 For this repository:
 
 - source of truth: `metrics/codex_metrics.json`
-- generated report: `docs/codex-metrics.md`
+- optional export: `docs/codex-metrics.md`
 
 If they disagree, the structured metrics file wins.
 
@@ -100,7 +100,7 @@ Do not edit generated metrics files manually when the CLI can regenerate them.
 1. Set final status to `success` or `fail`.
 2. Set `finished_at`.
 3. Ensure cost and token totals are updated when available.
-4. Regenerate the human-readable report.
+4. Regenerate the optional markdown report only when that export is actually needed.
 
 ## Recommended Commands
 
@@ -111,6 +111,7 @@ codex-metrics start-task --title "Add CSV import" --task-type product
 codex-metrics continue-task --task-id <goal-id> --notes "Retry after review"
 codex-metrics finish-task --task-id <goal-id> --status success --notes "Validated"
 codex-metrics show
+codex-metrics render-report
 ```
 
 If `codex-metrics` is expected but unavailable, treat that as an `environment_issue` or installation mismatch and report it clearly.

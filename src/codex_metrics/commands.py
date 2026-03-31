@@ -15,13 +15,13 @@ from codex_metrics.history_audit import AuditReport
 
 class CommandRuntime(Protocol):
     def metrics_mutation_lock(self, metrics_path: Path) -> AbstractContextManager[Any]: ...
-    def init_files(self, metrics_path: Path, report_path: Path, force: bool = False) -> None: ...
+    def init_files(self, metrics_path: Path, report_path: Path | None, force: bool = False) -> None: ...
     def bootstrap_project(
         self,
         *,
         target_dir: Path,
         metrics_path: Path,
-        report_path: Path,
+        report_path: Path | None,
         policy_path: Path,
         command_path: Path,
         agents_path: Path,
@@ -315,10 +315,12 @@ def handle_install_self(args: Namespace, _cli_module: CommandRuntime) -> int:
 
 def handle_init(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
-    report_path = Path(args.report_path)
+    report_path = Path(args.report_path) if getattr(args, "write_report", False) else None
     with cli_module.metrics_mutation_lock(metrics_path):
         cli_module.init_files(metrics_path, report_path, force=args.force)
-    print(f"Initialized {metrics_path} and {report_path}")
+    print(f"Initialized {metrics_path}")
+    if report_path is not None:
+        print(f"Rendered markdown report: {report_path}")
     return 0
 
 
@@ -330,7 +332,7 @@ def handle_bootstrap(args: Namespace, cli_module: CommandRuntime) -> int:
         return path if path.is_absolute() else target_dir / path
 
     metrics_path = resolve_target_path(args.metrics_path)
-    report_path = resolve_target_path(args.report_path)
+    report_path = resolve_target_path(args.report_path) if getattr(args, "write_report", False) else None
     policy_path = resolve_target_path(args.policy_path)
     command_path = resolve_target_path(args.command_path)
     agents_path = resolve_target_path(args.agents_path)
@@ -408,7 +410,7 @@ def handle_audit_cost_coverage(args: Namespace, cli_module: CommandRuntime) -> i
 
 def handle_sync_codex_usage(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
-    report_path = Path(args.report_path)
+    report_path = Path(args.report_path) if getattr(args, "write_report", False) else None
     pricing_path = Path(args.pricing_path)
     codex_state_path = Path(args.codex_state_path)
     codex_logs_path = Path(args.codex_logs_path)
@@ -424,7 +426,8 @@ def handle_sync_codex_usage(args: Namespace, cli_module: CommandRuntime) -> int:
         )
         cli_module.recompute_summary(data)
         cli_module.save_metrics(metrics_path, data)
-        cli_module.save_report(report_path, data)
+        if report_path is not None:
+            cli_module.save_report(report_path, data)
     print(f"Synchronized Codex usage for {updated_tasks} task(s)")
     cli_module.print_summary(data)
     return 0
@@ -432,7 +435,7 @@ def handle_sync_codex_usage(args: Namespace, cli_module: CommandRuntime) -> int:
 
 def handle_merge_tasks(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
-    report_path = Path(args.report_path)
+    report_path = Path(args.report_path) if getattr(args, "write_report", False) else None
     with cli_module.metrics_mutation_lock(metrics_path):
         data = cli_module.load_metrics(metrics_path)
         task = cli_module.merge_tasks(
@@ -442,7 +445,8 @@ def handle_merge_tasks(args: Namespace, cli_module: CommandRuntime) -> int:
         )
         cli_module.recompute_summary(data)
         cli_module.save_metrics(metrics_path, data)
-        cli_module.save_report(report_path, data)
+        if report_path is not None:
+            cli_module.save_report(report_path, data)
     print(f"Merged goal {args.drop_task_id} into {args.keep_task_id}")
     print(f"Status: {task['status']}")
     print(f"Attempts: {task['attempts']}")
@@ -452,7 +456,7 @@ def handle_merge_tasks(args: Namespace, cli_module: CommandRuntime) -> int:
 
 def handle_update(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
-    report_path = Path(args.report_path)
+    report_path = Path(args.report_path) if getattr(args, "write_report", False) else None
     pricing_path = Path(args.pricing_path)
     codex_state_path = Path(args.codex_state_path)
     codex_logs_path = Path(args.codex_logs_path)
@@ -498,7 +502,8 @@ def handle_update(args: Namespace, cli_module: CommandRuntime) -> int:
         cli_module.sync_goal_attempt_entries(data, task, previous_task)
         cli_module.recompute_summary(data)
         cli_module.save_metrics(metrics_path, data)
-        cli_module.save_report(report_path, data)
+        if report_path is not None:
+            cli_module.save_report(report_path, data)
 
     print(f"Updated goal {task['goal_id']}")
     print(f"Status: {task['status']}")
@@ -536,6 +541,7 @@ def _build_update_namespace(args: Namespace, **overrides: Any) -> Namespace:
         "codex_thread_id": getattr(args, "codex_thread_id", None),
         "metrics_path": getattr(args, "metrics_path", None),
         "report_path": getattr(args, "report_path", None),
+        "write_report": getattr(args, "write_report", False),
     }
     values.update(overrides)
     return Namespace(**values)
@@ -596,3 +602,13 @@ def handle_finish_task(args: Namespace, cli_module: CommandRuntime) -> int:
         tokens_add=args.tokens_add,
     )
     return handle_update(update_args, cli_module)
+
+
+def handle_render_report(args: Namespace, cli_module: CommandRuntime) -> int:
+    metrics_path = Path(args.metrics_path)
+    report_path = Path(args.report_path)
+    data = cli_module.load_metrics(metrics_path)
+    cli_module.recompute_summary(data)
+    cli_module.save_report(report_path, data)
+    print(f"Rendered markdown report: {report_path}")
+    return 0

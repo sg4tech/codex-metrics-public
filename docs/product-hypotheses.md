@@ -242,3 +242,4 @@ Rules:
   - or after testing a json-first, markdown-optional workflow without losing analysis quality
 - Notes:
   - `2026-03-31`: added after product review raised the possibility that the markdown artifact is mostly duplicate overhead in an agent-first workflow.
+  - `2026-03-31`: converted into a live product experiment by making markdown rendering explicit via `render-report` and `--write-report`, while keeping the hypothesis active until several agent analysis cycles confirm that markdown loss does not hurt synthesis quality.

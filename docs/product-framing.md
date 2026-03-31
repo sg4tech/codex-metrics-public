@@ -158,7 +158,7 @@ Future direction:
 In scope now:
 
 - local JSON source of truth
-- local markdown reporting
+- optional local markdown export
 - goal and attempt history
 - retry and failure visibility
 - partial automatic usage and cost ingestion from local Codex telemetry

@@ -44,7 +44,7 @@ Use:
 
 Generated files:
 - `metrics/codex_metrics.json`
-- `docs/codex-metrics.md`
+- `docs/codex-metrics.md` as an optional export, not a required default artifact
 
 For the codex-metrics workflow, goal semantics, reporting invariants, and update/close rules, follow `docs/codex-metrics-policy.md`.
 Treat metrics bookkeeping as part of the definition of done for this repository.
@@ -86,9 +86,8 @@ After changing `scripts/update_codex_metrics.py`:
 
 - run the relevant tests
 - run a CLI smoke test
-- verify that the script can regenerate both:
-  - `metrics/codex_metrics.json`
-  - `docs/codex-metrics.md`
+- verify that the script updates `metrics/codex_metrics.json`
+- if the task changes markdown export behavior, also verify `./tools/codex-metrics render-report`
 
 Minimum validation commands:
 

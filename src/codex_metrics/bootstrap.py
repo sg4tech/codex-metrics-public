@@ -112,7 +112,7 @@ def write_path(path: Path, content: str) -> None:
 def build_bootstrap_plan(
     *,
     metrics_path: Path,
-    report_path: Path,
+    report_path: Path | None,
     policy_path: Path,
     command_path: Path,
     agents_path: Path,
@@ -148,12 +148,12 @@ def build_bootstrap_plan(
         policy_path=path_for_agents(policy_path, agents_path=agents_path),
         command_path=path_for_agents(command_path, agents_path=agents_path),
         metrics_path=path_for_agents(metrics_path, agents_path=agents_path),
-        report_path=path_for_agents(report_path, agents_path=agents_path),
+        report_path=path_for_agents(report_path, agents_path=agents_path) if report_path is not None else Path("docs/codex-metrics.md"),
     )
 
     create_metrics = not metrics_path.exists()
-    create_report = not report_path.exists()
-    replace_report = metrics_path.exists() is False and report_path.exists()
+    create_report = report_path is not None and not report_path.exists()
+    replace_report = report_path is not None and metrics_path.exists() is False and report_path.exists()
 
     return BootstrapPlan(
         metrics_data=metrics_data,
@@ -174,7 +174,7 @@ def bootstrap_project(
     *,
     target_dir: Path,
     metrics_path: Path,
-    report_path: Path,
+    report_path: Path | None,
     policy_path: Path,
     command_path: Path,
     agents_path: Path,
@@ -204,7 +204,9 @@ def bootstrap_project(
         messages.append(f"{'Would keep' if dry_run else 'Keeping'} existing metrics file: {metrics_path}")
 
     if dry_run:
-        if plan.create_report:
+        if report_path is None:
+            messages.append("Would skip markdown report generation by default (use render-report or --write-report when needed)")
+        elif plan.create_report:
             messages.append(f"Would create report file: {report_path}")
         elif plan.replace_report:
             messages.append(f"Would replace report file: {report_path}")
@@ -230,7 +232,9 @@ def bootstrap_project(
         if plan.create_metrics:
             save_metrics(metrics_path, plan.metrics_data)
 
-        if plan.create_report or plan.replace_report:
+        if report_path is None:
+            messages.append("Skipping markdown report generation by default")
+        elif plan.create_report or plan.replace_report:
             save_report(report_path, plan.metrics_data)
             verb = "Created" if plan.create_report else "Replaced"
             messages.append(f"{verb} report file: {report_path}")

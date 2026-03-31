@@ -102,6 +102,10 @@ def run_module_cmd(
     )
 
 
+def render_report(repo: Path) -> subprocess.CompletedProcess[str]:
+    return run_cmd(repo, "render-report")
+
+
 def read_json(path: Path) -> dict:
     data = json.loads(path.read_text(encoding="utf-8"))
     if "goals" in data and "tasks" not in data:
@@ -367,7 +371,7 @@ def test_init_creates_files(repo: Path) -> None:
     report_path = repo / "docs" / "codex-metrics.md"
 
     assert metrics_path.exists()
-    assert report_path.exists()
+    assert not report_path.exists()
 
     data = read_json(metrics_path)
     assert "goals" in data
@@ -379,6 +383,8 @@ def test_init_creates_files(repo: Path) -> None:
     assert data["summary"]["by_task_type"]["meta"]["closed_tasks"] == 0
     assert data["tasks"] == []
 
+    render_result = render_report(repo)
+    assert render_result.returncode == 0, render_result.stderr
     report = report_path.read_text(encoding="utf-8")
     assert "Codex Metrics" in report
     assert "_No goals recorded yet._" in report
@@ -393,6 +399,14 @@ def test_package_module_entrypoint_runs(repo: Path) -> None:
 
 def test_package_module_entrypoint_can_initialize_files(repo: Path) -> None:
     result = run_module_cmd(repo, "init")
+
+    assert result.returncode == 0, result.stderr
+    assert (repo / "metrics" / "codex_metrics.json").exists()
+    assert not (repo / "docs" / "codex-metrics.md").exists()
+
+
+def test_init_can_render_optional_report_when_requested(repo: Path) -> None:
+    result = run_cmd(repo, "init", "--write-report")
 
     assert result.returncode == 0, result.stderr
     assert (repo / "metrics" / "codex_metrics.json").exists()
@@ -549,7 +563,7 @@ def test_bootstrap_dry_run_reports_actions_without_writing_files(repo: Path) -> 
 
     assert result.returncode == 0, result.stderr
     assert "Would create metrics file" in result.stdout
-    assert "Would create report file" in result.stdout
+    assert "Would skip markdown report generation by default" in result.stdout
     assert "Would create policy file" in result.stdout
     assert "Would create AGENTS.md" in result.stdout
     assert "Would create command wrapper" in result.stdout
@@ -565,6 +579,7 @@ def test_bootstrap_creates_scaffold_files(repo: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     assert "Created metrics file" in result.stdout
+    assert "Skipping markdown report generation by default" in result.stdout
     assert "Created policy file" in result.stdout
     assert "Created AGENTS.md" in result.stdout
 
@@ -575,7 +590,7 @@ def test_bootstrap_creates_scaffold_files(repo: Path) -> None:
     agents_path = repo / "AGENTS.md"
 
     assert metrics_path.exists()
-    assert report_path.exists()
+    assert not report_path.exists()
     assert policy_path.exists()
     assert command_path.exists()
     assert agents_path.exists()
@@ -619,6 +634,14 @@ def test_bootstrap_creates_scaffold_files(repo: Path) -> None:
     assert "Generated artifacts:" not in agents_text
     assert "Do not edit generated metrics files manually" not in agents_text
     assert "codex-metrics update" not in agents_text
+
+
+def test_bootstrap_can_create_optional_report_when_requested(repo: Path) -> None:
+    result = run_cmd(repo, "bootstrap", "--write-report")
+
+    assert result.returncode == 0, result.stderr
+    assert (repo / "metrics" / "codex_metrics.json").exists()
+    assert (repo / "docs" / "codex-metrics.md").exists()
 
 
 def test_packaged_policy_template_matches_repo_policy() -> None:
@@ -670,28 +693,27 @@ def test_bootstrap_force_replaces_existing_policy_file(repo: Path) -> None:
 
 def test_bootstrap_completes_partial_scaffold_when_metrics_exist(repo: Path) -> None:
     assert run_cmd(repo, "init").returncode == 0
-    (repo / "docs" / "codex-metrics.md").unlink()
 
     result = run_cmd(repo, "bootstrap")
 
     assert result.returncode == 0, result.stderr
     assert "Keeping existing metrics file" in result.stdout
-    assert "Created report file" in result.stdout
+    assert "Skipping markdown report generation by default" in result.stdout
     assert (repo / "metrics" / "codex_metrics.json").exists()
-    assert (repo / "docs" / "codex-metrics.md").exists()
+    assert not (repo / "docs" / "codex-metrics.md").exists()
     assert (repo / "docs" / "codex-metrics-policy.md").exists()
     assert (repo / "AGENTS.md").exists()
 
 
 def test_bootstrap_completes_partial_scaffold_when_report_exists(repo: Path) -> None:
-    assert run_cmd(repo, "init").returncode == 0
+    assert run_cmd(repo, "init", "--write-report").returncode == 0
     (repo / "metrics" / "codex_metrics.json").unlink()
 
     result = run_cmd(repo, "bootstrap")
 
     assert result.returncode == 0, result.stderr
     assert "Created metrics file" in result.stdout
-    assert "Replaced report file" in result.stdout
+    assert "Skipping markdown report generation by default" in result.stdout
     assert (repo / "metrics" / "codex_metrics.json").exists()
     assert (repo / "docs" / "codex-metrics.md").exists()
 
@@ -1380,8 +1402,51 @@ def test_product_goal_can_store_result_fit(repo: Path) -> None:
     data = read_json(repo / "metrics" / "codex_metrics.json")
     task = next(task for task in data["tasks"] if task["task_id"] == "fit-goal")
     assert task["result_fit"] == "exact_fit"
+    assert render_report(repo).returncode == 0
     report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
     assert "- Result fit: exact_fit" in report
+
+
+def test_update_does_not_write_markdown_report_by_default(repo: Path) -> None:
+    assert run_cmd(repo, "init").returncode == 0
+
+    result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "json-only-goal",
+        "--title",
+        "JSON only goal",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert not (repo / "docs" / "codex-metrics.md").exists()
+
+
+def test_render_report_command_writes_markdown_export_on_demand(repo: Path) -> None:
+    assert run_cmd(repo, "init").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "render-goal",
+        "--title",
+        "Render goal",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+    ).returncode == 0
+
+    result = run_cmd(repo, "render-report")
+
+    assert result.returncode == 0, result.stderr
+    report_text = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
+    assert "Render goal" in report_text
 
 
 def test_result_fit_is_restricted_to_product_goals(repo: Path) -> None:
@@ -1938,6 +2003,7 @@ def test_task_type_can_be_set_to_retro_and_is_reported_separately(repo: Path) ->
     assert data["summary"]["by_task_type"]["retro"]["successes"] == 1
     assert data["summary"]["by_task_type"]["product"]["closed_tasks"] == 0
 
+    assert render_report(repo).returncode == 0
     report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
     assert "### retro" in report
     assert "- Goal type: retro" in report
@@ -1984,6 +2050,7 @@ def test_new_task_can_link_to_closed_previous_task(repo: Path) -> None:
     followup_task = next(task for task in data["tasks"] if task["task_id"] == "followup-task")
     assert followup_task["supersedes_task_id"] == "original-task"
 
+    assert render_report(repo).returncode == 0
     report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
     assert "- Supersedes goal: original-task" in report
 
@@ -2042,6 +2109,7 @@ def test_superseded_goal_chain_counts_as_one_effective_goal(repo: Path) -> None:
     assert len(data["goals"]) == 2
     assert len(data["entries"]) == 2
 
+    assert render_report(repo).returncode == 0
     report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
     assert "## Entry summary" in report
     assert "- Closed entries: 2" in report
@@ -2294,6 +2362,7 @@ def test_show_reports_known_cost_coverage_when_complete_cost_is_unavailable(repo
     assert "Agent recommendations:" in result.stdout
     assert "Complete cost coverage is still partial across the full history" in result.stdout
 
+    assert render_report(repo).returncode == 0
     report_text = (repo / "docs" / "codex-metrics.md").read_text()
     assert "## Product quality" in report_text
     assert "## Operational summary" in report_text
@@ -3161,6 +3230,7 @@ def test_report_sorts_tasks_by_started_at_descending(repo: Path) -> None:
         "success",
     ).returncode == 0
 
+    assert render_report(repo).returncode == 0
     report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
     newer_index = report.index("### newer")
     older_index = report.index("### older")
@@ -3201,6 +3271,7 @@ def test_report_marks_inferred_entries(repo: Path) -> None:
         "success",
     ).returncode == 0
 
+    assert render_report(repo).returncode == 0
     report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
     assert "- Inferred: yes" in report
     assert "- Inferred: no" in report
