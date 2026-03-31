@@ -2,31 +2,31 @@
 
 ## Goal summary
 
-- Closed goals: 153
-- Successes: 153
+- Closed goals: 157
+- Successes: 157
 - Fails: 0
-- Total attempts: 159
-- Known total cost (USD): 213.511896
-- Known total tokens: 153186815
+- Total attempts: 163
+- Known total cost (USD): 219.576461
+- Known total tokens: 158426099
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 121/153 successful goals
-- Known token coverage: 121/153 successful goals
-- Complete cost coverage: 121/153 successful goals
-- Complete token coverage: 121/153 successful goals
-- Known Cost per Success (USD): 1.764561
-- Known Cost per Success (Tokens): 1266006.74
-- Complete Cost per Covered Success (USD): 1.764561
-- Complete Cost per Covered Success (Tokens): 1266006.74
+- Known cost coverage: 125/157 successful goals
+- Known token coverage: 125/157 successful goals
+- Complete cost coverage: 125/157 successful goals
+- Complete token coverage: 125/157 successful goals
+- Known Cost per Success (USD): 1.756612
+- Known Cost per Success (Tokens): 1267408.79
+- Complete Cost per Covered Success (USD): 1.756612
+- Complete Cost per Covered Success (Tokens): 1267408.79
 
 ## Entry summary
 
-- Closed entries: 159
-- Successes: 158
+- Closed entries: 163
+- Successes: 162
 - Fails: 1
-- Success Rate: 99.37%
-- Known total cost (USD): 212.614516
-- Known total tokens: 152470836
+- Success Rate: 99.39%
+- Known total cost (USD): 218.679081
+- Known total tokens: 157710120
 
 ## Operator review
 
@@ -41,60 +41,112 @@
 - unclear_task: 1
 
 ### product
-- Closed goals: 54
-- Successes: 54
+- Closed goals: 56
+- Successes: 56
 - Fails: 0
-- Total attempts: 60
-- Known total cost (USD): 104.493625
-- Known total tokens: 75051938
+- Total attempts: 62
+- Known total cost (USD): 109.381542
+- Known total tokens: 78595624
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.11
-- Known cost coverage: 41/54 successful goals
-- Known token coverage: 41/54 successful goals
-- Complete cost coverage: 41/54 successful goals
-- Complete token coverage: 41/54 successful goals
-- Known Cost per Success (USD): 2.548625
-- Known Cost per Success (Tokens): 1830535.07
-- Complete Cost per Covered Success (USD): 2.548625
-- Complete Cost per Covered Success (Tokens): 1830535.07
+- Known cost coverage: 43/56 successful goals
+- Known token coverage: 43/56 successful goals
+- Complete cost coverage: 43/56 successful goals
+- Complete token coverage: 43/56 successful goals
+- Known Cost per Success (USD): 2.543757
+- Known Cost per Success (Tokens): 1827805.21
+- Complete Cost per Covered Success (USD): 2.543757
+- Complete Cost per Covered Success (Tokens): 1827805.21
 
 ### retro
-- Closed goals: 33
-- Successes: 33
+- Closed goals: 34
+- Successes: 34
 - Fails: 0
-- Total attempts: 33
-- Known total cost (USD): 12.453244
-- Known total tokens: 8863913
+- Total attempts: 34
+- Known total cost (USD): 13.036924
+- Known total tokens: 9281235
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 24/33 successful goals
-- Known token coverage: 24/33 successful goals
-- Complete cost coverage: 24/33 successful goals
-- Complete token coverage: 24/33 successful goals
-- Known Cost per Success (USD): 0.518885
-- Known Cost per Success (Tokens): 369329.71
-- Complete Cost per Covered Success (USD): 0.518885
-- Complete Cost per Covered Success (Tokens): 369329.71
+- Known cost coverage: 25/34 successful goals
+- Known token coverage: 25/34 successful goals
+- Complete cost coverage: 25/34 successful goals
+- Complete token coverage: 25/34 successful goals
+- Known Cost per Success (USD): 0.521477
+- Known Cost per Success (Tokens): 371249.40
+- Complete Cost per Covered Success (USD): 0.521477
+- Complete Cost per Covered Success (Tokens): 371249.40
 
 ### meta
-- Closed goals: 66
-- Successes: 66
+- Closed goals: 67
+- Successes: 67
 - Fails: 0
-- Total attempts: 66
-- Known total cost (USD): 96.565027
-- Known total tokens: 69270964
+- Total attempts: 67
+- Known total cost (USD): 97.157995
+- Known total tokens: 70549240
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 56/66 successful goals
-- Known token coverage: 56/66 successful goals
-- Complete cost coverage: 56/66 successful goals
-- Complete token coverage: 56/66 successful goals
-- Known Cost per Success (USD): 1.724375
-- Known Cost per Success (Tokens): 1236981.50
-- Complete Cost per Covered Success (USD): 1.724375
-- Complete Cost per Covered Success (Tokens): 1236981.50
+- Known cost coverage: 57/67 successful goals
+- Known token coverage: 57/67 successful goals
+- Complete cost coverage: 57/67 successful goals
+- Complete token coverage: 57/67 successful goals
+- Known Cost per Success (USD): 1.704526
+- Known Cost per Success (Tokens): 1237705.96
+- Complete Cost per Covered Success (USD): 1.704526
+- Complete Cost per Covered Success (Tokens): 1237705.96
 
 ## Goal log
+
+### 2026-03-30-017 — Add local rule for local CLI surface verification
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-30T14:34:39+00:00
+- Finished at: 2026-03-30T14:34:53+00:00
+- Cost (USD): 0.592968
+- Tokens: 1278276
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Added a local validation rule to treat source-tree, .venv, and standalone/global installs as separate runnable surfaces and to verify the actual executable path when behavior looks stale.
+
+### 2026-03-30-016 — Retrospective for stale local venv codex-metrics install
+- Goal type: retro
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-30T14:27:28+00:00
+- Finished at: 2026-03-30T14:27:57+00:00
+- Cost (USD): 0.58368
+- Tokens: 417322
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Recorded the failed local refresh path where standalone/global installs were updated but the active .venv install remained stale, and documented the permanent fix.
+
+### 2026-03-30-015 — Refresh local venv codex-metrics install in make flow
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-30T14:25:35+00:00
+- Finished at: 2026-03-30T14:26:43+00:00
+- Cost (USD): 1.935485
+- Tokens: 1417896
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Added package-refresh-local and made package-refresh-global refresh the local .venv install before reinstalling the standalone binary globally.
+
+### 2026-03-30-014 — Warn when active virtualenv shadows global codex-metrics install
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-30T14:22:47+00:00
+- Finished at: 2026-03-30T14:24:43+00:00
+- Cost (USD): 2.952432
+- Tokens: 2125790
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: install-self now warns when an active virtualenv shadows the global codex-metrics command, with regression coverage.
 
 ### 2026-03-30-013 — Create repo-local codex-metrics wrapper during bootstrap
 - Goal type: product
@@ -2151,6 +2203,50 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-30-017-attempt-001 — 2026-03-30-017
+- Entry type: meta
+- Inferred: no
+- Status: success
+- Started at: 2026-03-30T14:34:39+00:00
+- Finished at: 2026-03-30T14:34:53+00:00
+- Cost (USD): 0.592968
+- Tokens: 1278276
+- Failure reason: n/a
+- Notes: Added a local validation rule to treat source-tree, .venv, and standalone/global installs as separate runnable surfaces and to verify the actual executable path when behavior looks stale.
+
+### 2026-03-30-016-attempt-001 — 2026-03-30-016
+- Entry type: retro
+- Inferred: no
+- Status: success
+- Started at: 2026-03-30T14:27:28+00:00
+- Finished at: 2026-03-30T14:27:57+00:00
+- Cost (USD): 0.58368
+- Tokens: 417322
+- Failure reason: n/a
+- Notes: Recorded the failed local refresh path where standalone/global installs were updated but the active .venv install remained stale, and documented the permanent fix.
+
+### 2026-03-30-015-attempt-001 — 2026-03-30-015
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-30T14:25:35+00:00
+- Finished at: 2026-03-30T14:26:43+00:00
+- Cost (USD): 1.935485
+- Tokens: 1417896
+- Failure reason: n/a
+- Notes: Added package-refresh-local and made package-refresh-global refresh the local .venv install before reinstalling the standalone binary globally.
+
+### 2026-03-30-014-attempt-001 — 2026-03-30-014
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-30T14:22:47+00:00
+- Finished at: 2026-03-30T14:24:43+00:00
+- Cost (USD): 2.952432
+- Tokens: 2125790
+- Failure reason: n/a
+- Notes: install-self now warns when an active virtualenv shadows the global codex-metrics command, with regression coverage.
 
 ### 2026-03-30-013-attempt-001 — 2026-03-30-013
 - Entry type: product

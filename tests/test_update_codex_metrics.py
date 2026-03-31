@@ -487,6 +487,34 @@ def test_install_self_write_shell_profile_is_idempotent(repo: Path) -> None:
     assert "PATH update already present" in second_result.stdout
 
 
+def test_install_self_warns_when_active_virtualenv_shadows_global_install(repo: Path) -> None:
+    install_dir = repo / "bin"
+    fake_venv_bin = repo / "fake-venv" / "bin"
+    fake_venv_bin.mkdir(parents=True, exist_ok=True)
+    shadowing_command = fake_venv_bin / "codex-metrics"
+    shadowing_command.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    shadowing_command.chmod(0o755)
+
+    first_result = run_cmd(repo, "install-self", "--target-dir", str(install_dir))
+    assert first_result.returncode == 0, first_result.stderr
+
+    second_result = run_cmd(
+        repo,
+        "install-self",
+        "--target-dir",
+        str(install_dir),
+        extra_env={
+            "PATH": f"{fake_venv_bin}{os.pathsep}{install_dir}{os.pathsep}{os.environ.get('PATH', '')}",
+            "VIRTUAL_ENV": str(repo / "fake-venv"),
+        },
+    )
+
+    assert second_result.returncode == 0, second_result.stderr
+    assert "codex-metrics" in second_result.stdout
+    assert "active virtualenv is shadowing the global install" in second_result.stdout
+    assert str(shadowing_command) in second_result.stdout
+
+
 def test_init_refuses_to_overwrite_without_force(repo: Path) -> None:
     assert run_cmd(repo, "init").returncode == 0
 

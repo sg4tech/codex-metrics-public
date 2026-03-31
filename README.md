@@ -397,6 +397,12 @@ Rebuild all local package artifacts and refresh the global self-host install:
 make package-refresh-global
 ```
 
+Refresh the local `.venv` install so `./.venv/bin/codex-metrics` matches the current built wheel:
+
+```bash
+make package-refresh-local
+```
+
 For a non-default install target:
 
 ```bash

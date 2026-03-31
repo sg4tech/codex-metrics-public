@@ -156,6 +156,27 @@ def _ensure_profile_has_path_line(profile_path: Path, export_line: str) -> bool:
     return True
 
 
+def _detect_shadowing_command(*, command_name: str, target_path: Path) -> Path | None:
+    resolved_on_path = shutil.which(command_name)
+    if resolved_on_path is None:
+        return None
+
+    resolved_path = Path(resolved_on_path).expanduser().resolve(strict=False)
+    if resolved_path == target_path.expanduser().resolve(strict=False):
+        return None
+
+    virtual_env = os.environ.get("VIRTUAL_ENV")
+    if virtual_env is None:
+        return None
+
+    venv_path = Path(virtual_env).expanduser().resolve(strict=False)
+    try:
+        resolved_path.relative_to(venv_path)
+    except ValueError:
+        return None
+    return resolved_path
+
+
 def _write_python_launcher(target_path: Path, *, python_executable: Path, source_path: Path) -> None:
     launcher = (
         "#!/bin/sh\n"
@@ -223,6 +244,12 @@ def handle_install_self(args: Namespace, _cli_module: CommandRuntime) -> int:
 
     if source_path == target_path.resolve(strict=False):
         print(f"Already installed at {target_path}")
+        shadowing_path = _detect_shadowing_command(command_name=args.command_name, target_path=target_path)
+        if shadowing_path is not None:
+            print(
+                f"Warning: active virtualenv is shadowing the global install via {shadowing_path}. "
+                f"Use {target_path} explicitly or deactivate the virtualenv before relying on `{args.command_name}`."
+            )
         return 0
 
     target_path.parent.mkdir(parents=True, exist_ok=True)
@@ -270,6 +297,12 @@ def handle_install_self(args: Namespace, _cli_module: CommandRuntime) -> int:
             print(f"Add this line to {profile_name}:")
             print(export_line)
         print("Then reopen your shell before running `codex-metrics` by command name.")
+    shadowing_path = _detect_shadowing_command(command_name=args.command_name, target_path=target_path)
+    if shadowing_path is not None:
+        print(
+            f"Warning: active virtualenv is shadowing the global install via {shadowing_path}. "
+            f"Use {target_path} explicitly or deactivate the virtualenv before relying on `{args.command_name}`."
+        )
     return 0
 
 

@@ -1,4 +1,4 @@
-.PHONY: lint typecheck test verify coverage package package-standalone package-refresh-global live-usage-smoke
+.PHONY: lint typecheck test verify coverage package package-standalone package-refresh-local package-refresh-global live-usage-smoke
 
 lint:
 	./.venv/bin/ruff check .
@@ -25,7 +25,10 @@ package-standalone:
 	rm -rf build/standalone dist/standalone
 	./.venv/bin/python scripts/build_standalone.py
 
-package-refresh-global: package package-standalone
+package-refresh-local: package
+	./.venv/bin/python -m pip install --no-deps --force-reinstall dist/*.whl
+
+package-refresh-global: package-refresh-local package-standalone
 	./dist/standalone/codex-metrics install-self $(INSTALL_SELF_ARGS)
 
 live-usage-smoke:

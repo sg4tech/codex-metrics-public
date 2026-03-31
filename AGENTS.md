@@ -102,6 +102,15 @@ For bootstrap or initializer commands, do not stop at the empty-repo happy path.
 - `--dry-run` behavior
 - the real installed or packaged entrypoint, not only local shims
 
+For packaging or installer changes, treat the local runnable surfaces separately:
+
+- source-tree execution
+- `.venv/bin/codex-metrics`
+- standalone/global installs when they are part of the user flow
+
+Do not assume refreshing one surface refreshes the others.
+When local CLI behavior looks stale, explicitly check `which codex-metrics` and confirm where the package is being imported from before assuming the latest build is in use.
+
 When running `init` or any destructive regeneration smoke check during validation, prefer temporary metrics/report paths instead of real repository artifacts unless the task explicitly requires regenerating the tracked files.
 Generated metrics files are production-like artifacts and must not be casually overwritten during smoke testing.
 When validating the updater, run dependent commands sequentially, not in parallel.
