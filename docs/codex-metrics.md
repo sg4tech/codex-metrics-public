@@ -23,31 +23,31 @@
 
 ## Operational summary
 
-- Closed goals: 175
-- Successes: 174
+- Closed goals: 176
+- Successes: 175
 - Fails: 1
-- Total attempts: 181
-- Known total cost (USD): 223.031617
-- Known total tokens: 161324748
+- Total attempts: 182
+- Known total cost (USD): 223.574871
+- Known total tokens: 161715052
 - Success Rate: 99.43%
 - Attempts per Closed Goal: 1.03
-- Known cost coverage: 144/174 successful goals
-- Known token coverage: 144/174 successful goals
-- Complete cost coverage: 144/174 successful goals
-- Complete token coverage: 144/174 successful goals
-- Known Cost per Success (USD): 1.545415
-- Known Cost per Success (Tokens): 1117892.67
-- Complete Cost per Covered Success (USD): 1.545415
-- Complete Cost per Covered Success (Tokens): 1117892.67
+- Known cost coverage: 145/175 successful goals
+- Known token coverage: 145/175 successful goals
+- Complete cost coverage: 145/175 successful goals
+- Complete token coverage: 145/175 successful goals
+- Known Cost per Success (USD): 1.538504
+- Known Cost per Success (Tokens): 1112874.82
+- Complete Cost per Covered Success (USD): 1.538504
+- Complete Cost per Covered Success (Tokens): 1112874.82
 
 ## Entry summary
 
-- Closed entries: 181
-- Successes: 179
+- Closed entries: 182
+- Successes: 180
 - Fails: 2
 - Success Rate: 98.90%
-- Known total cost (USD): 227.691849
-- Known total tokens: 164527400
+- Known total cost (USD): 228.235103
+- Known total tokens: 164917704
 
 ## Operator review
 
@@ -81,22 +81,22 @@
 - Complete Cost per Covered Success (Tokens): 1457311.52
 
 ### retro
-- Closed goals: 37
-- Successes: 36
+- Closed goals: 38
+- Successes: 37
 - Fails: 1
-- Total attempts: 37
-- Known total cost (USD): 14.171534
-- Known total tokens: 10082228
-- Success Rate: 97.30%
+- Total attempts: 38
+- Known total cost (USD): 14.714788
+- Known total tokens: 10472532
+- Success Rate: 97.37%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 27/36 successful goals
-- Known token coverage: 27/36 successful goals
-- Complete cost coverage: 27/36 successful goals
-- Complete token coverage: 27/36 successful goals
-- Known Cost per Success (USD): 0.506655
-- Known Cost per Success (Tokens): 360519.44
-- Complete Cost per Covered Success (USD): 0.506655
-- Complete Cost per Covered Success (Tokens): 360519.44
+- Known cost coverage: 28/37 successful goals
+- Known token coverage: 28/37 successful goals
+- Complete cost coverage: 28/37 successful goals
+- Complete token coverage: 28/37 successful goals
+- Known Cost per Success (USD): 0.507962
+- Known Cost per Success (Tokens): 361583.18
+- Complete Cost per Covered Success (USD): 0.507962
+- Complete Cost per Covered Success (Tokens): 361583.18
 
 ### meta
 - Closed goals: 74
@@ -117,6 +117,19 @@
 - Complete Cost per Covered Success (Tokens): 1151550.76
 
 ## Goal log
+
+### 2026-03-31-020 — Retro agent-first product framing correction
+- Goal type: retro
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-31T10:59:17+00:00
+- Finished at: 2026-03-31T10:59:45+00:00
+- Cost (USD): 0.543254
+- Tokens: 390304
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Logged the retrospective for correcting the product from a human-first to an agent-first framing model, including why the older user model was dangerous and what permanent framing rule now applies.
 
 ### 2026-03-31-019 — Reframe product around agent consumers of analysis
 - Goal type: product
@@ -2472,6 +2485,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-31-020-attempt-001 — 2026-03-31-020
+- Entry type: retro
+- Inferred: no
+- Status: success
+- Started at: 2026-03-31T10:59:17+00:00
+- Finished at: 2026-03-31T10:59:45+00:00
+- Cost (USD): 0.543254
+- Tokens: 390304
+- Failure reason: n/a
+- Notes: Logged the retrospective for correcting the product from a human-first to an agent-first framing model, including why the older user model was dangerous and what permanent framing rule now applies.
 
 ### 2026-03-31-019-attempt-001 — 2026-03-31-019
 - Entry type: product
