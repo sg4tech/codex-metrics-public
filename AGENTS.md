@@ -16,13 +16,8 @@ For product-management, framing, and metrics-interpretation work, also read:
 
 ## Core working style
 
-- First understand what currently works.
-- Prefer small, reviewable, reversible changes.
-- Do not rewrite working code without a clear reason.
-- Preserve backward compatibility unless explicitly asked to change it.
 - During module splits or structural refactors, preserve the existing import/export surface until a breaking change is explicitly intended and validated.
 - Treat shim modules, entrypoints, and re-exported symbols that are exercised by tests or automation as part of the compatibility contract, not as disposable implementation details.
-- Treat assumptions as risks until verified.
 - When product framing or success criteria are not yet confirmed by the user, treat drafts as hypotheses, not settled truth.
 - When acting as PM, structure proposals explicitly as hypotheses with expected upside, main risks, alternatives, and a confidence level.
 - Log meaningful product or metrics hypotheses in `docs/product-hypotheses.md` instead of leaving them only in chat.
@@ -50,9 +45,9 @@ For the codex-metrics workflow, goal semantics, reporting invariants, and update
 Treat metrics bookkeeping as part of the definition of done for this repository.
 Treat metrics from other repositories as read-only inputs for analysis. Never run mutating codex-metrics commands against another project's metrics/report files unless the user explicitly asks for that exact repository to be modified.
 
-## Script editing rules
+## CLI and workflow rules
 
-When editing `scripts/update_codex_metrics.py`:
+When editing the CLI or metrics mutation flow:
 
 - preserve CLI behavior unless explicitly asked otherwise
 - prefer additive changes over breaking changes
@@ -82,11 +77,11 @@ For workflow-shaping CLI changes:
 
 ## Validation
 
-After changing `scripts/update_codex_metrics.py`:
+After changing the CLI, update flow, bootstrap flow, or metrics semantics:
 
 - run the relevant tests
 - run a CLI smoke test
-- verify that the script updates `metrics/codex_metrics.json`
+- verify that the workflow updates `metrics/codex_metrics.json`
 - if the task changes markdown export behavior, also verify `./tools/codex-metrics render-report`
 
 Minimum validation commands:
@@ -102,33 +97,12 @@ Prefer the repository's canonical local validation entrypoint when available:
 make verify
 ```
 
-After structural refactors, include an entrypoint or compatibility-path check in validation, not just direct module tests.
-For bootstrap or initializer commands, do not stop at the empty-repo happy path. Also validate:
+Local validation reminders:
 
-- rerun behavior
-- partial existing scaffold states
-- conflict handling
-- `--dry-run` behavior
-- the real installed or packaged entrypoint, not only local shims
-
-For packaging or installer changes, treat the local runnable surfaces separately:
-
-- source-tree execution
-- `.venv/bin/codex-metrics`
-- standalone/global installs when they are part of the user flow
-
-Do not assume refreshing one surface refreshes the others.
-When local CLI behavior looks stale, explicitly check `which codex-metrics` and confirm where the package is being imported from before assuming the latest build is in use.
-
-When running `init` or any destructive regeneration smoke check during validation, prefer temporary metrics/report paths instead of real repository artifacts unless the task explicitly requires regenerating the tracked files.
-Generated metrics files are production-like artifacts and must not be casually overwritten during smoke testing.
-When validating the updater, run dependent commands sequentially, not in parallel.
-Examples of dependent flows:
-- `update -> show`
-- `init -> update`
-- any later command that relies on files written by an earlier updater command
-Parallel execution is fine only for independent reads and checks such as `ruff`, `mypy`, `pytest`, `rg`, and file inspection.
-If `update` output and a parallel `show` disagree, first rerun `show` sequentially before treating it as a product bug.
+- after structural refactors, include an entrypoint or compatibility-path check, not just direct module tests
+- for bootstrap or initializer commands, validate reruns, partial scaffold states, conflicts, and `--dry-run`
+- when running `init` or regeneration smoke checks, prefer temporary metrics/report paths unless the task explicitly targets tracked artifacts
+- validate dependent updater flows sequentially, not in parallel
 
 ## Retros Rules
 
