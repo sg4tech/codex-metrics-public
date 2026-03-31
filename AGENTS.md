@@ -38,6 +38,7 @@ Generated files:
 
 For the codex-metrics workflow, goal semantics, reporting invariants, and update/close rules, follow `docs/codex-metrics-policy.md`.
 Treat metrics bookkeeping as part of the definition of done for this repository.
+Treat metrics from other repositories as read-only inputs for analysis. Never run mutating codex-metrics commands against another project's metrics/report files unless the user explicitly asks for that exact repository to be modified.
 
 ## Script editing rules
 

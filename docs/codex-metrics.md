@@ -2,31 +2,31 @@
 
 ## Goal summary
 
-- Closed goals: 157
-- Successes: 157
+- Closed goals: 159
+- Successes: 159
 - Fails: 0
-- Total attempts: 163
-- Known total cost (USD): 219.576461
-- Known total tokens: 158426099
+- Total attempts: 165
+- Known total cost (USD): 220.645967
+- Known total tokens: 159537235
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 125/157 successful goals
-- Known token coverage: 125/157 successful goals
-- Complete cost coverage: 125/157 successful goals
-- Complete token coverage: 125/157 successful goals
-- Known Cost per Success (USD): 1.756612
-- Known Cost per Success (Tokens): 1267408.79
-- Complete Cost per Covered Success (USD): 1.756612
-- Complete Cost per Covered Success (Tokens): 1267408.79
+- Known cost coverage: 127/159 successful goals
+- Known token coverage: 127/159 successful goals
+- Complete cost coverage: 127/159 successful goals
+- Complete token coverage: 127/159 successful goals
+- Known Cost per Success (USD): 1.73737
+- Known Cost per Success (Tokens): 1256198.70
+- Complete Cost per Covered Success (USD): 1.73737
+- Complete Cost per Covered Success (Tokens): 1256198.70
 
 ## Entry summary
 
-- Closed entries: 163
-- Successes: 162
+- Closed entries: 165
+- Successes: 164
 - Fails: 1
 - Success Rate: 99.39%
-- Known total cost (USD): 218.679081
-- Known total tokens: 157710120
+- Known total cost (USD): 219.748587
+- Known total tokens: 158821256
 
 ## Operator review
 
@@ -77,24 +77,50 @@
 - Complete Cost per Covered Success (Tokens): 371249.40
 
 ### meta
-- Closed goals: 67
-- Successes: 67
+- Closed goals: 69
+- Successes: 69
 - Fails: 0
-- Total attempts: 67
-- Known total cost (USD): 97.157995
-- Known total tokens: 70549240
+- Total attempts: 69
+- Known total cost (USD): 98.227501
+- Known total tokens: 71660376
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 57/67 successful goals
-- Known token coverage: 57/67 successful goals
-- Complete cost coverage: 57/67 successful goals
-- Complete token coverage: 57/67 successful goals
-- Known Cost per Success (USD): 1.704526
-- Known Cost per Success (Tokens): 1237705.96
-- Complete Cost per Covered Success (USD): 1.704526
-- Complete Cost per Covered Success (Tokens): 1237705.96
+- Known cost coverage: 59/69 successful goals
+- Known token coverage: 59/69 successful goals
+- Complete cost coverage: 59/69 successful goals
+- Complete token coverage: 59/69 successful goals
+- Known Cost per Success (USD): 1.664873
+- Known Cost per Success (Tokens): 1214582.64
+- Complete Cost per Covered Success (USD): 1.664873
+- Complete Cost per Covered Success (Tokens): 1214582.64
 
 ## Goal log
+
+### 2026-03-31-002 — Guard cross-project metrics analysis as read-only
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-31T08:33:27+00:00
+- Finished at: 2026-03-31T08:33:32+00:00
+- Cost (USD): 0.21541
+- Tokens: 457874
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Rule added to AGENTS: treat other repositories' metrics as read-only analysis inputs unless explicit modification is requested.
+
+### 2026-03-31-001 — Record TODO for retrospective metrics audit
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-31T08:01:45+00:00
+- Finished at: 2026-03-31T08:02:17+00:00
+- Cost (USD): 0.854096
+- Tokens: 653262
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Added TODO items for retrospective-time metrics quality audit and optional automatic task-metrics snapshots in retrospectives.
 
 ### 2026-03-30-017 — Add local rule for local CLI surface verification
 - Goal type: meta
@@ -2203,6 +2229,28 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-31-002-attempt-001 — 2026-03-31-002
+- Entry type: meta
+- Inferred: no
+- Status: success
+- Started at: 2026-03-31T08:33:27+00:00
+- Finished at: 2026-03-31T08:33:32+00:00
+- Cost (USD): 0.21541
+- Tokens: 457874
+- Failure reason: n/a
+- Notes: Rule added to AGENTS: treat other repositories' metrics as read-only analysis inputs unless explicit modification is requested.
+
+### 2026-03-31-001-attempt-001 — 2026-03-31-001
+- Entry type: meta
+- Inferred: no
+- Status: success
+- Started at: 2026-03-31T08:01:45+00:00
+- Finished at: 2026-03-31T08:02:17+00:00
+- Cost (USD): 0.854096
+- Tokens: 653262
+- Failure reason: n/a
+- Notes: Added TODO items for retrospective-time metrics quality audit and optional automatic task-metrics snapshots in retrospectives.
 
 ### 2026-03-30-017-attempt-001 — 2026-03-30-017
 - Entry type: meta
