@@ -6,18 +6,18 @@
 - Successes: 167
 - Fails: 0
 - Total attempts: 173
-- Known total cost (USD): 222.750117
-- Known total tokens: 161070253
+- Known total cost (USD): 217.990057
+- Known total tokens: 157728513
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 135/167 successful goals
-- Known token coverage: 135/167 successful goals
-- Complete cost coverage: 135/167 successful goals
-- Complete token coverage: 135/167 successful goals
-- Known Cost per Success (USD): 1.650001
-- Known Cost per Success (Tokens): 1193112.99
-- Complete Cost per Covered Success (USD): 1.650001
-- Complete Cost per Covered Success (Tokens): 1193112.99
+- Known cost coverage: 138/167 successful goals
+- Known token coverage: 138/167 successful goals
+- Complete cost coverage: 138/167 successful goals
+- Complete token coverage: 138/167 successful goals
+- Known Cost per Success (USD): 1.579638
+- Known Cost per Success (Tokens): 1142960.24
+- Complete Cost per Covered Success (USD): 1.579638
+- Complete Cost per Covered Success (Tokens): 1142960.24
 
 ## Entry summary
 
@@ -25,8 +25,8 @@
 - Successes: 172
 - Fails: 1
 - Success Rate: 99.42%
-- Known total cost (USD): 221.852737
-- Known total tokens: 160354274
+- Known total cost (USD): 222.650289
+- Known total tokens: 160931165
 
 ## Operator review
 
@@ -45,18 +45,18 @@
 - Successes: 61
 - Fails: 0
 - Total attempts: 67
-- Known total cost (USD): 110.830003
-- Known total tokens: 79653107
+- Known total cost (USD): 105.830765
+- Known total tokens: 76138126
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.10
-- Known cost coverage: 48/61 successful goals
-- Known token coverage: 48/61 successful goals
-- Complete cost coverage: 48/61 successful goals
-- Complete token coverage: 48/61 successful goals
-- Known Cost per Success (USD): 2.308958
-- Known Cost per Success (Tokens): 1659439.73
-- Complete Cost per Covered Success (USD): 2.308958
-- Complete Cost per Covered Success (Tokens): 1659439.73
+- Known cost coverage: 51/61 successful goals
+- Known token coverage: 51/61 successful goals
+- Complete cost coverage: 51/61 successful goals
+- Complete token coverage: 51/61 successful goals
+- Known Cost per Success (USD): 2.075113
+- Known Cost per Success (Tokens): 1492904.43
+- Complete Cost per Covered Success (USD): 2.075113
+- Complete Cost per Covered Success (Tokens): 1492904.43
 
 ### retro
 - Closed goals: 35
@@ -81,18 +81,18 @@
 - Successes: 71
 - Fails: 0
 - Total attempts: 71
-- Known total cost (USD): 98.693006
-- Known total tokens: 71997078
+- Known total cost (USD): 98.932184
+- Known total tokens: 72170319
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
 - Known cost coverage: 61/71 successful goals
 - Known token coverage: 61/71 successful goals
 - Complete cost coverage: 61/71 successful goals
 - Complete token coverage: 61/71 successful goals
-- Known Cost per Success (USD): 1.617918
-- Known Cost per Success (Tokens): 1180279.97
-- Complete Cost per Covered Success (USD): 1.617918
-- Complete Cost per Covered Success (Tokens): 1180279.97
+- Known Cost per Success (USD): 1.621839
+- Known Cost per Success (Tokens): 1183119.98
+- Complete Cost per Covered Success (USD): 1.621839
+- Complete Cost per Covered Success (Tokens): 1183119.98
 
 ## Goal log
 
@@ -103,8 +103,8 @@
 - Attempts: 1
 - Started at: 2026-03-31T09:08:11+00:00
 - Finished at: 2026-03-31T09:08:25+00:00
-- Cost (USD): 0.238631
-- Tokens: 172664
+- Cost (USD): 0.477809
+- Tokens: 345905
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Removed the outdated script-first command example from AGENTS.md so local instructions now point only to ./tools/codex-metrics as the user-facing workflow. Verified the wrapper path with ./tools/codex-metrics show.
@@ -363,8 +363,8 @@
 - Attempts: 1
 - Started at: 2026-03-30T08:56:54+00:00
 - Finished at: 2026-03-30T08:56:55+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.283861
+- Tokens: 205379
 - Failure reason: n/a
 - Result fit: exact_fit
 - Notes: Expanded the reusable AGENTS template with stricter architecture rules: pure domain boundaries, explicit application layer, invariant ownership, composition over inheritance, and explicit dependencies over hidden shared state.
@@ -389,8 +389,8 @@
 - Attempts: 1
 - Started at: 2026-03-30T08:47:32+00:00
 - Finished at: 2026-03-30T08:47:33+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.273173
+- Tokens: 197538
 - Failure reason: n/a
 - Result fit: exact_fit
 - Notes: Added a mandatory-rules-only AGENTS template for new Python projects with strict guidance on TDD, coverage, linting, type checking, anti-copy-paste discipline, layered architecture, validation, and definition of done.
@@ -493,8 +493,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T20:15:57+00:00
 - Finished at: 2026-03-29T20:15:58+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.239971
+- Tokens: 173397
 - Failure reason: n/a
 - Result fit: exact_fit
 - Notes: Added a lightweight lifecycle pilot doc with lead-owned stage transitions, stage definitions, operating rules, and criteria for when to automate stage support in the tool.
@@ -506,8 +506,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T20:09:49+00:00
 - Finished at: 2026-03-29T20:13:21+00:00
-- Cost (USD): 2.844916
-- Tokens: 2014695
+- Cost (USD): 0.449303
+- Tokens: 335053
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Added start-task, continue-task, and finish-task commands as high-level wrappers around update, with tests and docs.
@@ -662,8 +662,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T19:07:43+00:00
 - Finished at: 2026-03-29T19:08:21+00:00
-- Cost (USD): 1.232631
-- Tokens: 892311
+- Cost (USD): 0.231282
+- Tokens: 163754
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Rebuilt the standalone binary after adding install-self, verified that dist/standalone/codex-metrics now exposes install-self in top-level help and install-self --help, and confirmed the earlier invalid-choice error came from an outdated standalone artifact built before the new command existed.
@@ -675,8 +675,8 @@
 - Attempts: 2
 - Started at: 2026-03-29T18:58:02+00:00
 - Finished at: 2026-03-29T19:02:55+00:00
-- Cost (USD): 4.633669
-- Tokens: 3296372
+- Cost (USD): 2.234388
+- Tokens: 1613276
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Finalized install-self: it now installs a working launcher, warns when the target directory is not on PATH, prints the exact export PATH line for the current shell profile, and is covered by regression tests plus full verify.
@@ -1364,8 +1364,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T13:29:18+00:00
 - Finished at: n/a
-- Cost (USD): 0.290358
-- Tokens: 619964
+- Cost (USD): 147.038404
+- Tokens: 106251009
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Improve manual goal ID conflict messaging and document auto-ID as the default path for new goals.
@@ -1780,8 +1780,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T11:13:17+00:00
 - Finished at: n/a
-- Cost (USD): 0.290358
-- Tokens: 619964
+- Cost (USD): 261.014935
+- Tokens: 188387292
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Prevent invalid merge states in merge_tasks and mark inferred entries explicitly in the markdown report.
@@ -1962,8 +1962,8 @@
 - Attempts: 1
 - Started at: 2026-03-29T10:36:36+00:00
 - Finished at: n/a
-- Cost (USD): 0.290358
-- Tokens: 619964
+- Cost (USD): 0.491608
+- Tokens: 1061740
 - Failure reason: n/a
 - Result fit: n/a
 - Notes: Continue safe refactoring by making summary and effective-goal logic more explicit and modular without changing persisted schema or CLI behavior.
@@ -2340,8 +2340,8 @@
 - Status: success
 - Started at: 2026-03-31T09:08:11+00:00
 - Finished at: 2026-03-31T09:08:25+00:00
-- Cost (USD): 0.238631
-- Tokens: 172664
+- Cost (USD): 0.239178
+- Tokens: 173241
 - Failure reason: n/a
 - Notes: Removed the outdated script-first command example from AGENTS.md so local instructions now point only to ./tools/codex-metrics as the user-facing workflow. Verified the wrapper path with ./tools/codex-metrics show.
 
@@ -2560,8 +2560,8 @@
 - Status: success
 - Started at: 2026-03-30T08:56:54+00:00
 - Finished at: 2026-03-30T08:56:55+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.283861
+- Tokens: 205379
 - Failure reason: n/a
 - Notes: Expanded the reusable AGENTS template with stricter architecture rules: pure domain boundaries, explicit application layer, invariant ownership, composition over inheritance, and explicit dependencies over hidden shared state.
 
@@ -2582,8 +2582,8 @@
 - Status: success
 - Started at: 2026-03-30T08:47:32+00:00
 - Finished at: 2026-03-30T08:47:33+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.273173
+- Tokens: 197538
 - Failure reason: n/a
 - Notes: Added a mandatory-rules-only AGENTS template for new Python projects with strict guidance on TDD, coverage, linting, type checking, anti-copy-paste discipline, layered architecture, validation, and definition of done.
 
@@ -2670,8 +2670,8 @@
 - Status: success
 - Started at: 2026-03-29T20:15:57+00:00
 - Finished at: 2026-03-29T20:15:58+00:00
-- Cost (USD): n/a
-- Tokens: n/a
+- Cost (USD): 0.239971
+- Tokens: 173397
 - Failure reason: n/a
 - Notes: Added a lightweight lifecycle pilot doc with lead-owned stage transitions, stage definitions, operating rules, and criteria for when to automate stage support in the tool.
 
@@ -3429,8 +3429,8 @@
 - Status: in_progress
 - Started at: 2026-03-29T13:29:18+00:00
 - Finished at: n/a
-- Cost (USD): 1.094154
-- Tokens: 2365464
+- Cost (USD): 146.748046
+- Tokens: 105631045
 - Failure reason: n/a
 - Notes: Improve manual goal ID conflict messaging and document auto-ID as the default path for new goals.
 
@@ -3803,8 +3803,8 @@
 - Status: in_progress
 - Started at: 2026-03-29T11:13:17+00:00
 - Finished at: n/a
-- Cost (USD): 1.091982
-- Tokens: 2355804
+- Cost (USD): 260.724577
+- Tokens: 187767328
 - Failure reason: n/a
 - Notes: Prevent invalid merge states in merge_tasks and mark inferred entries explicitly in the markdown report.
 
@@ -3957,8 +3957,8 @@
 - Status: in_progress
 - Started at: 2026-03-29T10:36:36+00:00
 - Finished at: n/a
-- Cost (USD): 1.091982
-- Tokens: 2355804
+- Cost (USD): 0.20125
+- Tokens: 441776
 - Failure reason: n/a
 - Notes: Continue safe refactoring by making summary and effective-goal logic more explicit and modular without changing persisted schema or CLI behavior.
 
