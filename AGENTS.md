@@ -32,10 +32,6 @@ Use:
 
 `./tools/codex-metrics ...`
 
-Fallback compatibility path only:
-
-`python scripts/update_codex_metrics.py ...`
-
 Generated files:
 - `metrics/codex_metrics.json`
 - `docs/codex-metrics.md`

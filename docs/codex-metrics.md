@@ -2,31 +2,31 @@
 
 ## Goal summary
 
-- Closed goals: 166
-- Successes: 166
+- Closed goals: 167
+- Successes: 167
 - Fails: 0
-- Total attempts: 172
-- Known total cost (USD): 222.511486
-- Known total tokens: 160897589
+- Total attempts: 173
+- Known total cost (USD): 222.750117
+- Known total tokens: 161070253
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 134/166 successful goals
-- Known token coverage: 134/166 successful goals
-- Complete cost coverage: 134/166 successful goals
-- Complete token coverage: 134/166 successful goals
-- Known Cost per Success (USD): 1.660533
-- Known Cost per Success (Tokens): 1200728.28
-- Complete Cost per Covered Success (USD): 1.660533
-- Complete Cost per Covered Success (Tokens): 1200728.28
+- Known cost coverage: 135/167 successful goals
+- Known token coverage: 135/167 successful goals
+- Complete cost coverage: 135/167 successful goals
+- Complete token coverage: 135/167 successful goals
+- Known Cost per Success (USD): 1.650001
+- Known Cost per Success (Tokens): 1193112.99
+- Complete Cost per Covered Success (USD): 1.650001
+- Complete Cost per Covered Success (Tokens): 1193112.99
 
 ## Entry summary
 
-- Closed entries: 172
-- Successes: 171
+- Closed entries: 173
+- Successes: 172
 - Fails: 1
 - Success Rate: 99.42%
-- Known total cost (USD): 221.614106
-- Known total tokens: 160181610
+- Known total cost (USD): 221.852737
+- Known total tokens: 160354274
 
 ## Operator review
 
@@ -77,24 +77,37 @@
 - Complete Cost per Covered Success (Tokens): 362310.31
 
 ### meta
-- Closed goals: 70
-- Successes: 70
+- Closed goals: 71
+- Successes: 71
 - Fails: 0
-- Total attempts: 70
-- Known total cost (USD): 98.454375
-- Known total tokens: 71824414
+- Total attempts: 71
+- Known total cost (USD): 98.693006
+- Known total tokens: 71997078
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 60/70 successful goals
-- Known token coverage: 60/70 successful goals
-- Complete cost coverage: 60/70 successful goals
-- Complete token coverage: 60/70 successful goals
-- Known Cost per Success (USD): 1.640906
-- Known Cost per Success (Tokens): 1197073.57
-- Complete Cost per Covered Success (USD): 1.640906
-- Complete Cost per Covered Success (Tokens): 1197073.57
+- Known cost coverage: 61/71 successful goals
+- Known token coverage: 61/71 successful goals
+- Complete cost coverage: 61/71 successful goals
+- Complete token coverage: 61/71 successful goals
+- Known Cost per Success (USD): 1.617918
+- Known Cost per Success (Tokens): 1180279.97
+- Complete Cost per Covered Success (USD): 1.617918
+- Complete Cost per Covered Success (Tokens): 1180279.97
 
 ## Goal log
+
+### 2026-03-31-010 — Remove outdated script-first note from AGENTS
+- Goal type: meta
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-31T09:08:11+00:00
+- Finished at: 2026-03-31T09:08:25+00:00
+- Cost (USD): 0.238631
+- Tokens: 172664
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Removed the outdated script-first command example from AGENTS.md so local instructions now point only to ./tools/codex-metrics as the user-facing workflow. Verified the wrapper path with ./tools/codex-metrics show.
 
 ### 2026-03-31-009 — Align AGENTS with repo-local wrapper
 - Goal type: meta
@@ -2320,6 +2333,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-31-010-attempt-001 — 2026-03-31-010
+- Entry type: meta
+- Inferred: no
+- Status: success
+- Started at: 2026-03-31T09:08:11+00:00
+- Finished at: 2026-03-31T09:08:25+00:00
+- Cost (USD): 0.238631
+- Tokens: 172664
+- Failure reason: n/a
+- Notes: Removed the outdated script-first command example from AGENTS.md so local instructions now point only to ./tools/codex-metrics as the user-facing workflow. Verified the wrapper path with ./tools/codex-metrics show.
 
 ### 2026-03-31-009-attempt-001 — 2026-03-31-009
 - Entry type: meta
