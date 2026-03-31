@@ -2,31 +2,31 @@
 
 ## Goal summary
 
-- Closed goals: 163
-- Successes: 163
+- Closed goals: 164
+- Successes: 164
 - Fails: 0
-- Total attempts: 169
-- Known total cost (USD): 221.291521
-- Known total tokens: 160002122
+- Total attempts: 170
+- Known total cost (USD): 221.481705
+- Known total tokens: 160140955
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 131/163 successful goals
-- Known token coverage: 131/163 successful goals
-- Complete cost coverage: 131/163 successful goals
-- Complete token coverage: 131/163 successful goals
-- Known Cost per Success (USD): 1.689248
-- Known Cost per Success (Tokens): 1221390.24
-- Complete Cost per Covered Success (USD): 1.689248
-- Complete Cost per Covered Success (Tokens): 1221390.24
+- Known cost coverage: 132/164 successful goals
+- Known token coverage: 132/164 successful goals
+- Complete cost coverage: 132/164 successful goals
+- Complete token coverage: 132/164 successful goals
+- Known Cost per Success (USD): 1.677892
+- Known Cost per Success (Tokens): 1213189.05
+- Complete Cost per Covered Success (USD): 1.677892
+- Complete Cost per Covered Success (Tokens): 1213189.05
 
 ## Entry summary
 
-- Closed entries: 169
-- Successes: 168
+- Closed entries: 170
+- Successes: 169
 - Fails: 1
 - Success Rate: 99.41%
-- Known total cost (USD): 220.394141
-- Known total tokens: 159286143
+- Known total cost (USD): 220.584325
+- Known total tokens: 159424976
 
 ## Operator review
 
@@ -59,22 +59,22 @@
 - Complete Cost per Covered Success (Tokens): 1682138.53
 
 ### retro
-- Closed goals: 34
-- Successes: 34
+- Closed goals: 35
+- Successes: 35
 - Fails: 0
-- Total attempts: 34
-- Known total cost (USD): 13.036924
-- Known total tokens: 9281235
+- Total attempts: 35
+- Known total cost (USD): 13.227108
+- Known total tokens: 9420068
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 25/34 successful goals
-- Known token coverage: 25/34 successful goals
-- Complete cost coverage: 25/34 successful goals
-- Complete token coverage: 25/34 successful goals
-- Known Cost per Success (USD): 0.521477
-- Known Cost per Success (Tokens): 371249.40
-- Complete Cost per Covered Success (USD): 0.521477
-- Complete Cost per Covered Success (Tokens): 371249.40
+- Known cost coverage: 26/35 successful goals
+- Known token coverage: 26/35 successful goals
+- Complete cost coverage: 26/35 successful goals
+- Complete token coverage: 26/35 successful goals
+- Known Cost per Success (USD): 0.508735
+- Known Cost per Success (Tokens): 362310.31
+- Complete Cost per Covered Success (USD): 0.508735
+- Complete Cost per Covered Success (Tokens): 362310.31
 
 ### meta
 - Closed goals: 69
@@ -95,6 +95,19 @@
 - Complete Cost per Covered Success (Tokens): 1214582.64
 
 ## Goal log
+
+### 2026-03-31-007 — Retrospective on automatic CLI versioning
+- Goal type: retro
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-31T08:57:20+00:00
+- Finished at: 2026-03-31T08:57:38+00:00
+- Cost (USD): 0.190184
+- Tokens: 138833
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Logged a full retrospective for the CLI version drift incident: missing manual bump discipline, stale local install surfaces, the move to editable local refresh, and automatic git-derived version identity with explicit fallback rules.
 
 ### 2026-03-31-006 — Derive CLI version from git state
 - Goal type: product
@@ -2281,6 +2294,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-31-007-attempt-001 — 2026-03-31-007
+- Entry type: retro
+- Inferred: no
+- Status: success
+- Started at: 2026-03-31T08:57:20+00:00
+- Finished at: 2026-03-31T08:57:38+00:00
+- Cost (USD): 0.190184
+- Tokens: 138833
+- Failure reason: n/a
+- Notes: Logged a full retrospective for the CLI version drift incident: missing manual bump discipline, stale local install surfaces, the move to editable local refresh, and automatic git-derived version identity with explicit fallback rules.
 
 ### 2026-03-31-006-attempt-001 — 2026-03-31-006
 - Entry type: product
