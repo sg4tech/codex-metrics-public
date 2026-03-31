@@ -1,2 +1,3 @@
 #!/bin/sh
+cd '/Users/viktor/PycharmProjects/codex-metrics' || exit 1
 exec '/Users/viktor/PycharmProjects/codex-metrics/.venv/bin/codex-metrics' "$@"

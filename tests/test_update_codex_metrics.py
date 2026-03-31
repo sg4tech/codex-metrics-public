@@ -745,6 +745,27 @@ def test_bootstrap_custom_paths_render_relative_agents_links(repo: Path) -> None
     assert "`../bin/codex-metrics ...`" in agents_text
 
 
+def test_bootstrap_wrapper_runs_from_repo_root_even_when_invoked_from_other_cwd(repo: Path, tmp_path: Path) -> None:
+    result = run_cmd(repo, "bootstrap")
+    assert result.returncode == 0, result.stderr
+
+    wrapper_path = repo / "tools" / "codex-metrics"
+    foreign_cwd = tmp_path / "foreign-cwd"
+    foreign_cwd.mkdir(parents=True, exist_ok=True)
+
+    wrapper_result = subprocess.run(
+        [str(wrapper_path), "show"],
+        cwd=foreign_cwd,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert wrapper_result.returncode == 0, wrapper_result.stderr
+    assert "Closed goals: 0" in wrapper_result.stdout
+    assert "Known total cost (USD): 0" in wrapper_result.stdout
+
+
 def test_script_entrypoint_prints_clean_bootstrap_error(repo: Path) -> None:
     policy_path = repo / "docs" / "codex-metrics-policy.md"
     policy_path.parent.mkdir(parents=True, exist_ok=True)

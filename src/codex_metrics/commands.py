@@ -200,13 +200,18 @@ def _write_source_module_launcher(target_path: Path, *, python_executable: Path,
     target_path.chmod(target_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
-def _render_python_launcher(*, python_executable: Path, source_path: Path) -> str:
-    return "#!/bin/sh\n" f"exec '{python_executable}' '{source_path}' \"$@\"\n"
-
-
-def _render_source_module_launcher(*, python_executable: Path, source_root: Path) -> str:
+def _render_python_launcher(*, python_executable: Path, source_path: Path, repo_root: Path) -> str:
     return (
         "#!/bin/sh\n"
+        f"cd '{repo_root}' || exit 1\n"
+        f"exec '{python_executable}' '{source_path}' \"$@\"\n"
+    )
+
+
+def _render_source_module_launcher(*, python_executable: Path, source_root: Path, repo_root: Path) -> str:
+    return (
+        "#!/bin/sh\n"
+        f"cd '{repo_root}' || exit 1\n"
         "if [ -n \"$PYTHONPATH\" ]; then\n"
         f"  export PYTHONPATH='{source_root}':\"$PYTHONPATH\"\n"
         "else\n"
@@ -216,22 +221,24 @@ def _render_source_module_launcher(*, python_executable: Path, source_root: Path
     )
 
 
-def _render_repo_local_wrapper(source_path: Path) -> str:
+def _render_repo_local_wrapper(source_path: Path, repo_root: Path) -> str:
     if source_path.suffix == ".py" and source_path.name == "__main__.py":
         return _render_source_module_launcher(
             python_executable=Path(sys.executable),
             source_root=source_path.parents[1],
+            repo_root=repo_root,
         )
     if source_path.suffix == ".py":
         return _render_python_launcher(
             python_executable=Path(sys.executable),
             source_path=source_path,
+            repo_root=repo_root,
         )
-    return "#!/bin/sh\n" f"exec '{source_path}' \"$@\"\n"
+    return "#!/bin/sh\n" f"cd '{repo_root}' || exit 1\n" f"exec '{source_path}' \"$@\"\n"
 
 
-def _write_repo_local_wrapper(target_path: Path, source_path: Path) -> str:
-    content = _render_repo_local_wrapper(source_path)
+def _write_repo_local_wrapper(target_path: Path, source_path: Path, repo_root: Path) -> str:
+    content = _render_repo_local_wrapper(source_path, repo_root)
     target_path.parent.mkdir(parents=True, exist_ok=True)
     target_path.write_text(content, encoding="utf-8")
     target_path.chmod(target_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -328,7 +335,7 @@ def handle_bootstrap(args: Namespace, cli_module: CommandRuntime) -> int:
     command_path = resolve_target_path(args.command_path)
     agents_path = resolve_target_path(args.agents_path)
     source_path = _resolve_invocation_path()
-    wrapper_content = _render_repo_local_wrapper(source_path)
+    wrapper_content = _render_repo_local_wrapper(source_path, target_dir.resolve())
     wrapper_exists = command_path.exists()
     wrapper_matches = wrapper_exists and command_path.read_text(encoding="utf-8") == wrapper_content
 
@@ -352,12 +359,12 @@ def handle_bootstrap(args: Namespace, cli_module: CommandRuntime) -> int:
                 messages.append(f"Would update command wrapper: {command_path}")
         else:
             if not wrapper_exists:
-                _write_repo_local_wrapper(command_path, source_path)
+                _write_repo_local_wrapper(command_path, source_path, target_dir.resolve())
                 messages.append(f"Created command wrapper: {command_path}")
             elif wrapper_matches:
                 messages.append(f"Keeping command wrapper: {command_path}")
             else:
-                _write_repo_local_wrapper(command_path, source_path)
+                _write_repo_local_wrapper(command_path, source_path, target_dir.resolve())
                 messages.append(f"Updated command wrapper: {command_path}")
 
     for message in messages:

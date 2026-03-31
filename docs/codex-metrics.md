@@ -2,31 +2,31 @@
 
 ## Goal summary
 
-- Closed goals: 167
-- Successes: 167
+- Closed goals: 168
+- Successes: 168
 - Fails: 0
-- Total attempts: 173
-- Known total cost (USD): 217.990057
-- Known total tokens: 157728513
+- Total attempts: 174
+- Known total cost (USD): 218.282345
+- Known total tokens: 157939597
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.04
-- Known cost coverage: 138/167 successful goals
-- Known token coverage: 138/167 successful goals
-- Complete cost coverage: 138/167 successful goals
-- Complete token coverage: 138/167 successful goals
-- Known Cost per Success (USD): 1.579638
-- Known Cost per Success (Tokens): 1142960.24
-- Complete Cost per Covered Success (USD): 1.579638
-- Complete Cost per Covered Success (Tokens): 1142960.24
+- Known cost coverage: 139/168 successful goals
+- Known token coverage: 139/168 successful goals
+- Complete cost coverage: 139/168 successful goals
+- Complete token coverage: 139/168 successful goals
+- Known Cost per Success (USD): 1.570377
+- Known Cost per Success (Tokens): 1136256.09
+- Complete Cost per Covered Success (USD): 1.570377
+- Complete Cost per Covered Success (Tokens): 1136256.09
 
 ## Entry summary
 
-- Closed entries: 173
-- Successes: 172
+- Closed entries: 174
+- Successes: 173
 - Fails: 1
-- Success Rate: 99.42%
-- Known total cost (USD): 222.650289
-- Known total tokens: 160931165
+- Success Rate: 99.43%
+- Known total cost (USD): 222.942577
+- Known total tokens: 161142249
 
 ## Operator review
 
@@ -41,22 +41,22 @@
 - unclear_task: 1
 
 ### product
-- Closed goals: 61
-- Successes: 61
+- Closed goals: 62
+- Successes: 62
 - Fails: 0
-- Total attempts: 67
-- Known total cost (USD): 105.830765
-- Known total tokens: 76138126
+- Total attempts: 68
+- Known total cost (USD): 106.123053
+- Known total tokens: 76349210
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.10
-- Known cost coverage: 51/61 successful goals
-- Known token coverage: 51/61 successful goals
-- Complete cost coverage: 51/61 successful goals
-- Complete token coverage: 51/61 successful goals
-- Known Cost per Success (USD): 2.075113
-- Known Cost per Success (Tokens): 1492904.43
-- Complete Cost per Covered Success (USD): 2.075113
-- Complete Cost per Covered Success (Tokens): 1492904.43
+- Known cost coverage: 52/62 successful goals
+- Known token coverage: 52/62 successful goals
+- Complete cost coverage: 52/62 successful goals
+- Complete token coverage: 52/62 successful goals
+- Known Cost per Success (USD): 2.040828
+- Known Cost per Success (Tokens): 1468254.04
+- Complete Cost per Covered Success (USD): 2.040828
+- Complete Cost per Covered Success (Tokens): 1468254.04
 
 ### retro
 - Closed goals: 35
@@ -95,6 +95,19 @@
 - Complete Cost per Covered Success (Tokens): 1183119.98
 
 ## Goal log
+
+### 2026-03-31-011 — Fix repo-local wrapper cwd semantics
+- Goal type: product
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-31T09:42:50+00:00
+- Finished at: 2026-03-31T09:42:56+00:00
+- Cost (USD): 0.292288
+- Tokens: 211084
+- Failure reason: n/a
+- Result fit: exact_fit
+- Notes: Updated bootstrap-generated wrapper semantics so tools/codex-metrics cds into its own repository root before exec. Added regression coverage for invocation from another working directory, verified make verify, updated the current repo wrapper, and confirmed /tmp path invocation still reads this repo's metrics.
 
 ### 2026-03-31-010 — Remove outdated script-first note from AGENTS
 - Goal type: meta
@@ -2333,6 +2346,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-31-011-attempt-001 — 2026-03-31-011
+- Entry type: product
+- Inferred: no
+- Status: success
+- Started at: 2026-03-31T09:42:50+00:00
+- Finished at: 2026-03-31T09:42:56+00:00
+- Cost (USD): 0.292288
+- Tokens: 211084
+- Failure reason: n/a
+- Notes: Updated bootstrap-generated wrapper semantics so tools/codex-metrics cds into its own repository root before exec. Added regression coverage for invocation from another working directory, verified make verify, updated the current repo wrapper, and confirmed /tmp path invocation still reads this repo's metrics.
 
 ### 2026-03-31-010-attempt-001 — 2026-03-31-010
 - Entry type: meta
