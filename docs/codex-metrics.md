@@ -23,31 +23,31 @@
 
 ## Operational summary
 
-- Closed goals: 173
-- Successes: 173
+- Closed goals: 174
+- Successes: 174
 - Fails: 0
-- Total attempts: 179
-- Known total cost (USD): 221.998555
-- Known total tokens: 160596533
+- Total attempts: 180
+- Known total cost (USD): 222.490414
+- Known total tokens: 160944736
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.03
-- Known cost coverage: 143/173 successful goals
-- Known token coverage: 143/173 successful goals
-- Complete cost coverage: 143/173 successful goals
-- Complete token coverage: 143/173 successful goals
-- Known Cost per Success (USD): 1.552437
-- Known Cost per Success (Tokens): 1123052.68
-- Complete Cost per Covered Success (USD): 1.552437
-- Complete Cost per Covered Success (Tokens): 1123052.68
+- Known cost coverage: 144/174 successful goals
+- Known token coverage: 144/174 successful goals
+- Complete cost coverage: 144/174 successful goals
+- Complete token coverage: 144/174 successful goals
+- Known Cost per Success (USD): 1.545072
+- Known Cost per Success (Tokens): 1117671.78
+- Complete Cost per Covered Success (USD): 1.545072
+- Complete Cost per Covered Success (Tokens): 1117671.78
 
 ## Entry summary
 
-- Closed entries: 179
-- Successes: 178
+- Closed entries: 180
+- Successes: 179
 - Fails: 1
 - Success Rate: 99.44%
-- Known total cost (USD): 226.658787
-- Known total tokens: 163799185
+- Known total cost (USD): 227.150646
+- Known total tokens: 164147388
 
 ## Operator review
 
@@ -80,22 +80,22 @@
 - Complete Cost per Covered Success (Tokens): 1477637.92
 
 ### retro
-- Closed goals: 36
-- Successes: 36
+- Closed goals: 37
+- Successes: 37
 - Fails: 0
-- Total attempts: 36
-- Known total cost (USD): 13.679675
-- Known total tokens: 9734025
+- Total attempts: 37
+- Known total cost (USD): 14.171534
+- Known total tokens: 10082228
 - Success Rate: 100.00%
 - Attempts per Closed Goal: 1.00
-- Known cost coverage: 27/36 successful goals
-- Known token coverage: 27/36 successful goals
-- Complete cost coverage: 27/36 successful goals
-- Complete token coverage: 27/36 successful goals
-- Known Cost per Success (USD): 0.506655
-- Known Cost per Success (Tokens): 360519.44
-- Complete Cost per Covered Success (USD): 0.506655
-- Complete Cost per Covered Success (Tokens): 360519.44
+- Known cost coverage: 28/37 successful goals
+- Known token coverage: 28/37 successful goals
+- Complete cost coverage: 28/37 successful goals
+- Complete token coverage: 28/37 successful goals
+- Known Cost per Success (USD): 0.506126
+- Known Cost per Success (Tokens): 360079.57
+- Complete Cost per Covered Success (USD): 0.506126
+- Complete Cost per Covered Success (Tokens): 360079.57
 
 ### meta
 - Closed goals: 74
@@ -116,6 +116,19 @@
 - Complete Cost per Covered Success (Tokens): 1151550.76
 
 ## Goal log
+
+### 2026-03-31-018 — Retro product-first summary redesign
+- Goal type: retro
+- Supersedes goal: n/a
+- Status: success
+- Attempts: 1
+- Started at: 2026-03-31T10:42:31+00:00
+- Finished at: 2026-03-31T10:43:07+00:00
+- Cost (USD): 0.491859
+- Tokens: 348203
+- Failure reason: n/a
+- Result fit: n/a
+- Notes: Logged the retrospective for the product-first summary redesign, including QA validation, a short product demo assessment, and the PM conclusion that the redesign solved the right presentation bottleneck while leaving operator-review and cross-project comparison as future work.
 
 ### 2026-03-31-017 — Redesign product-facing summary around quality truth
 - Goal type: product
@@ -2445,6 +2458,17 @@
 - Notes: Added negative cost/token validation with tests; validated with init/show; pytest passed after installing pytest into .venv.
 
 ## Entry log
+
+### 2026-03-31-018-attempt-001 — 2026-03-31-018
+- Entry type: retro
+- Inferred: no
+- Status: success
+- Started at: 2026-03-31T10:42:31+00:00
+- Finished at: 2026-03-31T10:43:07+00:00
+- Cost (USD): 0.491859
+- Tokens: 348203
+- Failure reason: n/a
+- Notes: Logged the retrospective for the product-first summary redesign, including QA validation, a short product demo assessment, and the PM conclusion that the redesign solved the right presentation bottleneck while leaving operator-review and cross-project comparison as future work.
 
 ### 2026-03-31-017-attempt-001 — 2026-03-31-017
 - Entry type: product
