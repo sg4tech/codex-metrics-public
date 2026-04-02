@@ -115,6 +115,8 @@ codex-metrics ensure-active-task
 codex-metrics show
 codex-metrics render-report
 codex-metrics sync-usage
+codex-metrics ingest-codex-history --help
+codex-metrics normalize-codex-history --help
 ```
 
 The public workflow contract should stay agent-agnostic. Provider-specific detection and telemetry support belong behind internal adapters, not in required public CLI flags.

@@ -150,6 +150,12 @@ Ingest local `~/.codex` history into a raw SQLite warehouse:
 codex-metrics ingest-codex-history --help
 ```
 
+Normalize the raw warehouse into analysis-friendly tables:
+
+```bash
+codex-metrics normalize-codex-history --help
+```
+
 Audit why closed product goals are still missing cost coverage:
 
 ```bash

@@ -36,6 +36,10 @@ from codex_metrics.history_ingest import (
 from codex_metrics.history_ingest import (
     ingest_codex_history as run_ingest_codex_history,
 )
+from codex_metrics.history_normalize import (
+    NormalizeSummary,
+    normalize_codex_history as run_normalize_codex_history,
+)
 from codex_metrics.usage_backends import (
     ClaudeUsageBackend,
     UsageBackend,
@@ -175,6 +179,10 @@ class ActiveTaskResolution:
 
 def ingest_codex_history(source_root: Path, warehouse_path: Path) -> IngestSummary:
     return run_ingest_codex_history(source_root=source_root, warehouse_path=warehouse_path)
+
+
+def normalize_codex_history(warehouse_path: Path) -> NormalizeSummary:
+    return run_normalize_codex_history(warehouse_path=warehouse_path)
 
 
 def _run_git(cwd: Path, *args: str) -> str | None:
@@ -1125,6 +1133,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  %(prog)s update --task-id 2026-03-29-002 --title \"Retry CSV import\" --task-type product --supersedes-task-id 2026-03-29-001 --status success\n"
             "  %(prog)s ensure-active-task\n"
             "  %(prog)s ingest-codex-history --source-root ~/.codex\n"
+            "  %(prog)s normalize-codex-history\n"
             "  %(prog)s audit-cost-coverage\n"
             "  %(prog)s sync-usage\n"
         ),
@@ -1379,6 +1388,20 @@ def build_parser() -> argparse.ArgumentParser:
         "--warehouse-path",
         default=str(RAW_WAREHOUSE_PATH),
         help="SQLite warehouse path for raw imported data",
+    )
+
+    normalize_parser = subparsers.add_parser(
+        "normalize-codex-history",
+        help="Normalize raw Codex history into analysis-friendly tables",
+        description=(
+            "Read the raw warehouse populated by ingest-codex-history and build normalized summary tables "
+            "for downstream analysis."
+        ),
+    )
+    normalize_parser.add_argument(
+        "--warehouse-path",
+        default=str(RAW_WAREHOUSE_PATH),
+        help="SQLite warehouse path that already contains raw imported data",
     )
 
     cost_audit_parser = subparsers.add_parser(
@@ -1693,6 +1716,9 @@ def main() -> int:
 
     if args.command == "ingest-codex-history":
         return commands.handle_ingest_codex_history(args, sys.modules[__name__])
+
+    if args.command == "normalize-codex-history":
+        return commands.handle_normalize_codex_history(args, sys.modules[__name__])
 
     if args.command == "audit-cost-coverage":
         return commands.handle_audit_cost_coverage(args, sys.modules[__name__])

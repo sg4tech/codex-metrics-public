@@ -207,12 +207,14 @@ def _upsert_manifest(
 
 def _import_state_db(conn: sqlite3.Connection, source_path: Path) -> int:
     imported = 0
+    if not source_path.exists():
+        raise ValueError(f"Source file does not exist: {source_path}")
     with sqlite3.connect(source_path) as source_conn:
         source_conn.row_factory = sqlite3.Row
         try:
             rows = source_conn.execute("SELECT * FROM threads").fetchall()
-        except sqlite3.OperationalError:
-            rows = []
+        except sqlite3.OperationalError as exc:
+            raise ValueError(f"Source file is not a valid Codex thread state database: {source_path}") from exc
         conn.execute("DELETE FROM raw_threads WHERE source_path = ?", (str(source_path),))
         for row in rows:
             row_json = dict(row)
@@ -384,12 +386,14 @@ def _import_session_file(conn: sqlite3.Connection, source_path: Path) -> int:
 
 def _import_logs_db(conn: sqlite3.Connection, source_path: Path) -> int:
     imported = 0
+    if not source_path.exists():
+        raise ValueError(f"Source file does not exist: {source_path}")
     with sqlite3.connect(source_path) as source_conn:
         source_conn.row_factory = sqlite3.Row
         try:
             rows = source_conn.execute("SELECT rowid as source_row_id, * FROM logs").fetchall()
-        except sqlite3.OperationalError:
-            rows = []
+        except sqlite3.OperationalError as exc:
+            raise ValueError(f"Source file is not a valid Codex logs database: {source_path}") from exc
         conn.execute("DELETE FROM raw_logs WHERE source_path = ?", (str(source_path),))
         for row in rows:
             row_json = dict(row)

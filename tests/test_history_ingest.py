@@ -10,6 +10,8 @@ from pathlib import Path
 
 import pytest
 
+from codex_metrics.history_ingest import _extract_message_text, _optional_row_value
+
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = Path("scripts/update_codex_metrics.py")
 ABS_SCRIPT = WORKSPACE_ROOT / "scripts" / "update_codex_metrics.py"
@@ -385,3 +387,70 @@ def test_ingest_codex_history_rejects_missing_source_root(repo: Path) -> None:
 
     assert result.returncode == 1
     assert f"Source root does not exist: {missing_root}" in result.stderr
+
+
+def test_ingest_codex_history_handles_partial_source_root_without_state_or_logs(repo: Path) -> None:
+    source_root = create_codex_history_source_root(repo)
+    (source_root / "state_5.sqlite").unlink()
+    (source_root / "logs_1.sqlite").unlink()
+    warehouse_path = repo / "metrics" / ".codex-metrics" / "codex_raw_history.sqlite"
+
+    result = run_cmd(
+        repo,
+        "ingest-codex-history",
+        "--source-root",
+        str(source_root),
+        "--warehouse-path",
+        str(warehouse_path),
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "Imported files: 2" in result.stdout
+    assert "Threads: 0" in result.stdout
+    assert "Sessions: 2" in result.stdout
+    assert "Session events: 6" in result.stdout
+    assert "Messages: 3" in result.stdout
+    assert "Logs: 0" in result.stdout
+
+    with sqlite3.connect(warehouse_path) as conn:
+        assert conn.execute("SELECT count(*) FROM source_manifest").fetchone()[0] == 2
+        assert conn.execute("SELECT count(*) FROM raw_threads").fetchone()[0] == 0
+        assert conn.execute("SELECT count(*) FROM raw_sessions").fetchone()[0] == 2
+        assert conn.execute("SELECT count(*) FROM raw_session_events").fetchone()[0] == 6
+        assert conn.execute("SELECT count(*) FROM raw_messages").fetchone()[0] == 3
+        assert conn.execute("SELECT count(*) FROM raw_logs").fetchone()[0] == 0
+
+
+def test_ingest_codex_history_rejects_malformed_sqlite_sources(repo: Path) -> None:
+    source_root = create_codex_history_source_root(repo)
+    with sqlite3.connect(source_root / "state_5.sqlite") as conn:
+        conn.execute("DROP TABLE threads")
+        conn.commit()
+    warehouse_path = repo / "metrics" / ".codex-metrics" / "codex_raw_history.sqlite"
+
+    result = run_cmd(
+        repo,
+        "ingest-codex-history",
+        "--source-root",
+        str(source_root),
+        "--warehouse-path",
+        str(warehouse_path),
+    )
+
+    assert result.returncode == 1
+    assert "Source file is not a valid Codex thread state database" in result.stderr
+
+
+def test_ingest_helpers_handle_sparse_rows_and_message_content() -> None:
+    assert _optional_row_value({"present": "value"}, "present") == "value"
+    assert _optional_row_value({"present": "value"}, "missing", "fallback") == "fallback"
+    assert _extract_message_text("plain text message") == ["plain text message"]
+    assert _extract_message_text(
+        [
+            "ignored string item",
+            {"type": "input_text", "text": "hello"},
+            {"type": "output_text", "text": ""},
+            {"type": "text", "text": "world"},
+            {"type": "other", "text": "skip me"},
+        ]
+    ) == ["hello", "world"]

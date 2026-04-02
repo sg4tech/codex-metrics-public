@@ -62,6 +62,7 @@ class CommandRuntime(Protocol):
     def get_active_goals(self, data: dict[str, Any]) -> list[dict[str, Any]]: ...
     def audit_history(self, data: dict[str, Any]) -> AuditReport: ...
     def ingest_codex_history(self, source_root: Path, warehouse_path: Path) -> Any: ...
+    def normalize_codex_history(self, warehouse_path: Path) -> Any: ...
     def render_audit_report(self, report: AuditReport) -> str: ...
     def audit_cost_coverage(
         self,
@@ -460,6 +461,19 @@ def handle_ingest_codex_history(args: Namespace, cli_module: CommandRuntime) -> 
     print(f"Sessions: {summary.sessions}")
     print(f"Session events: {summary.session_events}")
     print(f"Messages: {summary.messages}")
+    print(f"Logs: {summary.logs}")
+    return 0
+
+
+def handle_normalize_codex_history(args: Namespace, cli_module: CommandRuntime) -> int:
+    warehouse_path = Path(args.warehouse_path).expanduser()
+    with cli_module.metrics_mutation_lock(warehouse_path):
+        summary = cli_module.normalize_codex_history(warehouse_path)
+    print(f"Normalized Codex history in {summary.warehouse_path}")
+    print(f"Threads: {summary.threads}")
+    print(f"Sessions: {summary.sessions}")
+    print(f"Messages: {summary.messages}")
+    print(f"Usage events: {summary.usage_events}")
     print(f"Logs: {summary.logs}")
     return 0
 
