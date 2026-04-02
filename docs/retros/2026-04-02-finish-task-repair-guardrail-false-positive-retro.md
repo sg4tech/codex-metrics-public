@@ -26,16 +26,18 @@ The result was an overly broad validation failure on a command path that was sup
 
 ## Root Cause
 
-The root cause was semantic overreach.
+The root cause was incomplete negative-path validation.
 
-We correctly identified that “a command mutating an existing goal” was too broad to use as the enforcement boundary, but the first version still used that broad category in practice.
+I did not run the critical scenario that would have exposed the mistake before declaring the fix ready:
 
-The product needed two different concepts:
+- a closed goal
+- in a dirty worktree
+- with no active `in_progress` goal
+- then a repair-style command such as `finish-task` or a closing `update`
 
-- active work continuation
-- closed-goal repair
+Because that scenario was not exercised, I treated the first guard as if it had validated the real boundary between active-work continuation and closed-goal repair.
 
-The guardrail only distinguished “mutation” versus “no mutation”, which collapsed those two cases into the same rule.
+It had not.
 
 ## 5 Whys
 
