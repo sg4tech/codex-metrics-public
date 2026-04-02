@@ -33,6 +33,47 @@ class UsageBackend(Protocol):
     ) -> UsageWindow: ...
 
 
+def detect_backend_name(
+    state_path: Path,
+    cwd: Path,
+    thread_id: str | None,
+) -> str | None:
+    if not state_path.exists():
+        return None
+
+    with sqlite3.connect(state_path) as conn:
+        conn.row_factory = sqlite3.Row
+        if thread_id is not None:
+            try:
+                row = conn.execute(
+                    "SELECT id, model_provider FROM threads WHERE id = ?",
+                    (thread_id,),
+                ).fetchone()
+            except sqlite3.OperationalError:
+                return None
+        else:
+            try:
+                row = conn.execute(
+                    """
+                    SELECT id, model_provider
+                    FROM threads
+                    WHERE cwd = ?
+                    ORDER BY updated_at DESC
+                    LIMIT 1
+                    """,
+                    (str(cwd),),
+                ).fetchone()
+            except sqlite3.OperationalError:
+                return None
+    if row is None:
+        return None
+
+    provider = row["model_provider"] if "model_provider" in row.keys() else None
+    if provider in {"anthropic", "claude"}:
+        return "claude"
+    return "codex"
+
+
 def find_thread_id(
     state_path: Path,
     cwd: Path,

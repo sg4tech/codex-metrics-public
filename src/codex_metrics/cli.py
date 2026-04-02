@@ -28,8 +28,10 @@ from codex_metrics.history_audit import (
     render_audit_report as render_history_audit_report,
 )
 from codex_metrics.usage_backends import (
+    ClaudeUsageBackend,
     UsageBackend,
     UsageWindow,
+    detect_backend_name,
 )
 from codex_metrics.usage_backends import (
     resolve_usage_window as resolve_backend_usage_window,
@@ -386,6 +388,14 @@ class _CodexUsageBackend:
 
 
 DEFAULT_USAGE_BACKEND: UsageBackend = _CodexUsageBackend()
+CLAUDE_USAGE_BACKEND: UsageBackend = ClaudeUsageBackend()
+
+
+def select_usage_backend(state_path: Path, cwd: Path, thread_id: str | None) -> UsageBackend:
+    backend_name = detect_backend_name(state_path, cwd, thread_id)
+    if backend_name == "claude":
+        return CLAUDE_USAGE_BACKEND
+    return DEFAULT_USAGE_BACKEND
 
 
 def resolve_codex_usage_window(
@@ -632,7 +642,7 @@ def bootstrap_project(
 def resolve_goal_usage_updates(
     *,
     task: GoalRecord,
-    usage_backend: UsageBackend = DEFAULT_USAGE_BACKEND,
+    usage_backend: UsageBackend | None = None,
     cost_usd_add: float | None,
     cost_usd_set: float | None,
     tokens_add: int | None,
@@ -665,6 +675,7 @@ def resolve_goal_usage_updates(
 ]:
     explicit_cost_fields_used = cost_usd_add is not None or cost_usd_set is not None
     explicit_token_fields_used = tokens_add is not None or tokens_set is not None
+    resolved_usage_backend = usage_backend or select_usage_backend(codex_state_path, cwd, codex_thread_id)
     usage_cost_usd, usage_total_tokens, usage_input_tokens, usage_cached_input_tokens, usage_output_tokens, usage_model = resolve_usage_costs(
         pricing_path=pricing_path,
         model=model,
@@ -686,7 +697,7 @@ def resolve_goal_usage_updates(
     detected_agent_name = None
     if usage_cost_usd is None and usage_total_tokens is None:
         window = resolve_backend_usage_window(
-            usage_backend,
+            resolved_usage_backend,
             state_path=codex_state_path,
             logs_path=codex_logs_path,
             cwd=cwd,
@@ -749,7 +760,7 @@ def upsert_task(
     codex_logs_path: Path,
     codex_thread_id: str | None,
     cwd: Path,
-    usage_backend: UsageBackend = DEFAULT_USAGE_BACKEND,
+    usage_backend: UsageBackend | None = None,
 ) -> dict[str, Any]:
     tasks: list[dict[str, Any]] = data["goals"]
     entries: list[dict[str, Any]] = data["entries"]
@@ -871,7 +882,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  %(prog)s update --task-id 2026-03-29-001 --status success --notes \"Validated\"\n"
             "  %(prog)s update --task-id 2026-03-29-002 --title \"Retry CSV import\" --task-type product --supersedes-task-id 2026-03-29-001 --status success\n"
             "  %(prog)s audit-cost-coverage\n"
-            "  %(prog)s sync-codex-usage\n"
+            "  %(prog)s sync-usage\n"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -1125,17 +1136,30 @@ def build_parser() -> argparse.ArgumentParser:
     cost_audit_parser.add_argument("--codex-thread-id")
 
     sync_parser = subparsers.add_parser(
-        "sync-codex-usage",
-        help="Backfill usage and cost from local Codex logs",
-        description="Backfill known cost and token totals from local Codex telemetry.",
+        "sync-usage",
+        help="Backfill usage and cost from local agent logs",
+        description="Backfill known cost and token totals from local agent telemetry.",
     )
     sync_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     sync_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
     sync_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
     sync_parser.add_argument("--pricing-path", default=str(PRICING_JSON_PATH))
-    sync_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
-    sync_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
-    sync_parser.add_argument("--codex-thread-id")
+    sync_parser.add_argument("--usage-state-path", "--codex-state-path", dest="usage_state_path", default=str(CODEX_STATE_PATH))
+    sync_parser.add_argument("--usage-logs-path", "--codex-logs-path", dest="usage_logs_path", default=str(CODEX_LOGS_PATH))
+    sync_parser.add_argument("--usage-thread-id", "--codex-thread-id", dest="usage_thread_id")
+
+    sync_legacy_parser = subparsers.add_parser(
+        "sync-codex-usage",
+        help="Deprecated alias for sync-usage",
+        description="Backfill known cost and token totals from local agent telemetry.",
+    )
+    sync_legacy_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
+    sync_legacy_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
+    sync_legacy_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
+    sync_legacy_parser.add_argument("--pricing-path", default=str(PRICING_JSON_PATH))
+    sync_legacy_parser.add_argument("--usage-state-path", "--codex-state-path", dest="usage_state_path", default=str(CODEX_STATE_PATH))
+    sync_legacy_parser.add_argument("--usage-logs-path", "--codex-logs-path", dest="usage_logs_path", default=str(CODEX_LOGS_PATH))
+    sync_legacy_parser.add_argument("--usage-thread-id", "--codex-thread-id", dest="usage_thread_id")
 
     merge_parser = subparsers.add_parser(
         "merge-tasks",
@@ -1159,28 +1183,29 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def sync_codex_usage(
+def sync_usage(
     data: dict[str, Any],
     cwd: Path,
     pricing_path: Path,
-    codex_state_path: Path,
-    codex_logs_path: Path,
-    codex_thread_id: str | None,
-    usage_backend: UsageBackend = DEFAULT_USAGE_BACKEND,
+    usage_state_path: Path,
+    usage_logs_path: Path,
+    usage_thread_id: str | None,
+    usage_backend: UsageBackend | None = None,
 ) -> int:
     updated_tasks = 0
     tasks: list[dict[str, Any]] = data["goals"]
     for task in tasks:
         previous_task = dict(task)
+        resolved_backend = usage_backend or select_usage_backend(usage_state_path, cwd, usage_thread_id)
         window = resolve_backend_usage_window(
-            usage_backend,
-            state_path=codex_state_path,
-            logs_path=codex_logs_path,
+            resolved_backend,
+            state_path=usage_state_path,
+            logs_path=usage_logs_path,
             cwd=cwd,
             started_at=task.get("started_at"),
             finished_at=task.get("finished_at"),
             pricing_path=pricing_path,
-            thread_id=codex_thread_id,
+            thread_id=usage_thread_id,
         )
         auto_cost_usd = window.cost_usd
         auto_total_tokens = window.total_tokens
@@ -1221,6 +1246,26 @@ def sync_codex_usage(
             sync_goal_attempt_entries(data, task, previous_task)
             updated_tasks += 1
     return updated_tasks
+
+
+def sync_codex_usage(
+    data: dict[str, Any],
+    cwd: Path,
+    pricing_path: Path,
+    codex_state_path: Path,
+    codex_logs_path: Path,
+    codex_thread_id: str | None,
+    usage_backend: UsageBackend | None = None,
+) -> int:
+    return sync_usage(
+        data=data,
+        cwd=cwd,
+        pricing_path=pricing_path,
+        usage_state_path=codex_state_path,
+        usage_logs_path=codex_logs_path,
+        usage_thread_id=codex_thread_id,
+        usage_backend=usage_backend,
+    )
 
 
 def audit_cost_coverage(
@@ -1380,6 +1425,9 @@ def main() -> int:
 
     if args.command == "audit-cost-coverage":
         return commands.handle_audit_cost_coverage(args, sys.modules[__name__])
+
+    if args.command == "sync-usage":
+        return commands.handle_sync_usage(args, sys.modules[__name__])
 
     if args.command == "sync-codex-usage":
         return commands.handle_sync_codex_usage(args, sys.modules[__name__])

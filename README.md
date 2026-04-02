@@ -150,11 +150,13 @@ Audit why closed product goals are still missing cost coverage:
 codex-metrics audit-cost-coverage
 ```
 
-Backfill usage and cost from local Codex logs:
+Backfill usage and cost from local agent logs:
 
 ```bash
-codex-metrics sync-codex-usage --help
+codex-metrics sync-usage --help
 ```
+
+`sync-codex-usage` remains available as a compatibility alias.
 
 Merge a split or superseded goal record:
 

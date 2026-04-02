@@ -31,6 +31,16 @@ class CommandRuntime(Protocol):
     def load_metrics(self, path: Path) -> dict[str, Any]: ...
     def recompute_summary(self, data: dict[str, Any]) -> None: ...
     def print_summary(self, data: dict[str, Any]) -> None: ...
+    def sync_usage(
+        self,
+        data: dict[str, Any],
+        cwd: Path,
+        pricing_path: Path,
+        usage_state_path: Path,
+        usage_logs_path: Path,
+        usage_thread_id: str | None,
+        usage_backend: str | None = None,
+    ) -> int: ...
     def sync_codex_usage(
         self,
         data: dict[str, Any],
@@ -409,26 +419,31 @@ def handle_audit_cost_coverage(args: Namespace, cli_module: CommandRuntime) -> i
 
 
 def handle_sync_codex_usage(args: Namespace, cli_module: CommandRuntime) -> int:
+    return handle_sync_usage(args, cli_module)
+
+
+def handle_sync_usage(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
     report_path = Path(args.report_path) if getattr(args, "write_report", False) else None
     pricing_path = Path(args.pricing_path)
-    codex_state_path = Path(args.codex_state_path)
-    codex_logs_path = Path(args.codex_logs_path)
+    usage_state_path = Path(args.usage_state_path)
+    usage_logs_path = Path(args.usage_logs_path)
     with cli_module.metrics_mutation_lock(metrics_path):
         data = cli_module.load_metrics(metrics_path)
-        updated_tasks = cli_module.sync_codex_usage(
+        updated_tasks = cli_module.sync_usage(
             data=data,
             cwd=Path.cwd(),
             pricing_path=pricing_path,
-            codex_state_path=codex_state_path,
-            codex_logs_path=codex_logs_path,
-            codex_thread_id=args.codex_thread_id,
+            usage_state_path=usage_state_path,
+            usage_logs_path=usage_logs_path,
+            usage_thread_id=args.usage_thread_id,
+            usage_backend=getattr(args, "usage_backend", None),
         )
         cli_module.recompute_summary(data)
         cli_module.save_metrics(metrics_path, data)
         if report_path is not None:
             cli_module.save_report(report_path, data)
-    print(f"Synchronized Codex usage for {updated_tasks} task(s)")
+    print(f"Synchronized usage for {updated_tasks} task(s)")
     cli_module.print_summary(data)
     return 0
 

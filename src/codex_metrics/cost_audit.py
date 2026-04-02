@@ -85,7 +85,7 @@ def _classify_goal_cost_coverage(
             goal,
             category="partial_stored_coverage",
             reason="successful product goal stores only part of the expected cost signal",
-            suggested_next_action="Inspect the goal record and re-run sync-codex-usage if the missing field should be recoverable.",
+            suggested_next_action="Inspect the goal record and re-run sync-usage if the missing field should be recoverable.",
         )
 
     if goal.started_at is None or goal.finished_at is None:
@@ -142,7 +142,7 @@ def _classify_goal_cost_coverage(
         goal,
         category="sync_gap",
         reason="recoverable Codex usage exists for the goal window, but the stored goal still has no cost coverage",
-        suggested_next_action="Run sync-codex-usage or inspect why automatic usage recovery was skipped during update.",
+        suggested_next_action="Run sync-usage or inspect why automatic usage recovery was skipped during update.",
     )
 
 

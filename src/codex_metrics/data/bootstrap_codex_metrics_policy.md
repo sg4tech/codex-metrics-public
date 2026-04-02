@@ -113,6 +113,7 @@ codex-metrics continue-task --task-id <goal-id> --notes "Retry after review"
 codex-metrics finish-task --task-id <goal-id> --status success --notes "Validated"
 codex-metrics show
 codex-metrics render-report
+codex-metrics sync-usage
 ```
 
 The public workflow contract should stay agent-agnostic. Provider-specific detection and telemetry support belong behind internal adapters, not in required public CLI flags.

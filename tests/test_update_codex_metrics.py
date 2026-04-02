@@ -872,6 +872,8 @@ def test_help_lists_completion_command(repo: Path) -> None:
     assert "install-self" in result.stdout
     assert "completion" in result.stdout
     assert "Print shell completion for bash or zsh" in result.stdout
+    assert "sync-usage" in result.stdout
+    assert "sync-codex-usage" in result.stdout
 
 
 def test_task_workflow_help_does_not_expose_provider_specific_flags(repo: Path) -> None:
@@ -2905,7 +2907,7 @@ def test_package_module_supports_audit_cost_coverage(repo: Path) -> None:
     assert "Cost coverage audit" in result.stdout
 
 
-def test_sync_codex_usage_backfills_existing_tasks(repo: Path) -> None:
+def test_sync_usage_backfills_existing_tasks(repo: Path) -> None:
     state_path, logs_path = create_codex_usage_sources(repo)
     assert run_cmd(repo, "init", "--force").returncode == 0
     assert run_cmd(
@@ -2931,10 +2933,10 @@ def test_sync_codex_usage_backfills_existing_tasks(repo: Path) -> None:
 
     sync_result = run_cmd(
         repo,
-        "sync-codex-usage",
-        "--codex-state-path",
+        "sync-usage",
+        "--usage-state-path",
         str(state_path),
-        "--codex-logs-path",
+        "--usage-logs-path",
         str(logs_path),
     )
 
@@ -2948,7 +2950,7 @@ def test_sync_codex_usage_backfills_existing_tasks(repo: Path) -> None:
     assert task["cost_usd"] == 0.006263
 
 
-def test_sync_codex_usage_backfills_from_session_rollout_token_counts(repo: Path) -> None:
+def test_sync_usage_backfills_from_session_rollout_token_counts(repo: Path) -> None:
     state_path, logs_path = create_codex_session_usage_sources(repo)
     assert run_cmd(repo, "init", "--force").returncode == 0
     assert run_cmd(
@@ -2974,10 +2976,10 @@ def test_sync_codex_usage_backfills_from_session_rollout_token_counts(repo: Path
 
     sync_result = run_cmd(
         repo,
-        "sync-codex-usage",
-        "--codex-state-path",
+        "sync-usage",
+        "--usage-state-path",
         str(state_path),
-        "--codex-logs-path",
+        "--usage-logs-path",
         str(logs_path),
     )
 
@@ -2991,7 +2993,7 @@ def test_sync_codex_usage_backfills_from_session_rollout_token_counts(repo: Path
     assert task["cost_usd"] == 0.006263
 
 
-def test_sync_codex_usage_is_noop_when_no_matching_thread_is_found(repo: Path) -> None:
+def test_sync_usage_is_noop_when_no_matching_thread_is_found(repo: Path) -> None:
     state_path, logs_path = create_codex_usage_sources(repo, cwd=str(repo / "other-worktree"))
     assert run_cmd(repo, "init", "--force").returncode == 0
     assert run_cmd(
@@ -3017,6 +3019,47 @@ def test_sync_codex_usage_is_noop_when_no_matching_thread_is_found(repo: Path) -
 
     sync_result = run_cmd(
         repo,
+        "sync-usage",
+        "--usage-state-path",
+        str(state_path),
+        "--usage-logs-path",
+        str(logs_path),
+    )
+
+    assert sync_result.returncode == 0, sync_result.stderr
+    assert "Synchronized usage for 0 task(s)" in sync_result.stdout
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    task = data["tasks"][0]
+    assert task["tokens_total"] is None
+    assert task["cost_usd"] is None
+
+
+def test_sync_canonical_usage_alias_still_works(repo: Path) -> None:
+    state_path, logs_path = create_codex_usage_sources(repo)
+    assert run_cmd(repo, "init", "--force").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "alias-task",
+        "--title",
+        "Alias Task",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+        "--started-at",
+        "2026-03-29T09:00:00+00:00",
+        "--finished-at",
+        "2026-03-29T09:10:00+00:00",
+        "--codex-state-path",
+        str(repo / "missing_state.sqlite"),
+        "--codex-logs-path",
+        str(repo / "missing_logs.sqlite"),
+    ).returncode == 0
+
+    sync_result = run_cmd(
+        repo,
         "sync-codex-usage",
         "--codex-state-path",
         str(state_path),
@@ -3025,11 +3068,9 @@ def test_sync_codex_usage_is_noop_when_no_matching_thread_is_found(repo: Path) -
     )
 
     assert sync_result.returncode == 0, sync_result.stderr
-    assert "Synchronized Codex usage for 0 task(s)" in sync_result.stdout
     data = read_json(repo / "metrics" / "codex_metrics.json")
     task = data["tasks"][0]
-    assert task["tokens_total"] is None
-    assert task["cost_usd"] is None
+    assert task["tokens_total"] == 1600
 
 
 def test_claude_usage_backend_backfills_from_claude_thread_session(repo: Path) -> None:
