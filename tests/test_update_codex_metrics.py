@@ -509,6 +509,15 @@ def test_ensure_active_task_ignores_low_signal_metrics_only_changes(repo: Path) 
     assert data["goals"] == []
 
 
+def test_show_is_quiet_when_repo_is_clean(repo: Path) -> None:
+    assert run_cmd(repo, "init").returncode == 0
+
+    result = run_cmd(repo, "show")
+
+    assert result.returncode == 0, result.stderr
+    assert "Warning:" not in result.stdout
+
+
 def test_show_warns_when_repo_work_started_without_active_goal(repo: Path) -> None:
     (repo / "src" / "worktree_change.py").write_text("print('changed')\n", encoding="utf-8")
 

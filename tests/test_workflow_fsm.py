@@ -46,20 +46,25 @@ def test_classify_workflow_state(
 @pytest.mark.parametrize(
     ("state", "event", "expected_action"),
     [
+        (WorkflowState.CLEAN_NO_ACTIVE_GOAL, WorkflowEvent.START_TASK, "allow"),
         (WorkflowState.STARTED_WORK_WITHOUT_ACTIVE_GOAL, WorkflowEvent.CONTINUE_TASK, "block"),
         (WorkflowState.STARTED_WORK_WITHOUT_ACTIVE_GOAL, WorkflowEvent.ENSURE_ACTIVE_TASK, "create_recovery_draft"),
         (WorkflowState.STARTED_WORK_WITHOUT_ACTIVE_GOAL, WorkflowEvent.FINISH_TASK_SUCCESS, "allow"),
         (WorkflowState.STARTED_WORK_WITHOUT_ACTIVE_GOAL, WorkflowEvent.SHOW, "warning"),
+        (WorkflowState.STARTED_WORK_WITHOUT_ACTIVE_GOAL, WorkflowEvent.START_TASK, "allow"),
         (WorkflowState.CLEAN_NO_ACTIVE_GOAL, WorkflowEvent.ENSURE_ACTIVE_TASK, "no_op"),
         (WorkflowState.CLEAN_NO_ACTIVE_GOAL, WorkflowEvent.SHOW, "allow"),
         (WorkflowState.ACTIVE_GOAL_EXISTS, WorkflowEvent.ENSURE_ACTIVE_TASK, "no_op"),
         (WorkflowState.ACTIVE_GOAL_EXISTS, WorkflowEvent.SHOW, "allow"),
+        (WorkflowState.ACTIVE_GOAL_EXISTS, WorkflowEvent.START_TASK, "allow"),
         (WorkflowState.CLOSED_GOAL_REPAIR, WorkflowEvent.CONTINUE_TASK, "block"),
         (WorkflowState.CLOSED_GOAL_REPAIR, WorkflowEvent.ENSURE_ACTIVE_TASK, "no_op"),
         (WorkflowState.CLOSED_GOAL_REPAIR, WorkflowEvent.FINISH_TASK_SUCCESS, "allow"),
         (WorkflowState.CLOSED_GOAL_REPAIR, WorkflowEvent.SHOW, "allow"),
+        (WorkflowState.CLOSED_GOAL_REPAIR, WorkflowEvent.START_TASK, "allow"),
         (WorkflowState.DETECTION_UNCERTAIN, WorkflowEvent.CONTINUE_TASK, "allow"),
         (WorkflowState.DETECTION_UNCERTAIN, WorkflowEvent.SHOW, "warning"),
+        (WorkflowState.DETECTION_UNCERTAIN, WorkflowEvent.START_TASK, "allow"),
     ],
 )
 def test_decide_workflow_transition(
