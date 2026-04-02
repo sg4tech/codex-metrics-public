@@ -31,6 +31,7 @@ For product-management, framing, and metrics-interpretation work, also read:
 - Keep provider-specific logic behind internal detection or adapter layers unless the user explicitly asks for a provider-specific public surface.
 - Treat “adjacent but not requested” output as a primary quality failure, even if the implementation is otherwise technically strong.
 - Prefer diagnosis -> guardrail -> verification over clever but weakly defended fixes.
+- Keep test-only escape hatches out of production code paths; if tests need to bypass a safety mechanism, prefer dependency injection, monkeypatching, or test fixtures over runtime environment toggles.
 - Before investing in more metrics semantics, refactoring, or process polish, ask which layer is the current bottleneck; do not optimize a non-constraint.
 - For partial-data metrics, prefer explicit coverage and covered-subset averages over brittle all-or-nothing KPIs that collapse to `n/a`.
 

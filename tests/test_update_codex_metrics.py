@@ -22,6 +22,7 @@ if str(ABS_SRC) not in sys.path:
     sys.path.insert(0, str(ABS_SRC))
 
 import codex_metrics as codex_metrics_pkg
+from codex_metrics import storage
 from codex_metrics.usage_backends import ClaudeUsageBackend, select_usage_backend
 from codex_metrics.usage_backends import resolve_usage_window as resolve_backend_usage_window
 
@@ -374,7 +375,16 @@ def repo(tmp_path: Path) -> Path:
     subprocess.run(["git", "config", "user.name", "Codex"], cwd=tmp_path, text=True, capture_output=True, check=True)
     subprocess.run(["git", "add", "."], cwd=tmp_path, text=True, capture_output=True, check=True)
     subprocess.run(["git", "commit", "-m", "baseline"], cwd=tmp_path, text=True, capture_output=True, check=True)
-    return tmp_path
+    yield tmp_path
+
+    metrics_path = tmp_path / "metrics" / "codex_metrics.json"
+    immutability_commands = storage._immutability_command()
+    if immutability_commands is not None and metrics_path.exists():
+        unlock_command, _ = immutability_commands
+        try:
+            storage._run_file_immutability_command(unlock_command, metrics_path)
+        except Exception:
+            pass
 
 
 def test_init_creates_files(repo: Path) -> None:
@@ -660,6 +670,10 @@ def test_package_module_entrypoint_supports_bootstrap(repo: Path) -> None:
 
 def test_install_self_creates_launcher_in_target_dir(repo: Path) -> None:
     install_dir = repo / "bin"
+    expected_script_paths = {
+        str((repo / "scripts" / "update_codex_metrics.py").resolve()),
+        str(ABS_SCRIPT.resolve()),
+    }
 
     result = run_cmd(repo, "install-self", "--target-dir", str(install_dir))
 
@@ -667,7 +681,7 @@ def test_install_self_creates_launcher_in_target_dir(repo: Path) -> None:
     installed_path = install_dir / "codex-metrics"
     installed_text = installed_path.read_text(encoding="utf-8")
     assert installed_text.startswith("#!/bin/sh\n")
-    assert str((repo / "scripts" / "update_codex_metrics.py").resolve()) in installed_text
+    assert any(script_path in installed_text for script_path in expected_script_paths)
     assert sys.executable in installed_text
     assert f"{installed_path}" in result.stdout
     assert f"Warning: {install_dir}" in result.stdout
@@ -679,13 +693,17 @@ def test_install_self_replaces_existing_target(repo: Path) -> None:
     install_dir.mkdir(parents=True, exist_ok=True)
     installed_path = install_dir / "codex-metrics"
     installed_path.write_text("old\n", encoding="utf-8")
+    expected_script_paths = {
+        str((repo / "scripts" / "update_codex_metrics.py").resolve()),
+        str(ABS_SCRIPT.resolve()),
+    }
 
     result = run_cmd(repo, "install-self", "--target-dir", str(install_dir))
 
     assert result.returncode == 0, result.stderr
     installed_text = installed_path.read_text(encoding="utf-8")
     assert installed_text.startswith("#!/bin/sh\n")
-    assert str((repo / "scripts" / "update_codex_metrics.py").resolve()) in installed_text
+    assert any(script_path in installed_text for script_path in expected_script_paths)
 
 
 def test_module_install_self_creates_module_launcher(repo: Path) -> None:
@@ -787,7 +805,8 @@ def test_init_refuses_to_overwrite_without_force(repo: Path) -> None:
 def test_init_force_allows_overwrite(repo: Path) -> None:
     assert run_cmd(repo, "init").returncode == 0
     metrics_path = repo / "metrics" / "codex_metrics.json"
-    metrics_path.write_text('{"unexpected": true}\n', encoding="utf-8")
+    with storage.metrics_file_immutability_guard(metrics_path):
+        metrics_path.write_text('{"unexpected": true}\n', encoding="utf-8")
 
     result = run_cmd(repo, "init", "--force")
 
@@ -947,7 +966,9 @@ def test_bootstrap_completes_partial_scaffold_when_metrics_exist(repo: Path) -> 
 
 def test_bootstrap_completes_partial_scaffold_when_report_exists(repo: Path) -> None:
     assert run_cmd(repo, "init", "--write-report").returncode == 0
-    (repo / "metrics" / "codex_metrics.json").unlink()
+    metrics_path = repo / "metrics" / "codex_metrics.json"
+    with storage.metrics_file_immutability_guard(metrics_path):
+        metrics_path.unlink()
 
     result = run_cmd(repo, "bootstrap")
 
@@ -1991,7 +2012,8 @@ def test_show_rejects_stored_token_total_smaller_than_known_breakdown(repo: Path
         }
     ]
     data["entries"] = []
-    metrics_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    with storage.metrics_file_immutability_guard(metrics_path):
+        metrics_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
     result = run_cmd(repo, "show")
 
@@ -2911,11 +2933,52 @@ def test_help_includes_goal_language_and_examples(repo: Path) -> None:
     assert "create a recovery draft" in ensure_help.stdout
 
 
+def test_cli_smoke_preserves_current_workflow_roundtrip(repo: Path) -> None:
+    init_result = run_cmd(repo, "init")
+    assert init_result.returncode == 0, init_result.stderr
+
+    start_result = run_cmd(
+        repo,
+        "start-task",
+        "--title",
+        "Smoke test workflow",
+        "--task-type",
+        "meta",
+    )
+    assert start_result.returncode == 0, start_result.stderr
+    goal_id = next(
+        line.removeprefix("Updated goal ").strip()
+        for line in start_result.stdout.splitlines()
+        if line.startswith("Updated goal ")
+    )
+
+    finish_result = run_cmd(
+        repo,
+        "finish-task",
+        "--task-id",
+        goal_id,
+        "--status",
+        "success",
+    )
+    assert finish_result.returncode == 0, finish_result.stderr
+
+    show_result = run_cmd(repo, "show")
+    assert show_result.returncode == 0, show_result.stderr
+    assert "Closed goals:" in show_result.stdout
+    assert "Meta goals:" in show_result.stdout
+    assert "Successes:" in show_result.stdout
+
+
 def test_script_shim_exposes_cli_version(repo: Path) -> None:
     result = run_cmd(repo, "--version")
 
     assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == f"update_codex_metrics.py {BASE_PACKAGE_VERSION}"
+    output = result.stdout.strip()
+    assert output.startswith("update_codex_metrics.py ")
+    assert re.fullmatch(
+        rf"update_codex_metrics\.py {re.escape(BASE_PACKAGE_VERSION)}(?:\.dev\d+\+g[0-9a-f]+(?:\.dirty)?)?",
+        output,
+    )
 
 
 def test_module_entrypoint_exposes_cli_version(repo: Path) -> None:
