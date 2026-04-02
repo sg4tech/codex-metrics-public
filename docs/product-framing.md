@@ -4,7 +4,8 @@ This document describes the current best confirmed framing for the product.
 
 Working product and metrics hypotheses that are not yet fully confirmed belong in:
 
-- `docs/product-hypotheses.md`
+- `docs/product-hypotheses.md` for the index
+- `docs/product-hypotheses/H-xxx.md` for the individual hypothesis files
 
 ## Product
 
@@ -142,6 +143,7 @@ Current primary metrics:
 - attempts per closed goal
 - entry failure reasons
 - known total cost and known total tokens
+- model identity on goals and attempts for analysis slices
 
 Current interpretation rule:
 
