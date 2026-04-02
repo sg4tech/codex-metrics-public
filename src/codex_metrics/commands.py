@@ -12,7 +12,10 @@ from typing import Any, Protocol
 from codex_metrics.cost_audit import CostAuditReport
 from codex_metrics.history_compare import HistoryCompareReport
 from codex_metrics.history_audit import AuditReport
-from codex_metrics.workflow_fsm import WorkflowEvent, classify_workflow_state, decide_workflow_transition
+from codex_metrics.workflow_fsm import (
+    WorkflowEvent,
+    resolve_workflow_transition,
+)
 from codex_metrics.observability import (
     record_goal_merge_observation,
     record_goal_mutation_observation,
@@ -405,14 +408,14 @@ def handle_show(args: Namespace, cli_module: CommandRuntime) -> int:
     cli_module.recompute_summary(data)
     warning = None
     report = cli_module.detect_started_work(Path.cwd())
-    state = classify_workflow_state(
+    resolution = resolve_workflow_transition(
         active_goal_count=len(cli_module.get_active_goals(data)),
         started_work_detected=report.started_work_detected if report.git_available else None,
         git_available=report.git_available,
+        event=WorkflowEvent.SHOW,
     )
-    decision = decide_workflow_transition(state, WorkflowEvent.SHOW)
-    if decision.action == "warning":
-        warning = f"Warning: {decision.message}."
+    if resolution.decision.action == "warning":
+        warning = f"Warning: {resolution.decision.message}."
     if warning is not None:
         print(warning)
     cli_module.print_summary(data)
@@ -435,16 +438,14 @@ def _require_active_goal_for_existing_mutation(cli_module: CommandRuntime, cwd: 
         return
 
     report = cli_module.detect_started_work(cwd)
-    state = classify_workflow_state(
+    resolution = resolve_workflow_transition(
         active_goal_count=len(active_goals),
         started_work_detected=report.started_work_detected if report.git_available else None,
         git_available=report.git_available,
+        event=WorkflowEvent.CONTINUE_TASK,
     )
-    decision = decide_workflow_transition(state, WorkflowEvent.CONTINUE_TASK)
-    if decision.action == "block":
-        raise ValueError(
-            decision.message
-        )
+    if resolution.decision.action == "block":
+        raise ValueError(resolution.decision.message)
 
 
 def handle_ensure_active_task(args: Namespace, cli_module: CommandRuntime) -> int:

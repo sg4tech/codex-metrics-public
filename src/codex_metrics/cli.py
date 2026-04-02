@@ -52,8 +52,7 @@ from codex_metrics.history_derive import (
 )
 from codex_metrics.workflow_fsm import (
     WorkflowEvent,
-    classify_workflow_state,
-    decide_workflow_transition,
+    resolve_workflow_transition,
 )
 from codex_metrics.usage_backends import (
     ClaudeUsageBackend,
@@ -302,25 +301,26 @@ def get_active_goals(data: dict[str, Any]) -> list[dict[str, Any]]:
 
 def build_active_task_warning(data: dict[str, Any], cwd: Path) -> str | None:
     report = detect_started_work(cwd)
-    state = classify_workflow_state(
+    resolution = resolve_workflow_transition(
         active_goal_count=len(get_active_goals(data)),
         started_work_detected=report.started_work_detected if report.git_available else None,
         git_available=report.git_available,
+        event=WorkflowEvent.SHOW,
     )
-    decision = decide_workflow_transition(state, WorkflowEvent.SHOW)
-    if decision.action != "warning":
+    if resolution.decision.action != "warning":
         return None
-    return f"Warning: {decision.message}."
+    return f"Warning: {resolution.decision.message}."
 
 
 def ensure_active_task(data: dict[str, Any], cwd: Path) -> ActiveTaskResolution:
     report = detect_started_work(cwd)
-    state = classify_workflow_state(
+    resolution = resolve_workflow_transition(
         active_goal_count=len(get_active_goals(data)),
         started_work_detected=report.started_work_detected if report.git_available else None,
         git_available=report.git_available,
+        event=WorkflowEvent.ENSURE_ACTIVE_TASK,
     )
-    decision = decide_workflow_transition(state, WorkflowEvent.ENSURE_ACTIVE_TASK)
+    decision = resolution.decision
     active_goals = get_active_goals(data)
     if active_goals and decision.action == "no_op":
         active_ids = ", ".join(goal["goal_id"] for goal in active_goals)

@@ -15,6 +15,7 @@ from codex_metrics.workflow_fsm import (  # noqa: E402
     WorkflowState,
     classify_workflow_state,
     decide_workflow_transition,
+    resolve_workflow_transition,
 )
 
 
@@ -96,3 +97,15 @@ def test_decide_workflow_transition_reports_clear_message_for_closed_goal_repair
 
     assert decision.action == "block"
     assert "closed-goal repair" in decision.message
+
+
+def test_resolve_workflow_transition_returns_state_and_decision() -> None:
+    resolution = resolve_workflow_transition(
+        active_goal_count=0,
+        started_work_detected=True,
+        git_available=True,
+        event=WorkflowEvent.SHOW,
+    )
+
+    assert resolution.state == WorkflowState.STARTED_WORK_WITHOUT_ACTIVE_GOAL
+    assert resolution.decision.action == "warning"

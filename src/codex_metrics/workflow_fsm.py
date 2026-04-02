@@ -30,6 +30,12 @@ class WorkflowDecision:
     message: str
 
 
+@dataclass(frozen=True)
+class WorkflowResolution:
+    state: WorkflowState
+    decision: WorkflowDecision
+
+
 def classify_workflow_state(
     *,
     active_goal_count: int,
@@ -43,6 +49,21 @@ def classify_workflow_state(
     if started_work_detected:
         return WorkflowState.STARTED_WORK_WITHOUT_ACTIVE_GOAL
     return WorkflowState.CLEAN_NO_ACTIVE_GOAL
+
+
+def resolve_workflow_transition(
+    *,
+    active_goal_count: int,
+    started_work_detected: bool | None,
+    git_available: bool,
+    event: WorkflowEvent,
+) -> WorkflowResolution:
+    state = classify_workflow_state(
+        active_goal_count=active_goal_count,
+        started_work_detected=started_work_detected,
+        git_available=git_available,
+    )
+    return WorkflowResolution(state=state, decision=decide_workflow_transition(state, event))
 
 
 def decide_workflow_transition(state: WorkflowState, event: WorkflowEvent) -> WorkflowDecision:

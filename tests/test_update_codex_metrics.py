@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import sqlite3
 import subprocess
@@ -21,7 +22,6 @@ if str(ABS_SRC) not in sys.path:
     sys.path.insert(0, str(ABS_SRC))
 
 import codex_metrics as codex_metrics_pkg
-from codex_metrics import __version__ as PACKAGE_VERSION
 from codex_metrics.usage_backends import ClaudeUsageBackend, select_usage_backend
 from codex_metrics.usage_backends import resolve_usage_window as resolve_backend_usage_window
 
@@ -2922,8 +2922,9 @@ def test_module_entrypoint_exposes_cli_version(repo: Path) -> None:
     result = run_module_cmd(repo, "--version")
 
     assert result.returncode == 0, result.stderr
-    assert result.stdout.strip().endswith(PACKAGE_VERSION)
-    assert "codex_metrics" in result.stdout.strip()
+    output = result.stdout.strip()
+    assert output.startswith("python -m codex_metrics ")
+    assert re.fullmatch(r"python -m codex_metrics 0\.2\.0\.dev\d+\+g[0-9a-f]+(?:\.dirty)?", output)
 
 
 def test_resolve_version_prefers_git_metadata(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
