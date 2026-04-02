@@ -13,6 +13,7 @@ Purpose:
 Rules:
 
 - Treat every non-confirmed product proposal as a hypothesis, not as settled truth.
+- For measurable hypotheses, do not mark them `validated` or `rejected` just because the implementation shipped successfully; require evidence that the claimed effect is real. Prefer statistical significance or an equivalently strong comparison when the sample size and data quality make that possible. If the sample is too small for significance, keep the hypothesis active or explicitly mark the evidence as inconclusive instead of closing it by default.
 - For each meaningful hypothesis, record:
   - statement
   - why it matters
@@ -24,6 +25,13 @@ Rules:
   - evidence status
   - evaluation plan
   - next re-evaluation trigger
+- To judge a measurable hypothesis, use the smallest comparison that can actually answer the claim:
+  - define the claimed effect up front
+  - compare against a clearly named baseline or prior period
+  - prefer pre/post or controlled comparisons over intuition
+  - use significance tests or confidence intervals when the sample is large enough
+  - if the sample is too small, noisy, or confounded, call the evidence inconclusive instead of forcing a close
+  - if the effect is qualitative, explain the evidence chain in notes and avoid pretending it is numerically proven
 - When new evidence appears, update the existing hypothesis entry with a dated note instead of deleting the old reasoning.
 - Move ideas into `docs/product-framing.md` only after they are confirmed enough to act as stable framing.
 - Keep this file focused on decision-relevant hypotheses, not general brainstorming noise.
@@ -187,7 +195,7 @@ Rules:
 
 ### H-006 — Retros with codified follow-up may reduce repeated failure modes more than retros alone
 
-- Status: `active`
+- Status: `validated`
 - Created: `2026-03-31`
 - Statement:
   - Retros are materially more valuable when they end in a classified follow-up such as a test, guardrail, rule, or explicit no-action decision.
@@ -212,10 +220,11 @@ Rules:
   - if future retros start creating more noise than lasting improvement
 - Notes:
   - `2026-03-31`: added after explicit PM review of which practices actually helped this project.
+  - `2026-04-02`: closed as `validated` after reviewing the retro archive; multiple retros ended in durable follow-up such as tests, guardrails, policy rules, or workflow changes, and that pattern is stronger than the remaining counterexamples in current history.
 
 ### H-007 — The generated markdown report may be optional rather than a default artifact
 
-- Status: `active`
+- Status: `validated`
 - Created: `2026-03-31`
 - Statement:
   - For an agent-first product, `docs/codex-metrics.md` may not justify its default generation and commit cost, because structured JSON and CLI output may already provide enough analysis value.
@@ -238,13 +247,15 @@ Rules:
   - `medium`
 - Evidence status:
   - supported by the current agent-first framing, where human direct reading of raw report files is no longer the primary path
-  - not yet validated by evidence showing whether agents actually rely on the markdown artifact in practice
+  - implemented and regression-tested as a json-first workflow with explicit markdown export
+  - measured averages on the current history are mixed and confounded by task mix, but they do show that the default markdown path is no longer the only meaningful report surface
 - Next re-evaluation trigger:
-  - after observing a few more agent analysis cycles on JSON and CLI alone
-  - or after testing a json-first, markdown-optional workflow without losing analysis quality
+  - if future agent analysis cycles show that optional markdown export becomes a default dependency again
 - Notes:
   - `2026-03-31`: added after product review raised the possibility that the markdown artifact is mostly duplicate overhead in an agent-first workflow.
   - `2026-03-31`: converted into a live product experiment by making markdown rendering explicit via `render-report` and `--write-report`, while keeping the hypothesis active until several agent analysis cycles confirm that markdown loss does not hurt synthesis quality.
+  - `2026-04-02`: workflow change landed and tests confirm behavior.
+  - `2026-04-02`: average across all goals before the change was `2,981,041` tokens per goal versus `1,590,641.4` after; product-only averages were `1,414,567.1` before versus `2,213,204` after, so the current history is mixed and confounded, but the workflow decision itself is now closed.
 
 ### H-008 — Separate input, output, and cached-input token tracking may unlock more useful cost optimization than total-token tracking alone
 
@@ -327,12 +338,12 @@ Rules:
   - `2026-04-02`: evaluation should treat this as a staged hypothesis, not a fully validated product direction, because the current benefit is broader tracking coverage while the main unresolved cost is a possible Claude telemetry backend.
   - `2026-04-02`: paired with implementation spec `docs/token-breakdown-feature-spec.md` so the hypothesis can be tested through a concrete product increment rather than remaining a vague idea.
 
-### H-010 — Automatic active-task enforcement may improve bookkeeping reliability more than relying on `start-task` discipline alone
+### H-010 — A new chat entering an active repository should recover or enforce the active task before mutating work continues
 
 - Status: `active`
 - Created: `2026-04-02`
 - Statement:
-  - `codex-metrics` may produce more trustworthy workflow history if it automatically detects started work and enforces or recovers missing task start bookkeeping, instead of depending on the user or agent to remember `start-task` at the right moment.
+  - `codex-metrics` may produce more trustworthy workflow history if a fresh agent entering an already-active repository reliably detects started work and restores or enforces the active task before mutating commands continue, instead of depending on the user or agent to remember `start-task` at the right moment.
 - Why it matters:
   - If true, the product should evolve from a command-available workflow to a workflow-invariant system, because merely exposing `start-task` does not reliably prevent late bookkeeping.
 - Expected upside:
@@ -340,6 +351,7 @@ Rules:
   - increase trust in `started_at`, attempt sequencing, and retry-history interpretation
   - reduce operator memory burden by shifting bookkeeping from discipline to system support
   - make the product more resilient when agents are focused on implementation rather than process steps
+  - make the first action of a new chat in an active repo deterministic instead of memory-dependent
 - Expected resource cost:
   - medium for the first implementation, because it requires workflow detection, new invariants, CLI UX decisions, and regression coverage
   - medium-high if later expanded into deeper provider/session-aware recovery
@@ -363,12 +375,18 @@ Rules:
   - observe whether users end up with fewer retroactive bookkeeping recoveries
   - measure whether the first implementation creates too many false-positive warnings or draft tasks
   - judge success by whether the workflow becomes more reliable without making normal use materially more annoying
+  - track how often `ensure-active-task` recovers a missing active goal versus how often it blocks a mistaken continuation path
+  - track false positives separately from true recoveries so the guardrail can be judged as a QA signal, not just as a usage count
+  - use the current incident history as a directional baseline, but treat future claims as observational unless we add a more formal before/after comparison
 - Next re-evaluation trigger:
   - after the first implementation of active-task detection and enforcement lands
   - or after several real task cycles show whether the guardrail reduces late bookkeeping
   - or if users start working around the automation instead of following it
 - Notes:
   - `2026-04-02`: added after a live incident showed that `start-task` existing as a command was not enough to ensure timely bookkeeping.
+  - `2026-04-02`: clarified that the concrete failure mode is a fresh chat entering a repository where work has already started but no active goal exists yet; the most promising first fix is repository-local detection plus `ensure-active-task` / strict guardrails, not provider-specific chat-session recovery.
+  - `2026-04-02`: narrowed the product target to the first agent in a new chat entering an already-active repository, so the goal is no longer generic bookkeeping hygiene but a deterministic handoff recovery path.
+  - `2026-04-02`: the current evidence is enough for a QA-style product verdict on direction, but not enough for a statistically strong effect-size claim; future evaluation should therefore distinguish recoveries, blocks, and false positives.
   - `2026-04-02`: paired with implementation spec `docs/active-task-enforcement-spec.md` so the hypothesis can be tested through a concrete product increment.
 
 ### H-011 — A `mini-first` model policy may preserve most workflow value at materially lower cost
@@ -417,7 +435,7 @@ Rules:
 
 ### H-012 — Persisting the model used on each goal or attempt may improve quality and cost analysis
 
-- Status: `active`
+- Status: `validated`
 - Created: `2026-04-02`
 - Statement:
   - Recording the specific model used for each goal or attempt may make `codex-metrics` more useful for comparing outcome quality, retry pressure, and cost across model choices.
@@ -444,7 +462,8 @@ Rules:
   - `medium` on the exact granularity that should be stored first
 - Evidence status:
   - supported by the product need to compare quality and cost across the `mini-first` experiment and any future model-policy changes
-  - not yet validated by enough historical data to know which granularity best predicts useful decisions
+  - implemented with conservative merge semantics so mixed histories do not lie about provenance
+  - the remaining open question is granularity, not whether model identity is worth preserving at all
 - Evaluation plan:
   - store model identity on new work items and compare closed goals across model buckets
   - check whether model-specific slices improve recommendations about quality, retries, and spend
@@ -454,6 +473,7 @@ Rules:
   - or after we discover that provider/version normalization is more important than the raw model label itself
 - Notes:
   - `2026-04-02`: added after the product idea that we should remember which model was used so analysis can explain why one workflow was cheaper or better than another.
+  - `2026-04-02`: closed as `validated` after model tracking landed with merge-safe provenance handling and model coverage / `by_model` reporting, which is enough to guide default analysis decisions.
 
 ### H-013 — Token consumption speed may be useful only when normalized against product throughput
 

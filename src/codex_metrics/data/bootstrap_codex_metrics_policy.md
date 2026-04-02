@@ -111,6 +111,7 @@ Prefer the high-level task workflow commands:
 codex-metrics start-task --title "Add CSV import" --task-type product
 codex-metrics continue-task --task-id <goal-id> --notes "Retry after review"
 codex-metrics finish-task --task-id <goal-id> --status success --notes "Validated"
+codex-metrics ensure-active-task
 codex-metrics show
 codex-metrics render-report
 codex-metrics sync-usage
@@ -119,6 +120,8 @@ codex-metrics sync-usage
 The public workflow contract should stay agent-agnostic. Provider-specific detection and telemetry support belong behind internal adapters, not in required public CLI flags.
 
 Automatic local usage sync is currently implemented for Codex telemetry. Other agents are still in scope for the product, but their support should land through the same universal command surface.
+
+When repository work has already started but no active task exists yet, prefer `codex-metrics ensure-active-task` before continuing with other mutating commands.
 
 If `codex-metrics` is expected but unavailable, treat that as an `environment_issue` or installation mismatch and report it clearly.
 

@@ -4,8 +4,10 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sqlite3
 import sys
+from dataclasses import dataclass
 from datetime import datetime, timezone  # noqa: F401
 from decimal import Decimal
 from importlib import resources
@@ -138,6 +140,192 @@ atomic_write_text = storage.atomic_write_text
 save_metrics = storage.save_metrics
 metrics_lock_path = storage.metrics_lock_path
 metrics_mutation_lock = storage.metrics_mutation_lock
+
+MEANINGFUL_WORKTREE_DIRS = {"src", "tests", "docs", "scripts", "tools"}
+MEANINGFUL_WORKTREE_FILES = {"AGENTS.md", "README.md", "Makefile", "pyproject.toml"}
+LOW_SIGNAL_WORKTREE_PATHS = {
+    Path("metrics/codex_metrics.json"),
+    Path("docs/codex-metrics.md"),
+}
+
+
+@dataclass(frozen=True)
+class StartedWorkReport:
+    started_work_detected: bool
+    changed_paths: list[str]
+    reason: str
+    git_available: bool
+
+
+@dataclass(frozen=True)
+class ActiveTaskResolution:
+    status: str
+    goal_id: str | None
+    message: str
+    started_work_report: StartedWorkReport | None = None
+
+
+def _run_git(cwd: Path, *args: str) -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=cwd,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return result.stdout.strip()
+
+
+def _normalize_worktree_path(path_text: str) -> str:
+    cleaned = path_text.strip()
+    if " -> " in cleaned:
+        cleaned = cleaned.rsplit(" -> ", maxsplit=1)[-1]
+    return cleaned
+
+
+def _is_meaningful_worktree_path(path_text: str) -> bool:
+    normalized = Path(path_text)
+    if normalized in LOW_SIGNAL_WORKTREE_PATHS:
+        return False
+    parts = normalized.parts
+    if not parts:
+        return False
+    if parts[0] in MEANINGFUL_WORKTREE_DIRS:
+        return True
+    if len(parts) == 1 and parts[0] in MEANINGFUL_WORKTREE_FILES:
+        return True
+    return False
+
+
+def detect_started_work(cwd: Path) -> StartedWorkReport:
+    repo_root = _run_git(cwd, "rev-parse", "--show-toplevel")
+    if repo_root is None:
+        return StartedWorkReport(
+            started_work_detected=False,
+            changed_paths=[],
+            reason="git is unavailable or the current directory is not inside a git repository",
+            git_available=False,
+        )
+
+    status_output = _run_git(Path(repo_root), "status", "--porcelain", "--untracked-files=normal")
+    if status_output is None:
+        return StartedWorkReport(
+            started_work_detected=False,
+            changed_paths=[],
+            reason="git status could not be read reliably",
+            git_available=False,
+        )
+
+    changed_paths: list[str] = []
+    meaningful_paths: list[str] = []
+    for line in status_output.splitlines():
+        if not line.strip():
+            continue
+        path_text = _normalize_worktree_path(line[3:] if len(line) > 3 else line)
+        if not path_text:
+            continue
+        changed_paths.append(path_text)
+        if _is_meaningful_worktree_path(path_text):
+            meaningful_paths.append(path_text)
+
+    if meaningful_paths:
+        return StartedWorkReport(
+            started_work_detected=True,
+            changed_paths=changed_paths,
+            reason=f"meaningful git changes detected: {', '.join(meaningful_paths[:5])}",
+            git_available=True,
+        )
+
+    if changed_paths:
+        return StartedWorkReport(
+            started_work_detected=False,
+            changed_paths=changed_paths,
+            reason="only low-signal changes are present, such as generated metrics or report outputs",
+            git_available=True,
+        )
+
+    return StartedWorkReport(
+        started_work_detected=False,
+        changed_paths=[],
+        reason="git working tree is clean",
+        git_available=True,
+    )
+
+
+def get_active_goals(data: dict[str, Any]) -> list[dict[str, Any]]:
+    return [goal for goal in data["goals"] if goal.get("status") == "in_progress"]
+
+
+def build_active_task_warning(data: dict[str, Any], cwd: Path) -> str | None:
+    if get_active_goals(data):
+        return None
+    report = detect_started_work(cwd)
+    if not report.git_available:
+        return "Warning: unable to detect started work reliably in this repository."
+    if not report.started_work_detected:
+        return None
+    return (
+        "Warning: repository work appears to have started without an active goal. "
+        f"{report.reason}. Run `codex-metrics ensure-active-task` to recover bookkeeping."
+    )
+
+
+def ensure_active_task(data: dict[str, Any], cwd: Path) -> ActiveTaskResolution:
+    active_goals = get_active_goals(data)
+    if len(active_goals) > 1:
+        active_ids = ", ".join(goal["goal_id"] for goal in active_goals)
+        raise ValueError(f"Multiple active goals exist: {active_ids}")
+    if len(active_goals) == 1:
+        active_goal = active_goals[0]
+        return ActiveTaskResolution(
+            status="existing",
+            goal_id=active_goal["goal_id"],
+            message=f"Active goal already exists: {active_goal['goal_id']}",
+        )
+
+    report = detect_started_work(cwd)
+    if not report.git_available:
+        return ActiveTaskResolution(
+            status="not_needed",
+            goal_id=None,
+            message="Cannot detect started work reliably in this repository; no active task was created.",
+            started_work_report=report,
+        )
+    if not report.started_work_detected:
+        return ActiveTaskResolution(
+            status="not_needed",
+            goal_id=None,
+            message="No active task recovery needed.",
+            started_work_report=report,
+        )
+
+    tasks: list[dict[str, Any]] = data["goals"]
+    new_task_id = next_goal_id(tasks)
+    new_goal = create_goal_record(
+        tasks=tasks,
+        task_id=new_task_id,
+        title="Recover active task for in-progress repository work",
+        task_type="meta",
+        linked_task_id=None,
+        started_at=now_utc_iso(),
+        model=None,
+    )
+    new_goal.notes = (
+        "Auto-recovered because repository work was detected before task bookkeeping started. "
+        f"Detected changes: {', '.join(report.changed_paths[:5]) if report.changed_paths else 'none'}"
+    )
+    goal_dict = goal_to_dict(new_goal)
+    tasks[-1] = goal_dict
+    validate_goal_record(goal_dict)
+    return ActiveTaskResolution(
+        status="created",
+        goal_id=new_task_id,
+        message=f"Created recovery goal {new_task_id}",
+        started_work_report=report,
+    )
 
 
 def default_pricing_path() -> Path:
@@ -925,6 +1113,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  %(prog)s update --title \"Add CSV import\" --task-type product --attempts-delta 1\n"
             "  %(prog)s update --task-id 2026-03-29-001 --status success --notes \"Validated\"\n"
             "  %(prog)s update --task-id 2026-03-29-002 --title \"Retry CSV import\" --task-type product --supersedes-task-id 2026-03-29-001 --status success\n"
+            "  %(prog)s ensure-active-task\n"
             "  %(prog)s audit-cost-coverage\n"
             "  %(prog)s sync-usage\n"
         ),
@@ -1178,6 +1367,15 @@ def build_parser() -> argparse.ArgumentParser:
     cost_audit_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
     cost_audit_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
     cost_audit_parser.add_argument("--codex-thread-id")
+
+    subparsers.add_parser(
+        "ensure-active-task",
+        help="Recover or verify active task bookkeeping from local git changes",
+        description=(
+            "Inspect the current git working tree for meaningful repository work and ensure that active task "
+            "bookkeeping exists. If work has started without an active goal, create a recovery draft."
+        ),
+    ).add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
 
     sync_parser = subparsers.add_parser(
         "sync-usage",
@@ -1469,6 +1667,9 @@ def main() -> int:
 
     if args.command == "audit-cost-coverage":
         return commands.handle_audit_cost_coverage(args, sys.modules[__name__])
+
+    if args.command == "ensure-active-task":
+        return commands.handle_ensure_active_task(args, sys.modules[__name__])
 
     if args.command == "sync-usage":
         return commands.handle_sync_usage(args, sys.modules[__name__])

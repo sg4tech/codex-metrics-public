@@ -368,6 +368,12 @@ def repo(tmp_path: Path) -> Path:
     shutil.copytree(ABS_SRC, tmp_path / "src")
     pricing_target = tmp_path / "pricing" / "model_pricing.json"
     pricing_target.write_text(PRICING.read_text(encoding="utf-8"), encoding="utf-8")
+
+    subprocess.run(["git", "init"], cwd=tmp_path, text=True, capture_output=True, check=True)
+    subprocess.run(["git", "config", "user.email", "codex@example.com"], cwd=tmp_path, text=True, capture_output=True, check=True)
+    subprocess.run(["git", "config", "user.name", "Codex"], cwd=tmp_path, text=True, capture_output=True, check=True)
+    subprocess.run(["git", "add", "."], cwd=tmp_path, text=True, capture_output=True, check=True)
+    subprocess.run(["git", "commit", "-m", "baseline"], cwd=tmp_path, text=True, capture_output=True, check=True)
     return tmp_path
 
 
@@ -419,6 +425,96 @@ def test_init_can_render_optional_report_when_requested(repo: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert (repo / "metrics" / "codex_metrics.json").exists()
     assert (repo / "docs" / "codex-metrics.md").exists()
+
+
+def test_ensure_active_task_creates_recovery_goal_for_meaningful_git_changes(repo: Path) -> None:
+    (repo / "src" / "worktree_change.py").write_text("print('changed')\n", encoding="utf-8")
+
+    result = run_cmd(repo, "ensure-active-task")
+
+    assert result.returncode == 0, result.stderr
+    assert "Created recovery goal" in result.stdout
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    goals = data["goals"]
+    assert len(goals) == 1
+    goal = goals[0]
+    assert goal["status"] == "in_progress"
+    assert goal["goal_type"] == "meta"
+    assert goal["title"] == "Recover active task for in-progress repository work"
+    assert goal["attempts"] == 0
+
+
+def test_start_task_remains_available_for_new_worktree_changes(repo: Path) -> None:
+    (repo / "src" / "worktree_change.py").write_text("print('changed')\n", encoding="utf-8")
+
+    result = run_cmd(repo, "start-task", "--title", "Start after work began", "--task-type", "meta")
+
+    assert result.returncode == 0, result.stderr
+    assert "Updated goal" in result.stdout
+
+
+def test_ensure_active_task_is_idempotent_when_active_goal_exists(repo: Path) -> None:
+    (repo / "src" / "worktree_change.py").write_text("print('changed')\n", encoding="utf-8")
+
+    first_result = run_cmd(repo, "ensure-active-task")
+    assert first_result.returncode == 0, first_result.stderr
+
+    second_result = run_cmd(repo, "ensure-active-task")
+
+    assert second_result.returncode == 0, second_result.stderr
+    assert "Active goal already exists" in second_result.stdout
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    active_goals = [goal for goal in data["goals"] if goal["status"] == "in_progress"]
+    assert len(active_goals) == 1
+
+
+def test_ensure_active_task_ignores_low_signal_metrics_only_changes(repo: Path) -> None:
+    assert run_cmd(repo, "init").returncode == 0
+
+    result = run_cmd(repo, "ensure-active-task")
+
+    assert result.returncode == 0, result.stderr
+    assert "No active task recovery needed" in result.stdout
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    assert data["goals"] == []
+
+
+def test_show_warns_when_repo_work_started_without_active_goal(repo: Path) -> None:
+    (repo / "src" / "worktree_change.py").write_text("print('changed')\n", encoding="utf-8")
+
+    result = run_cmd(repo, "show")
+
+    assert result.returncode == 0, result.stderr
+    assert "Warning: repository work appears to have started without an active goal." in result.stdout
+
+
+def test_continue_task_is_blocked_when_started_work_exists_without_active_goal(repo: Path) -> None:
+    start_result = run_cmd(repo, "start-task", "--title", "Baseline task", "--task-type", "product")
+    assert start_result.returncode == 0, start_result.stderr
+    goal_id = next(
+        line.removeprefix("Updated goal ").strip()
+        for line in start_result.stdout.splitlines()
+        if line.startswith("Updated goal ")
+    )
+
+    finish_result = run_cmd(repo, "finish-task", "--task-id", goal_id, "--status", "success")
+    assert finish_result.returncode == 0, finish_result.stderr
+
+    (repo / "src" / "worktree_change.py").write_text("print('changed')\n", encoding="utf-8")
+
+    continue_result = run_cmd(repo, "continue-task", "--task-id", goal_id)
+
+    assert continue_result.returncode == 1
+    assert "ensure-active-task" in continue_result.stderr
+
+
+def test_ensure_active_task_handles_non_git_repositories(tmp_path: Path) -> None:
+    (tmp_path / "metrics").mkdir(parents=True, exist_ok=True)
+
+    result = run_module_cmd(tmp_path, "ensure-active-task")
+
+    assert result.returncode == 0, result.stderr
+    assert "Cannot detect started work reliably" in result.stdout
 
 
 def test_package_module_entrypoint_supports_bootstrap(repo: Path) -> None:
@@ -2650,17 +2746,20 @@ def test_help_includes_goal_language_and_examples(repo: Path) -> None:
     start_help = run_cmd(repo, "start-task", "--help")
     continue_help = run_cmd(repo, "continue-task", "--help")
     finish_help = run_cmd(repo, "finish-task", "--help")
+    ensure_help = run_cmd(repo, "ensure-active-task", "--help")
 
     assert result.returncode == 0, result.stderr
     assert update_help.returncode == 0, update_help.stderr
     assert start_help.returncode == 0, start_help.stderr
     assert continue_help.returncode == 0, continue_help.stderr
     assert finish_help.returncode == 0, finish_help.stderr
+    assert ensure_help.returncode == 0, ensure_help.stderr
     assert "Track goal, attempt, failure, and cost metrics" in result.stdout
     assert "Create or update a goal record" in result.stdout
     assert "start-task" in result.stdout
     assert "continue-task" in result.stdout
     assert "finish-task" in result.stdout
+    assert "ensure-active-task" in result.stdout
     assert "Print current summary and operator review" in result.stdout
     assert "Examples:" in result.stdout
     assert "audit-history" in result.stdout
@@ -2675,6 +2774,7 @@ def test_help_includes_goal_language_and_examples(repo: Path) -> None:
     assert "--task-type" in start_help.stdout
     assert "--task-id" in continue_help.stdout
     assert "--status {success,fail}" in finish_help.stdout
+    assert "create a recovery draft" in ensure_help.stdout
 
 
 def test_script_shim_exposes_cli_version(repo: Path) -> None:

@@ -52,6 +52,9 @@ class CommandRuntime(Protocol):
     ) -> int: ...
     def save_metrics(self, path: Path, data: dict[str, Any]) -> None: ...
     def save_report(self, path: Path, data: dict[str, Any]) -> None: ...
+    def detect_started_work(self, cwd: Path) -> Any: ...
+    def ensure_active_task(self, data: dict[str, Any], cwd: Path) -> Any: ...
+    def get_active_goals(self, data: dict[str, Any]) -> list[dict[str, Any]]: ...
     def audit_history(self, data: dict[str, Any]) -> AuditReport: ...
     def render_audit_report(self, report: AuditReport) -> str: ...
     def audit_cost_coverage(
@@ -388,7 +391,47 @@ def handle_show(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
     data = cli_module.load_metrics(metrics_path)
     cli_module.recompute_summary(data)
+    warning = None
+    if not cli_module.get_active_goals(data):
+        report = cli_module.detect_started_work(Path.cwd())
+        if report.git_available and report.started_work_detected:
+            warning = (
+                "Warning: repository work appears to have started without an active goal. "
+                f"{report.reason}. Run `codex-metrics ensure-active-task` to recover bookkeeping."
+            )
+        elif not report.git_available:
+            warning = "Warning: unable to detect started work reliably in this repository."
+    if warning is not None:
+        print(warning)
     cli_module.print_summary(data)
+    return 0
+
+
+def _require_active_goal_for_existing_mutation(cli_module: CommandRuntime, cwd: Path, data: dict[str, Any]) -> None:
+    active_goals = cli_module.get_active_goals(data)
+    if len(active_goals) > 1:
+        active_ids = ", ".join(goal["goal_id"] for goal in active_goals)
+        raise ValueError(f"Multiple active goals exist: {active_ids}")
+    if active_goals:
+        return
+
+    report = cli_module.detect_started_work(cwd)
+    if report.git_available and report.started_work_detected:
+        raise ValueError(
+            "repository work appears to have started without an active goal; "
+            "run `codex-metrics ensure-active-task` before mutating existing goals"
+        )
+
+
+def handle_ensure_active_task(args: Namespace, cli_module: CommandRuntime) -> int:
+    metrics_path = Path(args.metrics_path)
+    with cli_module.metrics_mutation_lock(metrics_path):
+        data = cli_module.load_metrics(metrics_path)
+        resolution = cli_module.ensure_active_task(data, Path.cwd())
+        if resolution.status == "created":
+            cli_module.recompute_summary(data)
+            cli_module.save_metrics(metrics_path, data)
+    print(resolution.message)
     return 0
 
 
@@ -477,6 +520,8 @@ def handle_update(args: Namespace, cli_module: CommandRuntime) -> int:
     codex_logs_path = Path(args.codex_logs_path)
     with cli_module.metrics_mutation_lock(metrics_path):
         data = cli_module.load_metrics(metrics_path)
+        if args.task_id is not None:
+            _require_active_goal_for_existing_mutation(cli_module, Path.cwd(), data)
         previous_task = None
         existing_task = None
         if args.task_id is not None:
