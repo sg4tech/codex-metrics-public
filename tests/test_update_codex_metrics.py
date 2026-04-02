@@ -128,6 +128,7 @@ def read_json(path: Path) -> dict:
                 "notes": goal["notes"],
                 "agent_name": goal.get("agent_name"),
                 "result_fit": goal.get("result_fit"),
+                "model": goal.get("model"),
             }
             for goal in data["goals"]
         ]
@@ -1034,9 +1035,12 @@ def test_update_can_compute_cost_from_model_pricing(repo: Path) -> None:
 
     data = read_json(repo / "metrics" / "codex_metrics.json")
     task = data["tasks"][0]
+    entry = data["entries"][0]
 
     assert task["tokens_total"] == 1600
     assert task["cost_usd"] == 0.006263
+    assert task["model"] == "gpt-5"
+    assert entry["model"] == "gpt-5"
     assert data["summary"]["total_cost_usd"] == 0.006263
     assert data["summary"]["total_tokens"] == 1600
 
@@ -1088,6 +1092,7 @@ def test_entries_track_single_attempt_lifecycle(repo: Path) -> None:
     assert entries[0]["cost_usd"] == 0.1
     assert entries[0]["tokens_total"] == 200
     assert entries[0]["finished_at"] is not None
+    assert entries[0]["model"] is None
 
 
 def test_update_existing_task_without_task_id_is_rejected(repo: Path) -> None:
@@ -1267,6 +1272,8 @@ def test_update_can_auto_sync_cost_and_tokens_from_codex_logs(repo: Path) -> Non
     assert task["output_tokens"] == 500
     assert task["tokens_total"] == 1600
     assert task["cost_usd"] == 0.006263
+    assert task["model"] == "gpt-5"
+    assert data["entries"][0]["model"] == "gpt-5"
     assert task["agent_name"] == "codex"
     assert data["summary"]["total_input_tokens"] == 1000
     assert data["summary"]["total_cached_input_tokens"] == 100
@@ -1306,10 +1313,12 @@ def test_update_persists_explicit_token_breakdown_from_model_pricing(repo: Path)
     assert task["cached_input_tokens"] == 300
     assert task["output_tokens"] == 400
     assert task["tokens_total"] == 1900
+    assert task["model"] == "gpt-5"
     assert entry["input_tokens"] == 1200
     assert entry["cached_input_tokens"] == 300
     assert entry["output_tokens"] == 400
     assert entry["tokens_total"] == 1900
+    assert entry["model"] == "gpt-5"
     assert data["summary"]["total_input_tokens"] == 1200
     assert data["summary"]["total_cached_input_tokens"] == 300
     assert data["summary"]["total_output_tokens"] == 400
@@ -1350,6 +1359,7 @@ def test_update_does_not_apply_codex_agent_label_without_detected_usage(repo: Pa
     assert task["agent_name"] is None
     assert task["tokens_total"] is None
     assert task["cost_usd"] is None
+    assert task["model"] is None
     assert entry["agent_name"] is None
 
 
@@ -1517,6 +1527,62 @@ def test_product_goal_can_store_result_fit(repo: Path) -> None:
     assert render_report(repo).returncode == 0
     report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
     assert "- Result fit: exact_fit" in report
+
+
+def test_render_report_includes_model_breakdown(repo: Path) -> None:
+    assert run_cmd(repo, "init").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "model-report",
+        "--title",
+        "Model report",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+        "--model",
+        "gpt-5",
+        "--input-tokens",
+        "100",
+        "--output-tokens",
+        "50",
+    ).returncode == 0
+
+    assert render_report(repo).returncode == 0
+    report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
+    assert "## By model" in report
+    assert "### gpt-5" in report
+    assert "- Model: gpt-5" in report
+
+
+def test_show_displays_model_coverage(repo: Path) -> None:
+    assert run_cmd(repo, "init").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "model-show",
+        "--title",
+        "Model show",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+        "--model",
+        "gpt-5",
+        "--input-tokens",
+        "100",
+        "--output-tokens",
+        "50",
+    ).returncode == 0
+
+    result = run_cmd(repo, "show")
+
+    assert result.returncode == 0, result.stderr
+    assert "Model coverage:" in result.stdout
+    assert "By model:" in result.stdout
 
 
 def test_update_does_not_write_markdown_report_by_default(repo: Path) -> None:
@@ -2978,6 +3044,12 @@ def test_merge_tasks_combines_attempt_history_into_kept_task(repo: Path) -> None
         "fail",
         "--attempts",
         "1",
+        "--model",
+        "gpt-5",
+        "--input-tokens",
+        "100",
+        "--output-tokens",
+        "50",
         "--started-at",
         "2026-03-29T09:00:00+00:00",
         "--finished-at",
@@ -3000,14 +3072,16 @@ def test_merge_tasks_combines_attempt_history_into_kept_task(repo: Path) -> None
         "success",
         "--attempts",
         "1",
+        "--model",
+        "gpt-5",
+        "--input-tokens",
+        "100",
+        "--output-tokens",
+        "50",
         "--started-at",
         "2026-03-29T09:06:00+00:00",
         "--finished-at",
         "2026-03-29T09:10:00+00:00",
-        "--cost-usd",
-        "0.25",
-        "--tokens",
-        "1000",
         "--notes",
         "Second attempt succeeded",
     ).returncode == 0
@@ -3039,6 +3113,8 @@ def test_merge_tasks_combines_attempt_history_into_kept_task(repo: Path) -> None
     assert data["summary"]["total_attempts"] == 2
     assert data["summary"]["success_rate"] == 1.0
     assert data["summary"]["attempts_per_closed_task"] == 2.0
+    assert task["model"] == "gpt-5"
+    assert [entry["model"] for entry in data["entries"]] == ["gpt-5", "gpt-5"]
 
 
 def test_merge_tasks_keeps_cost_unknown_when_dropped_task_cost_is_missing(repo: Path) -> None:
@@ -3106,6 +3182,65 @@ def test_merge_tasks_keeps_cost_unknown_when_dropped_task_cost_is_missing(repo: 
     assert data["summary"]["known_cost_per_success_tokens"] is None
     assert data["summary"]["cost_per_success_usd"] is None
     assert data["summary"]["cost_per_success_tokens"] is None
+
+
+def test_merge_tasks_clears_model_when_attempt_history_disagrees(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "task-a",
+        "--title",
+        "Original task",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+        "--attempts",
+        "1",
+        "--model",
+        "gpt-5",
+        "--input-tokens",
+        "100",
+        "--output-tokens",
+        "50",
+    ).returncode == 0
+    assert run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "task-b",
+        "--title",
+        "Replacement task",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+        "--attempts",
+        "1",
+        "--model",
+        "gpt-5.4",
+        "--input-tokens",
+        "120",
+        "--output-tokens",
+        "60",
+    ).returncode == 0
+
+    result = run_cmd(
+        repo,
+        "merge-tasks",
+        "--keep-task-id",
+        "task-b",
+        "--drop-task-id",
+        "task-a",
+    )
+
+    assert result.returncode == 0, result.stderr
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    task = data["tasks"][0]
+    assert task["model"] is None
+    assert [entry["model"] for entry in data["entries"]] == ["gpt-5", "gpt-5.4"]
 
 
 def test_merge_tasks_rejects_in_progress_tasks(repo: Path) -> None:

@@ -224,6 +224,42 @@ def test_compute_summary_block_separates_known_and_complete_cost_views() -> None
     assert summary["cost_per_success_tokens"] is None
 
 
+def test_compute_summary_block_tracks_model_coverage_and_mixed_goals() -> None:
+    summary = MODULE.compute_summary_block(
+        [
+            make_effective_goal_record(
+                goal_id="goal-1",
+                title="Goal one",
+                status="success",
+                attempts=1,
+                cost_usd=0.5,
+                cost_usd_known=0.5,
+                cost_complete=True,
+                tokens_total=500,
+                tokens_total_known=500,
+                tokens_complete=True,
+                model="gpt-5",
+                model_complete=True,
+                model_consistent=True,
+            ),
+            make_effective_goal_record(
+                goal_id="goal-2",
+                title="Goal two",
+                status="fail",
+                attempts=2,
+                failure_reason="other",
+                model=None,
+                model_complete=True,
+                model_consistent=False,
+            ),
+        ]
+    )
+
+    assert summary["model_summary_goals"] == 1
+    assert summary["model_complete_goals"] == 2
+    assert summary["mixed_model_goals"] == 1
+
+
 def test_build_effective_goals_merges_superseded_chain_attempts_and_known_cost() -> None:
     effective_goals = MODULE.build_effective_goals(
         [
@@ -358,6 +394,19 @@ def test_validate_goal_record_rejects_missing_required_field() -> None:
     del goal["title"]
     with pytest.raises(ValueError, match="Missing required goal field: title"):
         MODULE.validate_goal_record(goal)
+
+
+def test_validate_goal_record_rejects_blank_model() -> None:
+    with pytest.raises(ValueError, match="model cannot be empty"):
+        MODULE.validate_goal_record(
+            make_goal_dict(
+                model="   ",
+                started_at="2026-03-29T09:00:00+00:00",
+                finished_at="2026-03-29T09:05:00+00:00",
+                status="success",
+                attempts=1,
+            )
+        )
 
 
 def test_validate_goal_record_rejects_non_product_result_fit() -> None:
@@ -495,6 +544,86 @@ def test_sync_goal_attempt_entries_creates_and_closes_attempt_history() -> None:
     assert entries[1]["failure_reason"] is None
     assert entries[1]["cost_usd"] == 0.2
     assert entries[1]["tokens_total"] == 500
+    assert entries[1]["model"] is None
+    assert goal["model"] is None
+
+
+def test_sync_goal_attempt_entries_preserves_model_on_latest_entry_and_summary() -> None:
+    data = {"entries": []}
+    previous_goal = make_goal_dict(
+        goal_id="goal-1",
+        status="in_progress",
+        attempts=1,
+        started_at="2026-03-29T09:00:00+00:00",
+        model="gpt-5",
+        notes="First attempt started",
+    )
+    data["entries"] = [
+        make_entry_dict(
+            entry_id="goal-1-attempt-001",
+            goal_id="goal-1",
+            status="in_progress",
+            started_at="2026-03-29T09:00:00+00:00",
+            model="gpt-5",
+            notes="First attempt started",
+        )
+    ]
+    goal = make_goal_dict(
+        goal_id="goal-1",
+        status="success",
+        attempts=1,
+        started_at="2026-03-29T09:00:00+00:00",
+        finished_at="2026-03-29T09:10:00+00:00",
+        cost_usd=0.2,
+        tokens_total=500,
+        model="gpt-5",
+        notes="Second attempt succeeded",
+    )
+
+    MODULE.sync_goal_attempt_entries(data, goal, previous_goal)
+
+    assert data["entries"][0]["model"] == "gpt-5"
+    assert goal["model"] == "gpt-5"
+
+
+def test_sync_goal_attempt_entries_clears_goal_model_for_mixed_attempts() -> None:
+    data = {"entries": []}
+    previous_goal = make_goal_dict(
+        goal_id="goal-1",
+        status="in_progress",
+        attempts=1,
+        started_at="2026-03-29T09:00:00+00:00",
+        model="gpt-5",
+    )
+    data["entries"] = [
+        make_entry_dict(
+            entry_id="goal-1-attempt-001",
+            goal_id="goal-1",
+            status="success",
+            started_at="2026-03-29T09:00:00+00:00",
+            finished_at="2026-03-29T09:05:00+00:00",
+            cost_usd=0.1,
+            tokens_total=200,
+            model="gpt-5",
+        )
+    ]
+    goal = make_goal_dict(
+        goal_id="goal-1",
+        status="success",
+        attempts=2,
+        started_at="2026-03-29T09:00:00+00:00",
+        finished_at="2026-03-29T09:10:00+00:00",
+        cost_usd=0.3,
+        tokens_total=700,
+        model="gpt-5.4",
+    )
+
+    MODULE.sync_goal_attempt_entries(data, goal, previous_goal)
+
+    entries = sorted(data["entries"], key=lambda entry: entry["entry_id"])
+    assert entries[0]["model"] == "gpt-5"
+    assert entries[1]["model"] == "gpt-5.4"
+    assert goal["model"] is None
 
 
 def test_sync_goal_attempt_entries_trims_excess_entries_when_attempts_drop() -> None:
@@ -627,6 +756,9 @@ def test_apply_goal_updates_rejects_blank_title() -> None:
             auto_cached_input_tokens=None,
             auto_output_tokens=None,
             auto_total_tokens=None,
+            model=None,
+            usage_model=None,
+            auto_model=None,
             failure_reason=None,
             notes=None,
             started_at=None,
@@ -746,7 +878,7 @@ def test_resolve_codex_usage_window_returns_none_without_matching_thread(
         started_at="2026-03-29T09:00:00+00:00",
         finished_at="2026-03-29T09:10:00+00:00",
         pricing_path=pricing_path,
-    ) == (None, None, None, None, None)
+    ) == (None, None, None, None, None, None)
 
 
 def test_resolve_codex_usage_window_falls_back_to_session_token_counts(
@@ -844,7 +976,7 @@ def test_resolve_codex_usage_window_falls_back_to_session_token_counts(
         started_at="2026-03-29T09:00:00+00:00",
         finished_at="2026-03-29T09:10:00+00:00",
         pricing_path=pricing_path,
-    ) == (0.006263, 1625, 1000, 100, 500)
+    ) == (0.006263, 1625, 1000, 100, 500, "gpt-5.4")
 
 
 def test_resolve_codex_usage_window_sums_multiple_session_token_events(
@@ -960,7 +1092,7 @@ def test_resolve_codex_usage_window_sums_multiple_session_token_events(
         started_at="2026-03-29T09:00:00+00:00",
         finished_at="2026-03-29T09:10:00+00:00",
         pricing_path=pricing_path,
-    ) == (0.011263, 3885, 3000, 100, 750)
+    ) == (0.011263, 3885, 3000, 100, 750, "gpt-5.4")
 
 
 def test_resolve_codex_usage_window_ignores_session_events_outside_window(
@@ -1094,7 +1226,7 @@ def test_resolve_codex_usage_window_ignores_session_events_outside_window(
         started_at="2026-03-29T09:00:00+00:00",
         finished_at="2026-03-29T09:10:00+00:00",
         pricing_path=pricing_path,
-    ) == (0.006263, 1625, 1000, 100, 500)
+    ) == (0.006263, 1625, 1000, 100, 500, "gpt-5.4")
 
 
 def test_resolve_codex_usage_window_recovers_tokens_without_cost_when_model_missing(
@@ -1188,7 +1320,7 @@ def test_resolve_codex_usage_window_recovers_tokens_without_cost_when_model_miss
         started_at="2026-03-29T09:00:00+00:00",
         finished_at="2026-03-29T09:10:00+00:00",
         pricing_path=pricing_path,
-    ) == (None, 1625, 1000, 100, 500)
+    ) == (None, 1625, 1000, 100, 500, None)
 
 
 def test_resolve_codex_usage_window_prefers_legacy_sse_events_over_session_fallback(
@@ -1296,7 +1428,7 @@ def test_resolve_codex_usage_window_prefers_legacy_sse_events_over_session_fallb
         started_at="2026-03-29T09:00:00+00:00",
         finished_at="2026-03-29T09:10:00+00:00",
         pricing_path=pricing_path,
-    ) == (0.006263, 1600, 1000, 100, 500)
+    ) == (0.006263, 1600, 1000, 100, 500, "gpt-5.4")
 
 
 def test_load_pricing_rejects_negative_values(tmp_path: Path) -> None:

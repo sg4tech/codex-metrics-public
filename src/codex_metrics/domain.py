@@ -41,6 +41,7 @@ class GoalRecord:
     notes: str | None
     agent_name: str | None = None
     result_fit: str | None = None
+    model: str | None = None
 
 
 @dataclass
@@ -60,6 +61,7 @@ class AttemptEntryRecord:
     failure_reason: str | None
     notes: str | None
     agent_name: str | None = None
+    model: str | None = None
 
 
 @dataclass
@@ -88,6 +90,9 @@ class EffectiveGoalRecord:
     notes: str | None
     supersedes_goal_id: str | None
     result_fit: str | None = None
+    model: str | None = None
+    model_complete: bool = False
+    model_consistent: bool = False
 
 
 StatusRecordT = TypeVar("StatusRecordT", GoalRecord, AttemptEntryRecord, EffectiveGoalRecord)
@@ -117,6 +122,7 @@ def goal_from_dict(goal: dict[str, Any]) -> GoalRecord:
         notes=goal.get("notes"),
         agent_name=goal.get("agent_name"),
         result_fit=goal.get("result_fit"),
+        model=None if goal.get("model") is None else str(goal["model"]).strip(),
     )
 
 
@@ -141,6 +147,7 @@ def entry_from_dict(entry: dict[str, Any]) -> AttemptEntryRecord:
         failure_reason=entry.get("failure_reason"),
         notes=entry.get("notes"),
         agent_name=entry.get("agent_name"),
+        model=None if entry.get("model") is None else str(entry["model"]).strip(),
     )
 
 
@@ -179,6 +186,9 @@ def empty_summary_block(include_by_task_type: bool = False) -> dict[str, Any]:
         "complete_cost_successes": 0,
         "complete_token_successes": 0,
         "complete_token_breakdown_successes": 0,
+        "model_summary_goals": 0,
+        "model_complete_goals": 0,
+        "mixed_model_goals": 0,
         "known_cost_per_success_usd": None,
         "known_cost_per_success_tokens": None,
         "complete_cost_per_covered_success_usd": None,
@@ -192,6 +202,7 @@ def empty_summary_block(include_by_task_type: bool = False) -> dict[str, Any]:
         }
         summary["by_goal_type"] = typed_summary
         summary["by_task_type"] = typed_summary
+        summary["by_model"] = {}
         summary["entries"] = {
             "closed_entries": 0,
             "successes": 0,
@@ -275,6 +286,13 @@ def validate_non_negative_int(value: int, field_name: str) -> None:
 def validate_non_negative_float(value: float, field_name: str) -> None:
     if value < 0:
         raise ValueError(f"{field_name} cannot be negative")
+
+
+def validate_model_name(model: str | None) -> None:
+    if model is None:
+        return
+    if not model.strip():
+        raise ValueError("model cannot be empty")
 
 
 def validate_token_breakdown_consistency(
@@ -373,6 +391,8 @@ def validate_goal_record(goal: dict[str, Any]) -> None:
         raise ValueError("Invalid type for goal field: result_fit")
     if "agent_name" in goal and not isinstance(goal["agent_name"], (str, type(None))):
         raise ValueError("Invalid type for goal field: agent_name")
+    if "model" in goal and not isinstance(goal["model"], (str, type(None))):
+        raise ValueError("Invalid type for goal field: model")
 
     goal_record = goal_from_dict(goal)
     if not goal_record.goal_id.strip():
@@ -405,6 +425,7 @@ def validate_goal_record(goal: dict[str, Any]) -> None:
     validate_failure_reason(goal_record.failure_reason)
     validate_agent_name(goal_record.agent_name)
     validate_result_fit(goal_record.result_fit)
+    validate_model_name(goal_record.model)
     validate_task_business_rules(goal)
 
 
@@ -444,6 +465,8 @@ def validate_entry_record(entry: dict[str, Any]) -> None:
         raise ValueError("Invalid type for entry field: inferred")
     if "agent_name" in entry and not isinstance(entry["agent_name"], (str, type(None))):
         raise ValueError("Invalid type for entry field: agent_name")
+    if "model" in entry and not isinstance(entry["model"], (str, type(None))):
+        raise ValueError("Invalid type for entry field: model")
     if entry_record.cost_usd is not None:
         validate_non_negative_float(entry_record.cost_usd, "cost_usd")
     if entry_record.input_tokens is not None:
@@ -463,6 +486,7 @@ def validate_entry_record(entry: dict[str, Any]) -> None:
     )
     validate_failure_reason(entry_record.failure_reason)
     validate_agent_name(entry_record.agent_name)
+    validate_model_name(entry_record.model)
     validate_entry_business_rules(entry)
 
 
@@ -567,6 +591,7 @@ def normalize_legacy_metrics_data(data: dict[str, Any]) -> None:
                     "notes": task.get("notes"),
                     "agent_name": task.get("agent_name"),
                     "result_fit": task.get("result_fit"),
+                    "model": task.get("model"),
                 }
                 legacy_goals.append(goal)
                 legacy_entries.append(
@@ -585,6 +610,7 @@ def normalize_legacy_metrics_data(data: dict[str, Any]) -> None:
                         "failure_reason": task.get("failure_reason"),
                         "notes": task.get("notes"),
                         "agent_name": task.get("agent_name"),
+                        "model": task.get("model"),
                     }
                 )
             data["goals"] = legacy_goals
@@ -738,6 +764,16 @@ def aggregate_chain_token_component(chain: list[GoalRecord], field_name: str) ->
     return aggregated_value, aggregated_known, is_complete
 
 
+def aggregate_chain_model(chain: list[GoalRecord]) -> tuple[str | None, bool, bool]:
+    known_models = [goal.model for goal in chain if goal.model is not None]
+    if not known_models:
+        return None, False, False
+    model_complete = len(known_models) == len(chain)
+    model_consistent = len(set(known_models)) == 1
+    aggregated_model = known_models[0] if model_complete and model_consistent else None
+    return aggregated_model, model_complete, model_consistent
+
+
 def aggregate_chain_timestamps(chain: list[GoalRecord]) -> tuple[str | None, str | None]:
     started_at = None
     finished_at = None
@@ -753,6 +789,7 @@ def build_effective_goal_record(terminal_goal: GoalRecord, chain: list[GoalRecor
     aggregated_cached, aggregated_cached_known, cached_complete = aggregate_chain_token_component(chain, "cached_input_tokens")
     aggregated_output, aggregated_output_known, output_complete = aggregate_chain_token_component(chain, "output_tokens")
     aggregated_tokens, aggregated_tokens_known, tokens_complete = aggregate_chain_tokens(chain)
+    aggregated_model, model_complete, model_consistent = aggregate_chain_model(chain)
     started_at, finished_at = aggregate_chain_timestamps(chain)
 
     return EffectiveGoalRecord(
@@ -780,6 +817,9 @@ def build_effective_goal_record(terminal_goal: GoalRecord, chain: list[GoalRecor
         notes=terminal_goal.notes,
         supersedes_goal_id=terminal_goal.supersedes_goal_id,
         result_fit=terminal_goal.result_fit,
+        model=aggregated_model,
+        model_complete=model_complete,
+        model_consistent=model_consistent,
     )
 
 
@@ -838,6 +878,9 @@ def compute_summary_block(tasks: list[EffectiveGoalRecord]) -> dict[str, Any]:
     known_success_token_values = [t.tokens_total_known for t in successes if t.tokens_total_known is not None]
     known_success_breakdown_values = [t for t in successes if t.input_tokens_known is not None and t.cached_input_tokens_known is not None and t.output_tokens_known is not None]
     complete_success_breakdown_values = [t for t in successes if t.token_breakdown_complete]
+    model_summary_goals = [t for t in closed_tasks if t.model is not None]
+    model_complete_goals = [t for t in closed_tasks if t.model_complete]
+    mixed_model_goals = [t for t in closed_tasks if t.model_complete and not t.model_consistent]
     complete_cost_per_covered_success_tokens = (
         sum(success_token_values) / len(success_token_values) if success_token_values else None
     )
@@ -868,6 +911,9 @@ def compute_summary_block(tasks: list[EffectiveGoalRecord]) -> dict[str, Any]:
         "complete_cost_successes": len(success_cost_values),
         "complete_token_successes": len(success_token_values),
         "complete_token_breakdown_successes": len(complete_success_breakdown_values),
+        "model_summary_goals": len(model_summary_goals),
+        "model_complete_goals": len(model_complete_goals),
+        "mixed_model_goals": len(mixed_model_goals),
         "known_cost_per_success_usd": round_usd(known_cost_per_success_usd)
         if known_cost_per_success_usd is not None
         else None,
@@ -893,6 +939,15 @@ def build_effective_goals(goals: list[GoalRecord]) -> list[EffectiveGoalRecord]:
         effective_goals.append(build_effective_goal_record(terminal_goal, chain))
 
     return effective_goals
+
+
+def build_model_summary(tasks: list[EffectiveGoalRecord]) -> dict[str, Any]:
+    closed_tasks = get_closed_records(tasks)
+    known_models = sorted({goal.model for goal in closed_tasks if goal.model is not None})
+    return {
+        model: compute_summary_block([goal for goal in closed_tasks if goal.model == model])
+        for model in known_models
+    }
 
 
 def compute_entry_summary(entries: list[AttemptEntryRecord]) -> dict[str, Any]:
@@ -938,6 +993,7 @@ def recompute_summary(data: dict[str, Any]) -> None:
     }
     summary["by_goal_type"] = by_goal_type
     summary["by_task_type"] = by_goal_type
+    summary["by_model"] = build_model_summary(effective_goal_records)
     summary["entries"] = compute_entry_summary(entry_records)
     data["summary"] = summary
 
@@ -1011,6 +1067,7 @@ def build_attempt_entry(
     failure_reason: str | None,
     notes: str | None,
     agent_name: str | None,
+    model: str | None,
 ) -> dict[str, Any]:
     entry = entry_to_dict(
         AttemptEntryRecord(
@@ -1029,6 +1086,7 @@ def build_attempt_entry(
             failure_reason=failure_reason,
             notes=notes,
             agent_name=agent_name,
+            model=model,
         )
     )
     validate_entry_record(entry)
@@ -1104,6 +1162,7 @@ def append_missing_attempt_entries(
             failure_reason=goal.get("failure_reason") if entry_status == "fail" and is_latest_attempt else None,
             notes=notes,
             agent_name=goal.get("agent_name"),
+            model=goal.get("model") if is_latest_attempt else None,
         )
         entries.append(entry)
         goal_entries.append(entry)
@@ -1121,6 +1180,8 @@ def update_latest_attempt_entry(goal_entries: list[dict[str, Any]], goal: dict[s
     latest_entry["failure_reason"] = goal.get("failure_reason")
     latest_entry["notes"] = goal.get("notes")
     latest_entry["agent_name"] = goal.get("agent_name")
+    if goal.get("model") is not None:
+        latest_entry["model"] = goal.get("model")
     return latest_entry
 
 
@@ -1157,6 +1218,19 @@ def apply_attempt_usage_deltas(latest_entry: dict[str, Any], goal: dict[str, Any
         latest_entry["tokens_total"] = goal.get("tokens_total")
 
 
+def refresh_goal_model_summary(goal: dict[str, Any], goal_entries: list[dict[str, Any]]) -> None:
+    entry_models = [entry.get("model") for entry in goal_entries]
+    if not entry_models or any(model is None for model in entry_models):
+        goal["model"] = None
+        return
+
+    distinct_models = sorted({str(model).strip() for model in entry_models if model is not None})
+    if len(distinct_models) == 1:
+        goal["model"] = distinct_models[0]
+    else:
+        goal["model"] = None
+
+
 def validate_goal_entries(goal_entries: list[dict[str, Any]]) -> None:
     for entry in goal_entries:
         validate_entry_record(entry)
@@ -1184,7 +1258,9 @@ def sync_goal_attempt_entries(data: dict[str, Any], goal: dict[str, Any], previo
     if latest_entry is None:
         return
     apply_attempt_usage_deltas(latest_entry, goal, previous_goal)
+    refresh_goal_model_summary(goal, goal_entries)
     validate_goal_entries(goal_entries)
+    validate_goal_record(goal)
 
 
 def create_goal_record(
@@ -1195,6 +1271,7 @@ def create_goal_record(
     task_type: str | None,
     linked_task_id: str | None,
     started_at: str | None,
+    model: str | None = None,
 ) -> GoalRecord:
     if title is None:
         raise ValueError("title is required when creating a new task")
@@ -1225,6 +1302,7 @@ def create_goal_record(
         notes=None,
         agent_name=None,
         result_fit=None,
+        model=model,
     )
     tasks.append(goal_to_dict(new_goal))
     return new_goal
@@ -1256,6 +1334,9 @@ def apply_goal_updates(
     auto_cached_input_tokens: int | None,
     auto_output_tokens: int | None,
     auto_total_tokens: int | None,
+    model: str | None,
+    usage_model: str | None,
+    auto_model: str | None,
     failure_reason: str | None,
     notes: str | None,
     started_at: str | None,
@@ -1336,6 +1417,16 @@ def apply_goal_updates(
         task.tokens_total = current_tokens + usage_total_tokens
     elif auto_total_tokens is not None:
         task.tokens_total = auto_total_tokens
+
+    if usage_model is not None:
+        validate_model_name(usage_model)
+        task.model = usage_model
+    elif model is not None:
+        validate_model_name(model)
+        task.model = model
+    elif auto_model is not None:
+        validate_model_name(auto_model)
+        task.model = auto_model
 
     if failure_reason is not None:
         validate_failure_reason(failure_reason)

@@ -350,6 +350,35 @@ def _product_quality_lines(product_quality: ProductQualitySummary) -> list[str]:
     ]
 
 
+def _model_summary_lines(model: str, model_summary: dict[str, Any]) -> list[str]:
+    return [
+        f"### {model}",
+        f"- Closed goals: {model_summary['closed_tasks']}",
+        f"- Successes: {model_summary['successes']}",
+        f"- Fails: {model_summary['fails']}",
+        f"- Total attempts: {model_summary['total_attempts']}",
+        f"- Known total cost (USD): {format_usd(model_summary['total_cost_usd'])}",
+        (
+            "- Known token breakdown totals: "
+            f"{format_token_breakdown(model_summary.get('total_input_tokens'), model_summary.get('total_cached_input_tokens'), model_summary.get('total_output_tokens'))}"
+        ),
+        f"- Known total tokens: {model_summary['total_tokens']}",
+        f"- Success Rate: {format_pct(model_summary['success_rate'])}",
+        f"- Attempts per Closed Goal: {format_num(model_summary['attempts_per_closed_task'])}",
+        f"- Known cost coverage: {format_coverage(model_summary['known_cost_successes'], model_summary['successes'])} successful goals",
+        f"- Known token coverage: {format_coverage(model_summary['known_token_successes'], model_summary['successes'])} successful goals",
+        f"- Known token breakdown coverage: {format_coverage(model_summary.get('known_token_breakdown_successes', 0), model_summary['successes'])} successful goals",
+        f"- Complete cost coverage: {format_coverage(model_summary['complete_cost_successes'], model_summary['successes'])} successful goals",
+        f"- Complete token coverage: {format_coverage(model_summary['complete_token_successes'], model_summary['successes'])} successful goals",
+        f"- Complete token breakdown coverage: {format_coverage(model_summary.get('complete_token_breakdown_successes', 0), model_summary['successes'])} successful goals",
+        f"- Known Cost per Success (USD): {format_usd(model_summary['known_cost_per_success_usd'])}",
+        f"- Known Cost per Success (Tokens): {format_num(model_summary['known_cost_per_success_tokens'])}",
+        f"- Complete Cost per Covered Success (USD): {format_usd(model_summary['complete_cost_per_covered_success_usd'])}",
+        f"- Complete Cost per Covered Success (Tokens): {format_num(model_summary['complete_cost_per_covered_success_tokens'])}",
+        "",
+    ]
+
+
 def generate_report_md(data: dict[str, Any]) -> str:
     summary = data["summary"]
     goals: list[dict[str, Any]] = data["goals"]
@@ -380,6 +409,9 @@ def generate_report_md(data: dict[str, Any]) -> str:
             f"- Known total tokens: {summary['total_tokens']}",
             f"- Success Rate: {format_pct(summary['success_rate'])}",
             f"- Attempts per Closed Goal: {format_num(summary['attempts_per_closed_task'])}",
+            f"- Model coverage: {format_coverage(summary.get('model_summary_goals', 0), summary['closed_tasks'])} closed goals with an unambiguous model",
+            f"- Model-complete goals: {summary.get('model_complete_goals', 0)}",
+            f"- Mixed-model goals: {summary.get('mixed_model_goals', 0)}",
             f"- Known cost coverage: {format_coverage(summary['known_cost_successes'], summary['successes'])} successful goals",
             f"- Known token coverage: {format_coverage(summary['known_token_successes'], summary['successes'])} successful goals",
             f"- Known token breakdown coverage: {format_coverage(summary.get('known_token_breakdown_successes', 0), summary['successes'])} successful goals",
@@ -391,6 +423,17 @@ def generate_report_md(data: dict[str, Any]) -> str:
             f"- Complete Cost per Covered Success (USD): {format_usd(summary['complete_cost_per_covered_success_usd'])}",
             f"- Complete Cost per Covered Success (Tokens): {format_num(summary['complete_cost_per_covered_success_tokens'])}",
             "",
+            "## By model",
+            "",
+        ]
+    )
+    if summary.get("by_model"):
+        for model, model_summary in sorted(summary["by_model"].items()):
+            lines.extend(_model_summary_lines(model, model_summary))
+    else:
+        lines.extend(["_No unambiguous model summaries available yet._", ""])
+    lines.extend(
+        [
             "## Entry summary",
             "",
             f"- Closed entries: {summary['entries']['closed_entries']}",
@@ -476,6 +519,7 @@ def generate_report_md(data: dict[str, Any]) -> str:
                 f"- Supersedes goal: {task.get('supersedes_goal_id') or 'n/a'}",
                 f"- Status: {task['status']}",
                 f"- Agent: {task.get('agent_name') or 'n/a'}",
+                f"- Model: {task.get('model') or 'n/a'}",
                 f"- Attempts: {task['attempts']}",
                 f"- Started at: {task['started_at'] or 'n/a'}",
                 f"- Finished at: {task['finished_at'] or 'n/a'}",
@@ -506,6 +550,7 @@ def generate_report_md(data: dict[str, Any]) -> str:
                 f"- Inferred: {'yes' if entry.get('inferred') else 'no'}",
                 f"- Status: {entry['status']}",
                 f"- Agent: {entry.get('agent_name') or 'n/a'}",
+                f"- Model: {entry.get('model') or 'n/a'}",
                 f"- Started at: {entry['started_at'] or 'n/a'}",
                 f"- Finished at: {entry['finished_at'] or 'n/a'}",
                 f"- Cost (USD): {format_usd(entry.get('cost_usd'))}",
@@ -565,6 +610,12 @@ def print_summary(data: dict[str, Any]) -> None:
     print(f"Known total tokens: {summary['total_tokens']}")
     print(f"Success Rate: {format_pct(summary['success_rate'])}")
     print(f"Attempts per Closed Goal: {format_num(summary['attempts_per_closed_task'])}")
+    print(
+        f"Model coverage: {format_coverage(summary.get('model_summary_goals', 0), summary['closed_tasks'])} "
+        "closed goals with an unambiguous model"
+    )
+    print(f"Model-complete goals: {summary.get('model_complete_goals', 0)}")
+    print(f"Mixed-model goals: {summary.get('mixed_model_goals', 0)}")
     print(f"Known cost coverage: {format_coverage(summary['known_cost_successes'], summary['successes'])} successful goals")
     print(f"Known token coverage: {format_coverage(summary['known_token_successes'], summary['successes'])} successful goals")
     print(
@@ -581,6 +632,12 @@ def print_summary(data: dict[str, Any]) -> None:
     print(f"Known Cost per Success (Tokens): {format_num(summary['known_cost_per_success_tokens'])}")
     print(f"Complete Cost per Covered Success (USD): {format_usd(summary['complete_cost_per_covered_success_usd'])}")
     print(f"Complete Cost per Covered Success (Tokens): {format_num(summary['complete_cost_per_covered_success_tokens'])}")
+    print("By model:")
+    if summary.get("by_model"):
+        for model, model_summary in sorted(summary["by_model"].items()):
+            print(f"- {model}: {model_summary['closed_tasks']} closed, {model_summary['successes']} successes, {model_summary['fails']} fails")
+    else:
+        print("- n/a")
     print(f"Closed entries: {summary['entries']['closed_entries']}")
     print(f"Entry successes: {summary['entries']['successes']}")
     print(f"Entry fails: {summary['entries']['fails']}")

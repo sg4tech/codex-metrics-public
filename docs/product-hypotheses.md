@@ -370,3 +370,169 @@ Rules:
 - Notes:
   - `2026-04-02`: added after a live incident showed that `start-task` existing as a command was not enough to ensure timely bookkeeping.
   - `2026-04-02`: paired with implementation spec `docs/active-task-enforcement-spec.md` so the hypothesis can be tested through a concrete product increment.
+
+### H-011 — A `mini-first` model policy may preserve most workflow value at materially lower cost
+
+- Status: `active`
+- Created: `2026-04-02`
+- Statement:
+  - Defaulting most Codex work to a mini model, while reserving the larger model for the hardest or most ambiguous tasks, may preserve outcome quality and retry behavior at lower token and dollar cost.
+- Why it matters:
+  - If true, the project can save limit budget without giving up the agent quality that actually matters.
+- Expected upside:
+  - lower average cost per successful goal
+  - lower total token burn on routine work
+  - a more sustainable default operating mode for long-running repo sessions
+- Expected resource cost:
+  - low for the first experiment, because the main work is policy selection and measurement rather than product changes
+- Main risks or where it may be wrong:
+  - the cheaper model may increase retries enough to erase the savings
+  - quality regressions may show up first in partial-fit or adjacent-work outcomes, not in raw success rate
+  - the benefit may only hold on some task classes and not on difficult refactors or debugging
+- Alternatives considered:
+  - keep the larger model as the default and only use mini for trivial tasks
+  - route by task type instead of using a default mini-first policy
+  - switch everything to mini immediately without a tracked before/after baseline
+- Current confidence:
+  - `medium`
+- Evidence status:
+  - plausible from the current project shape, where most work is structured CLI, docs, and test maintenance rather than frontier reasoning
+  - not yet validated by a tracked before/after comparison inside this repository
+- Evaluation plan:
+  - record a baseline before changing the default model policy
+  - switch the working default to mini
+  - compare the next batch of closed goals against the baseline on:
+    - exact-fit rate
+    - attempts per closed product goal
+    - known product cost per success
+    - known total cost
+    - model-mistake failure pressure
+  - treat lower cost as a win only if quality and retry pressure stay acceptable
+- Next re-evaluation trigger:
+  - after the first 10-15 closed goals using the new default
+  - or after two weeks of usage, whichever comes first
+- Notes:
+  - `2026-04-02`: added to make the model-switch experiment explicit instead of implicit.
+  - `2026-04-02`: this hypothesis is intentionally policy-level and does not yet change any runtime config by itself.
+
+### H-012 — Persisting the model used on each goal or attempt may improve quality and cost analysis
+
+- Status: `active`
+- Created: `2026-04-02`
+- Statement:
+  - Recording the specific model used for each goal or attempt may make `codex-metrics` more useful for comparing outcome quality, retry pressure, and cost across model choices.
+- Why it matters:
+  - If true, the product should preserve model identity as a first-class analysis dimension instead of treating model choice as incidental metadata.
+- Expected upside:
+  - make it easier to answer which model produces the best fit for a given task type
+  - make cost comparisons more trustworthy by separating model-driven spend differences from workflow differences
+  - help detect when a cheaper model is actually more expensive in retries or rework
+  - improve future recommendations about when to use a smaller or larger model
+- Expected resource cost:
+  - low to medium for the first step, if model name is stored as simple metadata on goals and attempts
+  - medium later if we want robust normalization across provider naming, aliases, or versioned model IDs
+- Main risks or where this may be wrong:
+  - model labels may become noisy if provider naming changes or agents report inconsistent IDs
+  - raw model names alone may not explain quality differences without task type and workflow context
+  - adding another dimension may increase schema and reporting complexity without materially improving decisions
+- Alternatives considered:
+  - keep only aggregate cost and token totals without storing model identity
+  - infer model from logs or local environment when needed instead of persisting it
+  - track only provider name and leave model version out of scope
+- Current confidence:
+  - `high` that model identity is worth preserving
+  - `medium` on the exact granularity that should be stored first
+- Evidence status:
+  - supported by the product need to compare quality and cost across the `mini-first` experiment and any future model-policy changes
+  - not yet validated by enough historical data to know which granularity best predicts useful decisions
+- Evaluation plan:
+  - store model identity on new work items and compare closed goals across model buckets
+  - check whether model-specific slices improve recommendations about quality, retries, and spend
+  - verify that the field stays stable enough to support cross-run analysis without excessive normalization work
+- Next re-evaluation trigger:
+  - after the first batch of goals includes model labels and we can compare at least a few model slices
+  - or after we discover that provider/version normalization is more important than the raw model label itself
+- Notes:
+  - `2026-04-02`: added after the product idea that we should remember which model was used so analysis can explain why one workflow was cheaper or better than another.
+
+### H-013 — Token consumption speed may be useful only when normalized against product throughput
+
+- Status: `rejected`
+- Created: `2026-04-02`
+- Statement:
+  - Raw token consumption speed may be a useful signal, but it is probably not the best primary metric by itself because fast token burn can mean either unhealthy rework or very healthy product momentum.
+- Why it matters:
+  - If true, `codex-metrics` should track token burn alongside product throughput signals such as product goals, product hypotheses, or other decision-making volume, instead of treating token speed as a standalone north star.
+- Expected upside:
+  - reveal when repeated restarts, rewrites, or re-prompts are consuming tokens without producing durable progress
+  - distinguish “bad fast burn” from “good fast throughput” by comparing consumption to the amount of useful product output created
+  - make cost analysis more decision-relevant by tying spend to the rate of product learning or delivery
+- Expected resource cost:
+  - low for the first step if we only define the metric and review it manually
+  - medium if we later need new counters or report slices for product-throughput-normalized token usage
+- Main risks or where this may be wrong:
+  - token speed alone can be inverted in both directions, so it may be too ambiguous to use as a primary north-star metric
+  - a high rate of product hypotheses could reflect real progress, but it could also reflect churn or thrash
+  - comparing token burn to hypothesis count may reward verbosity or idea generation instead of actual product value
+- Alternatives considered:
+  - raw token consumption speed as the main metric
+  - tokens per product goal as the main metric
+  - tokens per accepted goal or exact-fit goal
+  - product hypotheses per token or goals per token as a throughput metric
+  - rework pressure as the primary signal and token speed as a supporting guardrail
+- Current confidence:
+  - `medium-low`
+  - higher confidence that token speed is a meaningful supporting signal than that it should be the primary metric
+- Evidence status:
+  - supported by the intuition that repeated restarts and large amounts of rework consume more tokens
+  - also supported by the counterexample that a very productive workflow may generate many good product ideas quickly, which would make high token speed look bad even when the system is healthy
+  - rejected after a current-history review found no statistically significant support for raw token speed as a primary metric and strong confounding from task mix and short-session noise
+- Evaluation plan:
+  - compare token consumption against product throughput on real work, not just against raw elapsed time
+  - check whether high token burn correlates more with retries and rework than with useful product output
+  - test whether a ratio such as tokens per product goal, tokens per accepted goal, or tokens per product hypothesis gives a clearer signal than raw token speed
+- Next re-evaluation trigger:
+  - if we later add a better-normalized throughput definition or stronger token-shape data that makes the ratio less ambiguous
+- Notes:
+  - `2026-04-02`: added from the user idea that repeated reruns and large amounts of back-and-forth should show up as faster token consumption.
+  - `2026-04-02`: refined to include the counterhypothesis that very fast token consumption can also mean unusually strong product momentum, so a normalized ratio is likely more useful than raw speed alone.
+  - `2026-04-02`: rejected after inspecting current history; raw `tokens/min` did not show a statistically significant relationship with retries, and goal type plus short sessions explained more of the apparent variation than the hypothesis did.
+
+### H-014 — Retro or meta work may improve product throughput and lower token cost, but current history is too sparse to confirm it
+
+- Status: `active`
+- Created: `2026-04-02`
+- Statement:
+  - Having `retro` or `meta` work in the same operating period may help the team complete more `product` goals faster and at lower token cost by reducing confusion, sharpening framing, or removing repeated failure modes.
+- Why it matters:
+  - If true, process work would not just be overhead; it would be a lever for higher product throughput and lower rework cost.
+- Expected upside:
+  - more product goals completed in the same time window
+  - lower token cost per product goal
+  - better quality of product framing before implementation
+- Expected resource cost:
+  - low to medium, because retro/meta work consumes time and tokens directly even if it improves later output
+- Main risks or where this may be wrong:
+  - retro/meta work may simply correlate with already busy days rather than causing better product outcomes
+  - process work may crowd out delivery if overused
+  - the apparent benefit may come from task mix or short-session effects rather than from the presence of the work itself
+- Alternatives considered:
+  - `retro/meta` has no meaningful effect on product throughput
+  - `retro/meta` increases quality but not throughput
+  - the effect depends on timing, such as doing retro/meta before a product batch rather than just on the same day
+- Current confidence:
+  - `low`
+- Evidence status:
+  - current history is too sparse for a strong causal claim
+  - the sample has only 4 independent days with usable timed history, which makes day-level statistical inference weak
+  - descriptive data show more `product` work on days that also had more `retro/meta` work, but the relationship is not statistically significant
+- Evaluation plan:
+  - compare product throughput on future days or batches with and without retro/meta work
+  - prefer a larger sample of independent days before making a strong claim
+  - separate timing effects from mere same-day co-occurrence if enough data accumulates
+- Next re-evaluation trigger:
+  - after more independent days of history are available
+  - or after a deliberate process experiment where retro/meta work is scheduled before a product batch
+- Notes:
+  - `2026-04-02`: added from the user idea that retro/meta tasks might improve product throughput and reduce token cost.
+  - `2026-04-02`: current analysis found no statistically significant basis yet; day-level counts are descriptively positive but the sample is too small to treat that as evidence.
