@@ -14,7 +14,6 @@ from codex_metrics.history_compare import HistoryCompareReport
 from codex_metrics.history_audit import AuditReport
 from codex_metrics.workflow_fsm import (
     WorkflowEvent,
-    resolve_workflow_transition,
 )
 from codex_metrics.observability import (
     record_goal_merge_observation,
@@ -65,6 +64,7 @@ class CommandRuntime(Protocol):
     def detect_started_work(self, cwd: Path) -> Any: ...
     def ensure_active_task(self, data: dict[str, Any], cwd: Path) -> Any: ...
     def get_active_goals(self, data: dict[str, Any]) -> list[dict[str, Any]]: ...
+    def resolve_workflow_resolution(self, data: dict[str, Any], cwd: Path, event: WorkflowEvent) -> Any: ...
     def audit_history(self, data: dict[str, Any]) -> AuditReport: ...
     def compare_metrics_to_history(self, data: dict[str, Any], *, warehouse_path: Path, cwd: Path, metrics_path: Path) -> HistoryCompareReport: ...
     def ingest_codex_history(self, source_root: Path, warehouse_path: Path) -> Any: ...
@@ -407,13 +407,7 @@ def handle_show(args: Namespace, cli_module: CommandRuntime) -> int:
     data = cli_module.load_metrics(metrics_path)
     cli_module.recompute_summary(data)
     warning = None
-    report = cli_module.detect_started_work(Path.cwd())
-    resolution = resolve_workflow_transition(
-        active_goal_count=len(cli_module.get_active_goals(data)),
-        started_work_detected=report.started_work_detected if report.git_available else None,
-        git_available=report.git_available,
-        event=WorkflowEvent.SHOW,
-    )
+    resolution = cli_module.resolve_workflow_resolution(data, Path.cwd(), WorkflowEvent.SHOW)
     if resolution.decision.action == "warning":
         warning = f"Warning: {resolution.decision.message}."
     if warning is not None:
@@ -437,13 +431,7 @@ def _require_active_goal_for_existing_mutation(cli_module: CommandRuntime, cwd: 
     if active_goals:
         return
 
-    report = cli_module.detect_started_work(cwd)
-    resolution = resolve_workflow_transition(
-        active_goal_count=len(active_goals),
-        started_work_detected=report.started_work_detected if report.git_available else None,
-        git_available=report.git_available,
-        event=WorkflowEvent.CONTINUE_TASK,
-    )
+    resolution = cli_module.resolve_workflow_resolution(data, cwd, WorkflowEvent.CONTINUE_TASK)
     if resolution.decision.action == "block":
         raise ValueError(resolution.decision.message)
 

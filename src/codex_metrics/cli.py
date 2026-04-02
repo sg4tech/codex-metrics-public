@@ -299,14 +299,18 @@ def get_active_goals(data: dict[str, Any]) -> list[dict[str, Any]]:
     return [goal for goal in data["goals"] if goal.get("status") == "in_progress"]
 
 
-def build_active_task_warning(data: dict[str, Any], cwd: Path) -> str | None:
+def resolve_workflow_resolution(data: dict[str, Any], cwd: Path, event: WorkflowEvent):
     report = detect_started_work(cwd)
-    resolution = resolve_workflow_transition(
+    return resolve_workflow_transition(
         active_goal_count=len(get_active_goals(data)),
         started_work_detected=report.started_work_detected if report.git_available else None,
         git_available=report.git_available,
-        event=WorkflowEvent.SHOW,
+        event=event,
     )
+
+
+def build_active_task_warning(data: dict[str, Any], cwd: Path) -> str | None:
+    resolution = resolve_workflow_resolution(data, cwd, WorkflowEvent.SHOW)
     if resolution.decision.action != "warning":
         return None
     return f"Warning: {resolution.decision.message}."
@@ -314,12 +318,7 @@ def build_active_task_warning(data: dict[str, Any], cwd: Path) -> str | None:
 
 def ensure_active_task(data: dict[str, Any], cwd: Path) -> ActiveTaskResolution:
     report = detect_started_work(cwd)
-    resolution = resolve_workflow_transition(
-        active_goal_count=len(get_active_goals(data)),
-        started_work_detected=report.started_work_detected if report.git_available else None,
-        git_available=report.git_available,
-        event=WorkflowEvent.ENSURE_ACTIVE_TASK,
-    )
+    resolution = resolve_workflow_resolution(data, cwd, WorkflowEvent.ENSURE_ACTIVE_TASK)
     decision = resolution.decision
     active_goals = get_active_goals(data)
     if active_goals and decision.action == "no_op":
