@@ -53,6 +53,11 @@ def test_classify_workflow_state(
         (WorkflowState.CLEAN_NO_ACTIVE_GOAL, WorkflowEvent.ENSURE_ACTIVE_TASK, "no_op"),
         (WorkflowState.CLEAN_NO_ACTIVE_GOAL, WorkflowEvent.SHOW, "allow"),
         (WorkflowState.ACTIVE_GOAL_EXISTS, WorkflowEvent.ENSURE_ACTIVE_TASK, "no_op"),
+        (WorkflowState.ACTIVE_GOAL_EXISTS, WorkflowEvent.SHOW, "allow"),
+        (WorkflowState.CLOSED_GOAL_REPAIR, WorkflowEvent.CONTINUE_TASK, "block"),
+        (WorkflowState.CLOSED_GOAL_REPAIR, WorkflowEvent.ENSURE_ACTIVE_TASK, "no_op"),
+        (WorkflowState.CLOSED_GOAL_REPAIR, WorkflowEvent.FINISH_TASK_SUCCESS, "allow"),
+        (WorkflowState.CLOSED_GOAL_REPAIR, WorkflowEvent.SHOW, "allow"),
         (WorkflowState.DETECTION_UNCERTAIN, WorkflowEvent.CONTINUE_TASK, "allow"),
         (WorkflowState.DETECTION_UNCERTAIN, WorkflowEvent.SHOW, "warning"),
     ],
@@ -76,3 +81,13 @@ def test_decide_workflow_transition_reports_clear_message_for_blocked_continue()
 
     assert decision.action == "block"
     assert "ensure-active-task" in decision.message
+
+
+def test_decide_workflow_transition_reports_clear_message_for_closed_goal_repair_block() -> None:
+    decision = decide_workflow_transition(
+        WorkflowState.CLOSED_GOAL_REPAIR,
+        WorkflowEvent.CONTINUE_TASK,
+    )
+
+    assert decision.action == "block"
+    assert "closed-goal repair" in decision.message

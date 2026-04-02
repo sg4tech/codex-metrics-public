@@ -8,6 +8,7 @@ class WorkflowState(str, Enum):
     CLEAN_NO_ACTIVE_GOAL = "clean_no_active_goal"
     STARTED_WORK_WITHOUT_ACTIVE_GOAL = "started_work_without_active_goal"
     ACTIVE_GOAL_EXISTS = "active_goal_exists"
+    CLOSED_GOAL_REPAIR = "closed_goal_repair"
     DETECTION_UNCERTAIN = "detection_uncertain"
 
 
@@ -45,6 +46,26 @@ def classify_workflow_state(
 
 
 def decide_workflow_transition(state: WorkflowState, event: WorkflowEvent) -> WorkflowDecision:
+    if state == WorkflowState.CLOSED_GOAL_REPAIR:
+        if event in {
+            WorkflowEvent.FINISH_TASK_SUCCESS,
+            WorkflowEvent.FINISH_TASK_FAIL,
+            WorkflowEvent.UPDATE_CLOSE,
+            WorkflowEvent.UPDATE_REPAIR,
+            WorkflowEvent.START_TASK,
+            WorkflowEvent.CONTINUE_TASK,
+        }:
+            if event == WorkflowEvent.CONTINUE_TASK:
+                return WorkflowDecision(
+                    action="block",
+                    message="closed-goal repair does not permit continuing active work",
+                )
+            return WorkflowDecision(action="allow", message="closed-goal repair path remains available")
+        if event == WorkflowEvent.ENSURE_ACTIVE_TASK:
+            return WorkflowDecision(action="no_op", message="No active task recovery needed.")
+        if event == WorkflowEvent.SHOW:
+            return WorkflowDecision(action="allow", message="summary only")
+
     if event == WorkflowEvent.ENSURE_ACTIVE_TASK:
         if state == WorkflowState.STARTED_WORK_WITHOUT_ACTIVE_GOAL:
             return WorkflowDecision(
