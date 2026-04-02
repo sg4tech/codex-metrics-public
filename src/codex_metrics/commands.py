@@ -10,15 +10,15 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from codex_metrics.cost_audit import CostAuditReport
-from codex_metrics.history_compare import HistoryCompareReport
 from codex_metrics.history_audit import AuditReport
-from codex_metrics.workflow_fsm import (
-    WorkflowEvent,
-)
+from codex_metrics.history_compare import HistoryCompareReport
 from codex_metrics.observability import (
     record_goal_merge_observation,
     record_goal_mutation_observation,
     record_usage_sync_observation,
+)
+from codex_metrics.workflow_fsm import (
+    WorkflowEvent,
 )
 
 

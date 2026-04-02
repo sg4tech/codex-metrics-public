@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import sqlite3
 import sys
 from argparse import Namespace
@@ -12,8 +11,8 @@ SRC = Path(__file__).resolve().parents[1] / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from codex_metrics.domain import default_metrics, recompute_summary
 from codex_metrics.commands import handle_compare_metrics_to_history
+from codex_metrics.domain import default_metrics, recompute_summary
 from codex_metrics.history_compare import compare_metrics_to_history, render_history_compare_report
 
 

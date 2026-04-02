@@ -35,6 +35,12 @@ from codex_metrics.history_compare import (
 from codex_metrics.history_compare import (
     render_history_compare_report as render_compare_report,
 )
+from codex_metrics.history_derive import (
+    DeriveSummary,
+)
+from codex_metrics.history_derive import (
+    derive_codex_history as run_derive_codex_history,
+)
 from codex_metrics.history_ingest import (
     IngestSummary,
     default_raw_warehouse_path,
@@ -44,15 +50,9 @@ from codex_metrics.history_ingest import (
 )
 from codex_metrics.history_normalize import (
     NormalizeSummary,
+)
+from codex_metrics.history_normalize import (
     normalize_codex_history as run_normalize_codex_history,
-)
-from codex_metrics.history_derive import (
-    DeriveSummary,
-    derive_codex_history as run_derive_codex_history,
-)
-from codex_metrics.workflow_fsm import (
-    WorkflowEvent,
-    resolve_workflow_transition,
 )
 from codex_metrics.usage_backends import (
     ClaudeUsageBackend,
@@ -62,6 +62,11 @@ from codex_metrics.usage_backends import (
 )
 from codex_metrics.usage_backends import (
     resolve_usage_window as resolve_backend_usage_window,
+)
+from codex_metrics.workflow_fsm import (
+    WorkflowEvent,
+    WorkflowResolution,
+    resolve_workflow_transition,
 )
 
 build_operator_review = reporting.build_operator_review
@@ -299,7 +304,7 @@ def get_active_goals(data: dict[str, Any]) -> list[dict[str, Any]]:
     return [goal for goal in data["goals"] if goal.get("status") == "in_progress"]
 
 
-def resolve_workflow_resolution(data: dict[str, Any], cwd: Path, event: WorkflowEvent):
+def resolve_workflow_resolution(data: dict[str, Any], cwd: Path, event: WorkflowEvent) -> WorkflowResolution:
     report = detect_started_work(cwd)
     return resolve_workflow_transition(
         active_goal_count=len(get_active_goals(data)),
