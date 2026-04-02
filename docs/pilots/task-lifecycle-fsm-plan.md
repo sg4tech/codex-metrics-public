@@ -258,6 +258,17 @@ Before moving to the next phase, confirm:
 - Should `update` classification be based on parsed intent flags or on a dedicated command wrapper?
 - Should the FSM live in `domain.py`, a new `workflow_state_machine.py`, or a smaller dedicated lifecycle module?
 
+## Notes Captured From Discussion
+
+These points were explicitly agreed in the chat and should be treated as part of the implementation contract:
+
+- preserve every behavior that already works today
+- write tests first, then move behavior into the FSM
+- prefer a single dispatcher/helper for workflow resolution instead of repeated ad hoc guards
+- treat the repair path for closed goals as distinct from active-work continuation
+- verify the change with a wider repo-level check before stopping, not just the narrow FSM test set
+- do not create a separate retrospective for a successful stabilization step unless a new incident or regression appears
+
 ## Recommendation
 
 Start with the narrowest useful FSM:
