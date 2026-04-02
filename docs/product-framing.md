@@ -8,7 +8,7 @@ Working product and metrics hypotheses that are not yet fully confirmed belong i
 
 ## Product
 
-`codex-metrics` is an internal local agent-facing analysis tool for managing the effectiveness and economics of Codex-assisted engineering work.
+`codex-metrics` is an internal local agent-facing analysis tool for managing the effectiveness and economics of AI-agent-assisted engineering work.
 
 It is not a general analytics platform and not a public SaaS product.
 
@@ -18,7 +18,7 @@ Current intended category:
 
 ## Primary User
 
-The primary user is the AI agent layer that reads metrics, audits history, compares projects, and produces synthesized conclusions about Codex-assisted engineering work.
+The primary user is the AI agent layer that reads metrics, audits history, compares projects, and produces synthesized conclusions about AI-agent-assisted engineering work.
 
 Secondary users:
 
@@ -27,7 +27,7 @@ Secondary users:
 
 ## Job To Be Done
 
-When an AI agent analyzes Codex-assisted work, it should be able to determine whether workflow changes are improving result quality and speed without letting AI cost eat engineering profit, so that it can recommend what to keep, what to change, and what to investigate next.
+When an AI agent analyzes AI-agent-assisted work, it should be able to determine whether workflow changes are improving result quality and speed without letting AI cost eat engineering profit, so that it can recommend what to keep, what to change, and what to investigate next.
 
 ## Core User Problem
 
@@ -49,6 +49,7 @@ The following product truths are already confirmed:
 - quality matters more than speed
 - cost matters because AI is paid usage and should not eat engineering profit
 - the product should help decide what workflow changes actually work and what should be changed again
+- the public product contract should stay agent-agnostic by default, even when telemetry or runtime adapters are provider-specific underneath
 
 The following product questions are still intentionally open and should be treated as active hypotheses until better evidence exists:
 
@@ -58,7 +59,7 @@ The following product questions are still intentionally open and should be treat
 
 ## Main Workflow
 
-1. Use Codex to work on a real engineering goal.
+1. Use an AI coding agent such as Codex or Claude to work on a real engineering goal.
 2. Record goals, attempts, failures, and cost signals as the work happens.
 3. Let an AI agent read goal-level and entry-level metrics together.
 4. Have the agent produce synthesized conclusions about what improved, what regressed, and what should change next.
@@ -72,7 +73,7 @@ The tool should help the analyzing agent answer:
 2. Is development getting faster without lowering quality?
 3. Which usage patterns create too much retry pressure?
 4. Is AI cost still small enough relative to the value of the work?
-5. What should I change next in how I operate Codex?
+5. What should I change next in how I operate this agent workflow?
 
 ## North Star
 
@@ -148,6 +149,7 @@ Current interpretation rule:
 - current quality-related metrics are provisional agent-facing proxies and should be refined empirically over time
 - cost is a business signal for how painful success or miss was
 - failure reasons are primarily a debugging signal for what the agent should recommend changing next
+- external workflow commands and user-facing API should prefer one universal contract across agents rather than diverging per-provider command surfaces
 
 Future direction:
 

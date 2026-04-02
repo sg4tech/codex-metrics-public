@@ -256,9 +256,9 @@ def resolve_codex_usage_window(
     finished_at: str | None,
     pricing_path: Path,
     thread_id: str | None = None,
-) -> tuple[float | None, int | None]:
+) -> tuple[float | None, int | None, int | None, int | None, int | None]:
     if started_at is None or not state_path.exists() or not logs_path.exists():
-        return None, None
+        return None, None, None, None, None
 
     started_dt = parse_iso_datetime(started_at, "started_at")
     finished_dt = parse_iso_datetime(finished_at, "finished_at") if finished_at is not None else now_utc_datetime()
@@ -267,7 +267,7 @@ def resolve_codex_usage_window(
 
     resolved_thread_id = find_codex_thread_id(state_path, cwd, thread_id)
     if resolved_thread_id is None:
-        return None, None
+        return None, None, None, None, None
 
     pricing = load_pricing(pricing_path)
     usage_events: list[dict[str, Any]] = []
@@ -296,21 +296,39 @@ def resolve_codex_usage_window(
             usage_events.append(event)
 
     if not usage_events:
-        session_cost_usd, session_total_tokens = resolve_codex_session_usage_window(
+        session_cost_usd, session_total_tokens, session_input_tokens, session_cached_input_tokens, session_output_tokens = resolve_codex_session_usage_window(
             logs_path=logs_path,
             thread_id=resolved_thread_id,
             started_dt=started_dt,
             finished_dt=finished_dt,
             pricing=pricing,
         )
-        if session_cost_usd is None and session_total_tokens is None:
-            return None, None
-        return session_cost_usd, session_total_tokens
+        if (
+            session_cost_usd is None
+            and session_total_tokens is None
+            and session_input_tokens is None
+            and session_cached_input_tokens is None
+            and session_output_tokens is None
+        ):
+            return None, None, None, None, None
+        return (
+            session_cost_usd,
+            session_total_tokens,
+            session_input_tokens,
+            session_cached_input_tokens,
+            session_output_tokens,
+        )
 
     total_cost = 0.0
+    total_input_tokens = 0
+    total_cached_input_tokens = 0
+    total_output_tokens = 0
     total_tokens = 0
     for event in usage_events:
         total_cost = round_usd(total_cost + compute_event_cost_usd(event, pricing))
+        total_input_tokens += event["input_tokens"]
+        total_cached_input_tokens += event["cached_input_tokens"]
+        total_output_tokens += event["output_tokens"]
         total_tokens += (
             event["input_tokens"]
             + event["cached_input_tokens"]
@@ -318,7 +336,7 @@ def resolve_codex_usage_window(
             + event["reasoning_tokens"]
             + event["tool_tokens"]
         )
-    return total_cost, total_tokens
+    return total_cost, total_tokens, total_input_tokens, total_cached_input_tokens, total_output_tokens
 
 
 def find_session_rollout_path(sessions_root: Path, thread_id: str) -> Path | None:
@@ -365,17 +383,21 @@ def resolve_codex_session_usage_window(
     started_dt: datetime,
     finished_dt: datetime,
     pricing: dict[str, dict[str, float | None]],
-) -> tuple[float | None, int | None]:
+) -> tuple[float | None, int | None, int | None, int | None, int | None]:
     sessions_root = logs_path.parent / "sessions"
     rollout_path = find_session_rollout_path(sessions_root, thread_id)
     if rollout_path is None:
-        return None, None
+        return None, None, None, None, None
 
     model = resolve_thread_model_from_logs(logs_path, thread_id)
     total_cost = 0.0
+    total_input_tokens = 0
+    total_cached_input_tokens = 0
+    total_output_tokens = 0
     total_tokens = 0
     cost_found = False
     tokens_found = False
+    breakdown_found = False
 
     with rollout_path.open("r", encoding="utf-8") as handle:
         for line in handle:
@@ -405,11 +427,15 @@ def resolve_codex_session_usage_window(
             cached_input_tokens = int(last_usage.get("cached_input_tokens", 0))
             output_tokens = int(last_usage.get("output_tokens", 0))
             reasoning_tokens = int(last_usage.get("reasoning_output_tokens", 0))
+            total_input_tokens += input_tokens
+            total_cached_input_tokens += cached_input_tokens
+            total_output_tokens += output_tokens
             total_tokens += int(last_usage.get("total_tokens", input_tokens + cached_input_tokens + output_tokens))
             total_tokens += 0
             if reasoning_tokens > 0 and "total_tokens" not in last_usage:
                 total_tokens += reasoning_tokens
             tokens_found = True
+            breakdown_found = True
 
             if model is None:
                 continue
@@ -426,6 +452,9 @@ def resolve_codex_session_usage_window(
     return (
         round_usd(total_cost) if cost_found else None,
         total_tokens if tokens_found else None,
+        total_input_tokens if breakdown_found else None,
+        total_cached_input_tokens if breakdown_found else None,
+        total_output_tokens if breakdown_found else None,
     )
 
 
@@ -437,10 +466,10 @@ def resolve_usage_costs(
     output_tokens: int | None,
     explicit_cost_fields_used: bool,
     explicit_token_fields_used: bool,
-) -> tuple[float | None, int | None]:
+) -> tuple[float | None, int | None, int | None, int | None, int | None]:
     usage_fields_used = any(value is not None for value in (input_tokens, cached_input_tokens, output_tokens))
     if model is None and not usage_fields_used:
-        return None, None
+        return None, None, None, None, None
     if model is None:
         raise ValueError("model is required when usage token flags are provided")
     if not usage_fields_used:
@@ -469,7 +498,7 @@ def resolve_usage_costs(
     output_cost = Decimal(str(model_pricing["output_per_million_usd"])) * Decimal(output_tokens_value) / Decimal(1_000_000)
     total_cost = round_usd(input_cost + cached_input_cost + output_cost)
     total_tokens = input_tokens_value + cached_input_tokens_value + output_tokens_value
-    return total_cost, total_tokens
+    return total_cost, total_tokens, input_tokens_value, cached_input_tokens_value, output_tokens_value
 
 
 
@@ -538,10 +567,22 @@ def resolve_goal_usage_updates(
     cwd: Path,
     started_at: str | None,
     finished_at: str | None,
-) -> tuple[float | None, int | None, float | None, int | None]:
+) -> tuple[
+    float | None,
+    int | None,
+    int | None,
+    int | None,
+    int | None,
+    float | None,
+    int | None,
+    int | None,
+    int | None,
+    int | None,
+    str | None,
+]:
     explicit_cost_fields_used = cost_usd_add is not None or cost_usd_set is not None
     explicit_token_fields_used = tokens_add is not None or tokens_set is not None
-    usage_cost_usd, usage_total_tokens = resolve_usage_costs(
+    usage_cost_usd, usage_total_tokens, usage_input_tokens, usage_cached_input_tokens, usage_output_tokens = resolve_usage_costs(
         pricing_path=pricing_path,
         model=model,
         input_tokens=input_tokens,
@@ -551,9 +592,16 @@ def resolve_goal_usage_updates(
         explicit_token_fields_used=explicit_token_fields_used,
     )
 
-    auto_cost_usd, auto_total_tokens = (None, None)
+    auto_cost_usd, auto_total_tokens, auto_input_tokens, auto_cached_input_tokens, auto_output_tokens = (
+        None,
+        None,
+        None,
+        None,
+        None,
+    )
+    detected_agent_name = None
     if usage_cost_usd is None and usage_total_tokens is None:
-        auto_cost_usd, auto_total_tokens = resolve_codex_usage_window(
+        auto_cost_usd, auto_total_tokens, auto_input_tokens, auto_cached_input_tokens, auto_output_tokens = resolve_codex_usage_window(
             state_path=codex_state_path,
             logs_path=codex_logs_path,
             cwd=cwd,
@@ -562,8 +610,22 @@ def resolve_goal_usage_updates(
             pricing_path=pricing_path,
             thread_id=codex_thread_id,
         )
+        if auto_cost_usd is not None or auto_total_tokens is not None:
+            detected_agent_name = "codex"
 
-    return usage_cost_usd, usage_total_tokens, auto_cost_usd, auto_total_tokens
+    return (
+        usage_cost_usd,
+        usage_total_tokens,
+        usage_input_tokens,
+        usage_cached_input_tokens,
+        usage_output_tokens,
+        auto_cost_usd,
+        auto_total_tokens,
+        auto_input_tokens,
+        auto_cached_input_tokens,
+        auto_output_tokens,
+        detected_agent_name,
+    )
 
 
 def upsert_task(
@@ -625,7 +687,19 @@ def upsert_task(
         task_index = len(tasks) - 1
 
     task = goal_from_dict(tasks[task_index])
-    usage_cost_usd, usage_total_tokens, auto_cost_usd, auto_total_tokens = (
+    (
+        usage_cost_usd,
+        usage_total_tokens,
+        usage_input_tokens,
+        usage_cached_input_tokens,
+        usage_output_tokens,
+        auto_cost_usd,
+        auto_total_tokens,
+        auto_input_tokens,
+        auto_cached_input_tokens,
+        auto_output_tokens,
+        detected_agent_name,
+    ) = (
         resolve_goal_usage_updates(
             task=task,
             cost_usd_add=cost_usd_add,
@@ -655,14 +729,24 @@ def upsert_task(
         attempts_abs=attempts_abs,
         cost_usd_add=cost_usd_add,
         cost_usd_set=cost_usd_set,
+        input_tokens_add=None,
+        cached_input_tokens_add=None,
+        output_tokens_add=None,
         tokens_add=tokens_add,
         tokens_set=tokens_set,
         usage_cost_usd=usage_cost_usd,
+        usage_input_tokens=usage_input_tokens,
+        usage_cached_input_tokens=usage_cached_input_tokens,
+        usage_output_tokens=usage_output_tokens,
         usage_total_tokens=usage_total_tokens,
         auto_cost_usd=auto_cost_usd,
+        auto_input_tokens=auto_input_tokens,
+        auto_cached_input_tokens=auto_cached_input_tokens,
+        auto_output_tokens=auto_output_tokens,
         auto_total_tokens=auto_total_tokens,
         failure_reason=failure_reason,
         notes=notes,
+        agent_name=detected_agent_name,
         started_at=started_at,
         finished_at=finished_at,
         result_fit=result_fit,
@@ -676,7 +760,7 @@ def upsert_task(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Track goal, attempt, failure, and cost metrics for Codex-driven work.",
+        description="Track goal, attempt, failure, and cost metrics for AI-agent-assisted work.",
         epilog=(
             "Examples:\n"
             "  %(prog)s start-task --title \"Add CSV import\" --task-type product\n"
@@ -712,10 +796,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     bootstrap_parser = subparsers.add_parser(
         "bootstrap",
-        help="Scaffold codex-metrics into a repository, including AGENTS.md and policy",
+        help="Scaffold codex-metrics into a repository, including an instructions file and policy",
         description=(
             "Create the full codex-metrics repository scaffold: metrics artifact, "
-            "docs/codex-metrics-policy.md, and a managed codex-metrics block inside AGENTS.md. "
+            "docs/codex-metrics-policy.md, and a managed codex-metrics block inside your instructions file. "
             "Use --write-report when you also want the optional markdown export."
         ),
     )
@@ -725,7 +809,7 @@ def build_parser() -> argparse.ArgumentParser:
     bootstrap_parser.add_argument("--write-report", action="store_true", help="Also create or update the optional markdown report")
     bootstrap_parser.add_argument("--policy-path", default="docs/codex-metrics-policy.md")
     bootstrap_parser.add_argument("--command-path", default="tools/codex-metrics")
-    bootstrap_parser.add_argument("--agents-path", default="AGENTS.md")
+    bootstrap_parser.add_argument("--agents-path", "--instructions-path", dest="agents_path", default="AGENTS.md")
     bootstrap_parser.add_argument("--force", action="store_true", help="Replace conflicting scaffold files")
     bootstrap_parser.add_argument("--dry-run", action="store_true", help="Preview planned changes without writing files")
 
@@ -986,7 +1070,7 @@ def sync_codex_usage(
     tasks: list[dict[str, Any]] = data["goals"]
     for task in tasks:
         previous_task = dict(task)
-        auto_cost_usd, auto_total_tokens = resolve_codex_usage_window(
+        auto_cost_usd, auto_total_tokens, auto_input_tokens, auto_cached_input_tokens, auto_output_tokens = resolve_codex_usage_window(
             state_path=codex_state_path,
             logs_path=codex_logs_path,
             cwd=cwd,
@@ -995,11 +1079,26 @@ def sync_codex_usage(
             pricing_path=pricing_path,
             thread_id=codex_thread_id,
         )
-        if auto_cost_usd is None and auto_total_tokens is None:
+        if (
+            auto_cost_usd is None
+            and auto_total_tokens is None
+            and auto_input_tokens is None
+            and auto_cached_input_tokens is None
+            and auto_output_tokens is None
+        ):
             continue
         changed = False
         if auto_cost_usd is not None and task.get("cost_usd") != auto_cost_usd:
             task["cost_usd"] = auto_cost_usd
+            changed = True
+        if auto_input_tokens is not None and task.get("input_tokens") != auto_input_tokens:
+            task["input_tokens"] = auto_input_tokens
+            changed = True
+        if auto_cached_input_tokens is not None and task.get("cached_input_tokens") != auto_cached_input_tokens:
+            task["cached_input_tokens"] = auto_cached_input_tokens
+            changed = True
+        if auto_output_tokens is not None and task.get("output_tokens") != auto_output_tokens:
+            task["output_tokens"] = auto_output_tokens
             changed = True
         if auto_total_tokens is not None and task.get("tokens_total") != auto_total_tokens:
             task["tokens_total"] = auto_total_tokens
@@ -1022,6 +1121,26 @@ def audit_cost_coverage(
 ) -> CostAuditReport:
     from codex_metrics.cost_audit import audit_cost_coverage as build_cost_report
 
+    def resolve_cost_audit_usage_window(
+        state_path: Path,
+        logs_path: Path,
+        cwd: Path,
+        started_at: str | None,
+        finished_at: str | None,
+        pricing_path: Path,
+        thread_id: str | None = None,
+    ) -> tuple[float | None, int | None]:
+        cost_usd, total_tokens, _, _, _ = resolve_codex_usage_window(
+            state_path=state_path,
+            logs_path=logs_path,
+            cwd=cwd,
+            started_at=started_at,
+            finished_at=finished_at,
+            pricing_path=pricing_path,
+            thread_id=thread_id,
+        )
+        return cost_usd, total_tokens
+
     return build_cost_report(
         data,
         pricing_path=pricing_path,
@@ -1030,7 +1149,7 @@ def audit_cost_coverage(
         cwd=cwd,
         codex_thread_id=codex_thread_id,
         find_thread_id=find_codex_thread_id,
-        resolve_usage_window=resolve_codex_usage_window,
+        resolve_usage_window=resolve_cost_audit_usage_window,
     )
 
 
@@ -1073,10 +1192,17 @@ def merge_tasks(data: dict[str, Any], keep_task_id: str, drop_task_id: str) -> d
     kept_task["started_at"] = choose_earliest_timestamp(kept_task.get("started_at"), dropped_task.get("started_at"))
     kept_task["finished_at"] = choose_latest_timestamp(kept_task.get("finished_at"), dropped_task.get("finished_at"))
     kept_task["cost_usd"] = combine_optional_cost(kept_task.get("cost_usd"), dropped_task.get("cost_usd"))
+    kept_task["input_tokens"] = combine_optional_tokens(kept_task.get("input_tokens"), dropped_task.get("input_tokens"))
+    kept_task["cached_input_tokens"] = combine_optional_tokens(
+        kept_task.get("cached_input_tokens"), dropped_task.get("cached_input_tokens")
+    )
+    kept_task["output_tokens"] = combine_optional_tokens(kept_task.get("output_tokens"), dropped_task.get("output_tokens"))
     kept_task["tokens_total"] = combine_optional_tokens(kept_task.get("tokens_total"), dropped_task.get("tokens_total"))
     kept_task["notes"] = build_merged_notes(kept_task, dropped_task)
     if kept_task.get("supersedes_goal_id") is None:
         kept_task["supersedes_goal_id"] = dropped_task.get("supersedes_goal_id")
+    if kept_task.get("agent_name") is None:
+        kept_task["agent_name"] = dropped_task.get("agent_name")
 
     if kept_task["status"] == "success":
         kept_task["failure_reason"] = None

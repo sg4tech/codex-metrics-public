@@ -1,6 +1,6 @@
 # Codex Metrics Policy
 
-This document defines the mandatory minimum policy for tracking Codex-assisted engineering work.
+This document defines the mandatory minimum policy for tracking AI-agent-assisted engineering work.
 
 Use it as the operating contract for repositories that adopt `codex-metrics`.
 
@@ -17,7 +17,7 @@ Metrics bookkeeping is mandatory.
 
 ## Scope
 
-Apply this policy when Codex materially contributes to an engineering outcome, including:
+Apply this policy when an AI agent materially contributes to an engineering outcome, including:
 
 - code changes
 - configuration changes
@@ -87,6 +87,7 @@ Do not edit generated metrics files manually when the CLI can regenerate them.
 2. Create a new goal if needed.
 3. Set status to `in_progress`.
 4. Initialize attempts to `0`.
+5. Do this before substantial implementation, documentation, or validation work begins. Do not postpone task start bookkeeping until after meaningful progress already exists.
 
 ### On Each Attempt
 
@@ -113,6 +114,10 @@ codex-metrics finish-task --task-id <goal-id> --status success --notes "Validate
 codex-metrics show
 codex-metrics render-report
 ```
+
+The public workflow contract should stay agent-agnostic. Provider-specific detection and telemetry support belong behind internal adapters, not in required public CLI flags.
+
+Automatic local usage sync is currently implemented for Codex telemetry. Other agents are still in scope for the product, but their support should land through the same universal command surface.
 
 If `codex-metrics` is expected but unavailable, treat that as an `environment_issue` or installation mismatch and report it clearly.
 

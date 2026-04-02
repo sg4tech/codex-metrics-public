@@ -33,9 +33,13 @@ class GoalRecord:
     started_at: str | None
     finished_at: str | None
     cost_usd: float | None
+    input_tokens: int | None
+    cached_input_tokens: int | None
+    output_tokens: int | None
     tokens_total: int | None
     failure_reason: str | None
     notes: str | None
+    agent_name: str | None = None
     result_fit: str | None = None
 
 
@@ -49,9 +53,13 @@ class AttemptEntryRecord:
     started_at: str | None
     finished_at: str | None
     cost_usd: float | None
+    input_tokens: int | None
+    cached_input_tokens: int | None
+    output_tokens: int | None
     tokens_total: int | None
     failure_reason: str | None
     notes: str | None
+    agent_name: str | None = None
 
 
 @dataclass
@@ -66,6 +74,13 @@ class EffectiveGoalRecord:
     cost_usd: float | None
     cost_usd_known: float | None
     cost_complete: bool
+    input_tokens: int | None
+    input_tokens_known: int | None
+    cached_input_tokens: int | None
+    cached_input_tokens_known: int | None
+    output_tokens: int | None
+    output_tokens_known: int | None
+    token_breakdown_complete: bool
     tokens_total: int | None
     tokens_total_known: int | None
     tokens_complete: bool
@@ -94,9 +109,13 @@ def goal_from_dict(goal: dict[str, Any]) -> GoalRecord:
         started_at=goal.get("started_at"),
         finished_at=goal.get("finished_at"),
         cost_usd=None if goal.get("cost_usd") is None else float(goal["cost_usd"]),
+        input_tokens=None if goal.get("input_tokens") is None else int(goal["input_tokens"]),
+        cached_input_tokens=None if goal.get("cached_input_tokens") is None else int(goal["cached_input_tokens"]),
+        output_tokens=None if goal.get("output_tokens") is None else int(goal["output_tokens"]),
         tokens_total=None if goal.get("tokens_total") is None else int(goal["tokens_total"]),
         failure_reason=goal.get("failure_reason"),
         notes=goal.get("notes"),
+        agent_name=goal.get("agent_name"),
         result_fit=goal.get("result_fit"),
     )
 
@@ -115,9 +134,13 @@ def entry_from_dict(entry: dict[str, Any]) -> AttemptEntryRecord:
         started_at=entry.get("started_at"),
         finished_at=entry.get("finished_at"),
         cost_usd=None if entry.get("cost_usd") is None else float(entry["cost_usd"]),
+        input_tokens=None if entry.get("input_tokens") is None else int(entry["input_tokens"]),
+        cached_input_tokens=None if entry.get("cached_input_tokens") is None else int(entry["cached_input_tokens"]),
+        output_tokens=None if entry.get("output_tokens") is None else int(entry["output_tokens"]),
         tokens_total=None if entry.get("tokens_total") is None else int(entry["tokens_total"]),
         failure_reason=entry.get("failure_reason"),
         notes=entry.get("notes"),
+        agent_name=entry.get("agent_name"),
     )
 
 
@@ -144,13 +167,18 @@ def empty_summary_block(include_by_task_type: bool = False) -> dict[str, Any]:
         "fails": 0,
         "total_attempts": 0,
         "total_cost_usd": 0.0,
+        "total_input_tokens": 0,
+        "total_cached_input_tokens": 0,
+        "total_output_tokens": 0,
         "total_tokens": 0,
         "success_rate": None,
         "attempts_per_closed_task": None,
         "known_cost_successes": 0,
         "known_token_successes": 0,
+        "known_token_breakdown_successes": 0,
         "complete_cost_successes": 0,
         "complete_token_successes": 0,
+        "complete_token_breakdown_successes": 0,
         "known_cost_per_success_usd": None,
         "known_cost_per_success_tokens": None,
         "complete_cost_per_covered_success_usd": None,
@@ -170,6 +198,9 @@ def empty_summary_block(include_by_task_type: bool = False) -> dict[str, Any]:
             "fails": 0,
             "success_rate": None,
             "total_cost_usd": 0.0,
+            "total_input_tokens": 0,
+            "total_cached_input_tokens": 0,
+            "total_output_tokens": 0,
             "total_tokens": 0,
             "failure_reasons": {},
         }
@@ -229,6 +260,13 @@ def validate_result_fit(result_fit: str | None) -> None:
         raise ValueError(f"Invalid result_fit: {result_fit}. Allowed: {sorted(ALLOWED_RESULT_FITS)}")
 
 
+def validate_agent_name(agent_name: str | None) -> None:
+    if agent_name is None:
+        return
+    if not agent_name.strip():
+        raise ValueError("agent_name cannot be empty")
+
+
 def validate_non_negative_int(value: int, field_name: str) -> None:
     if value < 0:
         raise ValueError(f"{field_name} cannot be negative")
@@ -237,6 +275,23 @@ def validate_non_negative_int(value: int, field_name: str) -> None:
 def validate_non_negative_float(value: float, field_name: str) -> None:
     if value < 0:
         raise ValueError(f"{field_name} cannot be negative")
+
+
+def validate_token_breakdown_consistency(
+    *,
+    input_tokens: int | None,
+    cached_input_tokens: int | None,
+    output_tokens: int | None,
+    tokens_total: int | None,
+    field_name: str,
+) -> None:
+    if input_tokens is None or cached_input_tokens is None or output_tokens is None or tokens_total is None:
+        return
+    minimum_expected_total = input_tokens + cached_input_tokens + output_tokens
+    if tokens_total < minimum_expected_total:
+        raise ValueError(
+            f"{field_name} cannot be smaller than input_tokens + cached_input_tokens + output_tokens when all are present"
+        )
 
 
 def validate_task_business_rules(task: dict[str, Any]) -> None:
@@ -301,6 +356,9 @@ def validate_goal_record(goal: dict[str, Any]) -> None:
         "started_at": (str, type(None)),
         "finished_at": (str, type(None)),
         "cost_usd": (int, float, type(None)),
+        "input_tokens": (int, type(None)),
+        "cached_input_tokens": (int, type(None)),
+        "output_tokens": (int, type(None)),
         "tokens_total": (int, type(None)),
         "failure_reason": (str, type(None)),
         "notes": (str, type(None)),
@@ -313,6 +371,8 @@ def validate_goal_record(goal: dict[str, Any]) -> None:
             raise ValueError(f"Invalid type for goal field: {field_name}")
     if "result_fit" in goal and not isinstance(goal["result_fit"], (str, type(None))):
         raise ValueError("Invalid type for goal field: result_fit")
+    if "agent_name" in goal and not isinstance(goal["agent_name"], (str, type(None))):
+        raise ValueError("Invalid type for goal field: agent_name")
 
     goal_record = goal_from_dict(goal)
     if not goal_record.goal_id.strip():
@@ -326,10 +386,24 @@ def validate_goal_record(goal: dict[str, Any]) -> None:
 
     if goal_record.cost_usd is not None:
         validate_non_negative_float(goal_record.cost_usd, "cost_usd")
+    if goal_record.input_tokens is not None:
+        validate_non_negative_int(goal_record.input_tokens, "input_tokens")
+    if goal_record.cached_input_tokens is not None:
+        validate_non_negative_int(goal_record.cached_input_tokens, "cached_input_tokens")
+    if goal_record.output_tokens is not None:
+        validate_non_negative_int(goal_record.output_tokens, "output_tokens")
     if goal_record.tokens_total is not None:
         validate_non_negative_int(goal_record.tokens_total, "tokens_total")
+    validate_token_breakdown_consistency(
+        input_tokens=goal_record.input_tokens,
+        cached_input_tokens=goal_record.cached_input_tokens,
+        output_tokens=goal_record.output_tokens,
+        tokens_total=goal_record.tokens_total,
+        field_name="tokens_total",
+    )
 
     validate_failure_reason(goal_record.failure_reason)
+    validate_agent_name(goal_record.agent_name)
     validate_result_fit(goal_record.result_fit)
     validate_task_business_rules(goal)
 
@@ -343,6 +417,9 @@ def validate_entry_record(entry: dict[str, Any]) -> None:
         "started_at": (str, type(None)),
         "finished_at": (str, type(None)),
         "cost_usd": (int, float, type(None)),
+        "input_tokens": (int, type(None)),
+        "cached_input_tokens": (int, type(None)),
+        "output_tokens": (int, type(None)),
         "tokens_total": (int, type(None)),
         "failure_reason": (str, type(None)),
         "notes": (str, type(None)),
@@ -365,11 +442,27 @@ def validate_entry_record(entry: dict[str, Any]) -> None:
     validate_status(entry_record.status)
     if "inferred" in entry and not isinstance(entry["inferred"], bool):
         raise ValueError("Invalid type for entry field: inferred")
+    if "agent_name" in entry and not isinstance(entry["agent_name"], (str, type(None))):
+        raise ValueError("Invalid type for entry field: agent_name")
     if entry_record.cost_usd is not None:
         validate_non_negative_float(entry_record.cost_usd, "cost_usd")
+    if entry_record.input_tokens is not None:
+        validate_non_negative_int(entry_record.input_tokens, "input_tokens")
+    if entry_record.cached_input_tokens is not None:
+        validate_non_negative_int(entry_record.cached_input_tokens, "cached_input_tokens")
+    if entry_record.output_tokens is not None:
+        validate_non_negative_int(entry_record.output_tokens, "output_tokens")
     if entry_record.tokens_total is not None:
         validate_non_negative_int(entry_record.tokens_total, "tokens_total")
+    validate_token_breakdown_consistency(
+        input_tokens=entry_record.input_tokens,
+        cached_input_tokens=entry_record.cached_input_tokens,
+        output_tokens=entry_record.output_tokens,
+        tokens_total=entry_record.tokens_total,
+        field_name="tokens_total",
+    )
     validate_failure_reason(entry_record.failure_reason)
+    validate_agent_name(entry_record.agent_name)
     validate_entry_business_rules(entry)
 
 
@@ -466,9 +559,13 @@ def normalize_legacy_metrics_data(data: dict[str, Any]) -> None:
                     "started_at": task.get("started_at"),
                     "finished_at": task.get("finished_at"),
                     "cost_usd": task.get("cost_usd"),
+                    "input_tokens": task.get("input_tokens"),
+                    "cached_input_tokens": task.get("cached_input_tokens"),
+                    "output_tokens": task.get("output_tokens"),
                     "tokens_total": task.get("tokens_total"),
                     "failure_reason": task.get("failure_reason"),
                     "notes": task.get("notes"),
+                    "agent_name": task.get("agent_name"),
                     "result_fit": task.get("result_fit"),
                 }
                 legacy_goals.append(goal)
@@ -481,9 +578,13 @@ def normalize_legacy_metrics_data(data: dict[str, Any]) -> None:
                         "started_at": task.get("started_at"),
                         "finished_at": task.get("finished_at"),
                         "cost_usd": task.get("cost_usd"),
+                        "input_tokens": task.get("input_tokens"),
+                        "cached_input_tokens": task.get("cached_input_tokens"),
+                        "output_tokens": task.get("output_tokens"),
                         "tokens_total": task.get("tokens_total"),
                         "failure_reason": task.get("failure_reason"),
                         "notes": task.get("notes"),
+                        "agent_name": task.get("agent_name"),
                     }
                 )
             data["goals"] = legacy_goals
@@ -498,8 +599,16 @@ def normalize_legacy_metrics_data(data: dict[str, Any]) -> None:
                 goal["goal_id"] = goal.pop("task_id")
             if isinstance(goal, dict) and "supersedes_goal_id" not in goal:
                 goal["supersedes_goal_id"] = goal.pop("supersedes_task_id", None)
+            if isinstance(goal, dict) and "agent_name" not in goal:
+                goal["agent_name"] = None
             if isinstance(goal, dict) and "result_fit" not in goal:
                 goal["result_fit"] = None
+            if isinstance(goal, dict) and "input_tokens" not in goal:
+                goal["input_tokens"] = None
+            if isinstance(goal, dict) and "cached_input_tokens" not in goal:
+                goal["cached_input_tokens"] = None
+            if isinstance(goal, dict) and "output_tokens" not in goal:
+                goal["output_tokens"] = None
 
     entries: Any = data.get("entries")
     if not isinstance(entries, list) and isinstance(goals, list):
@@ -514,6 +623,14 @@ def normalize_legacy_metrics_data(data: dict[str, Any]) -> None:
                 entry["entry_id"] = entry.get("goal_id")
             if isinstance(entry, dict) and "entry_type" not in entry:
                 entry["entry_type"] = entry.get("task_type", "update")
+            if isinstance(entry, dict) and "agent_name" not in entry:
+                entry["agent_name"] = None
+            if isinstance(entry, dict) and "input_tokens" not in entry:
+                entry["input_tokens"] = None
+            if isinstance(entry, dict) and "cached_input_tokens" not in entry:
+                entry["cached_input_tokens"] = None
+            if isinstance(entry, dict) and "output_tokens" not in entry:
+                entry["output_tokens"] = None
 
 
 def load_metrics(path: Path) -> dict[str, Any]:
@@ -613,6 +730,14 @@ def aggregate_chain_tokens(chain: list[GoalRecord]) -> tuple[int | None, int | N
     return aggregated_tokens, aggregated_tokens_known, is_complete
 
 
+def aggregate_chain_token_component(chain: list[GoalRecord], field_name: str) -> tuple[int | None, int | None, bool]:
+    known_values = [int(value) for goal in chain if (value := getattr(goal, field_name)) is not None]
+    aggregated_known = sum(known_values) if known_values else None
+    is_complete = len(known_values) == len(chain)
+    aggregated_value = aggregated_known if is_complete else None
+    return aggregated_value, aggregated_known, is_complete
+
+
 def aggregate_chain_timestamps(chain: list[GoalRecord]) -> tuple[str | None, str | None]:
     started_at = None
     finished_at = None
@@ -624,6 +749,9 @@ def aggregate_chain_timestamps(chain: list[GoalRecord]) -> tuple[str | None, str
 
 def build_effective_goal_record(terminal_goal: GoalRecord, chain: list[GoalRecord]) -> EffectiveGoalRecord:
     aggregated_cost, aggregated_cost_known, cost_complete = aggregate_chain_costs(chain)
+    aggregated_input, aggregated_input_known, input_complete = aggregate_chain_token_component(chain, "input_tokens")
+    aggregated_cached, aggregated_cached_known, cached_complete = aggregate_chain_token_component(chain, "cached_input_tokens")
+    aggregated_output, aggregated_output_known, output_complete = aggregate_chain_token_component(chain, "output_tokens")
     aggregated_tokens, aggregated_tokens_known, tokens_complete = aggregate_chain_tokens(chain)
     started_at, finished_at = aggregate_chain_timestamps(chain)
 
@@ -638,6 +766,13 @@ def build_effective_goal_record(terminal_goal: GoalRecord, chain: list[GoalRecor
         cost_usd=aggregated_cost,
         cost_usd_known=aggregated_cost_known,
         cost_complete=cost_complete,
+        input_tokens=aggregated_input,
+        input_tokens_known=aggregated_input_known,
+        cached_input_tokens=aggregated_cached,
+        cached_input_tokens_known=aggregated_cached_known,
+        output_tokens=aggregated_output,
+        output_tokens_known=aggregated_output_known,
+        token_breakdown_complete=input_complete and cached_complete and output_complete,
         tokens_total=aggregated_tokens,
         tokens_total_known=aggregated_tokens_known,
         tokens_complete=tokens_complete,
@@ -675,6 +810,9 @@ def compute_summary_block(tasks: list[EffectiveGoalRecord]) -> dict[str, Any]:
 
     total_attempts = sum(t.attempts for t in closed_tasks)
     total_cost_usd_raw = sum_known_numeric_values(closed_tasks, "cost_usd_known", float)
+    total_input_tokens_raw = sum_known_numeric_values(closed_tasks, "input_tokens_known", int)
+    total_cached_input_tokens_raw = sum_known_numeric_values(closed_tasks, "cached_input_tokens_known", int)
+    total_output_tokens_raw = sum_known_numeric_values(closed_tasks, "output_tokens_known", int)
     total_cost_usd = float(total_cost_usd_raw) if total_cost_usd_raw is not None else 0.0
     total_tokens_raw = sum_known_numeric_values(closed_tasks, "tokens_total_known", int)
     total_tokens = int(total_tokens_raw) if total_tokens_raw is not None else 0
@@ -698,6 +836,8 @@ def compute_summary_block(tasks: list[EffectiveGoalRecord]) -> dict[str, Any]:
 
     success_token_values = [t.tokens_total for t in successes if t.tokens_complete and t.tokens_total is not None]
     known_success_token_values = [t.tokens_total_known for t in successes if t.tokens_total_known is not None]
+    known_success_breakdown_values = [t for t in successes if t.input_tokens_known is not None and t.cached_input_tokens_known is not None and t.output_tokens_known is not None]
+    complete_success_breakdown_values = [t for t in successes if t.token_breakdown_complete]
     complete_cost_per_covered_success_tokens = (
         sum(success_token_values) / len(success_token_values) if success_token_values else None
     )
@@ -716,13 +856,18 @@ def compute_summary_block(tasks: list[EffectiveGoalRecord]) -> dict[str, Any]:
         "fails": len(fails),
         "total_attempts": total_attempts,
         "total_cost_usd": round_usd(total_cost_usd),
+        "total_input_tokens": int(total_input_tokens_raw) if total_input_tokens_raw is not None else 0,
+        "total_cached_input_tokens": int(total_cached_input_tokens_raw) if total_cached_input_tokens_raw is not None else 0,
+        "total_output_tokens": int(total_output_tokens_raw) if total_output_tokens_raw is not None else 0,
         "total_tokens": total_tokens,
         "success_rate": success_rate,
         "attempts_per_closed_task": attempts_per_closed_task,
         "known_cost_successes": len(known_success_cost_values),
         "known_token_successes": len(known_success_token_values),
+        "known_token_breakdown_successes": len(known_success_breakdown_values),
         "complete_cost_successes": len(success_cost_values),
         "complete_token_successes": len(success_token_values),
+        "complete_token_breakdown_successes": len(complete_success_breakdown_values),
         "known_cost_per_success_usd": round_usd(known_cost_per_success_usd)
         if known_cost_per_success_usd is not None
         else None,
@@ -755,6 +900,9 @@ def compute_entry_summary(entries: list[AttemptEntryRecord]) -> dict[str, Any]:
     successes = get_successful_records(closed_entries)
     fails = get_failed_records(closed_entries)
     total_cost_usd_raw = sum_known_numeric_values(closed_entries, "cost_usd", float)
+    total_input_tokens_raw = sum_known_numeric_values(closed_entries, "input_tokens", int)
+    total_cached_input_tokens_raw = sum_known_numeric_values(closed_entries, "cached_input_tokens", int)
+    total_output_tokens_raw = sum_known_numeric_values(closed_entries, "output_tokens", int)
     total_tokens_raw = sum_known_numeric_values(closed_entries, "tokens_total", int)
     failure_reason_counts: dict[str, int] = {}
     for entry in fails:
@@ -769,6 +917,9 @@ def compute_entry_summary(entries: list[AttemptEntryRecord]) -> dict[str, Any]:
         "fails": len(fails),
         "success_rate": (len(successes) / len(closed_entries)) if closed_entries else None,
         "total_cost_usd": round_usd(float(total_cost_usd_raw)) if total_cost_usd_raw is not None else 0.0,
+        "total_input_tokens": int(total_input_tokens_raw) if total_input_tokens_raw is not None else 0,
+        "total_cached_input_tokens": int(total_cached_input_tokens_raw) if total_cached_input_tokens_raw is not None else 0,
+        "total_output_tokens": int(total_output_tokens_raw) if total_output_tokens_raw is not None else 0,
         "total_tokens": int(total_tokens_raw) if total_tokens_raw is not None else 0,
         "failure_reasons": dict(sorted(failure_reason_counts.items())),
     }
@@ -853,9 +1004,13 @@ def build_attempt_entry(
     started_at: str | None,
     finished_at: str | None,
     cost_usd: float | None,
+    input_tokens: int | None,
+    cached_input_tokens: int | None,
+    output_tokens: int | None,
     tokens_total: int | None,
     failure_reason: str | None,
     notes: str | None,
+    agent_name: str | None,
 ) -> dict[str, Any]:
     entry = entry_to_dict(
         AttemptEntryRecord(
@@ -867,9 +1022,13 @@ def build_attempt_entry(
             started_at=started_at,
             finished_at=finished_at,
             cost_usd=cost_usd,
+            input_tokens=input_tokens,
+            cached_input_tokens=cached_input_tokens,
+            output_tokens=output_tokens,
             tokens_total=tokens_total,
             failure_reason=failure_reason,
             notes=notes,
+            agent_name=agent_name,
         )
     )
     validate_entry_record(entry)
@@ -938,9 +1097,13 @@ def append_missing_attempt_entries(
             started_at=started_at,
             finished_at=entry_finished_at,
             cost_usd=None,
+            input_tokens=None,
+            cached_input_tokens=None,
+            output_tokens=None,
             tokens_total=None,
             failure_reason=goal.get("failure_reason") if entry_status == "fail" and is_latest_attempt else None,
             notes=notes,
+            agent_name=goal.get("agent_name"),
         )
         entries.append(entry)
         goal_entries.append(entry)
@@ -957,18 +1120,37 @@ def update_latest_attempt_entry(goal_entries: list[dict[str, Any]], goal: dict[s
     latest_entry["finished_at"] = goal.get("finished_at") if goal["status"] in {"success", "fail"} else None
     latest_entry["failure_reason"] = goal.get("failure_reason")
     latest_entry["notes"] = goal.get("notes")
+    latest_entry["agent_name"] = goal.get("agent_name")
     return latest_entry
 
 
 def apply_attempt_usage_deltas(latest_entry: dict[str, Any], goal: dict[str, Any], previous_goal: dict[str, Any] | None) -> None:
     previous_cost = None if previous_goal is None else previous_goal.get("cost_usd")
+    previous_input_tokens = None if previous_goal is None else previous_goal.get("input_tokens")
+    previous_cached_input_tokens = None if previous_goal is None else previous_goal.get("cached_input_tokens")
+    previous_output_tokens = None if previous_goal is None else previous_goal.get("output_tokens")
     previous_tokens = None if previous_goal is None else previous_goal.get("tokens_total")
     cost_delta = compute_numeric_delta(previous_cost, goal.get("cost_usd"))
+    input_delta = compute_numeric_delta(previous_input_tokens, goal.get("input_tokens"))
+    cached_input_delta = compute_numeric_delta(previous_cached_input_tokens, goal.get("cached_input_tokens"))
+    output_delta = compute_numeric_delta(previous_output_tokens, goal.get("output_tokens"))
     token_delta = compute_numeric_delta(previous_tokens, goal.get("tokens_total"))
     if cost_delta is not None:
         latest_entry["cost_usd"] = round_usd(cost_delta) if isinstance(cost_delta, float) else round_usd(float(cost_delta))
     elif previous_goal is None and goal.get("cost_usd") is not None:
         latest_entry["cost_usd"] = goal.get("cost_usd")
+    if input_delta is not None:
+        latest_entry["input_tokens"] = int(input_delta)
+    elif previous_goal is None and goal.get("input_tokens") is not None:
+        latest_entry["input_tokens"] = goal.get("input_tokens")
+    if cached_input_delta is not None:
+        latest_entry["cached_input_tokens"] = int(cached_input_delta)
+    elif previous_goal is None and goal.get("cached_input_tokens") is not None:
+        latest_entry["cached_input_tokens"] = goal.get("cached_input_tokens")
+    if output_delta is not None:
+        latest_entry["output_tokens"] = int(output_delta)
+    elif previous_goal is None and goal.get("output_tokens") is not None:
+        latest_entry["output_tokens"] = goal.get("output_tokens")
     if token_delta is not None:
         latest_entry["tokens_total"] = int(token_delta)
     elif previous_goal is None and goal.get("tokens_total") is not None:
@@ -1035,9 +1217,13 @@ def create_goal_record(
         started_at=started_at or now_utc_iso(),
         finished_at=None,
         cost_usd=None,
+        input_tokens=None,
+        cached_input_tokens=None,
+        output_tokens=None,
         tokens_total=None,
         failure_reason=None,
         notes=None,
+        agent_name=None,
         result_fit=None,
     )
     tasks.append(goal_to_dict(new_goal))
@@ -1055,16 +1241,26 @@ def apply_goal_updates(
     attempts_abs: int | None,
     cost_usd_add: float | None,
     cost_usd_set: float | None,
+    input_tokens_add: int | None,
+    cached_input_tokens_add: int | None,
+    output_tokens_add: int | None,
     tokens_add: int | None,
     tokens_set: int | None,
     usage_cost_usd: float | None,
+    usage_input_tokens: int | None,
+    usage_cached_input_tokens: int | None,
+    usage_output_tokens: int | None,
     usage_total_tokens: int | None,
     auto_cost_usd: float | None,
+    auto_input_tokens: int | None,
+    auto_cached_input_tokens: int | None,
+    auto_output_tokens: int | None,
     auto_total_tokens: int | None,
     failure_reason: str | None,
     notes: str | None,
     started_at: str | None,
     finished_at: str | None,
+    agent_name: str | None = None,
     result_fit: str | None = None,
 ) -> None:
     if title is not None:
@@ -1098,6 +1294,36 @@ def apply_goal_updates(
     elif auto_cost_usd is not None:
         task.cost_usd = auto_cost_usd
 
+    if input_tokens_add is not None:
+        validate_non_negative_int(input_tokens_add, "input_tokens_add")
+        current_input_tokens = task.input_tokens or 0
+        task.input_tokens = current_input_tokens + input_tokens_add
+    elif usage_input_tokens is not None:
+        current_input_tokens = task.input_tokens or 0
+        task.input_tokens = current_input_tokens + usage_input_tokens
+    elif auto_input_tokens is not None:
+        task.input_tokens = auto_input_tokens
+
+    if cached_input_tokens_add is not None:
+        validate_non_negative_int(cached_input_tokens_add, "cached_input_tokens_add")
+        current_cached_input_tokens = task.cached_input_tokens or 0
+        task.cached_input_tokens = current_cached_input_tokens + cached_input_tokens_add
+    elif usage_cached_input_tokens is not None:
+        current_cached_input_tokens = task.cached_input_tokens or 0
+        task.cached_input_tokens = current_cached_input_tokens + usage_cached_input_tokens
+    elif auto_cached_input_tokens is not None:
+        task.cached_input_tokens = auto_cached_input_tokens
+
+    if output_tokens_add is not None:
+        validate_non_negative_int(output_tokens_add, "output_tokens_add")
+        current_output_tokens = task.output_tokens or 0
+        task.output_tokens = current_output_tokens + output_tokens_add
+    elif usage_output_tokens is not None:
+        current_output_tokens = task.output_tokens or 0
+        task.output_tokens = current_output_tokens + usage_output_tokens
+    elif auto_output_tokens is not None:
+        task.output_tokens = auto_output_tokens
+
     if tokens_set is not None:
         validate_non_negative_int(tokens_set, "tokens")
         task.tokens_total = tokens_set
@@ -1117,6 +1343,9 @@ def apply_goal_updates(
     if result_fit is not None:
         validate_result_fit(result_fit)
         task.result_fit = result_fit
+    if agent_name is not None:
+        validate_agent_name(agent_name)
+        task.agent_name = agent_name
 
     if notes is not None:
         task.notes = notes

@@ -116,6 +116,16 @@ def format_coverage(known_count: int, total_count: int) -> str:
     return f"{known_count}/{total_count}"
 
 
+def format_token_breakdown(input_tokens: int | None, cached_input_tokens: int | None, output_tokens: int | None) -> str:
+    if input_tokens is None and cached_input_tokens is None and output_tokens is None:
+        return "n/a"
+    return (
+        f"input={format_num(input_tokens)}, "
+        f"cached={format_num(cached_input_tokens)}, "
+        f"output={format_num(output_tokens)}"
+    )
+
+
 def build_agent_recommendations(summary: dict[str, Any], product_quality: ProductQualitySummary) -> list[AgentRecommendation]:
     recommendations: list[AgentRecommendation] = []
     product_summary = summary["by_goal_type"]["product"]
@@ -363,13 +373,19 @@ def generate_report_md(data: dict[str, Any]) -> str:
             f"- Fails: {summary['fails']}",
             f"- Total attempts: {summary['total_attempts']}",
             f"- Known total cost (USD): {format_usd(summary['total_cost_usd'])}",
+            (
+                "- Known token breakdown totals: "
+                f"{format_token_breakdown(summary.get('total_input_tokens'), summary.get('total_cached_input_tokens'), summary.get('total_output_tokens'))}"
+            ),
             f"- Known total tokens: {summary['total_tokens']}",
             f"- Success Rate: {format_pct(summary['success_rate'])}",
             f"- Attempts per Closed Goal: {format_num(summary['attempts_per_closed_task'])}",
             f"- Known cost coverage: {format_coverage(summary['known_cost_successes'], summary['successes'])} successful goals",
             f"- Known token coverage: {format_coverage(summary['known_token_successes'], summary['successes'])} successful goals",
+            f"- Known token breakdown coverage: {format_coverage(summary.get('known_token_breakdown_successes', 0), summary['successes'])} successful goals",
             f"- Complete cost coverage: {format_coverage(summary['complete_cost_successes'], summary['successes'])} successful goals",
             f"- Complete token coverage: {format_coverage(summary['complete_token_successes'], summary['successes'])} successful goals",
+            f"- Complete token breakdown coverage: {format_coverage(summary.get('complete_token_breakdown_successes', 0), summary['successes'])} successful goals",
             f"- Known Cost per Success (USD): {format_usd(summary['known_cost_per_success_usd'])}",
             f"- Known Cost per Success (Tokens): {format_num(summary['known_cost_per_success_tokens'])}",
             f"- Complete Cost per Covered Success (USD): {format_usd(summary['complete_cost_per_covered_success_usd'])}",
@@ -382,6 +398,10 @@ def generate_report_md(data: dict[str, Any]) -> str:
             f"- Fails: {summary['entries']['fails']}",
             f"- Success Rate: {format_pct(summary['entries']['success_rate'])}",
             f"- Known total cost (USD): {format_usd(summary['entries']['total_cost_usd'])}",
+            (
+                "- Known token breakdown totals: "
+                f"{format_token_breakdown(summary['entries'].get('total_input_tokens'), summary['entries'].get('total_cached_input_tokens'), summary['entries'].get('total_output_tokens'))}"
+            ),
             f"- Known total tokens: {summary['entries']['total_tokens']}",
             "",
         ]
@@ -415,13 +435,19 @@ def generate_report_md(data: dict[str, Any]) -> str:
                 f"- Fails: {type_summary['fails']}",
                 f"- Total attempts: {type_summary['total_attempts']}",
                 f"- Known total cost (USD): {format_usd(type_summary['total_cost_usd'])}",
+                (
+                    "- Known token breakdown totals: "
+                    f"{format_token_breakdown(type_summary.get('total_input_tokens'), type_summary.get('total_cached_input_tokens'), type_summary.get('total_output_tokens'))}"
+                ),
                 f"- Known total tokens: {type_summary['total_tokens']}",
                 f"- Success Rate: {format_pct(type_summary['success_rate'])}",
                 f"- Attempts per Closed Goal: {format_num(type_summary['attempts_per_closed_task'])}",
                 f"- Known cost coverage: {format_coverage(type_summary['known_cost_successes'], type_summary['successes'])} successful goals",
                 f"- Known token coverage: {format_coverage(type_summary['known_token_successes'], type_summary['successes'])} successful goals",
+                f"- Known token breakdown coverage: {format_coverage(type_summary.get('known_token_breakdown_successes', 0), type_summary['successes'])} successful goals",
                 f"- Complete cost coverage: {format_coverage(type_summary['complete_cost_successes'], type_summary['successes'])} successful goals",
                 f"- Complete token coverage: {format_coverage(type_summary['complete_token_successes'], type_summary['successes'])} successful goals",
+                f"- Complete token breakdown coverage: {format_coverage(type_summary.get('complete_token_breakdown_successes', 0), type_summary['successes'])} successful goals",
                 f"- Known Cost per Success (USD): {format_usd(type_summary['known_cost_per_success_usd'])}",
                 f"- Known Cost per Success (Tokens): {format_num(type_summary['known_cost_per_success_tokens'])}",
                 f"- Complete Cost per Covered Success (USD): {format_usd(type_summary['complete_cost_per_covered_success_usd'])}",
@@ -449,10 +475,15 @@ def generate_report_md(data: dict[str, Any]) -> str:
                 f"- Goal type: {task['goal_type']}",
                 f"- Supersedes goal: {task.get('supersedes_goal_id') or 'n/a'}",
                 f"- Status: {task['status']}",
+                f"- Agent: {task.get('agent_name') or 'n/a'}",
                 f"- Attempts: {task['attempts']}",
                 f"- Started at: {task['started_at'] or 'n/a'}",
                 f"- Finished at: {task['finished_at'] or 'n/a'}",
                 f"- Cost (USD): {format_usd(task.get('cost_usd'))}",
+                (
+                    "- Token breakdown: "
+                    f"{format_token_breakdown(task.get('input_tokens'), task.get('cached_input_tokens'), task.get('output_tokens'))}"
+                ),
                 f"- Tokens: {format_num(task.get('tokens_total'))}",
                 f"- Failure reason: {task.get('failure_reason') or 'n/a'}",
                 f"- Result fit: {task.get('result_fit') or 'n/a'}",
@@ -474,9 +505,14 @@ def generate_report_md(data: dict[str, Any]) -> str:
                 f"- Entry type: {entry['entry_type']}",
                 f"- Inferred: {'yes' if entry.get('inferred') else 'no'}",
                 f"- Status: {entry['status']}",
+                f"- Agent: {entry.get('agent_name') or 'n/a'}",
                 f"- Started at: {entry['started_at'] or 'n/a'}",
                 f"- Finished at: {entry['finished_at'] or 'n/a'}",
                 f"- Cost (USD): {format_usd(entry.get('cost_usd'))}",
+                (
+                    "- Token breakdown: "
+                    f"{format_token_breakdown(entry.get('input_tokens'), entry.get('cached_input_tokens'), entry.get('output_tokens'))}"
+                ),
                 f"- Tokens: {format_num(entry.get('tokens_total'))}",
                 f"- Failure reason: {entry.get('failure_reason') or 'n/a'}",
                 f"- Notes: {entry.get('notes') or 'n/a'}",
@@ -522,13 +558,25 @@ def print_summary(data: dict[str, Any]) -> None:
     print(f"Fails: {summary['fails']}")
     print(f"Total attempts: {summary['total_attempts']}")
     print(f"Known total cost (USD): {format_usd(summary['total_cost_usd'])}")
+    print(
+        "Known token breakdown totals: "
+        f"{format_token_breakdown(summary.get('total_input_tokens'), summary.get('total_cached_input_tokens'), summary.get('total_output_tokens'))}"
+    )
     print(f"Known total tokens: {summary['total_tokens']}")
     print(f"Success Rate: {format_pct(summary['success_rate'])}")
     print(f"Attempts per Closed Goal: {format_num(summary['attempts_per_closed_task'])}")
     print(f"Known cost coverage: {format_coverage(summary['known_cost_successes'], summary['successes'])} successful goals")
     print(f"Known token coverage: {format_coverage(summary['known_token_successes'], summary['successes'])} successful goals")
+    print(
+        f"Known token breakdown coverage: "
+        f"{format_coverage(summary.get('known_token_breakdown_successes', 0), summary['successes'])} successful goals"
+    )
     print(f"Complete cost coverage: {format_coverage(summary['complete_cost_successes'], summary['successes'])} successful goals")
     print(f"Complete token coverage: {format_coverage(summary['complete_token_successes'], summary['successes'])} successful goals")
+    print(
+        f"Complete token breakdown coverage: "
+        f"{format_coverage(summary.get('complete_token_breakdown_successes', 0), summary['successes'])} successful goals"
+    )
     print(f"Known Cost per Success (USD): {format_usd(summary['known_cost_per_success_usd'])}")
     print(f"Known Cost per Success (Tokens): {format_num(summary['known_cost_per_success_tokens'])}")
     print(f"Complete Cost per Covered Success (USD): {format_usd(summary['complete_cost_per_covered_success_usd'])}")
@@ -537,6 +585,10 @@ def print_summary(data: dict[str, Any]) -> None:
     print(f"Entry successes: {summary['entries']['successes']}")
     print(f"Entry fails: {summary['entries']['fails']}")
     print(f"Entry Success Rate: {format_pct(summary['entries']['success_rate'])}")
+    print(
+        "Entry token breakdown totals: "
+        f"{format_token_breakdown(summary['entries'].get('total_input_tokens'), summary['entries'].get('total_cached_input_tokens'), summary['entries'].get('total_output_tokens'))}"
+    )
     for task_type in ("product", "retro", "meta"):
         type_summary = summary["by_goal_type"][task_type]
         print(

@@ -54,7 +54,14 @@ def path_for_agents(target_path: Path, *, agents_path: Path) -> Path:
     return Path(os.path.relpath(target_path, start=agents_path.parent))
 
 
-def render_agents_block(*, policy_path: Path, command_path: Path, metrics_path: Path, report_path: Path) -> str:
+def render_agents_block(
+    *,
+    policy_path: Path,
+    command_path: Path,
+    metrics_path: Path,
+    report_path: Path,
+    instructions_filename: str,
+) -> str:
     policy_label = policy_path.as_posix()
     command_label = command_path.as_posix()
     del metrics_path
@@ -64,7 +71,7 @@ def render_agents_block(*, policy_path: Path, command_path: Path, metrics_path: 
         "## Codex Metrics\n\n"
         "### Read first\n\n"
         "Before starting or continuing any engineering task, always read:\n\n"
-        "- `AGENTS.md`\n"
+        f"- `{instructions_filename}`\n"
         f"- `{policy_label}`\n\n"
         f"Use `{command_label} ...` in this repository.\n\n"
         f"If `{command_label}` is unavailable, stop and report an installation or invocation mismatch before proceeding.\n\n"
@@ -80,15 +87,17 @@ def upsert_agents_text(
     command_path: Path,
     metrics_path: Path,
     report_path: Path,
+    instructions_filename: str,
 ) -> tuple[str, str]:
     block = render_agents_block(
         policy_path=policy_path,
         command_path=command_path,
         metrics_path=metrics_path,
         report_path=report_path,
+        instructions_filename=instructions_filename,
     )
     if existing_text is None:
-        return f"# AGENTS.md\n\n{block}", "create"
+        return f"# {instructions_filename}\n\n{block}", "create"
 
     if START_MARKER in existing_text and END_MARKER in existing_text:
         start_index = existing_text.index(START_MARKER)
@@ -100,7 +109,7 @@ def upsert_agents_text(
 
     stripped = existing_text.rstrip()
     if not stripped:
-        return f"# AGENTS.md\n\n{block}", "create"
+        return f"# {instructions_filename}\n\n{block}", "create"
     return f"{stripped}\n\n{block}", "append"
 
 
@@ -149,6 +158,7 @@ def build_bootstrap_plan(
         command_path=path_for_agents(command_path, agents_path=agents_path),
         metrics_path=path_for_agents(metrics_path, agents_path=agents_path),
         report_path=path_for_agents(report_path, agents_path=agents_path) if report_path is not None else Path("docs/codex-metrics.md"),
+        instructions_filename=agents_path.name,
     )
 
     create_metrics = not metrics_path.exists()
@@ -223,11 +233,11 @@ def bootstrap_project(
             messages.append(f"Would keep existing policy file: {policy_path}")
 
         if not agents_path.exists():
-            messages.append(f"Would create AGENTS.md: {agents_path}")
+            messages.append(f"Would create instructions file: {agents_path}")
         elif plan.write_agents:
-            messages.append(f"Would update AGENTS.md: {agents_path}")
+            messages.append(f"Would update instructions file: {agents_path}")
         else:
-            messages.append(f"Would keep AGENTS.md unchanged: {agents_path}")
+            messages.append(f"Would keep instructions file unchanged: {agents_path}")
     else:
         if plan.create_metrics:
             save_metrics(metrics_path, plan.metrics_data)
@@ -253,10 +263,10 @@ def bootstrap_project(
         if plan.write_agents:
             write_path(agents_path, plan.agents_text)
             if plan.create_agents:
-                messages.append(f"Created AGENTS.md: {agents_path}")
+                messages.append(f"Created instructions file: {agents_path}")
             else:
-                messages.append(f"Updated AGENTS.md: {agents_path}")
+                messages.append(f"Updated instructions file: {agents_path}")
         else:
-            messages.append(f"Keeping AGENTS.md unchanged: {agents_path}")
+            messages.append(f"Keeping instructions file unchanged: {agents_path}")
 
     return BootstrapResult(messages=messages)

@@ -1,8 +1,8 @@
 # codex-metrics
 
-Small Python CLI for tracking Codex goal metrics, attempt history, and usage-derived cost in a repo-friendly format.
+Small Python CLI for tracking AI-agent goal metrics, attempt history, and usage-derived cost in a repo-friendly format.
 
-This repository is an internal local operator tool. It is meant to help track whether Codex-assisted engineering work is getting better over time, not to act as a public analytics product or hosted service.
+This repository is an internal local operator tool. It is meant to help track whether AI-agent-assisted engineering work is getting better over time, not to act as a public analytics product or hosted service.
 
 ## What It Does
 

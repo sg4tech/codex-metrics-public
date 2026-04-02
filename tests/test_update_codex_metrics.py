@@ -120,9 +120,13 @@ def read_json(path: Path) -> dict:
                 "started_at": goal["started_at"],
                 "finished_at": goal["finished_at"],
                 "cost_usd": goal["cost_usd"],
+                "input_tokens": goal.get("input_tokens"),
+                "cached_input_tokens": goal.get("cached_input_tokens"),
+                "output_tokens": goal.get("output_tokens"),
                 "tokens_total": goal["tokens_total"],
                 "failure_reason": goal["failure_reason"],
                 "notes": goal["notes"],
+                "agent_name": goal.get("agent_name"),
                 "result_fit": goal.get("result_fit"),
             }
             for goal in data["goals"]
@@ -565,7 +569,7 @@ def test_bootstrap_dry_run_reports_actions_without_writing_files(repo: Path) -> 
     assert "Would create metrics file" in result.stdout
     assert "Would skip markdown report generation by default" in result.stdout
     assert "Would create policy file" in result.stdout
-    assert "Would create AGENTS.md" in result.stdout
+    assert "Would create instructions file" in result.stdout
     assert "Would create command wrapper" in result.stdout
     assert not (repo / "metrics" / "codex_metrics.json").exists()
     assert not (repo / "docs" / "codex-metrics.md").exists()
@@ -581,7 +585,7 @@ def test_bootstrap_creates_scaffold_files(repo: Path) -> None:
     assert "Created metrics file" in result.stdout
     assert "Skipping markdown report generation by default" in result.stdout
     assert "Created policy file" in result.stdout
-    assert "Created AGENTS.md" in result.stdout
+    assert "Created instructions file" in result.stdout
 
     metrics_path = repo / "metrics" / "codex_metrics.json"
     report_path = repo / "docs" / "codex-metrics.md"
@@ -600,6 +604,7 @@ def test_bootstrap_creates_scaffold_files(repo: Path) -> None:
 
     policy_text = policy_path.read_text(encoding="utf-8")
     assert "Codex Metrics Policy" in policy_text
+    assert "AI-agent-assisted engineering work" in policy_text
     assert "## Purpose" in policy_text
     assert "## Scope" in policy_text
     assert "## Core Model" in policy_text
@@ -610,6 +615,7 @@ def test_bootstrap_creates_scaffold_files(repo: Path) -> None:
     assert "codex-metrics start-task" in policy_text
     assert "codex-metrics continue-task" in policy_text
     assert "codex-metrics finish-task" in policy_text
+    assert "agent-agnostic" in policy_text
     assert "If `codex-metrics` is expected but unavailable" in policy_text
     assert "Do not invent a manual fallback workflow" in policy_text
     assert "## Reporting Rules" in policy_text
@@ -767,6 +773,17 @@ def test_bootstrap_custom_paths_render_relative_agents_links(repo: Path) -> None
     assert "`../bin/codex-metrics ...`" in agents_text
 
 
+def test_bootstrap_can_target_claude_instructions_file(repo: Path) -> None:
+    result = run_cmd(repo, "bootstrap", "--instructions-path", "CLAUDE.md")
+
+    assert result.returncode == 0, result.stderr
+    instructions_text = (repo / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "# CLAUDE.md" in instructions_text
+    assert "- `CLAUDE.md`" in instructions_text
+    assert "docs/codex-metrics-policy.md" in instructions_text
+    assert "Use `tools/codex-metrics ...` in this repository." in instructions_text
+
+
 def test_bootstrap_wrapper_runs_from_repo_root_even_when_invoked_from_other_cwd(repo: Path, tmp_path: Path) -> None:
     result = run_cmd(repo, "bootstrap")
     assert result.returncode == 0, result.stderr
@@ -851,6 +868,14 @@ def test_help_lists_completion_command(repo: Path) -> None:
     assert "install-self" in result.stdout
     assert "completion" in result.stdout
     assert "Print shell completion for bash or zsh" in result.stdout
+
+
+def test_task_workflow_help_does_not_expose_provider_specific_flags(repo: Path) -> None:
+    result = run_cmd(repo, "start-task", "--help")
+
+    assert result.returncode == 0
+    assert "--agent" not in result.stdout
+    assert "--usage-source" not in result.stdout
 
 
 def test_completion_bash_outputs_completion_function(repo: Path) -> None:
@@ -1237,8 +1262,95 @@ def test_update_can_auto_sync_cost_and_tokens_from_codex_logs(repo: Path) -> Non
     data = read_json(repo / "metrics" / "codex_metrics.json")
     task = data["tasks"][0]
 
+    assert task["input_tokens"] == 1000
+    assert task["cached_input_tokens"] == 100
+    assert task["output_tokens"] == 500
     assert task["tokens_total"] == 1600
     assert task["cost_usd"] == 0.006263
+    assert task["agent_name"] == "codex"
+    assert data["summary"]["total_input_tokens"] == 1000
+    assert data["summary"]["total_cached_input_tokens"] == 100
+    assert data["summary"]["total_output_tokens"] == 500
+
+
+def test_update_persists_explicit_token_breakdown_from_model_pricing(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+
+    result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "token-breakdown-task",
+        "--title",
+        "Token breakdown task",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+        "--model",
+        "gpt-5",
+        "--input-tokens",
+        "1200",
+        "--cached-input-tokens",
+        "300",
+        "--output-tokens",
+        "400",
+    )
+
+    assert result.returncode == 0, result.stderr
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    task = data["tasks"][0]
+    entry = data["entries"][0]
+
+    assert task["input_tokens"] == 1200
+    assert task["cached_input_tokens"] == 300
+    assert task["output_tokens"] == 400
+    assert task["tokens_total"] == 1900
+    assert entry["input_tokens"] == 1200
+    assert entry["cached_input_tokens"] == 300
+    assert entry["output_tokens"] == 400
+    assert entry["tokens_total"] == 1900
+    assert data["summary"]["total_input_tokens"] == 1200
+    assert data["summary"]["total_cached_input_tokens"] == 300
+    assert data["summary"]["total_output_tokens"] == 400
+    assert data["summary"]["known_token_breakdown_successes"] == 1
+    assert data["summary"]["complete_token_breakdown_successes"] == 1
+
+
+def test_update_does_not_apply_codex_agent_label_without_detected_usage(repo: Path) -> None:
+    state_path, logs_path = create_codex_usage_sources(repo)
+    assert run_cmd(repo, "init", "--force").returncode == 0
+
+    result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "external-agent-task",
+        "--title",
+        "External Agent Task",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+        "--started-at",
+        "2026-03-29T08:00:00+00:00",
+        "--finished-at",
+        "2026-03-29T08:10:00+00:00",
+        "--codex-state-path",
+        str(state_path),
+        "--codex-logs-path",
+        str(logs_path),
+    )
+
+    assert result.returncode == 0, result.stderr
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    task = data["tasks"][0]
+    entry = data["entries"][0]
+
+    assert task["agent_name"] is None
+    assert task["tokens_total"] is None
+    assert task["cost_usd"] is None
+    assert entry["agent_name"] is None
 
 
 def test_close_fail_updates_summary(repo: Path) -> None:
@@ -1550,6 +1662,40 @@ def test_closed_product_goal_allows_zero_duration_window_with_explicit_tokens(re
     data = read_json(repo / "metrics" / "codex_metrics.json")
     task = next(task for task in data["tasks"] if task["task_id"] == "zero-window-with-tokens")
     assert task["tokens_total"] == 123
+
+
+def test_show_rejects_stored_token_total_smaller_than_known_breakdown(repo: Path) -> None:
+    assert run_cmd(repo, "init", "--force").returncode == 0
+    metrics_path = repo / "metrics" / "codex_metrics.json"
+    data = read_json(metrics_path)
+    data["goals"] = [
+        {
+            "goal_id": "conflicting-tokens",
+            "title": "Conflicting tokens",
+            "goal_type": "product",
+            "supersedes_goal_id": None,
+            "status": "success",
+            "attempts": 1,
+            "started_at": "2026-03-29T09:00:00+00:00",
+            "finished_at": "2026-03-29T09:01:00+00:00",
+            "cost_usd": 0.01,
+            "input_tokens": 600,
+            "cached_input_tokens": 200,
+            "output_tokens": 300,
+            "tokens_total": 1000,
+            "failure_reason": None,
+            "notes": None,
+            "agent_name": "codex",
+            "result_fit": "exact_fit",
+        }
+    ]
+    data["entries"] = []
+    metrics_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+    result = run_cmd(repo, "show")
+
+    assert result.returncode != 0
+    assert "tokens_total cannot be smaller than input_tokens + cached_input_tokens + output_tokens" in result.stderr
 
 
 def test_reused_manual_goal_id_guides_user_to_auto_generation(repo: Path) -> None:
@@ -2726,6 +2872,9 @@ def test_sync_codex_usage_backfills_existing_tasks(repo: Path) -> None:
     assert sync_result.returncode == 0, sync_result.stderr
     data = read_json(repo / "metrics" / "codex_metrics.json")
     task = data["tasks"][0]
+    assert task["input_tokens"] == 1000
+    assert task["cached_input_tokens"] == 100
+    assert task["output_tokens"] == 500
     assert task["tokens_total"] == 1600
     assert task["cost_usd"] == 0.006263
 
@@ -2766,6 +2915,9 @@ def test_sync_codex_usage_backfills_from_session_rollout_token_counts(repo: Path
     assert sync_result.returncode == 0, sync_result.stderr
     data = read_json(repo / "metrics" / "codex_metrics.json")
     task = data["tasks"][0]
+    assert task["input_tokens"] == 1000
+    assert task["cached_input_tokens"] == 100
+    assert task["output_tokens"] == 500
     assert task["tokens_total"] == 1625
     assert task["cost_usd"] == 0.006263
 
