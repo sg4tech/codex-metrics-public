@@ -11,6 +11,11 @@ from typing import Any, Protocol
 
 from codex_metrics.cost_audit import CostAuditReport
 from codex_metrics.history_audit import AuditReport
+from codex_metrics.observability import (
+    record_goal_merge_observation,
+    record_goal_mutation_observation,
+    record_usage_sync_observation,
+)
 
 
 class CommandRuntime(Protocol):
@@ -409,9 +414,6 @@ def handle_show(args: Namespace, cli_module: CommandRuntime) -> int:
 
 def _require_active_goal_for_existing_mutation(cli_module: CommandRuntime, cwd: Path, data: dict[str, Any]) -> None:
     active_goals = cli_module.get_active_goals(data)
-    if len(active_goals) > 1:
-        active_ids = ", ".join(goal["goal_id"] for goal in active_goals)
-        raise ValueError(f"Multiple active goals exist: {active_ids}")
     if active_goals:
         return
 
@@ -484,6 +486,13 @@ def handle_sync_usage(args: Namespace, cli_module: CommandRuntime) -> int:
         )
         cli_module.recompute_summary(data)
         cli_module.save_metrics(metrics_path, data)
+        record_usage_sync_observation(
+            metrics_path,
+            command="sync-usage",
+            updated_tasks=updated_tasks,
+            usage_backend=getattr(args, "usage_backend", None),
+            usage_thread_id=args.usage_thread_id,
+        )
         if report_path is not None:
             cli_module.save_report(report_path, data)
     print(f"Synchronized usage for {updated_tasks} task(s)")
@@ -503,6 +512,13 @@ def handle_merge_tasks(args: Namespace, cli_module: CommandRuntime) -> int:
         )
         cli_module.recompute_summary(data)
         cli_module.save_metrics(metrics_path, data)
+        record_goal_merge_observation(
+            metrics_path,
+            command="merge-tasks",
+            keep_task_id=args.keep_task_id,
+            drop_task_id=args.drop_task_id,
+            merged_task=task,
+        )
         if report_path is not None:
             cli_module.save_report(report_path, data)
     print(f"Merged goal {args.drop_task_id} into {args.keep_task_id}")
@@ -562,6 +578,12 @@ def handle_update(args: Namespace, cli_module: CommandRuntime) -> int:
         cli_module.sync_goal_attempt_entries(data, task, previous_task)
         cli_module.recompute_summary(data)
         cli_module.save_metrics(metrics_path, data)
+        record_goal_mutation_observation(
+            metrics_path,
+            command=getattr(args, "command", "update"),
+            previous_task=previous_task,
+            current_task=task,
+        )
         if report_path is not None:
             cli_module.save_report(report_path, data)
 
@@ -574,6 +596,7 @@ def handle_update(args: Namespace, cli_module: CommandRuntime) -> int:
 
 def _build_update_namespace(args: Namespace, **overrides: Any) -> Namespace:
     values = {
+        "command": getattr(args, "command", None),
         "task_id": None,
         "title": None,
         "task_type": None,
@@ -610,6 +633,7 @@ def _build_update_namespace(args: Namespace, **overrides: Any) -> Namespace:
 def handle_start_task(args: Namespace, cli_module: CommandRuntime) -> int:
     update_args = _build_update_namespace(
         args,
+        command="start-task",
         title=args.title,
         task_type=args.task_type,
         continuation_of=args.continuation_of,
@@ -630,6 +654,7 @@ def handle_start_task(args: Namespace, cli_module: CommandRuntime) -> int:
 def handle_continue_task(args: Namespace, cli_module: CommandRuntime) -> int:
     update_args = _build_update_namespace(
         args,
+        command="continue-task",
         task_id=args.task_id,
         attempts_delta=1,
         notes=args.notes,
@@ -648,6 +673,7 @@ def handle_continue_task(args: Namespace, cli_module: CommandRuntime) -> int:
 def handle_finish_task(args: Namespace, cli_module: CommandRuntime) -> int:
     update_args = _build_update_namespace(
         args,
+        command="finish-task",
         task_id=args.task_id,
         status=args.status,
         failure_reason=args.failure_reason,

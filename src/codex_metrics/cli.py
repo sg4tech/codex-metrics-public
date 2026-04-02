@@ -275,15 +275,13 @@ def build_active_task_warning(data: dict[str, Any], cwd: Path) -> str | None:
 
 def ensure_active_task(data: dict[str, Any], cwd: Path) -> ActiveTaskResolution:
     active_goals = get_active_goals(data)
-    if len(active_goals) > 1:
+    if active_goals:
         active_ids = ", ".join(goal["goal_id"] for goal in active_goals)
-        raise ValueError(f"Multiple active goals exist: {active_ids}")
-    if len(active_goals) == 1:
         active_goal = active_goals[0]
         return ActiveTaskResolution(
             status="existing",
-            goal_id=active_goal["goal_id"],
-            message=f"Active goal already exists: {active_goal['goal_id']}",
+            goal_id=active_goal["goal_id"] if len(active_goals) == 1 else None,
+            message=f"Active goal already exists: {active_ids}",
         )
 
     report = detect_started_work(cwd)

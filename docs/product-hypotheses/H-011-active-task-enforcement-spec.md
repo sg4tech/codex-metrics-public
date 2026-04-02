@@ -274,9 +274,11 @@ If one active goal already exists:
 
 - do not create another one
 
-If multiple active goals exist:
+If multiple active goals already exist:
 
-- fail loudly and require manual resolution
+- treat that as valid parallel work rather than an error
+- do not block explicit task-id mutations on that basis alone
+- do not create another recovery draft if active bookkeeping already exists in the repository state
 
 ## Acceptance Criteria
 
@@ -344,12 +346,12 @@ Additional smoke checks:
 
 - Should strict rejection apply to all mutating commands or only to the paths most likely to be used after work already started?
 - Should recovery draft title stay fixed, or should it derive a lightweight hint from changed files?
-- Should multiple active goals remain legal, or should this feature push the repo toward one-active-goal-by-default semantics?
+- Should active goals eventually gain an explicit per-worktree or per-thread scope for better parallel-agent recovery?
 
 ## Suggested Implementation Plan
 
 1. Add internal worktree-detection helpers and a small typed result model.
-2. Add active-goal lookup and multiple-active-goal validation.
+2. Add active-goal lookup and explicit-mutation guard.
 3. Implement `ensure-active-task`.
 4. Integrate strict guard checks into relevant mutating command handlers.
 5. Add warning support to `show`.

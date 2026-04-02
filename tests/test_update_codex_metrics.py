@@ -453,6 +453,36 @@ def test_start_task_remains_available_for_new_worktree_changes(repo: Path) -> No
     assert "Updated goal" in result.stdout
 
 
+def test_start_task_records_structured_event_and_debug_log(repo: Path) -> None:
+    assert run_cmd(repo, "init").returncode == 0
+
+    result = run_cmd(repo, "start-task", "--title", "Observed task", "--task-type", "meta")
+
+    assert result.returncode == 0, result.stderr
+    events_db = repo / "metrics" / ".codex-metrics" / "events.sqlite"
+    debug_log = repo / "metrics" / ".codex-metrics" / "events.debug.log"
+    assert events_db.exists()
+    assert debug_log.exists()
+
+    with sqlite3.connect(events_db) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT event_id, event_type, command, goal_id, goal_type, status_after, attempts_after, payload_json "
+            "FROM events ORDER BY occurred_at DESC, event_id DESC LIMIT 1"
+        ).fetchone()
+
+    assert row is not None
+    assert row["event_type"] == "goal_created"
+    assert row["command"] == "start-task"
+    assert row["goal_type"] == "meta"
+    assert row["status_after"] == "in_progress"
+    assert row["attempts_after"] == 1
+    payload = json.loads(row["payload_json"])
+    assert payload["command"] == "start-task"
+    assert payload["status_after"] == "in_progress"
+    assert row["event_id"] in debug_log.read_text(encoding="utf-8")
+
+
 def test_ensure_active_task_is_idempotent_when_active_goal_exists(repo: Path) -> None:
     (repo / "src" / "worktree_change.py").write_text("print('changed')\n", encoding="utf-8")
 
@@ -506,6 +536,34 @@ def test_continue_task_is_blocked_when_started_work_exists_without_active_goal(r
 
     assert continue_result.returncode == 1
     assert "ensure-active-task" in continue_result.stderr
+
+
+def test_explicit_mutation_is_not_blocked_by_other_active_goals(repo: Path) -> None:
+    first_result = run_cmd(repo, "start-task", "--title", "Baseline task one", "--task-type", "product")
+    assert first_result.returncode == 0, first_result.stderr
+    first_goal_id = next(
+        line.removeprefix("Updated goal ").strip()
+        for line in first_result.stdout.splitlines()
+        if line.startswith("Updated goal ")
+    )
+
+    second_result = run_cmd(repo, "start-task", "--title", "Baseline task two", "--task-type", "meta")
+    assert second_result.returncode == 0, second_result.stderr
+    second_goal_id = next(
+        line.removeprefix("Updated goal ").strip()
+        for line in second_result.stdout.splitlines()
+        if line.startswith("Updated goal ")
+    )
+
+    close_result = run_cmd(repo, "finish-task", "--task-id", first_goal_id, "--status", "success")
+
+    assert close_result.returncode == 0, close_result.stderr
+    data = read_json(repo / "metrics" / "codex_metrics.json")
+    first_goal = next(goal for goal in data["goals"] if goal["goal_id"] == first_goal_id)
+    second_goal = next(goal for goal in data["goals"] if goal["goal_id"] == second_goal_id)
+    assert first_goal["status"] == "success"
+    assert second_goal["status"] == "in_progress"
+    assert len([goal for goal in data["goals"] if goal["status"] == "in_progress"]) == 1
 
 
 def test_ensure_active_task_handles_non_git_repositories(tmp_path: Path) -> None:
