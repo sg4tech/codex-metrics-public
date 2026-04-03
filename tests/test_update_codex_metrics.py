@@ -378,14 +378,16 @@ def repo(tmp_path: Path) -> Path:
     subprocess.run(["git", "commit", "-m", "baseline"], cwd=tmp_path, text=True, capture_output=True, check=True)
     yield tmp_path
 
-    metrics_path = tmp_path / "metrics" / "codex_metrics.json"
     immutability_commands = file_immutability.DEFAULT_FILE_IMMUTABILITY_BACKEND.command_pair()
-    if immutability_commands is not None and metrics_path.exists():
+    if immutability_commands is not None:
         unlock_command, _ = immutability_commands
-        try:
-            file_immutability.DEFAULT_FILE_IMMUTABILITY_BACKEND.run_command(unlock_command, metrics_path)
-        except Exception:
-            pass
+        for candidate in sorted(tmp_path.rglob("*"), reverse=True):
+            if not candidate.exists() or candidate.is_dir():
+                continue
+            try:
+                file_immutability.DEFAULT_FILE_IMMUTABILITY_BACKEND.run_command(unlock_command, candidate)
+            except Exception:
+                pass
 
 
 def test_init_creates_files(repo: Path) -> None:
