@@ -9,7 +9,7 @@ from pathlib import Path
 
 __all__ = ["__version__"]
 
-_BASE_VERSION = "0.2.0"
+_BASE_VERSION = "0.2.1"
 _PACKAGE_NAME = "codex-metrics"
 
 

@@ -3030,7 +3030,10 @@ def test_module_entrypoint_exposes_cli_version(repo: Path) -> None:
     assert result.returncode == 0, result.stderr
     output = result.stdout.strip()
     assert output.startswith("python -m codex_metrics ")
-    assert re.fullmatch(r"python -m codex_metrics 0\.2\.0\.dev\d+\+g[0-9a-f]+(?:\.dirty)?", output)
+    assert re.fullmatch(
+        rf"python -m codex_metrics {re.escape(BASE_PACKAGE_VERSION)}(?:\.dev\d+\+g[0-9a-f]+(?:\.dirty)?)?",
+        output,
+    )
 
 
 def test_resolve_version_prefers_git_metadata(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -3043,15 +3046,15 @@ def test_resolve_version_prefers_git_metadata(monkeypatch: pytest.MonkeyPatch, t
     monkeypatch.setattr(codex_metrics_pkg, "_find_repo_root", lambda: tmp_path)
     monkeypatch.setattr(codex_metrics_pkg, "_run_git", lambda repo_root, *args: responses.get(args))
 
-    assert codex_metrics_pkg._resolve_version() == "0.2.0.dev123+gabc1234"
+    assert codex_metrics_pkg._resolve_version() == "0.2.1.dev123+gabc1234"
 
 
 def test_resolve_version_falls_back_to_installed_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(codex_metrics_pkg, "_find_repo_root", lambda: None)
     monkeypatch.setattr(codex_metrics_pkg, "_is_source_layout", lambda: False)
-    monkeypatch.setattr(codex_metrics_pkg, "installed_version", lambda package_name: "0.2.0.dev321+gdef5678")
+    monkeypatch.setattr(codex_metrics_pkg, "installed_version", lambda package_name: "0.2.1.dev321+gdef5678")
 
-    assert codex_metrics_pkg._resolve_version() == "0.2.0.dev321+gdef5678"
+    assert codex_metrics_pkg._resolve_version() == "0.2.1.dev321+gdef5678"
 
 
 def test_resolve_version_returns_base_version_for_source_layout_without_git(monkeypatch: pytest.MonkeyPatch) -> None:
