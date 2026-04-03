@@ -16,7 +16,8 @@ class DeriveSummary:
     attempts: int
     timeline_events: int
     retry_chains: int
-    usage_slices: int
+    message_facts: int
+    session_usage: int
 
 
 def _normalize_timestamp(value: str | None) -> str | None:
@@ -24,6 +25,15 @@ def _normalize_timestamp(value: str | None) -> str | None:
         return None
     cleaned = value.strip()
     return cleaned if cleaned else None
+
+
+def _message_date_from_timestamp(value: str | None) -> str | None:
+    timestamp = _normalize_timestamp(value)
+    if timestamp is None:
+        return None
+    if len(timestamp) < 10:
+        return None
+    return timestamp[:10]
 
 
 def _normalize_project_cwd(value: Any) -> str | None:
@@ -144,6 +154,36 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     )
     conn.execute(
         """
+        CREATE TABLE IF NOT EXISTS derived_message_facts (
+            message_id TEXT PRIMARY KEY,
+            thread_id TEXT NOT NULL,
+            source_path TEXT NOT NULL,
+            session_path TEXT NOT NULL,
+            attempt_index INTEGER,
+            event_index INTEGER NOT NULL,
+            message_index INTEGER NOT NULL,
+            role TEXT NOT NULL,
+            message_timestamp TEXT,
+            message_date TEXT,
+            text TEXT NOT NULL,
+            model TEXT,
+            usage_event_id TEXT,
+            usage_event_index INTEGER,
+            usage_timestamp TEXT,
+            input_tokens INTEGER,
+            cached_input_tokens INTEGER,
+            output_tokens INTEGER,
+            reasoning_output_tokens INTEGER,
+            total_tokens INTEGER,
+            raw_json TEXT NOT NULL
+        )
+        """
+    )
+    existing_message_fact_columns = {row[1] for row in conn.execute("PRAGMA table_info(derived_message_facts)").fetchall()}
+    if "model" not in existing_message_fact_columns:
+        conn.execute("ALTER TABLE derived_message_facts ADD COLUMN model TEXT")
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS derived_retry_chains (
             thread_id TEXT PRIMARY KEY,
             source_path TEXT NOT NULL,
@@ -158,8 +198,8 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     )
     conn.execute(
         """
-        CREATE TABLE IF NOT EXISTS derived_usage_slices (
-            usage_slice_id TEXT PRIMARY KEY,
+        CREATE TABLE IF NOT EXISTS derived_session_usage (
+            session_usage_id TEXT PRIMARY KEY,
             thread_id TEXT NOT NULL,
             source_path TEXT NOT NULL,
             session_path TEXT NOT NULL,
@@ -200,8 +240,12 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_goals_cwd ON derived_goals(cwd)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_attempts_thread_id ON derived_attempts(thread_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_timeline_thread_id ON derived_timeline_events(thread_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_message_facts_thread_id ON derived_message_facts(thread_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_message_facts_session_path ON derived_message_facts(session_path)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_message_facts_message_date ON derived_message_facts(message_date)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_message_facts_model ON derived_message_facts(model)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_retry_chains_thread_id ON derived_retry_chains(thread_id)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_usage_slices_thread_id ON derived_usage_slices(thread_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_session_usage_thread_id ON derived_session_usage(thread_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_projects_cwd ON derived_projects(project_cwd)")
 
 
@@ -209,8 +253,9 @@ def _clear_derived_tables(conn: sqlite3.Connection) -> None:
     conn.execute("DELETE FROM derived_goals")
     conn.execute("DELETE FROM derived_attempts")
     conn.execute("DELETE FROM derived_timeline_events")
+    conn.execute("DELETE FROM derived_message_facts")
     conn.execute("DELETE FROM derived_retry_chains")
-    conn.execute("DELETE FROM derived_usage_slices")
+    conn.execute("DELETE FROM derived_session_usage")
     conn.execute("DELETE FROM derived_projects")
 
 
@@ -282,8 +327,37 @@ def _derived_attempt_id(thread_id: str, session_path: str) -> str:
     return hashlib.sha256(f"{thread_id}:{session_path}".encode("utf-8")).hexdigest()
 
 
-def _usage_slice_id(session_path: str) -> str:
+def _session_usage_id(session_path: str) -> str:
     return hashlib.sha256(session_path.encode("utf-8")).hexdigest()
+
+
+def _resolve_assistant_message_event_index(
+    usage_event_index: int,
+    assistant_event_indices: list[int],
+) -> int | None:
+    if usage_event_index in assistant_event_indices:
+        return usage_event_index
+    for event_index in assistant_event_indices:
+        if event_index > usage_event_index:
+            return event_index
+    for event_index in reversed(assistant_event_indices):
+        if event_index < usage_event_index:
+            return event_index
+    return None
+
+
+def _resolve_message_model(usage_event: sqlite3.Row | None, thread_model: str | None) -> str | None:
+    if usage_event is not None:
+        usage_model = usage_event["model"]
+        if isinstance(usage_model, str):
+            cleaned = usage_model.strip()
+            if cleaned:
+                return cleaned
+    if isinstance(thread_model, str):
+        cleaned = thread_model.strip()
+        if cleaned:
+            return cleaned
+    return None
 
 
 def _timeline_event_id(thread_id: str, event_type: str, event_order: int, session_path: str | None, timestamp: str | None) -> str:
@@ -300,7 +374,8 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
     attempts = 0
     timeline_events = 0
     retry_chains = 0
-    usage_slices = 0
+    message_facts = 0
+    session_usage = 0
 
     with sqlite3.connect(warehouse_path) as conn:
         conn.row_factory = sqlite3.Row
@@ -365,6 +440,30 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
 
         _clear_derived_tables(conn)
 
+        message_usage_groups: dict[str, dict[int, list[sqlite3.Row]]] = {}
+        for session_path, session_messages in messages_by_session.items():
+            assistant_event_indices = sorted(
+                {
+                    int(message_row["event_index"])
+                    for message_row in session_messages
+                    if message_row["role"] == "assistant"
+                }
+            )
+            if not assistant_event_indices:
+                continue
+            usage_groups_for_session: dict[int, list[sqlite3.Row]] = {}
+            for usage_row in usage_events_by_session.get(session_path, []):
+                usage_event_index = int(usage_row["event_index"])
+                target_event_index = _resolve_assistant_message_event_index(
+                    usage_event_index,
+                    assistant_event_indices,
+                )
+                if target_event_index is None:
+                    continue
+                usage_groups_for_session.setdefault(target_event_index, []).append(usage_row)
+            if usage_groups_for_session:
+                message_usage_groups[session_path] = usage_groups_for_session
+
         for thread_row in normalized_threads:
             thread_id = thread_row["thread_id"]
             project_cwd = _normalize_project_cwd(thread_row["cwd"])
@@ -423,6 +522,65 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                         "raw_json": message_row["raw_json"],
                     }
                 )
+
+            message_rows_by_session: dict[str, list[sqlite3.Row]] = {}
+            for message_row in thread_messages:
+                message_rows_by_session.setdefault(message_row["session_path"], []).append(message_row)
+
+            for session_path, session_message_rows in message_rows_by_session.items():
+                usage_groups_for_session = message_usage_groups.get(session_path, {})
+                attempt_index = next(
+                    (index for index, session_row in enumerate(thread_sessions, start=1) if session_row["session_path"] == session_path),
+                    None,
+                )
+                for message_row in session_message_rows:
+                    usage_rows = usage_groups_for_session.get(int(message_row["event_index"]), [])
+                    input_tokens = _sum_known_int([row["input_tokens"] for row in usage_rows])
+                    cached_input_tokens = _sum_known_int([row["cached_input_tokens"] for row in usage_rows])
+                    output_tokens = _sum_known_int([row["output_tokens"] for row in usage_rows])
+                    reasoning_output_tokens = _sum_known_int([row["reasoning_output_tokens"] for row in usage_rows])
+                    total_tokens = _sum_known_int([row["total_tokens"] for row in usage_rows])
+                    usage_event = usage_rows[0] if usage_rows else None
+                    usage_event_id = None if usage_event is None else usage_event["usage_event_id"]
+                    usage_event_index = None if usage_event is None else int(usage_event["event_index"])
+                    usage_timestamp = None if usage_event is None else _normalize_timestamp(usage_event["timestamp"])
+                    message_model = _resolve_message_model(usage_event, thread_row["model"])
+                    message_timestamp = _normalize_timestamp(message_row["timestamp"])
+                    conn.execute(
+                        """
+                        INSERT INTO derived_message_facts (
+                            message_id, thread_id, source_path, session_path, attempt_index,
+                            event_index, message_index, role, message_timestamp, message_date,
+                            text, model, usage_event_id, usage_event_index, usage_timestamp,
+                            input_tokens, cached_input_tokens, output_tokens,
+                            reasoning_output_tokens, total_tokens, raw_json
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            message_row["message_id"],
+                            message_row["thread_id"],
+                            message_row["source_path"],
+                            message_row["session_path"],
+                            attempt_index,
+                            message_row["event_index"],
+                            message_row["message_index"],
+                            message_row["role"],
+                            message_timestamp,
+                            _message_date_from_timestamp(message_timestamp),
+                            message_row["text"],
+                            message_model,
+                            usage_event_id,
+                            usage_event_index,
+                            usage_timestamp,
+                            input_tokens,
+                            cached_input_tokens,
+                            output_tokens,
+                            reasoning_output_tokens,
+                            total_tokens,
+                            message_row["raw_json"],
+                        ),
+                    )
+                    message_facts += 1
 
             for usage_row in thread_usage_events:
                 attempt_index = next(
@@ -551,17 +709,17 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                     ),
                 )
 
-                usage_slice_id = _usage_slice_id(session_path)
+                session_usage_id = _session_usage_id(session_path)
                 conn.execute(
                     """
-                    INSERT INTO derived_usage_slices (
-                        usage_slice_id, thread_id, source_path, session_path, attempt_index,
+                    INSERT INTO derived_session_usage (
+                        session_usage_id, thread_id, source_path, session_path, attempt_index,
                         usage_event_count, input_tokens, cached_input_tokens, output_tokens,
                         reasoning_output_tokens, total_tokens, first_usage_at, last_usage_at, raw_json
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
-                        usage_slice_id,
+                        session_usage_id,
                         thread_id,
                         session_row["source_path"],
                         session_path,
@@ -592,7 +750,7 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                         ),
                     ),
                 )
-                usage_slices += 1
+                session_usage += 1
 
             conn.execute(
                 """
@@ -716,5 +874,6 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
         attempts=attempts,
         timeline_events=timeline_events,
         retry_chains=retry_chains,
-        usage_slices=usage_slices,
+        message_facts=message_facts,
+        session_usage=session_usage,
     )

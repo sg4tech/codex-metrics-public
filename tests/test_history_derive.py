@@ -100,15 +100,17 @@ def test_derive_codex_history_builds_analysis_marts(repo: Path) -> None:
     assert "Attempts: 3" in result.stdout
     assert "Timeline events: 10" in result.stdout
     assert "Retry chains: 2" in result.stdout
-    assert "Usage slices: 3" in result.stdout
+    assert "Message facts: 4" in result.stdout
+    assert "Session usage: 3" in result.stdout
 
     with sqlite3.connect(warehouse_path) as conn:
         conn.row_factory = sqlite3.Row
         assert conn.execute("SELECT count(*) FROM derived_goals").fetchone()[0] == 2
         assert conn.execute("SELECT count(*) FROM derived_attempts").fetchone()[0] == 3
         assert conn.execute("SELECT count(*) FROM derived_timeline_events").fetchone()[0] == 10
+        assert conn.execute("SELECT count(*) FROM derived_message_facts").fetchone()[0] == 4
         assert conn.execute("SELECT count(*) FROM derived_retry_chains").fetchone()[0] == 2
-        assert conn.execute("SELECT count(*) FROM derived_usage_slices").fetchone()[0] == 3
+        assert conn.execute("SELECT count(*) FROM derived_session_usage").fetchone()[0] == 3
         assert conn.execute("SELECT count(*) FROM derived_projects").fetchone()[0] == 2
 
         thread_1 = conn.execute(
@@ -135,8 +137,28 @@ def test_derive_codex_history_builds_analysis_marts(repo: Path) -> None:
         assert attempt["message_count"] == 1
         assert attempt["usage_event_count"] == 0
 
+        user_message = conn.execute(
+            "SELECT message_date, model, total_tokens FROM derived_message_facts WHERE role = 'user' AND text = ?",
+            ("hello ingest",),
+        ).fetchone()
+        assert user_message["message_date"] == "2026-04-02"
+        assert user_message["model"] == "gpt-5.4-mini"
+        assert user_message["total_tokens"] is None
+
+        assistant_message = conn.execute(
+            "SELECT message_date, model, total_tokens, input_tokens, cached_input_tokens, output_tokens, reasoning_output_tokens FROM derived_message_facts WHERE role = 'assistant' AND text = ?",
+            ("hi there",),
+        ).fetchone()
+        assert assistant_message["message_date"] == "2026-04-02"
+        assert assistant_message["model"] == "gpt-5.4-mini"
+        assert assistant_message["input_tokens"] == 100
+        assert assistant_message["cached_input_tokens"] == 10
+        assert assistant_message["output_tokens"] == 50
+        assert assistant_message["reasoning_output_tokens"] == 5
+        assert assistant_message["total_tokens"] == 165
+
         usage_slice = conn.execute(
-            "SELECT usage_event_count, total_tokens, first_usage_at, last_usage_at FROM derived_usage_slices WHERE session_path LIKE ?",
+            "SELECT usage_event_count, total_tokens, first_usage_at, last_usage_at FROM derived_session_usage WHERE session_path LIKE ?",
             ("%rollout-3.jsonl",),
         ).fetchone()
         assert usage_slice["usage_event_count"] == 0
@@ -174,8 +196,9 @@ def test_derive_codex_history_is_idempotent_on_rerun(repo: Path) -> None:
         assert conn.execute("SELECT count(*) FROM derived_goals").fetchone()[0] == 2
         assert conn.execute("SELECT count(*) FROM derived_attempts").fetchone()[0] == 2
         assert conn.execute("SELECT count(*) FROM derived_timeline_events").fetchone()[0] == 8
+        assert conn.execute("SELECT count(*) FROM derived_message_facts").fetchone()[0] == 3
         assert conn.execute("SELECT count(*) FROM derived_retry_chains").fetchone()[0] == 2
-        assert conn.execute("SELECT count(*) FROM derived_usage_slices").fetchone()[0] == 2
+        assert conn.execute("SELECT count(*) FROM derived_session_usage").fetchone()[0] == 2
         assert conn.execute("SELECT count(*) FROM derived_projects").fetchone()[0] == 2
 
 

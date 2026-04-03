@@ -521,7 +521,8 @@ def handle_derive_codex_history(args: Namespace, cli_module: CommandRuntime) -> 
     print(f"Attempts: {summary.attempts}")
     print(f"Timeline events: {summary.timeline_events}")
     print(f"Retry chains: {summary.retry_chains}")
-    print(f"Usage slices: {summary.usage_slices}")
+    print(f"Message facts: {summary.message_facts}")
+    print(f"Session usage: {summary.session_usage}")
     return 0
 
 
