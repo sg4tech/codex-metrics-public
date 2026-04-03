@@ -24,6 +24,8 @@ For history/search/reconstruction work, also read:
 
 ## Core working style
 
+- For engineering work, treat Linear as the source of truth for intake and traceability: create or update the relevant Linear issue before writing code, capture the requirements and acceptance criteria there, and work only through that issue.
+- Commit subjects for engineering work must match `CODEX-123: summary`; when a change is intentionally not tied to a Linear issue, use the explicit `NO-TASK: summary` prefix instead.
 - During module splits or structural refactors, preserve the existing import/export surface until a breaking change is explicitly intended and validated.
 - Treat shim modules, entrypoints, and re-exported symbols that are exercised by tests or automation as part of the compatibility contract, not as disposable implementation details.
 - For workflow and lifecycle changes, prefer an explicit state machine over scattered guard checks; write or update the state/event matrix tests before changing behavior.

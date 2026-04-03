@@ -81,6 +81,30 @@ Do not edit generated metrics files manually when the CLI can regenerate them.
 
 ## Required Workflow
 
+### Linear-First Intake
+
+Before any substantial implementation or documentation work begins, create or update the corresponding Linear issue and record the requirements there.
+
+The issue should contain, at minimum:
+
+1. the requested outcome
+2. the acceptance criteria
+3. any relevant links, files, or follow-up questions
+
+Do not start coding until the work is represented in Linear. If the scope changes mid-stream, update the issue first and continue through that issue rather than drifting into undocumented work.
+
+### Commit Subject Rules
+
+Use a Linear-linked commit subject for engineering work:
+
+- `CODEX-123: summary`
+
+If a change is intentionally not tied to a Linear issue, use the explicit no-task prefix instead:
+
+- `NO-TASK: summary`
+
+Do not use an unmarked free-form commit subject for engineering work. The validator should reject subjects that omit both prefixes.
+
 ### At Goal Start
 
 1. Detect whether the work belongs to an existing goal or a new goal.

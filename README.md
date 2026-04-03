@@ -30,6 +30,12 @@ Repository workflow and policy live in:
 - `AGENTS.md`
 - `docs/codex-metrics-policy.md`
 
+Git commit subject validation lives in `.githooks/commit-msg`. Enable the repo hooks with:
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ## Quick Start
 
 Requirements:
@@ -154,6 +160,18 @@ Normalize the raw warehouse into analysis-friendly tables:
 
 ```bash
 codex-metrics normalize-codex-history --help
+```
+
+Derive analysis marts from the normalized warehouse:
+
+```bash
+codex-metrics derive-codex-history --help
+```
+
+Compare the structured metrics ledger against the reconstructed Codex history warehouse:
+
+```bash
+codex-metrics compare-metrics-history
 ```
 
 Audit why closed product goals are still missing cost coverage:
