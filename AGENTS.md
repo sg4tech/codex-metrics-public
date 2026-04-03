@@ -6,6 +6,8 @@ Before starting or continuing any engineering task, always read:
 
 - `AGENTS.md`
 - `docs/codex-metrics-policy.md`
+- `docs/task-lifecycle.md`
+- `docs/local-linear-setup.md`
 
 The rules in `docs/codex-metrics-policy.md` are mandatory and are part of this repository's operating instructions.
 
@@ -25,11 +27,13 @@ For history/search/reconstruction work, also read:
 ## Core working style
 
 - For engineering work, treat Linear as the source of truth for intake and traceability: create or update the relevant Linear issue before writing code, capture the requirements and acceptance criteria there, and work only through that issue.
+- For Linear-driven engineering work, use `docs/task-lifecycle.md` as the working workflow guide and `docs/local-linear-setup.md` as the repo-specific team/status reference.
 - Standalone retrospective work is explicitly exempt from the Linear-first intake rule. Log the retrospective in `docs/retros/`, track it as `goal_type=retro`, and do not create a Linear issue unless the user explicitly asks to connect it to delivery work.
 - Commit subjects for engineering work must match `CODEX-123: summary`; when a change is intentionally not tied to a Linear issue, use the explicit `NO-TASK: summary` prefix instead. Retrospective-only commits must use `NO-TASK: summary`.
 - During module splits or structural refactors, preserve the existing import/export surface until a breaking change is explicitly intended and validated.
 - Treat shim modules, entrypoints, and re-exported symbols that are exercised by tests or automation as part of the compatibility contract, not as disposable implementation details.
 - For workflow and lifecycle changes, prefer an explicit state machine over scattered guard checks; write or update the state/event matrix tests before changing behavior.
+- For workflow and lifecycle changes, require explicit closure criteria and a clear handoff path from implementation to review to completion.
 - For changes that introduce system-level side effects, reason about the full side-effect surface instead of only the primary artifact; cleanup and verification should cover files, attributes, locks, temp directories, subprocesses, and any other mutated global state.
 - For history search or transcript analysis, treat `raw_messages`, `raw_token_usage`, `normalized_messages`, `derived_timeline_events`, and `derived_goals` as the canonical pipeline waypoints before inventing new storage.
 - When product framing or success criteria are not yet confirmed by the user, treat drafts as hypotheses, not settled truth.
