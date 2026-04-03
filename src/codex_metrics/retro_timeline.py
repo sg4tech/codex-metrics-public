@@ -177,7 +177,7 @@ def _build_window(
             continue
         failure_reason_counts[goal.failure_reason] = failure_reason_counts.get(goal.failure_reason, 0) + 1
 
-    goal_timestamps = [_goal_timestamp(goal) for goal in goals if _goal_timestamp(goal) is not None]
+    goal_timestamps = [timestamp for goal in goals if (timestamp := _goal_timestamp(goal)) is not None]
     known_cost_total = sum(goal.cost_usd_known or 0.0 for goal in known_cost_successes)
     raw_payload = {
         "retro_event_id": retro_event_id,
