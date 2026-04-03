@@ -1,8 +1,11 @@
-# Task Lifecycle Pilot
+# Task Lifecycle Pilot Archive
+
+This document has been superseded by [`docs/task-lifecycle.md`](../task-lifecycle.md).
+It is kept only as a historical record of how the workflow was originally explored.
 
 ## Purpose
 
-This document describes a lightweight pilot workflow for running Codex-assisted engineering through explicit task stages instead of ad hoc conversational jumps.
+This document originally described a lightweight pilot workflow for running Codex-assisted engineering through explicit task stages instead of ad hoc conversational jumps.
 
 The goal is not to add bureaucracy.
 
@@ -14,7 +17,7 @@ The goal is to improve:
 - reviewability
 - cost and quality attribution by phase
 
-This is a pilot operating model, not yet a required repository-wide rule.
+This was a pilot operating model, not yet a required repository-wide rule.
 
 ## Why Try This
 
@@ -31,7 +34,7 @@ But the history still shows a recurring weakness:
 - some misses came from doing adjacent work instead of the requested outcome
 - some unclear outcomes came from jumping between analysis, implementation, review, and PM framing without a clear stage boundary
 
-This pilot is meant to test whether a clearer lifecycle improves quality without making the workflow too heavy.
+This pilot was meant to test whether a clearer lifecycle improves quality without making the workflow too heavy.
 
 ## Core Idea
 
@@ -224,7 +227,7 @@ If the work needs to move stages, call that handoff explicitly.
 
 ### Use the current metrics model, not a new schema yet
 
-For the pilot, do not add a new task engine immediately.
+For the original pilot, do not add a new task engine immediately.
 
 Use the current goal-based system and treat stage as an operational overlay recorded in notes, titles, or explicit handoff comments.
 
