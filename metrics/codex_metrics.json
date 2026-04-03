@@ -4676,6 +4676,26 @@
       "agent_name": null,
       "result_fit": null,
       "model": null
+    },
+    {
+      "goal_id": "2026-04-03-010",
+      "title": "Recover active task for in-progress repository work",
+      "goal_type": "meta",
+      "supersedes_goal_id": null,
+      "status": "in_progress",
+      "attempts": 1,
+      "started_at": "2026-04-03T10:04:05+00:00",
+      "finished_at": null,
+      "cost_usd": null,
+      "input_tokens": null,
+      "cached_input_tokens": null,
+      "output_tokens": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Implemented universal CLI invocation logging hook and added observability/test/spec coverage for cli_invoked.",
+      "agent_name": null,
+      "result_fit": null,
+      "model": null
     }
   ],
   "entries": [
@@ -8703,6 +8723,24 @@
       "tokens_total": null,
       "failure_reason": null,
       "notes": "Synchronized H-016, H-018, H-022, and product framing into a single decision flow, and added a narrow implementation spec for the first event families.",
+      "agent_name": null,
+      "model": null
+    },
+    {
+      "entry_id": "2026-04-03-010-attempt-001",
+      "goal_id": "2026-04-03-010",
+      "entry_type": "meta",
+      "inferred": false,
+      "status": "in_progress",
+      "started_at": "2026-04-03T10:04:05+00:00",
+      "finished_at": null,
+      "cost_usd": null,
+      "input_tokens": null,
+      "cached_input_tokens": null,
+      "output_tokens": null,
+      "tokens_total": null,
+      "failure_reason": null,
+      "notes": "Implemented universal CLI invocation logging hook and added observability/test/spec coverage for cli_invoked.",
       "agent_name": null,
       "model": null
     }
