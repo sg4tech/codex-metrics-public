@@ -39,14 +39,14 @@ This feature should not:
 
 Start with only these families:
 
-1. `cli_invoked`
-1. `goal_created`
-2. `goal_updated`
-3. `goal_attempt_incremented`
-4. `goal_closed`
-5. `goal_merged`
-6. `usage_synced`
-7. `observability_write_failed`
+- `cli_invoked`
+- `goal_created`
+- `goal_updated`
+- `goal_attempt_incremented`
+- `goal_closed`
+- `goal_merged`
+- `usage_synced`
+- `observability_write_failed`
 
 These should be enough to anchor the first before/after analysis and detect whether the observability layer is carrying its weight.
 

@@ -1756,9 +1756,7 @@ def _record_cli_invocation(args: argparse.Namespace) -> None:
     command = getattr(args, "command", None)
     if command is None:
         return
-    payload: dict[str, Any] = {
-        "cwd": str(Path.cwd()),
-    }
+    payload: dict[str, Any] = {}
     task_id = getattr(args, "task_id", None)
     if task_id is not None:
         payload["task_id"] = task_id
