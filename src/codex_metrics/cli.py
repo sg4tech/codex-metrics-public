@@ -82,6 +82,9 @@ from codex_metrics.retro_timeline import (
 from codex_metrics.retro_timeline import (
     render_retro_timeline_report as render_retro_timeline_text_report,
 )
+from codex_metrics.retro_timeline import (
+    render_retro_timeline_report_json as render_retro_timeline_json_report,
+)
 from codex_metrics.usage_backends import (
     ClaudeUsageBackend,
     UsageBackend,
@@ -116,6 +119,7 @@ render_history_compare_report_json = render_compare_json_report
 render_public_boundary_report = render_public_boundary_text_report
 render_public_boundary_report_json = render_public_boundary_json_report
 render_retro_timeline_report = render_retro_timeline_text_report
+render_retro_timeline_report_json = render_retro_timeline_json_report
 
 ALLOWED_STATUSES = domain.ALLOWED_STATUSES
 ALLOWED_TASK_TYPES = domain.ALLOWED_TASK_TYPES
@@ -1515,6 +1519,11 @@ def build_parser() -> argparse.ArgumentParser:
     retro_timeline_parser.add_argument("--warehouse-path", default=str(RAW_WAREHOUSE_PATH))
     retro_timeline_parser.add_argument("--cwd", default=str(Path.cwd()))
     retro_timeline_parser.add_argument("--window-size", type=int, default=5)
+    retro_timeline_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Render the retrospective timeline as JSON instead of human-readable text.",
+    )
 
     cost_audit_parser = subparsers.add_parser(
         "audit-cost-coverage",
