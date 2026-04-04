@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import shlex
+import subprocess
 from pathlib import Path
 
 DEFAULT_PRIVATE_REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -42,9 +43,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("status", help="Summarize the intended overlay layout.")
-    subparsers.add_parser("bootstrap", help="Print the initial subtree import commands.")
-    subparsers.add_parser("push", help="Print the command used to publish private subtree changes.")
-    subparsers.add_parser("pull", help="Print the command used to pull public changes into private.")
+    bootstrap_parser = subparsers.add_parser("bootstrap", help="Print the initial subtree import commands.")
+    bootstrap_parser.add_argument(
+        "--execute",
+        action="store_true",
+        help="Run the bootstrap commands instead of only printing them.",
+    )
+    push_parser = subparsers.add_parser("push", help="Print the command used to publish private subtree changes.")
+    push_parser.add_argument(
+        "--execute",
+        action="store_true",
+        help="Run the subtree push instead of only printing the planned shell command.",
+    )
+    pull_parser = subparsers.add_parser("pull", help="Print the command used to pull public changes into private.")
+    pull_parser.add_argument(
+        "--execute",
+        action="store_true",
+        help="Run the subtree pull instead of only printing the planned shell command.",
+    )
     return parser
 
 
@@ -95,6 +111,27 @@ def build_pull_command(*, remote_name: str, prefix: str, branch: str) -> str:
     return f"git subtree pull --prefix={prefix} {remote_name} {branch} --squash"
 
 
+def _run(command: list[str], *, cwd: Path) -> None:
+    subprocess.run(command, cwd=cwd, check=True)
+
+
+def _verify_public_boundary(*, private_repo_root: Path, prefix: str) -> None:
+    rules_path = private_repo_root / prefix / "config" / "public-boundary-rules.toml"
+    _run(
+        [
+            str(private_repo_root / ".venv" / "bin" / "python"),
+            "-m",
+            "codex_metrics",
+            "verify-public-boundary",
+            "--repo-root",
+            str(private_repo_root / prefix),
+            "--rules-path",
+            str(rules_path),
+        ],
+        cwd=private_repo_root,
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -113,21 +150,36 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "bootstrap":
-        for line in build_bootstrap_commands(
+        commands = build_bootstrap_commands(
             public_repo=public_repo,
             remote_name=args.remote_name,
             prefix=args.prefix,
             branch=args.branch,
-        ):
-            print(line)
+        )
+        if args.execute:
+            _run(shlex.split(commands[0]), cwd=private_repo_root)
+            _run(shlex.split(commands[1]), cwd=private_repo_root)
+        else:
+            for line in commands:
+                print(line)
         return 0
 
     if args.command == "push":
-        print(build_push_command(remote_name=args.remote_name, prefix=args.prefix, branch=args.branch))
+        command = build_push_command(remote_name=args.remote_name, prefix=args.prefix, branch=args.branch)
+        if args.execute:
+            _verify_public_boundary(private_repo_root=private_repo_root, prefix=args.prefix)
+            _run(shlex.split(command), cwd=private_repo_root)
+        else:
+            print(command)
         return 0
 
     if args.command == "pull":
-        print(build_pull_command(remote_name=args.remote_name, prefix=args.prefix, branch=args.branch))
+        command = build_pull_command(remote_name=args.remote_name, prefix=args.prefix, branch=args.branch)
+        if args.execute:
+            _run(shlex.split(command), cwd=private_repo_root)
+            _verify_public_boundary(private_repo_root=private_repo_root, prefix=args.prefix)
+        else:
+            print(command)
         return 0
 
     parser.error(f"Unknown command: {args.command}")

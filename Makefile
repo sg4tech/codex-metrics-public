@@ -1,4 +1,4 @@
-.PHONY: lint typecheck test verify verify-public-boundary export-public-tree public-overlay-status public-overlay-bootstrap public-overlay-push public-overlay-pull coverage dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke
+.PHONY: lint typecheck test verify verify-public-boundary export-public-tree public-overlay-status public-overlay-bootstrap public-overlay-verify public-overlay-push public-overlay-pull coverage dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke
 
 lint:
 	./.venv/bin/ruff check .
@@ -24,11 +24,14 @@ public-overlay-status:
 public-overlay-bootstrap:
 	./.venv/bin/python scripts/public_overlay.py --private-repo-root . --public-repo ../codex-metrics-public bootstrap
 
+public-overlay-verify:
+	./.venv/bin/python -m codex_metrics verify-public-boundary --repo-root oss --rules-path oss/config/public-boundary-rules.toml
+
 public-overlay-push:
-	./.venv/bin/python scripts/public_overlay.py --private-repo-root . --public-repo ../codex-metrics-public push
+	./.venv/bin/python scripts/public_overlay.py --private-repo-root . --public-repo ../codex-metrics-public push --execute
 
 public-overlay-pull:
-	./.venv/bin/python scripts/public_overlay.py --private-repo-root . --public-repo ../codex-metrics-public pull
+	./.venv/bin/python scripts/public_overlay.py --private-repo-root . --public-repo ../codex-metrics-public pull --execute
 
 coverage:
 	./.venv/bin/coverage erase

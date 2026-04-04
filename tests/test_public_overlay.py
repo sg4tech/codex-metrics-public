@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
+import scripts.public_overlay as public_overlay
 from scripts.public_overlay import (
     build_bootstrap_commands,
     build_pull_command,
     build_push_command,
     build_status_lines,
+    main,
 )
 
 
@@ -55,3 +58,42 @@ def test_public_overlay_command_builders_quote_and_target_correctly(tmp_path: Pa
     assert build_pull_command(remote_name="public", prefix="oss", branch="main") == (
         "git subtree pull --prefix=oss public main --squash"
     )
+
+
+def test_public_overlay_push_execute_runs_verify_then_push(tmp_path: Path, monkeypatch) -> None:
+    private_repo_root = tmp_path / "private"
+    private_repo_root.mkdir()
+    (private_repo_root / "oss" / "config").mkdir(parents=True)
+    (private_repo_root / "oss" / "config" / "public-boundary-rules.toml").write_text(
+        "allowed_roots = [\"README.md\"]\n",
+        encoding="utf-8",
+    )
+    public_repo = tmp_path / "public"
+    public_repo.mkdir()
+    calls: list[tuple[list[str], Path]] = []
+
+    def fake_run(command, *, cwd, check):
+        calls.append((list(command), cwd))
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(public_overlay.subprocess, "run", fake_run)
+
+    assert (
+        main(
+            [
+                "--private-repo-root",
+                str(private_repo_root),
+                "--public-repo",
+                str(public_repo),
+                "push",
+                "--execute",
+            ]
+        )
+        == 0
+    )
+
+    assert calls[0][0][0].endswith("/.venv/bin/python")
+    assert calls[0][0][-2:] == ["--rules-path", str(private_repo_root / "oss" / "config" / "public-boundary-rules.toml")]
+    assert calls[1][0] == ["git", "subtree", "push", "--prefix=oss", "public", "main"]
+    assert calls[0][1] == private_repo_root
+    assert calls[1][1] == private_repo_root
