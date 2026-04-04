@@ -1,15 +1,20 @@
-.PHONY: lint typecheck test verify verify-public-boundary
+.PHONY: lint typecheck test verify verify-public-boundary setup-hooks
+
+PYTHON ?= python3
 
 lint:
-	python -m ruff check .
+	$(PYTHON) -m ruff check .
 
 typecheck:
-	python -m mypy src
+	$(PYTHON) -m mypy src
 
 test:
-	python -m pytest tests/test_public_boundary.py
+	$(PYTHON) -m pytest tests/test_public_boundary.py
 
 verify-public-boundary:
-	python -m codex_metrics verify-public-boundary --repo-root . --rules-path config/public-boundary-rules.toml
+	PYTHONPATH=src $(PYTHON) -m codex_metrics verify-public-boundary --repo-root . --rules-path config/public-boundary-rules.toml
+
+setup-hooks:
+	git config core.hooksPath .githooks
 
 verify: lint typecheck test verify-public-boundary
