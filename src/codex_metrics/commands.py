@@ -80,9 +80,11 @@ class CommandRuntime(Protocol):
     def ingest_codex_history(self, source_root: Path, warehouse_path: Path) -> Any: ...
     def normalize_codex_history(self, warehouse_path: Path) -> Any: ...
     def derive_codex_history(self, warehouse_path: Path) -> Any: ...
+    def verify_public_boundary(self, *, repo_root: Path, rules_path: Path) -> Any: ...
     def render_audit_report(self, report: AuditReport) -> str: ...
     def render_history_compare_report(self, report: HistoryCompareReport) -> str: ...
     def render_retro_timeline_report(self, report: RetroTimelineReport) -> str: ...
+    def render_public_boundary_report(self, report: Any) -> str: ...
     def audit_cost_coverage(
         self,
         data: dict[str, Any],
@@ -571,6 +573,15 @@ def handle_audit_cost_coverage(args: Namespace, cli_module: CommandRuntime) -> i
     )
     print(cli_module.render_cost_audit_report(report))
     return 0
+
+
+def handle_verify_public_boundary(args: Namespace, cli_module: CommandRuntime) -> int:
+    report = cli_module.verify_public_boundary(
+        repo_root=Path(args.repo_root).expanduser(),
+        rules_path=Path(args.rules_path).expanduser(),
+    )
+    print(cli_module.render_public_boundary_report(report))
+    return 0 if not report.findings else 1
 
 
 def handle_sync_codex_usage(args: Namespace, cli_module: CommandRuntime) -> int:

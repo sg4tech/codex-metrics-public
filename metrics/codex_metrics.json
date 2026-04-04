@@ -4723,19 +4723,19 @@
       "goal_type": "meta",
       "supersedes_goal_id": null,
       "status": "in_progress",
-      "attempts": 0,
+      "attempts": 1,
       "started_at": "2026-04-03T11:26:52+00:00",
       "finished_at": null,
-      "cost_usd": null,
-      "input_tokens": null,
-      "cached_input_tokens": null,
-      "output_tokens": null,
-      "tokens_total": null,
+      "cost_usd": 0.02792,
+      "input_tokens": 98138,
+      "cached_input_tokens": 93952,
+      "output_tokens": 518,
+      "tokens_total": 291374,
       "failure_reason": null,
-      "notes": "Auto-recovered because repository work was detected before task bookkeeping started. Detected changes: etrics/codex_metrics.json, src/codex_metrics/__init__.py, tests/test_update_codex_metrics.py",
-      "agent_name": null,
+      "notes": "Phase 2: start private oss/ overlay and subtree sync prep.",
+      "agent_name": "codex",
       "result_fit": null,
-      "model": null
+      "model": "gpt-5.4-mini"
     }
   ],
   "entries": [
@@ -8801,6 +8801,24 @@
       "notes": "Bumped base version to 0.2.1, updated CLI version expectations, and verified with targeted pytest plus make verify.",
       "agent_name": null,
       "model": null
+    },
+    {
+      "entry_id": "2026-04-03-012-attempt-001",
+      "goal_id": "2026-04-03-012",
+      "entry_type": "meta",
+      "inferred": false,
+      "status": "in_progress",
+      "started_at": "2026-04-03T11:26:52+00:00",
+      "finished_at": null,
+      "cost_usd": 0.02792,
+      "input_tokens": 98138,
+      "cached_input_tokens": 93952,
+      "output_tokens": 518,
+      "tokens_total": 291374,
+      "failure_reason": null,
+      "notes": "Phase 2: start private oss/ overlay and subtree sync prep.",
+      "agent_name": "codex",
+      "model": "gpt-5.4-mini"
     }
   ]
 }

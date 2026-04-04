@@ -1,4 +1,4 @@
-.PHONY: lint typecheck test verify coverage dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke
+.PHONY: lint typecheck test verify verify-public-boundary export-public-tree public-overlay-status public-overlay-bootstrap public-overlay-push public-overlay-pull coverage dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke
 
 lint:
 	./.venv/bin/ruff check .
@@ -7,9 +7,28 @@ typecheck:
 	./.venv/bin/mypy src scripts
 
 test:
-	./.venv/bin/python -m pytest tests/test_update_codex_metrics.py tests/test_update_codex_metrics_domain.py tests/test_history_audit.py tests/test_reporting.py
+	./.venv/bin/python -m pytest tests/test_update_codex_metrics.py tests/test_update_codex_metrics_domain.py tests/test_history_audit.py tests/test_reporting.py tests/test_public_boundary.py tests/test_export_public_tree.py
 
 verify: lint typecheck test
+
+verify-public-boundary:
+	@test -n "$(PUBLIC_BOUNDARY_ROOT)" || (echo "Set PUBLIC_BOUNDARY_ROOT to the candidate public repository root before running make verify-public-boundary." && exit 2)
+	./.venv/bin/python -m codex_metrics verify-public-boundary --repo-root "$(PUBLIC_BOUNDARY_ROOT)" --rules-path config/public-boundary-rules.toml
+
+export-public-tree:
+	./.venv/bin/python scripts/export_public_tree.py --output-dir build/public-tree
+
+public-overlay-status:
+	./.venv/bin/python scripts/public_overlay.py --private-repo-root . --public-repo ../codex-metrics-public status
+
+public-overlay-bootstrap:
+	./.venv/bin/python scripts/public_overlay.py --private-repo-root . --public-repo ../codex-metrics-public bootstrap
+
+public-overlay-push:
+	./.venv/bin/python scripts/public_overlay.py --private-repo-root . --public-repo ../codex-metrics-public push
+
+public-overlay-pull:
+	./.venv/bin/python scripts/public_overlay.py --private-repo-root . --public-repo ../codex-metrics-public pull
 
 coverage:
 	./.venv/bin/coverage erase

@@ -55,6 +55,15 @@ from codex_metrics.history_normalize import (
     normalize_codex_history as run_normalize_codex_history,
 )
 from codex_metrics.observability import record_cli_invocation_observation
+from codex_metrics.public_boundary import (
+    PublicBoundaryReport,
+)
+from codex_metrics.public_boundary import (
+    render_public_boundary_report as render_public_boundary_text_report,
+)
+from codex_metrics.public_boundary import (
+    verify_public_boundary as run_verify_public_boundary,
+)
 from codex_metrics.retro_timeline import (
     derive_retro_timeline as run_derive_retro_timeline,
 )
@@ -89,6 +98,7 @@ print_summary = reporting.print_summary
 render_cost_audit_report = render_cost_coverage_audit_report
 render_audit_report = render_history_audit_report
 render_history_compare_report = render_compare_report
+render_public_boundary_report = render_public_boundary_text_report
 render_retro_timeline_report = render_retro_timeline_text_report
 
 ALLOWED_STATUSES = domain.ALLOWED_STATUSES
@@ -167,6 +177,7 @@ REPORT_MD_PATH = Path("docs/codex-metrics.md")
 CODEX_STATE_PATH = Path.home() / ".codex" / "state_5.sqlite"
 CODEX_LOGS_PATH = Path.home() / ".codex" / "logs_1.sqlite"
 RAW_WAREHOUSE_PATH = default_raw_warehouse_path(METRICS_JSON_PATH)
+PUBLIC_BOUNDARY_RULES_PATH = Path("config/public-boundary-rules.toml")
 USAGE_FIELD_PATTERNS = {
     "input_tokens": re.compile(r"\binput_token_count=(\d+)"),
     "cached_input_tokens": re.compile(r"\bcached_token_count=(\d+)"),
@@ -217,6 +228,10 @@ def normalize_codex_history(warehouse_path: Path) -> NormalizeSummary:
 
 def derive_codex_history(warehouse_path: Path) -> DeriveSummary:
     return run_derive_codex_history(warehouse_path=warehouse_path)
+
+
+def verify_public_boundary(*, repo_root: Path, rules_path: Path) -> PublicBoundaryReport:
+    return run_verify_public_boundary(repo_root=repo_root, rules_path=rules_path)
 
 
 def _run_git(cwd: Path, *args: str) -> str | None:
@@ -1488,6 +1503,17 @@ def build_parser() -> argparse.ArgumentParser:
     cost_audit_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
     cost_audit_parser.add_argument("--codex-thread-id")
 
+    public_boundary_parser = subparsers.add_parser(
+        "verify-public-boundary",
+        help="Verify that a public repository tree does not contain private-only material",
+        description=(
+            "Check a candidate public repository tree against explicit public-boundary rules. "
+            "Fail on forbidden paths, forbidden file types, unexpected roots, or private-content markers."
+        ),
+    )
+    public_boundary_parser.add_argument("--repo-root", default=".")
+    public_boundary_parser.add_argument("--rules-path", default=str(PUBLIC_BOUNDARY_RULES_PATH))
+
     subparsers.add_parser(
         "ensure-active-task",
         help="Recover or verify active task bookkeeping from local git changes",
@@ -1827,6 +1853,9 @@ def main() -> int:
 
     if args.command == "audit-cost-coverage":
         return commands.handle_audit_cost_coverage(args, sys.modules[__name__])
+
+    if args.command == "verify-public-boundary":
+        return commands.handle_verify_public_boundary(args, sys.modules[__name__])
 
     if args.command == "ensure-active-task":
         return commands.handle_ensure_active_task(args, sys.modules[__name__])
