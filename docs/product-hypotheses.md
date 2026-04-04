@@ -44,3 +44,5 @@ Quick map:
 | `H-024` | `active` | `docs/product-hypotheses/H-024.md` | The public repository may need generated SEO-ready docs and landing pages from the start to make open-source distribution discoverable |
 | `H-025` | `active` | `docs/product-hypotheses/H-025.md` | `bootstrap` may need to become a project starter that can create a new workspace directory and optional non-codex starter setup |
 | `H-026` | `active` | `docs/product-hypotheses/H-026.md` | Full-suite automated tests may lower development cost by shrinking the feedback loop and token spend |
+| `H-027` | `active` | `docs/product-hypotheses/H-027.md` | Task duration may be required before the revenue side of P&L can be estimated |
+| `H-028` | `active` | `docs/product-hypotheses/H-028.md` | Human oversight cost may be a larger hidden expense than AI API cost |
