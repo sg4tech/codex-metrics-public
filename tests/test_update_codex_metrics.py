@@ -3699,6 +3699,238 @@ def test_claude_usage_backend_haiku_alias_resolves_pricing(tmp_path: Path) -> No
     assert window.model_name == "claude-haiku-4-5"
 
 
+def test_detect_claude_presence_true_when_jsonl_exists(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import codex_metrics.cli as cli_module
+
+    claude_root = tmp_path / "dot-claude"
+    cwd = tmp_path / "repo"
+    cwd.mkdir()
+    encoded = str(cwd).replace("/", "-").replace(".", "-")
+    project_dir = claude_root / "projects" / encoded
+    project_dir.mkdir(parents=True)
+    (project_dir / "session.jsonl").write_text("{}\n", encoding="utf-8")
+
+    monkeypatch.setattr(cli_module, "CLAUDE_ROOT", claude_root)
+    assert cli_module._detect_claude_presence(cwd) is True
+
+
+def test_detect_claude_presence_false_when_no_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import codex_metrics.cli as cli_module
+
+    claude_root = tmp_path / "dot-claude"
+    claude_root.mkdir()
+    monkeypatch.setattr(cli_module, "CLAUDE_ROOT", claude_root)
+    assert cli_module._detect_claude_presence(tmp_path / "repo") is False
+
+
+def test_detect_claude_presence_false_when_dir_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import codex_metrics.cli as cli_module
+
+    claude_root = tmp_path / "dot-claude"
+    cwd = tmp_path / "repo"
+    cwd.mkdir()
+    encoded = str(cwd).replace("/", "-").replace(".", "-")
+    (claude_root / "projects" / encoded).mkdir(parents=True)  # exists but no .jsonl files
+
+    monkeypatch.setattr(cli_module, "CLAUDE_ROOT", claude_root)
+    assert cli_module._detect_claude_presence(cwd) is False
+
+
+def test_resolve_goal_usage_updates_detects_claude_and_sets_agent_name(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """At start-task time (no usage yet), detection from JSONL presence should set agent_name=claude."""
+    import codex_metrics.cli as cli_module
+    from codex_metrics.domain import GoalRecord
+
+    cwd = tmp_path / "repo"
+    cwd.mkdir()
+    claude_root = create_claude_jsonl_usage_sources(
+        tmp_path,
+        claude_root=tmp_path / "dot-claude",
+        cwd=cwd,
+        model="claude-sonnet-4-6",
+        event_timestamp="2026-03-29T09:05:00.000Z",
+        input_tokens=0,
+        cache_creation_tokens=0,
+        cache_read_tokens=0,
+        output_tokens=0,  # no tokens yet (task just started)
+    )
+    monkeypatch.setattr(cli_module, "CLAUDE_ROOT", claude_root)
+
+    task = GoalRecord(
+        goal_id="test-goal",
+        title="Test",
+        goal_type="product",
+        supersedes_goal_id=None,
+        status="in_progress",
+        attempts=1,
+        started_at="2026-03-29T09:00:00+00:00",
+        finished_at=None,
+        cost_usd=None,
+        input_tokens=None,
+        cached_input_tokens=None,
+        output_tokens=None,
+        tokens_total=None,
+        failure_reason=None,
+        notes=None,
+        agent_name=None,  # not yet set
+    )
+
+    *_, detected_agent_name = cli_module.resolve_goal_usage_updates(
+        task=task,
+        cost_usd_add=None,
+        cost_usd_set=None,
+        tokens_add=None,
+        tokens_set=None,
+        model=None,
+        input_tokens=None,
+        cached_input_tokens=None,
+        output_tokens=None,
+        pricing_path=PRICING,
+        codex_state_path=tmp_path / "missing.sqlite",
+        codex_logs_path=tmp_path / "missing_logs.sqlite",
+        codex_thread_id=None,
+        cwd=cwd,
+        started_at=None,
+        finished_at=None,
+    )
+    assert detected_agent_name == "claude"
+
+
+def test_resolve_goal_usage_updates_does_not_overwrite_stored_agent_name(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """If goal already has agent_name set, it is preserved and not returned as detected."""
+    import codex_metrics.cli as cli_module
+    from codex_metrics.domain import GoalRecord
+
+    cwd = tmp_path / "repo"
+    cwd.mkdir()
+    claude_root = create_claude_jsonl_usage_sources(
+        tmp_path,
+        claude_root=tmp_path / "dot-claude",
+        cwd=cwd,
+    )
+    monkeypatch.setattr(cli_module, "CLAUDE_ROOT", claude_root)
+
+    task = GoalRecord(
+        goal_id="test-goal",
+        title="Test",
+        goal_type="product",
+        supersedes_goal_id=None,
+        status="in_progress",
+        attempts=1,
+        started_at="2026-03-29T09:00:00+00:00",
+        finished_at=None,
+        cost_usd=None,
+        input_tokens=None,
+        cached_input_tokens=None,
+        output_tokens=None,
+        tokens_total=None,
+        failure_reason=None,
+        notes=None,
+        agent_name="claude",  # already stored — should not re-detect
+    )
+
+    *_, detected_agent_name = cli_module.resolve_goal_usage_updates(
+        task=task,
+        cost_usd_add=None,
+        cost_usd_set=None,
+        tokens_add=None,
+        tokens_set=None,
+        model=None,
+        input_tokens=None,
+        cached_input_tokens=None,
+        output_tokens=None,
+        pricing_path=PRICING,
+        codex_state_path=tmp_path / "missing.sqlite",
+        codex_logs_path=tmp_path / "missing_logs.sqlite",
+        codex_thread_id=None,
+        cwd=cwd,
+        started_at=None,
+        finished_at=None,
+    )
+    # No detection write needed since agent_name already stored
+    assert detected_agent_name is None
+
+
+def test_resolve_goal_usage_updates_routes_to_claude_backend(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """update on a goal with agent_name=claude picks up tokens from JSONL, not Codex SQLite."""
+    import codex_metrics.cli as cli_module
+    from codex_metrics.domain import GoalRecord
+
+    cwd = tmp_path / "repo"
+    cwd.mkdir()
+    claude_root = create_claude_jsonl_usage_sources(
+        tmp_path,
+        claude_root=tmp_path / "dot-claude",
+        cwd=cwd,
+        model="claude-sonnet-4-6",
+        event_timestamp="2026-03-29T09:05:00.000Z",
+        input_tokens=500,
+        cache_creation_tokens=0,
+        cache_read_tokens=100,
+        output_tokens=200,
+    )
+    monkeypatch.setattr(cli_module, "CLAUDE_ROOT", claude_root)
+
+    task = GoalRecord(
+        goal_id="claude-goal",
+        title="Claude Goal",
+        goal_type="product",
+        supersedes_goal_id=None,
+        status="in_progress",
+        attempts=1,
+        started_at="2026-03-29T09:00:00+00:00",
+        finished_at="2026-03-29T09:10:00+00:00",
+        cost_usd=None,
+        input_tokens=None,
+        cached_input_tokens=None,
+        output_tokens=None,
+        tokens_total=None,
+        failure_reason=None,
+        notes=None,
+        agent_name="claude",
+    )
+
+    (
+        _usage_cost, _usage_tokens, _usage_input, _usage_cached, _usage_output, _usage_model,
+        auto_cost, auto_total, auto_input, auto_cached, auto_output, auto_model,
+        detected_agent_name,
+    ) = cli_module.resolve_goal_usage_updates(
+        task=task,
+        cost_usd_add=None,
+        cost_usd_set=None,
+        tokens_add=None,
+        tokens_set=None,
+        model=None,
+        input_tokens=None,
+        cached_input_tokens=None,
+        output_tokens=None,
+        pricing_path=PRICING,
+        codex_state_path=tmp_path / "missing.sqlite",  # Codex SQLite absent — must not be used
+        codex_logs_path=tmp_path / "missing_logs.sqlite",
+        codex_thread_id=None,
+        cwd=cwd,
+        started_at=None,
+        finished_at=None,
+    )
+
+    # Tokens resolved from JSONL
+    assert auto_total == 800  # 500 + 100 + 200
+    assert auto_input == 500
+    assert auto_cached == 100
+    assert auto_output == 200
+    assert auto_model == "claude-sonnet-4-6"
+    # cost: 500*3/1M + 100*0.3/1M + 200*15/1M = 0.0015 + 0.00003 + 0.003 = 0.00453
+    assert auto_cost == 0.00453
+    # agent_name already stored — no detection write
+    assert detected_agent_name is None
+
+
 def test_missing_usage_state_uses_unknown_backend(repo: Path) -> None:
     backend = select_usage_backend(repo / "missing_state.sqlite", repo, None)
     assert backend.name == "unknown"

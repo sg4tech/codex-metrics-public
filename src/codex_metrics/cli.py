@@ -176,6 +176,7 @@ METRICS_JSON_PATH = Path("metrics/codex_metrics.json")
 REPORT_MD_PATH = Path("docs/codex-metrics.md")
 CODEX_STATE_PATH = Path.home() / ".codex" / "state_5.sqlite"
 CODEX_LOGS_PATH = Path.home() / ".codex" / "logs_1.sqlite"
+CLAUDE_ROOT = Path.home() / ".claude"
 RAW_WAREHOUSE_PATH = default_raw_warehouse_path(METRICS_JSON_PATH)
 PUBLIC_BOUNDARY_RULES_PATH = Path("config/public-boundary-rules.toml")
 USAGE_FIELD_PATTERNS = {
@@ -1149,6 +1150,18 @@ def bootstrap_project(
     return result.messages
 
 
+def _detect_claude_presence(cwd: Path) -> bool:
+    """Return True if Claude Code JSONL telemetry exists for the given working directory.
+
+    Checks for any .jsonl files under ~/.claude/projects/{encoded_cwd}/.
+    Used to auto-detect the active agent at goal start time.
+    """
+    project_dir = CLAUDE_ROOT / "projects" / _encode_cwd_for_claude(cwd)
+    if not project_dir.exists():
+        return False
+    return any(project_dir.glob("*.jsonl"))
+
+
 def resolve_goal_usage_updates(
     *,
     task: GoalRecord,
@@ -1185,7 +1198,27 @@ def resolve_goal_usage_updates(
 ]:
     explicit_cost_fields_used = cost_usd_add is not None or cost_usd_set is not None
     explicit_token_fields_used = tokens_add is not None or tokens_set is not None
-    resolved_usage_backend = usage_backend or select_usage_backend(codex_state_path, cwd, codex_thread_id)
+
+    # Determine effective agent: stored value takes priority; otherwise detect from environment.
+    # detected_agent_name is only non-None when we want to write it to the goal (i.e. not yet stored).
+    effective_agent_name = task.agent_name
+    detected_agent_name: str | None = None
+    if effective_agent_name is None:
+        if _detect_claude_presence(cwd):
+            effective_agent_name = "claude"
+            detected_agent_name = "claude"
+
+    # Select backend, routing Claude goals to the JSONL backend.
+    if usage_backend is not None:
+        resolved_usage_backend: UsageBackend = usage_backend
+        usage_state_path = codex_state_path
+    elif effective_agent_name == "claude":
+        resolved_usage_backend = ClaudeUsageBackend()
+        usage_state_path = CLAUDE_ROOT
+    else:
+        resolved_usage_backend = select_usage_backend(codex_state_path, cwd, codex_thread_id)
+        usage_state_path = codex_state_path
+
     usage_cost_usd, usage_total_tokens, usage_input_tokens, usage_cached_input_tokens, usage_output_tokens, usage_model = resolve_usage_costs(
         pricing_path=pricing_path,
         model=model,
@@ -1204,11 +1237,10 @@ def resolve_goal_usage_updates(
         None,
         None,
     )
-    detected_agent_name = None
     if usage_cost_usd is None and usage_total_tokens is None:
         window = resolve_backend_usage_window(
             resolved_usage_backend,
-            state_path=codex_state_path,
+            state_path=usage_state_path,
             logs_path=codex_logs_path,
             cwd=cwd,
             started_at=started_at if started_at is not None else task.started_at,
@@ -1223,7 +1255,10 @@ def resolve_goal_usage_updates(
         auto_output_tokens = window.output_tokens
         auto_model = window.model_name
         if auto_cost_usd is not None or auto_total_tokens is not None:
-            detected_agent_name = window.backend_name
+            # Only write agent_name to the goal when it is a fresh discovery
+            # (not already stored and not already detected from JSONL presence).
+            if detected_agent_name is None and task.agent_name is None:
+                detected_agent_name = window.backend_name
 
     return (
         usage_cost_usd,
@@ -1798,10 +1833,19 @@ def sync_usage(
     tasks: list[dict[str, Any]] = data["goals"]
     for task in tasks:
         previous_task = dict(task)
-        resolved_backend = usage_backend or select_usage_backend(usage_state_path, cwd, usage_thread_id)
+        task_agent_name = task.get("agent_name")
+        if usage_backend is not None:
+            resolved_backend: UsageBackend = usage_backend
+            effective_state_path = usage_state_path
+        elif task_agent_name == "claude":
+            resolved_backend = ClaudeUsageBackend()
+            effective_state_path = CLAUDE_ROOT
+        else:
+            resolved_backend = select_usage_backend(usage_state_path, cwd, usage_thread_id)
+            effective_state_path = usage_state_path
         window = resolve_backend_usage_window(
             resolved_backend,
-            state_path=usage_state_path,
+            state_path=effective_state_path,
             logs_path=usage_logs_path,
             cwd=cwd,
             started_at=task.get("started_at"),
