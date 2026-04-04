@@ -1,4 +1,5 @@
 allowed_roots = [
+  ".githooks",
   ".github",
   ".gitignore",
   "Makefile",
