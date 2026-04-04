@@ -7,7 +7,7 @@ typecheck:
 	./.venv/bin/mypy src scripts
 
 test:
-	./.venv/bin/python -m pytest tests/test_update_codex_metrics.py tests/test_update_codex_metrics_domain.py tests/test_history_audit.py tests/test_reporting.py tests/test_public_boundary.py tests/test_export_public_tree.py
+	./.venv/bin/python -m pytest tests/
 
 verify: lint typecheck test
 

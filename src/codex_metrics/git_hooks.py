@@ -1,28 +1,16 @@
 from __future__ import annotations
 
 import argparse
-import os
+import re
 import subprocess
 import sys
+import tomllib
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from pathlib import Path
 
 ZERO_OID = "0" * 40
 
-DOCS_ONLY_EXACT_PATHS = {
-    "AGENTS.md",
-    "README.md",
-}
-DOCS_ONLY_PREFIXES = (
-    "docs/",
-    "metrics/",
-)
-
-
-@dataclass(frozen=True)
-class VerifyDecision:
-    should_run: bool
-    reason: str
+_RULES_PATH = Path("config") / "public-boundary-rules.toml"
 
 
 def normalize_repo_path(path: str) -> str:
@@ -30,33 +18,6 @@ def normalize_repo_path(path: str) -> str:
     while normalized.startswith("./"):
         normalized = normalized[2:]
     return normalized
-
-
-def is_docs_only_path(path: str) -> bool:
-    normalized = normalize_repo_path(path)
-    if not normalized:
-        return True
-    if normalized in DOCS_ONLY_EXACT_PATHS:
-        return True
-    return normalized.startswith(DOCS_ONLY_PREFIXES)
-
-
-def decide_verify_for_paths(paths: Iterable[str]) -> VerifyDecision:
-    normalized_paths = [normalize_repo_path(path) for path in paths if normalize_repo_path(path)]
-    if not normalized_paths:
-        return VerifyDecision(should_run=False, reason="no file changes detected in push range")
-
-    code_paths = [path for path in normalized_paths if not is_docs_only_path(path)]
-    if not code_paths:
-        return VerifyDecision(should_run=False, reason="docs-only changes detected; skipping make verify")
-
-    preview = ", ".join(code_paths[:5])
-    if len(code_paths) > 5:
-        preview += ", ..."
-    return VerifyDecision(
-        should_run=True,
-        reason=f"code-affecting changes detected; running make verify ({preview})",
-    )
 
 
 class GitHookRunner:
@@ -68,6 +29,10 @@ class GitHookRunner:
             text=True,
         )
         return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+    def repo_root(self) -> Path:
+        lines = self.git_lines(["rev-parse", "--show-toplevel"])
+        return Path(lines[0])
 
     def changed_paths_for_ref_update(self, local_sha: str, remote_sha: str) -> list[str]:
         if not local_sha or local_sha == ZERO_OID:
@@ -89,12 +54,60 @@ class GitHookRunner:
                     changed_paths.append(normalized)
         return changed_paths
 
-    def run_verify(self) -> int:
-        env = os.environ.copy()
-        for variable in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_PREFIX"):
-            env.pop(variable, None)
-        result = subprocess.run(["make", "verify"], check=False, env=env)
-        return result.returncode
+    def run_security_scan(self, changed_paths: list[str]) -> int:
+        root = self.repo_root()
+        rules_path = root / _RULES_PATH
+        if not rules_path.exists():
+            print("pre-push: no public boundary rules found; skipping security scan")
+            return 0
+
+        raw_rules = tomllib.loads(rules_path.read_text(encoding="utf-8"))
+        literal_markers: list[str] = raw_rules.get("forbidden_literal_markers", [])
+        regex_patterns = [re.compile(p) for p in raw_rules.get("forbidden_regex_markers", [])]
+        marker_ignored: set[str] = set(raw_rules.get("marker_ignored_paths", []))
+        marker_ignored.add(_RULES_PATH.as_posix())
+
+        violations: list[str] = []
+        scanned = 0
+
+        for rel_path in changed_paths:
+            if rel_path in marker_ignored:
+                continue
+            abs_path = root / rel_path
+            if not abs_path.is_file():
+                continue
+            try:
+                raw = abs_path.read_bytes()
+            except OSError:
+                continue
+            if b"\x00" in raw:
+                continue
+            try:
+                text = raw.decode("utf-8")
+            except UnicodeDecodeError:
+                continue
+            scanned += 1
+
+            for marker in literal_markers:
+                idx = text.find(marker)
+                if idx != -1:
+                    line_no = text.count("\n", 0, idx) + 1
+                    violations.append(f"  {rel_path}:{line_no}: forbidden marker {marker!r}")
+
+            for pattern in regex_patterns:
+                match = pattern.search(text)
+                if match:
+                    line_no = text.count("\n", 0, match.start()) + 1
+                    violations.append(f"  {rel_path}:{line_no}: matches forbidden pattern {pattern.pattern!r}")
+
+        if violations:
+            print(f"pre-push: security scan FAILED — {len(violations)} violation(s):")
+            for v in violations:
+                print(v)
+            return 1
+
+        print(f"pre-push: security scan passed ({scanned} file(s) scanned)")
+        return 0
 
 
 def run_pre_push(stdin: Iterable[str], runner: GitHookRunner | None = None) -> int:
@@ -114,11 +127,7 @@ def run_pre_push(stdin: Iterable[str], runner: GitHookRunner | None = None) -> i
                 seen_paths.add(normalized)
                 changed_paths.append(normalized)
 
-    decision = decide_verify_for_paths(changed_paths)
-    print(f"pre-push: {decision.reason}")
-    if not decision.should_run:
-        return 0
-    return hook_runner.run_verify()
+    return hook_runner.run_security_scan(changed_paths)
 
 
 def build_parser() -> argparse.ArgumentParser:
