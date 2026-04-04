@@ -104,7 +104,7 @@ Before closing a conversation thread, work through this checklist. Do not ask th
 - Retrospective: was one needed? if yes, write and commit it to `docs/retros/` now
 - Anything from chat that should be preserved has been saved to files (hypotheses, decisions, policy changes, AGENTS.md rules)
 - Commit and push are done — do them now if not yet
-- If the task included changes to `AGENTS.md`, `docs/task-lifecycle.md`, `docs/codex-metrics-policy.md`, or any other policy/rules file: verify that those changes are merged into `master`. Run `git log master -- <file>` to confirm. If not merged, flag it to the user before closing — these files are read from master and changes in a feature branch have no effect.
+- If the task included changes to `AGENTS.md`, `docs/task-lifecycle.md`, `docs/codex-metrics-policy.md`, or any other policy/rules file: run `git fetch origin master` first, then verify with `git log origin/master -- <file>`. If not merged, flag it to the user before closing — these files are read from master and changes in a feature branch have no effect.
 
 ## Transition Rules
 
