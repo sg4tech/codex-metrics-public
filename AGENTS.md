@@ -4,6 +4,8 @@
 
 Before starting or continuing any engineering task, run `git pull` to ensure the working branch is up to date, then read:
 
+During a task, run `git pull` again before writing new code if significant time has passed or before starting a new subtask — other agents or the user may have pushed changes in the meantime.
+
 - `AGENTS.md`
 - `docs/codex-metrics-policy.md`
 - `docs/task-lifecycle.md`
