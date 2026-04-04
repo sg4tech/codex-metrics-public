@@ -57,6 +57,8 @@ For history/search/reconstruction work, also read:
 
 Do not edit metrics files manually when the updater script can regenerate them.
 
+Never manually remove immutability flags (`chflags nouchg`, `chattr -i`) from `metrics/codex_metrics.json` or any other protected file. These flags are set intentionally by the application guard. If a git or tooling command fails near a file with `uchg`/immutable flags, diagnose the actual cause — do not assume the flag is the problem and do not remove it without an explicit user instruction.
+
 Use:
 
 `./tools/codex-metrics ...`
