@@ -38,6 +38,9 @@ from codex_metrics.history_compare import (
 from codex_metrics.history_compare import (
     render_history_compare_report as render_compare_report,
 )
+from codex_metrics.history_compare import (
+    render_history_compare_report_json as render_compare_json_report,
+)
 from codex_metrics.history_derive import (
     DeriveSummary,
 )
@@ -105,6 +108,7 @@ render_cost_audit_report = render_cost_coverage_audit_report
 render_audit_report = render_history_audit_report
 render_audit_report_json = render_history_audit_json_report
 render_history_compare_report = render_compare_report
+render_history_compare_report_json = render_compare_json_report
 render_public_boundary_report = render_public_boundary_text_report
 render_public_boundary_report_json = render_public_boundary_json_report
 render_retro_timeline_report = render_retro_timeline_text_report
@@ -1446,6 +1450,11 @@ def build_parser() -> argparse.ArgumentParser:
     compare_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     compare_parser.add_argument("--warehouse-path", default=str(RAW_WAREHOUSE_PATH))
     compare_parser.add_argument("--cwd", default=str(Path.cwd()))
+    compare_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Render the comparison as JSON instead of human-readable text.",
+    )
 
     ingest_parser = subparsers.add_parser(
         "ingest-codex-history",
