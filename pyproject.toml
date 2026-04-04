@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codex-metrics"
+dynamic = ["version"]
+description = "CLI for tracking Codex task metrics, attempt history, and usage-derived cost."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+codex-metrics = "codex_metrics.cli:console_main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.dynamic]
+version = {attr = "codex_metrics.__version__"}
+
+[tool.setuptools.package-data]
+codex_metrics = ["data/*.json", "data/*.md"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+  "F",
+  "I",
+]
+
+[tool.mypy]
+python_version = "3.14"
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+no_implicit_optional = true
+disallow_incomplete_defs = true
+files = [
+  "src/codex_metrics",
+  "scripts/update_codex_metrics.py",
+]
+exclude = [
+  "^\\.venv/",
+]
+
+[tool.coverage.run]
+branch = true
+parallel = true
+source = [
+  "codex_metrics",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
