@@ -173,40 +173,25 @@ class ClaudeUsageBackend:
         self,
         *,
         state_path: Path,
+        # state_path is repurposed as claude_root (e.g. ~/.claude) for Claude.
+        # This avoids changing the UsageBackend protocol interface.
         logs_path: Path,
+        # logs_path is unused for Claude; Claude telemetry is JSONL, not SQLite.
         cwd: Path,
         started_at: str | None,
         finished_at: str | None,
         pricing_path: Path,
         thread_id: str | None = None,
+        # thread_id is unused for Claude; lookup is by cwd directory, not thread row.
     ) -> UsageWindow:
         from codex_metrics import cli as cli_module
 
-        resolved_thread_id = find_thread_id(
-            state_path,
-            cwd,
-            thread_id,
-            provider_names=("anthropic", "claude"),
-        )
-        if resolved_thread_id is None:
-            return UsageWindow(
-                cost_usd=None,
-                total_tokens=None,
-                input_tokens=None,
-                cached_input_tokens=None,
-                output_tokens=None,
-                model_name=None,
-                backend_name=self.name,
-            )
-
-        cost_usd, total_tokens, input_tokens, cached_input_tokens, output_tokens, model_name = cli_module.resolve_codex_usage_window(
-            state_path=state_path,
-            logs_path=logs_path,
+        cost_usd, total_tokens, input_tokens, cached_input_tokens, output_tokens, model_name = cli_module.resolve_claude_usage_window(
+            claude_root=state_path,
             cwd=cwd,
             started_at=started_at,
             finished_at=finished_at,
             pricing_path=pricing_path,
-            thread_id=resolved_thread_id,
         )
         return UsageWindow(
             cost_usd=cost_usd,

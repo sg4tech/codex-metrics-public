@@ -3417,44 +3417,286 @@ def test_sync_canonical_usage_alias_still_works(repo: Path) -> None:
     assert task["tokens_total"] == 1600
 
 
-def test_claude_usage_backend_backfills_from_claude_thread_session(repo: Path) -> None:
-    state_path, logs_path = create_codex_session_usage_sources(repo, model_provider="anthropic")
-    assert run_cmd(repo, "init", "--force").returncode == 0
-    assert run_cmd(
-        repo,
-        "update",
-        "--task-id",
-        "claude-backfill-task",
-        "--title",
-        "Claude Backfill Task",
-        "--task-type",
-        "product",
-        "--status",
-        "success",
-        "--started-at",
-        "2026-03-29T09:00:00+00:00",
-        "--finished-at",
-        "2026-03-29T09:10:00+00:00",
-        "--codex-state-path",
-        str(repo / "missing_state.sqlite"),
-        "--codex-logs-path",
-        str(repo / "missing_logs.sqlite"),
-    ).returncode == 0
+def _make_claude_jsonl_event(
+    *,
+    session_id: str,
+    timestamp: str,
+    model: str = "claude-sonnet-4-6",
+    input_tokens: int = 0,
+    cache_creation_tokens: int = 0,
+    cache_read_tokens: int = 0,
+    output_tokens: int = 0,
+    cwd: str = "",
+) -> str:
+    """Build a minimal Claude JSONL assistant event line."""
+    return json.dumps(
+        {
+            "type": "assistant",
+            "sessionId": session_id,
+            "timestamp": timestamp,
+            "cwd": cwd,
+            "message": {
+                "model": model,
+                "usage": {
+                    "input_tokens": input_tokens,
+                    "cache_creation_input_tokens": cache_creation_tokens,
+                    "cache_read_input_tokens": cache_read_tokens,
+                    "output_tokens": output_tokens,
+                },
+            },
+        }
+    )
+
+
+def create_claude_jsonl_usage_sources(
+    repo: Path,
+    *,
+    claude_root: Path,
+    cwd: Path | None = None,
+    session_id: str = "session-abc",
+    model: str = "claude-sonnet-4-6",
+    event_timestamp: str = "2026-03-29T09:05:00.000Z",
+    input_tokens: int = 1000,
+    cache_creation_tokens: int = 500,
+    cache_read_tokens: int = 200,
+    output_tokens: int = 300,
+) -> Path:
+    """Create a ~/.claude/projects/{encoded_cwd}/{session}.jsonl fixture under claude_root."""
+    resolved_cwd = cwd or repo
+    encoded = str(resolved_cwd).replace("/", "-").replace(".", "-")
+    project_dir = claude_root / "projects" / encoded
+    project_dir.mkdir(parents=True, exist_ok=True)
+
+    jsonl_path = project_dir / f"{session_id}.jsonl"
+    event_line = _make_claude_jsonl_event(
+        session_id=session_id,
+        timestamp=event_timestamp,
+        model=model,
+        input_tokens=input_tokens,
+        cache_creation_tokens=cache_creation_tokens,
+        cache_read_tokens=cache_read_tokens,
+        output_tokens=output_tokens,
+        cwd=str(resolved_cwd),
+    )
+    jsonl_path.write_text(event_line + "\n", encoding="utf-8")
+    return claude_root
+
+
+def test_claude_usage_backend_resolves_from_jsonl(tmp_path: Path) -> None:
+    # Arrange: two JSONL events within the time window, one outside
+    cwd = tmp_path / "repo"
+    cwd.mkdir()
+    claude_root = tmp_path / "dot-claude"
+    encoded = str(cwd).replace("/", "-").replace(".", "-")
+    project_dir = claude_root / "projects" / encoded
+    project_dir.mkdir(parents=True, exist_ok=True)
+
+    session_jsonl = project_dir / "session-001.jsonl"
+    lines = [
+        # event inside window
+        _make_claude_jsonl_event(
+            session_id="session-001",
+            timestamp="2026-03-29T09:05:00.000Z",
+            model="claude-sonnet-4-6",
+            input_tokens=1000,
+            cache_creation_tokens=500,
+            cache_read_tokens=200,
+            output_tokens=300,
+            cwd=str(cwd),
+        ),
+        # second event inside window
+        _make_claude_jsonl_event(
+            session_id="session-001",
+            timestamp="2026-03-29T09:08:00.000Z",
+            model="claude-sonnet-4-6",
+            input_tokens=200,
+            cache_creation_tokens=0,
+            cache_read_tokens=0,
+            output_tokens=100,
+            cwd=str(cwd),
+        ),
+        # event OUTSIDE window (before started_at)
+        _make_claude_jsonl_event(
+            session_id="session-001",
+            timestamp="2026-03-29T08:59:00.000Z",
+            model="claude-sonnet-4-6",
+            input_tokens=9999,
+            cache_creation_tokens=0,
+            cache_read_tokens=0,
+            output_tokens=9999,
+            cwd=str(cwd),
+        ),
+    ]
+    session_jsonl.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     backend = ClaudeUsageBackend()
     window = resolve_backend_usage_window(
         backend,
-        state_path=state_path,
-        logs_path=logs_path,
-        cwd=repo,
+        state_path=claude_root,
+        logs_path=claude_root / "unused.sqlite",
+        cwd=cwd,
         started_at="2026-03-29T09:00:00+00:00",
         finished_at="2026-03-29T09:10:00+00:00",
         pricing_path=PRICING,
     )
 
     assert window.backend_name == "claude"
-    assert window.total_tokens == 1625
-    assert window.cost_usd == 0.006263
+    assert window.total_tokens == 2300  # (1000+500+200+300) + (200+100)
+    assert window.input_tokens == 1200  # 1000 + 200
+    assert window.cached_input_tokens == 200  # cache_read only
+    assert window.output_tokens == 400  # 300 + 100
+    assert window.model_name == "claude-sonnet-4-6"
+    # cost: event1=0.009435, event2=0.0021 → total=0.011535
+    assert window.cost_usd == 0.011535
+
+
+def test_claude_usage_backend_sums_multiple_sessions(tmp_path: Path) -> None:
+    cwd = tmp_path / "repo"
+    cwd.mkdir()
+    claude_root = tmp_path / "dot-claude"
+    encoded = str(cwd).replace("/", "-").replace(".", "-")
+    project_dir = claude_root / "projects" / encoded
+    project_dir.mkdir(parents=True)
+
+    for session_id, ts in [("s1", "2026-03-29T09:02:00.000Z"), ("s2", "2026-03-29T09:07:00.000Z")]:
+        (project_dir / f"{session_id}.jsonl").write_text(
+            _make_claude_jsonl_event(
+                session_id=session_id,
+                timestamp=ts,
+                model="claude-sonnet-4-6",
+                input_tokens=100,
+                cache_creation_tokens=0,
+                cache_read_tokens=0,
+                output_tokens=50,
+                cwd=str(cwd),
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+    backend = ClaudeUsageBackend()
+    window = resolve_backend_usage_window(
+        backend,
+        state_path=claude_root,
+        logs_path=claude_root / "unused.sqlite",
+        cwd=cwd,
+        started_at="2026-03-29T09:00:00+00:00",
+        finished_at="2026-03-29T09:10:00+00:00",
+        pricing_path=PRICING,
+    )
+
+    assert window.backend_name == "claude"
+    assert window.total_tokens == 300  # (100+50) * 2 sessions
+    assert window.input_tokens == 200
+    assert window.output_tokens == 100
+
+
+def test_claude_usage_backend_includes_subagent_tokens(tmp_path: Path) -> None:
+    cwd = tmp_path / "repo"
+    cwd.mkdir()
+    claude_root = tmp_path / "dot-claude"
+    encoded = str(cwd).replace("/", "-").replace(".", "-")
+    project_dir = claude_root / "projects" / encoded
+    project_dir.mkdir(parents=True)
+
+    # top-level session
+    (project_dir / "main-session.jsonl").write_text(
+        _make_claude_jsonl_event(
+            session_id="main-session",
+            timestamp="2026-03-29T09:03:00.000Z",
+            model="claude-sonnet-4-6",
+            input_tokens=500,
+            output_tokens=100,
+            cwd=str(cwd),
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    # subagent tokens
+    subagent_dir = project_dir / "main-session" / "subagents"
+    subagent_dir.mkdir(parents=True)
+    (subagent_dir / "agent-sub1.jsonl").write_text(
+        _make_claude_jsonl_event(
+            session_id="agent-sub1",
+            timestamp="2026-03-29T09:04:00.000Z",
+            model="claude-sonnet-4-6",
+            input_tokens=300,
+            output_tokens=80,
+            cwd=str(cwd),
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    backend = ClaudeUsageBackend()
+    window = resolve_backend_usage_window(
+        backend,
+        state_path=claude_root,
+        logs_path=claude_root / "unused.sqlite",
+        cwd=cwd,
+        started_at="2026-03-29T09:00:00+00:00",
+        finished_at="2026-03-29T09:10:00+00:00",
+        pricing_path=PRICING,
+    )
+
+    # main (500+100) + subagent (300+80) = 980 total
+    assert window.total_tokens == 980
+    assert window.input_tokens == 800
+    assert window.output_tokens == 180
+
+
+def test_claude_usage_backend_returns_unknown_when_no_project_dir(tmp_path: Path) -> None:
+    claude_root = tmp_path / "dot-claude"
+    claude_root.mkdir()
+
+    backend = ClaudeUsageBackend()
+    window = resolve_backend_usage_window(
+        backend,
+        state_path=claude_root,
+        logs_path=claude_root / "unused.sqlite",
+        cwd=tmp_path / "nonexistent-project",
+        started_at="2026-03-29T09:00:00+00:00",
+        finished_at="2026-03-29T09:10:00+00:00",
+        pricing_path=PRICING,
+    )
+
+    assert window.backend_name == "claude"
+    assert window.total_tokens is None
+    assert window.cost_usd is None
+
+
+def test_claude_usage_backend_haiku_alias_resolves_pricing(tmp_path: Path) -> None:
+    cwd = tmp_path / "repo"
+    cwd.mkdir()
+    claude_root = tmp_path / "dot-claude"
+    claude_root = create_claude_jsonl_usage_sources(
+        tmp_path,
+        claude_root=claude_root,
+        cwd=cwd,
+        model="claude-haiku-4-5",  # alias without date suffix
+        input_tokens=1000,
+        cache_creation_tokens=0,
+        cache_read_tokens=0,
+        output_tokens=500,
+    )
+
+    backend = ClaudeUsageBackend()
+    window = resolve_backend_usage_window(
+        backend,
+        state_path=claude_root,
+        logs_path=claude_root / "unused.sqlite",
+        cwd=cwd,
+        started_at="2026-03-29T09:00:00+00:00",
+        finished_at="2026-03-29T09:10:00+00:00",
+        pricing_path=PRICING,
+    )
+
+    # haiku-4-5: input=$1/M, output=$5/M
+    # cost: 1000*1.0/1M + 500*5.0/1M = 0.001 + 0.0025 = 0.0035
+    assert window.total_tokens == 1500
+    assert window.cost_usd == 0.0035
+    assert window.model_name == "claude-haiku-4-5"
 
 
 def test_missing_usage_state_uses_unknown_backend(repo: Path) -> None:

@@ -414,6 +414,7 @@ def load_pricing(path: Path) -> dict[str, dict[str, float | None]]:
         if not isinstance(config, dict):
             raise ValueError(f"Invalid pricing config for model: {model_name}")
         required_fields = ("input_per_million_usd", "cached_input_per_million_usd", "output_per_million_usd")
+        optional_fields = ("cache_creation_per_million_usd",)
         validated_config: dict[str, float | None] = {}
         for field_name in required_fields:
             if field_name not in config:
@@ -424,6 +425,14 @@ def load_pricing(path: Path) -> dict[str, dict[str, float | None]]:
             if isinstance(value, (int, float)) and value < 0:
                 raise ValueError(f"Pricing value cannot be negative for {model_name}.{field_name}")
             validated_config[field_name] = None if value is None else float(value)
+        for field_name in optional_fields:
+            if field_name in config:
+                value = config[field_name]
+                if value is not None and not isinstance(value, (int, float)):
+                    raise ValueError(f"Invalid pricing value for {model_name}.{field_name}")
+                if isinstance(value, (int, float)) and value < 0:
+                    raise ValueError(f"Pricing value cannot be negative for {model_name}.{field_name}")
+                validated_config[field_name] = None if value is None else float(value)
         validated_models[model_name] = validated_config
     return validated_models
 
@@ -455,11 +464,23 @@ def parse_usage_event(body: str) -> dict[str, Any] | None:
     return parsed
 
 
+_CLAUDE_MODEL_ALIASES: dict[str, str] = {
+    # Haiku 4.5 alias (without date suffix) → full ID with date
+    "claude-haiku-4-5": "claude-haiku-4-5-20251001",
+}
+
+
 def resolve_pricing_model_alias(model: str, pricing: dict[str, dict[str, float | None]]) -> str:
     if model in pricing:
         return model
 
     alias_candidates = [model]
+
+    # Claude model aliases (e.g. claude-haiku-4-5 → claude-haiku-4-5-20251001)
+    if model in _CLAUDE_MODEL_ALIASES:
+        alias_candidates.append(_CLAUDE_MODEL_ALIASES[model])
+
+    # OpenAI Codex version suffix alias (e.g. gpt-5.4 → gpt-5)
     if model.endswith(".4"):
         alias_candidates.append(model.rsplit(".4", maxsplit=1)[0])
     if model.endswith(".4-mini"):
@@ -484,6 +505,199 @@ def compute_event_cost_usd(event: dict[str, Any], pricing: dict[str, dict[str, f
         cached_input_cost = Decimal(str(cached_rate)) * Decimal(event["cached_input_tokens"]) / Decimal(1_000_000)
     output_cost = Decimal(str(model_pricing["output_per_million_usd"])) * Decimal(event["output_tokens"]) / Decimal(1_000_000)
     return round_usd(input_cost + cached_input_cost + output_cost)
+
+
+def _encode_cwd_for_claude(cwd: Path) -> str:
+    """Encode a filesystem path to the directory name used by Claude Code in ~/.claude/projects/.
+
+    Claude Code replaces every '/' and '.' character with '-' when naming the project directory.
+    For example: /Users/viktor/.claude/worktrees/foo → -Users-viktor--claude-worktrees-foo
+    """
+    return str(cwd).replace("/", "-").replace(".", "-")
+
+
+def _compute_claude_event_cost_usd(
+    *,
+    model: str | None,
+    input_tokens: int,
+    cache_creation_tokens: int,
+    cache_read_tokens: int,
+    output_tokens: int,
+    pricing: dict[str, dict[str, float | None]],
+) -> float:
+    """Compute cost for a single Claude JSONL assistant event.
+
+    Claude has three distinct token categories:
+    - input_tokens: plain (non-cached) input, billed at base input rate
+    - cache_creation_input_tokens: tokens written to prompt cache (5-min tier), billed at 1.25× input rate
+    - cache_read_input_tokens: tokens read from prompt cache, billed at 0.1× input rate
+    - output_tokens: generated output
+    """
+    if model is None or (input_tokens == 0 and cache_creation_tokens == 0 and cache_read_tokens == 0 and output_tokens == 0):
+        return 0.0
+
+    pricing_model = resolve_pricing_model_alias(model, pricing)
+    model_pricing = pricing[pricing_model]
+
+    input_cost = Decimal(str(model_pricing["input_per_million_usd"])) * Decimal(input_tokens) / Decimal(1_000_000)
+
+    cache_creation_cost = Decimal("0")
+    cache_creation_rate = model_pricing.get("cache_creation_per_million_usd")
+    if cache_creation_tokens > 0:
+        if cache_creation_rate is None:
+            raise ValueError(f"Model {model} does not have cache_creation pricing; cannot price {cache_creation_tokens} cache_creation tokens")
+        cache_creation_cost = Decimal(str(cache_creation_rate)) * Decimal(cache_creation_tokens) / Decimal(1_000_000)
+
+    cache_read_cost = Decimal("0")
+    cache_read_rate = model_pricing["cached_input_per_million_usd"]
+    if cache_read_tokens > 0 and cache_read_rate is not None:
+        cache_read_cost = Decimal(str(cache_read_rate)) * Decimal(cache_read_tokens) / Decimal(1_000_000)
+
+    output_cost = Decimal(str(model_pricing["output_per_million_usd"])) * Decimal(output_tokens) / Decimal(1_000_000)
+
+    return round_usd(input_cost + cache_creation_cost + cache_read_cost + output_cost)
+
+
+def _resolve_claude_usage_window_impl(
+    claude_root: Path,
+    cwd: Path,
+    started_at: str | None,
+    finished_at: str | None,
+    pricing_path: Path,
+) -> tuple[float | None, int | None, int | None, int | None, int | None, str | None]:
+    """Parse Claude Code JSONL telemetry to compute token usage and cost for a time window.
+
+    Returns: (cost_usd, total_tokens, input_tokens, cached_input_tokens, output_tokens, model_name)
+
+    token mapping:
+      input_tokens           → input_tokens       (plain non-cached input)
+      cache_read_input_tokens → cached_input_tokens (cheap cached reads, mapped to existing domain field)
+      cache_creation_input_tokens → included in cost and total_tokens (write-to-cache, not a separate domain field)
+      output_tokens          → output_tokens
+
+    state_path is repurposed as claude_root (e.g. ~/.claude) per the design decision in H-010.
+    """
+    if started_at is None:
+        return None, None, None, None, None, None
+
+    encoded_cwd = _encode_cwd_for_claude(cwd)
+    projects_dir = claude_root / "projects" / encoded_cwd
+    if not projects_dir.exists():
+        return None, None, None, None, None, None
+
+    started_dt = parse_iso_datetime(started_at, "started_at")
+    finished_dt = parse_iso_datetime(finished_at, "finished_at") if finished_at is not None else now_utc_datetime()
+    if finished_dt < started_dt:
+        raise ValueError("finished_at cannot be earlier than started_at")
+
+    pricing = load_pricing(pricing_path)
+
+    # Collect JSONL files: top-level sessions + subagent files
+    jsonl_files: list[Path] = list(projects_dir.glob("*.jsonl"))
+    for subagent_dir in projects_dir.glob("*/subagents"):
+        jsonl_files.extend(subagent_dir.glob("agent-*.jsonl"))
+
+    total_cost = 0.0
+    total_input = 0
+    total_cache_creation = 0
+    total_cache_read = 0
+    total_output = 0
+    total_tokens = 0
+    detected_model: str | None = None
+    latest_event_dt = None
+
+    for jsonl_file in jsonl_files:
+        try:
+            lines = jsonl_file.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+            if event.get("type") != "assistant":
+                continue
+
+            ts_str = event.get("timestamp")
+            if not ts_str:
+                continue
+            try:
+                event_dt = parse_iso_datetime_flexible(ts_str, "timestamp")
+            except ValueError:
+                continue
+
+            if not (started_dt <= event_dt <= finished_dt):
+                continue
+
+            message = event.get("message") or {}
+            usage = message.get("usage") or {}
+            model = message.get("model")
+
+            input_toks = int(usage.get("input_tokens") or 0)
+            cache_creation_toks = int(usage.get("cache_creation_input_tokens") or 0)
+            cache_read_toks = int(usage.get("cache_read_input_tokens") or 0)
+            output_toks = int(usage.get("output_tokens") or 0)
+
+            if latest_event_dt is None or event_dt > latest_event_dt:
+                latest_event_dt = event_dt
+                if model:
+                    detected_model = model
+
+            total_input += input_toks
+            total_cache_creation += cache_creation_toks
+            total_cache_read += cache_read_toks
+            total_output += output_toks
+            total_tokens += input_toks + cache_creation_toks + cache_read_toks + output_toks
+
+            if model is not None:
+                try:
+                    total_cost = round_usd(
+                        total_cost
+                        + _compute_claude_event_cost_usd(
+                            model=model,
+                            input_tokens=input_toks,
+                            cache_creation_tokens=cache_creation_toks,
+                            cache_read_tokens=cache_read_toks,
+                            output_tokens=output_toks,
+                            pricing=pricing,
+                        )
+                    )
+                except ValueError:
+                    pass  # unknown model — skip cost, still count tokens
+
+    if total_tokens == 0:
+        return None, None, None, None, None, None
+
+    return (
+        total_cost if total_cost > 0 else None,
+        total_tokens,
+        total_input,
+        total_cache_read,  # mapped to cached_input_tokens in domain
+        total_output,
+        detected_model,
+    )
+
+
+def resolve_claude_usage_window(
+    claude_root: Path,
+    cwd: Path,
+    started_at: str | None,
+    finished_at: str | None,
+    pricing_path: Path,
+) -> tuple[float | None, int | None, int | None, int | None, int | None, str | None]:
+    """Public entry point for Claude JSONL usage resolution (used by ClaudeUsageBackend)."""
+    return _resolve_claude_usage_window_impl(
+        claude_root=claude_root,
+        cwd=cwd,
+        started_at=started_at,
+        finished_at=finished_at,
+        pricing_path=pricing_path,
+    )
 
 
 def find_usage_thread_id(state_path: Path, cwd: Path, thread_id: str | None) -> str | None:
