@@ -85,6 +85,7 @@ class CommandRuntime(Protocol):
     def render_history_compare_report(self, report: HistoryCompareReport) -> str: ...
     def render_retro_timeline_report(self, report: RetroTimelineReport) -> str: ...
     def render_public_boundary_report(self, report: Any) -> str: ...
+    def render_public_boundary_report_json(self, report: Any) -> str: ...
     def audit_cost_coverage(
         self,
         data: dict[str, Any],
@@ -580,7 +581,10 @@ def handle_verify_public_boundary(args: Namespace, cli_module: CommandRuntime) -
         repo_root=Path(args.repo_root).expanduser(),
         rules_path=Path(args.rules_path).expanduser(),
     )
-    print(cli_module.render_public_boundary_report(report))
+    if getattr(args, "json", False):
+        print(cli_module.render_public_boundary_report_json(report))
+    else:
+        print(cli_module.render_public_boundary_report(report))
     return 0 if not report.findings else 1
 
 

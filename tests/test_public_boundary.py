@@ -11,6 +11,7 @@ from codex_metrics.public_boundary import (
     PublicBoundaryReport,
     load_public_boundary_rules,
     render_public_boundary_report,
+    render_public_boundary_report_json,
     verify_public_boundary,
 )
 
@@ -183,6 +184,9 @@ class _FakeRuntime:
     def render_public_boundary_report(self, report: PublicBoundaryReport) -> str:
         return render_public_boundary_report(report)
 
+    def render_public_boundary_report_json(self, report: PublicBoundaryReport) -> str:
+        return render_public_boundary_report_json(report)
+
 
 def test_handle_verify_public_boundary_prints_success(capsys: pytest.CaptureFixture[str]) -> None:
     runtime = _FakeRuntime(
@@ -229,3 +233,31 @@ def test_handle_verify_public_boundary_prints_failure(capsys: pytest.CaptureFixt
     assert exit_code == 1
     captured = capsys.readouterr()
     assert "failed" in captured.out
+
+
+def test_handle_verify_public_boundary_prints_json(capsys: pytest.CaptureFixture[str]) -> None:
+    runtime = _FakeRuntime(
+        PublicBoundaryReport(
+            repo_root=Path("/repo"),
+            rules_path=Path("/rules.toml"),
+            files_scanned=2,
+            findings=(
+                PublicBoundaryFinding(
+                    kind="forbidden_path",
+                    path="docs/retros/2026-04-04-retro.md",
+                    message="path matches a forbidden private-only boundary rule",
+                    matched_rule="docs/retros",
+                ),
+            ),
+        )
+    )
+
+    exit_code = commands.handle_verify_public_boundary(
+        Namespace(repo_root="/repo", rules_path="/rules.toml", json=True),
+        runtime,
+    )
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert '"files_scanned": 2' in captured.out
+    assert '"kind": "forbidden_path"' in captured.out

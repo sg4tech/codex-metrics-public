@@ -62,6 +62,9 @@ from codex_metrics.public_boundary import (
     render_public_boundary_report as render_public_boundary_text_report,
 )
 from codex_metrics.public_boundary import (
+    render_public_boundary_report_json as render_public_boundary_json_report,
+)
+from codex_metrics.public_boundary import (
     verify_public_boundary as run_verify_public_boundary,
 )
 from codex_metrics.retro_timeline import (
@@ -99,6 +102,7 @@ render_cost_audit_report = render_cost_coverage_audit_report
 render_audit_report = render_history_audit_report
 render_history_compare_report = render_compare_report
 render_public_boundary_report = render_public_boundary_text_report
+render_public_boundary_report_json = render_public_boundary_json_report
 render_retro_timeline_report = render_retro_timeline_text_report
 
 ALLOWED_STATUSES = domain.ALLOWED_STATUSES
@@ -1513,6 +1517,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     public_boundary_parser.add_argument("--repo-root", default=".")
     public_boundary_parser.add_argument("--rules-path", default=str(PUBLIC_BOUNDARY_RULES_PATH))
+    public_boundary_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Render findings as JSON instead of human-readable text.",
+    )
 
     subparsers.add_parser(
         "ensure-active-task",
