@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -223,3 +224,27 @@ def render_cost_audit_report(report: CostAuditReport) -> str:
             lines.append(f"  suggested_next_action: {candidate.suggested_next_action}")
 
     return "\n".join(lines)
+
+
+def render_cost_audit_report_json(report: CostAuditReport) -> str:
+    payload = {
+        "covered_goals": report.covered_goals,
+        "candidate_count": len(report.candidates),
+        "candidates": [
+            {
+                "category": candidate.category,
+                "goal_id": candidate.goal_id,
+                "goal_type": candidate.goal_type,
+                "status": candidate.status,
+                "title": candidate.title,
+                "reason": candidate.reason,
+                "started_at": candidate.started_at,
+                "finished_at": candidate.finished_at,
+                "has_cost": candidate.has_cost,
+                "has_tokens": candidate.has_tokens,
+                "suggested_next_action": candidate.suggested_next_action,
+            }
+            for candidate in report.candidates
+        ],
+    }
+    return json.dumps(payload, indent=2, sort_keys=True)

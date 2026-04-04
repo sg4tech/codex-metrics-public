@@ -99,6 +99,7 @@ class CommandRuntime(Protocol):
         cwd: Path,
     ) -> CostAuditReport: ...
     def render_cost_audit_report(self, report: CostAuditReport) -> str: ...
+    def render_cost_audit_report_json(self, report: CostAuditReport) -> str: ...
     def merge_tasks(self, data: dict[str, Any], keep_task_id: str, drop_task_id: str) -> dict[str, Any]: ...
     def get_task(self, tasks: list[dict[str, Any]], task_id: str) -> dict[str, Any] | None: ...
     def upsert_task(
@@ -580,7 +581,10 @@ def handle_audit_cost_coverage(args: Namespace, cli_module: CommandRuntime) -> i
         codex_thread_id=args.codex_thread_id,
         cwd=Path.cwd(),
     )
-    print(cli_module.render_cost_audit_report(report))
+    if getattr(args, "json", False):
+        print(cli_module.render_cost_audit_report_json(report))
+    else:
+        print(cli_module.render_cost_audit_report(report))
     return 0
 
 

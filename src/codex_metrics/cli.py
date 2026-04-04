@@ -23,6 +23,9 @@ from codex_metrics.cost_audit import (
 from codex_metrics.cost_audit import (
     render_cost_audit_report as render_cost_coverage_audit_report,
 )
+from codex_metrics.cost_audit import (
+    render_cost_audit_report_json as render_cost_coverage_audit_json_report,
+)
 from codex_metrics.history_audit import (
     audit_history as build_history_audit_report,
 )
@@ -105,6 +108,7 @@ format_usd = reporting.format_usd
 generate_report_md = reporting.generate_report_md
 print_summary = reporting.print_summary
 render_cost_audit_report = render_cost_coverage_audit_report
+render_cost_audit_report_json = render_cost_coverage_audit_json_report
 render_audit_report = render_history_audit_report
 render_audit_report_json = render_history_audit_json_report
 render_history_compare_report = render_compare_report
@@ -1524,6 +1528,11 @@ def build_parser() -> argparse.ArgumentParser:
     cost_audit_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
     cost_audit_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
     cost_audit_parser.add_argument("--codex-thread-id")
+    cost_audit_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Render the cost audit as JSON instead of human-readable text.",
+    )
 
     public_boundary_parser = subparsers.add_parser(
         "verify-public-boundary",
