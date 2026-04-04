@@ -28,3 +28,6 @@ dist/
 # Local observability state
 .codex-metrics/
 metrics/.codex-metrics/
+
+# Local Claude workspace state
+.claude/
