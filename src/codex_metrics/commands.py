@@ -12,6 +12,9 @@ from typing import Any, Protocol
 from codex_metrics.cost_audit import CostAuditReport
 from codex_metrics.history_audit import AuditReport
 from codex_metrics.history_compare import HistoryCompareReport
+from codex_metrics.history_derive import DeriveSummary
+from codex_metrics.history_ingest import IngestSummary
+from codex_metrics.history_normalize import NormalizeSummary
 from codex_metrics.observability import (
     record_goal_merge_observation,
     record_goal_mutation_observation,
@@ -89,6 +92,9 @@ class CommandRuntime(Protocol):
     def render_retro_timeline_report_json(self, report: RetroTimelineReport) -> str: ...
     def render_public_boundary_report(self, report: Any) -> str: ...
     def render_public_boundary_report_json(self, report: Any) -> str: ...
+    def render_ingest_summary_json(self, summary: IngestSummary) -> str: ...
+    def render_normalize_summary_json(self, summary: NormalizeSummary) -> str: ...
+    def render_derive_summary_json(self, summary: DeriveSummary) -> str: ...
     def audit_cost_coverage(
         self,
         data: dict[str, Any],
@@ -500,24 +506,27 @@ def handle_ingest_codex_history(args: Namespace, cli_module: CommandRuntime) -> 
     warehouse_path = Path(args.warehouse_path).expanduser()
     with cli_module.metrics_mutation_lock(warehouse_path):
         summary = cli_module.ingest_codex_history(source_root, warehouse_path)
-    print(f"Ingested Codex history into {summary.warehouse_path}")
-    print(f"Source root: {summary.source_root}")
-    print(f"Scanned files: {summary.scanned_files}")
-    print(f"Imported files: {summary.imported_files}")
-    print(f"Skipped files: {summary.skipped_files}")
-    print(f"Projects: {summary.projects}")
-    print(f"Threads: {summary.threads}")
-    print(f"Sessions: {summary.sessions}")
-    print(f"Session events: {summary.session_events}")
-    print(f"Token count events: {summary.token_count_events}")
-    print(f"Token usage events: {summary.token_usage_events}")
-    print(f"Input tokens: {summary.input_tokens}")
-    print(f"Cached input tokens: {summary.cached_input_tokens}")
-    print(f"Output tokens: {summary.output_tokens}")
-    print(f"Reasoning output tokens: {summary.reasoning_output_tokens}")
-    print(f"Total tokens: {summary.total_tokens}")
-    print(f"Messages: {summary.messages}")
-    print(f"Logs: {summary.logs}")
+    if getattr(args, "json", False):
+        print(cli_module.render_ingest_summary_json(summary))
+    else:
+        print(f"Ingested Codex history into {summary.warehouse_path}")
+        print(f"Source root: {summary.source_root}")
+        print(f"Scanned files: {summary.scanned_files}")
+        print(f"Imported files: {summary.imported_files}")
+        print(f"Skipped files: {summary.skipped_files}")
+        print(f"Projects: {summary.projects}")
+        print(f"Threads: {summary.threads}")
+        print(f"Sessions: {summary.sessions}")
+        print(f"Session events: {summary.session_events}")
+        print(f"Token count events: {summary.token_count_events}")
+        print(f"Token usage events: {summary.token_usage_events}")
+        print(f"Input tokens: {summary.input_tokens}")
+        print(f"Cached input tokens: {summary.cached_input_tokens}")
+        print(f"Output tokens: {summary.output_tokens}")
+        print(f"Reasoning output tokens: {summary.reasoning_output_tokens}")
+        print(f"Total tokens: {summary.total_tokens}")
+        print(f"Messages: {summary.messages}")
+        print(f"Logs: {summary.logs}")
     return 0
 
 
@@ -525,13 +534,16 @@ def handle_normalize_codex_history(args: Namespace, cli_module: CommandRuntime) 
     warehouse_path = Path(args.warehouse_path).expanduser()
     with cli_module.metrics_mutation_lock(warehouse_path):
         summary = cli_module.normalize_codex_history(warehouse_path)
-    print(f"Normalized Codex history in {summary.warehouse_path}")
-    print(f"Projects: {summary.projects}")
-    print(f"Threads: {summary.threads}")
-    print(f"Sessions: {summary.sessions}")
-    print(f"Messages: {summary.messages}")
-    print(f"Usage events: {summary.usage_events}")
-    print(f"Logs: {summary.logs}")
+    if getattr(args, "json", False):
+        print(cli_module.render_normalize_summary_json(summary))
+    else:
+        print(f"Normalized Codex history in {summary.warehouse_path}")
+        print(f"Projects: {summary.projects}")
+        print(f"Threads: {summary.threads}")
+        print(f"Sessions: {summary.sessions}")
+        print(f"Messages: {summary.messages}")
+        print(f"Usage events: {summary.usage_events}")
+        print(f"Logs: {summary.logs}")
     return 0
 
 
@@ -539,14 +551,17 @@ def handle_derive_codex_history(args: Namespace, cli_module: CommandRuntime) -> 
     warehouse_path = Path(args.warehouse_path).expanduser()
     with cli_module.metrics_mutation_lock(warehouse_path):
         summary = cli_module.derive_codex_history(warehouse_path)
-    print(f"Derived Codex history in {summary.warehouse_path}")
-    print(f"Projects: {summary.projects}")
-    print(f"Goals: {summary.goals}")
-    print(f"Attempts: {summary.attempts}")
-    print(f"Timeline events: {summary.timeline_events}")
-    print(f"Retry chains: {summary.retry_chains}")
-    print(f"Message facts: {summary.message_facts}")
-    print(f"Session usage: {summary.session_usage}")
+    if getattr(args, "json", False):
+        print(cli_module.render_derive_summary_json(summary))
+    else:
+        print(f"Derived Codex history in {summary.warehouse_path}")
+        print(f"Projects: {summary.projects}")
+        print(f"Goals: {summary.goals}")
+        print(f"Attempts: {summary.attempts}")
+        print(f"Timeline events: {summary.timeline_events}")
+        print(f"Retry chains: {summary.retry_chains}")
+        print(f"Message facts: {summary.message_facts}")
+        print(f"Session usage: {summary.session_usage}")
     return 0
 
 

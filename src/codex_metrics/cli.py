@@ -50,6 +50,9 @@ from codex_metrics.history_derive import (
 from codex_metrics.history_derive import (
     derive_codex_history as run_derive_codex_history,
 )
+from codex_metrics.history_derive import (
+    render_derive_summary_json as render_derive_summary_json_report,
+)
 from codex_metrics.history_ingest import (
     IngestSummary,
     default_raw_warehouse_path,
@@ -57,11 +60,17 @@ from codex_metrics.history_ingest import (
 from codex_metrics.history_ingest import (
     ingest_codex_history as run_ingest_codex_history,
 )
+from codex_metrics.history_ingest import (
+    render_ingest_summary_json as render_ingest_summary_json_report,
+)
 from codex_metrics.history_normalize import (
     NormalizeSummary,
 )
 from codex_metrics.history_normalize import (
     normalize_codex_history as run_normalize_codex_history,
+)
+from codex_metrics.history_normalize import (
+    render_normalize_summary_json as render_normalize_summary_json_report,
 )
 from codex_metrics.observability import record_cli_invocation_observation
 from codex_metrics.public_boundary import (
@@ -120,6 +129,9 @@ render_public_boundary_report = render_public_boundary_text_report
 render_public_boundary_report_json = render_public_boundary_json_report
 render_retro_timeline_report = render_retro_timeline_text_report
 render_retro_timeline_report_json = render_retro_timeline_json_report
+render_ingest_summary_json = render_ingest_summary_json_report
+render_normalize_summary_json = render_normalize_summary_json_report
+render_derive_summary_json = render_derive_summary_json_report
 
 ALLOWED_STATUSES = domain.ALLOWED_STATUSES
 ALLOWED_TASK_TYPES = domain.ALLOWED_TASK_TYPES
@@ -1478,6 +1490,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=str(RAW_WAREHOUSE_PATH),
         help="SQLite warehouse path for raw imported data",
     )
+    ingest_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Render the ingest summary as JSON instead of human-readable text.",
+    )
 
     normalize_parser = subparsers.add_parser(
         "normalize-codex-history",
@@ -1492,6 +1509,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=str(RAW_WAREHOUSE_PATH),
         help="SQLite warehouse path that already contains raw imported data",
     )
+    normalize_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Render the normalize summary as JSON instead of human-readable text.",
+    )
 
     derive_parser = subparsers.add_parser(
         "derive-codex-history",
@@ -1505,6 +1527,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--warehouse-path",
         default=str(RAW_WAREHOUSE_PATH),
         help="SQLite warehouse path that already contains normalized Codex history",
+    )
+    derive_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Render the derive summary as JSON instead of human-readable text.",
     )
 
     retro_timeline_parser = subparsers.add_parser(
