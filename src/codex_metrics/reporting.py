@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+from dataclasses import asdict, dataclass
 from typing import Any
 
 from codex_metrics.domain import (
@@ -656,3 +657,15 @@ def print_summary(data: dict[str, Any]) -> None:
         print("Entry failure reasons:")
         for reason, count in summary["entries"]["failure_reasons"].items():
             print(f"- {reason}: {count}")
+
+
+def render_summary_json(data: dict[str, Any]) -> str:
+    summary = data["summary"]
+    product_quality = build_product_quality_summary(data)
+    recommendations = build_agent_recommendations(summary, product_quality)
+    payload = {
+        "summary": summary,
+        "product_quality": asdict(product_quality),
+        "recommendations": [asdict(recommendation) for recommendation in recommendations],
+    }
+    return json.dumps(payload, indent=2, sort_keys=True)

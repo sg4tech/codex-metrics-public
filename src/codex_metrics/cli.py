@@ -132,6 +132,7 @@ render_retro_timeline_report_json = render_retro_timeline_json_report
 render_ingest_summary_json = render_ingest_summary_json_report
 render_normalize_summary_json = render_normalize_summary_json_report
 render_derive_summary_json = render_derive_summary_json_report
+render_summary_json = reporting.render_summary_json
 
 ALLOWED_STATUSES = domain.ALLOWED_STATUSES
 ALLOWED_TASK_TYPES = domain.ALLOWED_TASK_TYPES
@@ -1443,6 +1444,11 @@ def build_parser() -> argparse.ArgumentParser:
         description="Print the current summary, cost coverage, and operator review.",
     )
     show_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
+    show_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Render the metrics summary as JSON instead of human-readable text.",
+    )
 
     audit_parser = subparsers.add_parser(
         "audit-history",

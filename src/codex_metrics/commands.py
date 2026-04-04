@@ -44,6 +44,7 @@ class CommandRuntime(Protocol):
     def load_metrics(self, path: Path) -> dict[str, Any]: ...
     def recompute_summary(self, data: dict[str, Any]) -> None: ...
     def print_summary(self, data: dict[str, Any]) -> None: ...
+    def render_summary_json(self, data: dict[str, Any]) -> str: ...
     def sync_usage(
         self,
         data: dict[str, Any],
@@ -436,7 +437,10 @@ def handle_show(args: Namespace, cli_module: CommandRuntime) -> int:
         warning = f"Warning: {resolution.decision.message}."
     if warning is not None:
         print(warning)
-    cli_module.print_summary(data)
+    if getattr(args, "json", False):
+        print(cli_module.render_summary_json(data))
+    else:
+        cli_module.print_summary(data)
     return 0
 
 
