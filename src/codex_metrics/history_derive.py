@@ -20,6 +20,20 @@ class DeriveSummary:
     session_usage: int
 
 
+def render_derive_summary_json(summary: DeriveSummary) -> str:
+    payload = {
+        "warehouse_path": str(summary.warehouse_path),
+        "projects": summary.projects,
+        "goals": summary.goals,
+        "attempts": summary.attempts,
+        "timeline_events": summary.timeline_events,
+        "retry_chains": summary.retry_chains,
+        "message_facts": summary.message_facts,
+        "session_usage": summary.session_usage,
+    }
+    return json.dumps(payload, indent=2, sort_keys=True)
+
+
 def _normalize_timestamp(value: str | None) -> str | None:
     if value is None:
         return None

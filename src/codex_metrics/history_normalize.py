@@ -20,6 +20,19 @@ class NormalizeSummary:
     logs: int
 
 
+def render_normalize_summary_json(summary: NormalizeSummary) -> str:
+    payload = {
+        "warehouse_path": str(summary.warehouse_path),
+        "projects": summary.projects,
+        "threads": summary.threads,
+        "sessions": summary.sessions,
+        "messages": summary.messages,
+        "usage_events": summary.usage_events,
+        "logs": summary.logs,
+    }
+    return json.dumps(payload, indent=2, sort_keys=True)
+
+
 def _iso_from_unix_seconds(value: int | None) -> str | None:
     if value is None:
         return None

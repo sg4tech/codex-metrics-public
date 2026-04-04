@@ -40,6 +40,30 @@ def default_raw_warehouse_path(metrics_path: Path) -> Path:
     return metrics_path.parent / RAW_WAREHOUSE_DIRNAME / RAW_WAREHOUSE_FILENAME
 
 
+def render_ingest_summary_json(summary: IngestSummary) -> str:
+    payload = {
+        "source_root": str(summary.source_root),
+        "warehouse_path": str(summary.warehouse_path),
+        "scanned_files": summary.scanned_files,
+        "imported_files": summary.imported_files,
+        "skipped_files": summary.skipped_files,
+        "projects": summary.projects,
+        "threads": summary.threads,
+        "sessions": summary.sessions,
+        "session_events": summary.session_events,
+        "token_count_events": summary.token_count_events,
+        "token_usage_events": summary.token_usage_events,
+        "input_tokens": summary.input_tokens,
+        "cached_input_tokens": summary.cached_input_tokens,
+        "output_tokens": summary.output_tokens,
+        "reasoning_output_tokens": summary.reasoning_output_tokens,
+        "total_tokens": summary.total_tokens,
+        "messages": summary.messages,
+        "logs": summary.logs,
+    }
+    return json.dumps(payload, indent=2, sort_keys=True)
+
+
 def _file_sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
