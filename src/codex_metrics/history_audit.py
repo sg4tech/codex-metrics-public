@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -218,3 +219,23 @@ def render_audit_report(report: AuditReport) -> str:
             lines.append(f"  suggested_result_fit: {candidate.suggested_result_fit}")
 
     return "\n".join(lines)
+
+
+def render_audit_report_json(report: AuditReport) -> str:
+    payload = {
+        "candidate_count": len(report.candidates),
+        "candidates": [
+            {
+                "category": candidate.category,
+                "goal_id": candidate.goal_id,
+                "goal_type": candidate.goal_type,
+                "status": candidate.status,
+                "title": candidate.title,
+                "reason": candidate.reason,
+                "suggested_result_fit": candidate.suggested_result_fit,
+                "related_goal_id": candidate.related_goal_id,
+            }
+            for candidate in report.candidates
+        ],
+    }
+    return json.dumps(payload, indent=2, sort_keys=True)
