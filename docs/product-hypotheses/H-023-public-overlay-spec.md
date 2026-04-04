@@ -521,3 +521,4 @@ Checkpoint:
 
 - the first real public repo skeleton now exists at `/Users/viktor/PycharmProjects/codex-metrics-public` and was initialized from the phase 1 export
 - the private repo now has an `oss/` overlay marker plus helper commands that print the planned `git subtree` sync flow, so the public/private split can be staged without immediately moving the whole codebase under `oss/`
+- the public skeleton has now been imported into the private repo under `oss/` with `git subtree add --prefix=oss public main --squash`, so the sync boundary is real and round-trip testing can begin from an actual subtree checkout
