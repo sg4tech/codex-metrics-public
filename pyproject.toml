@@ -51,6 +51,9 @@ exclude = [
   "^\\.venv/",
 ]
 
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
 [tool.coverage.run]
 branch = true
 parallel = true

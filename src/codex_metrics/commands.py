@@ -50,6 +50,7 @@ class CommandRuntime(Protocol):
         usage_logs_path: Path,
         usage_thread_id: str | None,
         usage_backend: str | None = None,
+        claude_root: Path = ...,
     ) -> int: ...
     def sync_codex_usage(
         self,
@@ -94,6 +95,7 @@ class CommandRuntime(Protocol):
         codex_logs_path: Path,
         codex_thread_id: str | None,
         cwd: Path,
+        claude_root: Path = ...,
     ) -> CostAuditReport: ...
     def render_cost_audit_report(self, report: CostAuditReport) -> str: ...
     def merge_tasks(self, data: dict[str, Any], keep_task_id: str, drop_task_id: str) -> dict[str, Any]: ...
@@ -128,6 +130,7 @@ class CommandRuntime(Protocol):
         codex_logs_path: Path,
         codex_thread_id: str | None,
         cwd: Path,
+        claude_root: Path = ...,
     ) -> dict[str, Any]: ...
     def sync_goal_attempt_entries(
         self,
@@ -562,6 +565,7 @@ def handle_audit_cost_coverage(args: Namespace, cli_module: CommandRuntime) -> i
     pricing_path = Path(args.pricing_path)
     codex_state_path = Path(args.codex_state_path)
     codex_logs_path = Path(args.codex_logs_path)
+    claude_root = Path(args.claude_root) if getattr(args, "claude_root", None) is not None else Path.home() / ".claude"
     data = cli_module.load_metrics(metrics_path)
     report = cli_module.audit_cost_coverage(
         data,
@@ -570,6 +574,7 @@ def handle_audit_cost_coverage(args: Namespace, cli_module: CommandRuntime) -> i
         codex_logs_path=codex_logs_path,
         codex_thread_id=args.codex_thread_id,
         cwd=Path.cwd(),
+        claude_root=claude_root,
     )
     print(cli_module.render_cost_audit_report(report))
     return 0
@@ -594,6 +599,7 @@ def handle_sync_usage(args: Namespace, cli_module: CommandRuntime) -> int:
     pricing_path = Path(args.pricing_path)
     usage_state_path = Path(args.usage_state_path)
     usage_logs_path = Path(args.usage_logs_path)
+    claude_root = Path(args.claude_root) if getattr(args, "claude_root", None) is not None else Path.home() / ".claude"
     with cli_module.metrics_mutation_lock(metrics_path):
         data = cli_module.load_metrics(metrics_path)
         updated_tasks = cli_module.sync_usage(
@@ -604,6 +610,7 @@ def handle_sync_usage(args: Namespace, cli_module: CommandRuntime) -> int:
             usage_logs_path=usage_logs_path,
             usage_thread_id=args.usage_thread_id,
             usage_backend=getattr(args, "usage_backend", None),
+            claude_root=claude_root,
         )
         cli_module.recompute_summary(data)
         cli_module.save_metrics(metrics_path, data)
@@ -655,6 +662,7 @@ def handle_update(args: Namespace, cli_module: CommandRuntime) -> int:
     pricing_path = Path(args.pricing_path)
     codex_state_path = Path(args.codex_state_path)
     codex_logs_path = Path(args.codex_logs_path)
+    claude_root = Path(args.claude_root) if getattr(args, "claude_root", None) is not None else Path.home() / ".claude"
     with cli_module.metrics_mutation_lock(metrics_path):
         data = cli_module.load_metrics(metrics_path)
         if args.task_id is not None and _command_requires_active_goal(args):
@@ -694,6 +702,7 @@ def handle_update(args: Namespace, cli_module: CommandRuntime) -> int:
             codex_logs_path=codex_logs_path,
             codex_thread_id=args.codex_thread_id,
             cwd=Path.cwd(),
+            claude_root=claude_root,
         )
 
         cli_module.sync_goal_attempt_entries(data, task, previous_task)
@@ -743,6 +752,7 @@ def _build_update_namespace(args: Namespace, **overrides: Any) -> Namespace:
         "codex_state_path": getattr(args, "codex_state_path", None),
         "codex_logs_path": getattr(args, "codex_logs_path", None),
         "codex_thread_id": getattr(args, "codex_thread_id", None),
+        "claude_root": getattr(args, "claude_root", None),
         "metrics_path": getattr(args, "metrics_path", None),
         "report_path": getattr(args, "report_path", None),
         "write_report": getattr(args, "write_report", False),

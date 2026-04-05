@@ -31,3 +31,4 @@ metrics/.codex-metrics/
 
 # Local Claude workspace state
 .claude/
+!.claude/settings.local.json

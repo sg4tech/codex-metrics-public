@@ -3,15 +3,28 @@
     "allow": [
       "Bash(git -C /Users/viktor/PycharmProjects/codex-metrics config --local core.hooksPath)",
       "Bash(git -C /Users/viktor/PycharmProjects/codex-metrics config core.hooksPath)",
-      "Bash(.venv/bin/python -m pytest:*)",
-      "Bash(.venv/bin/python --version)",
+      "Bash(git -C /Users/viktor/PycharmProjects/codex-metrics/.claude/worktrees/*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git status *)",
+      "Bash(git pull *)",
+      "Bash(git show *)",
+      "Bash(make *)",
+      "Bash(ln -sf /Users/viktor/PycharmProjects/codex-metrics/.venv .venv)",
       "Bash(ln -s AGENTS.md CLAUDE.md)",
+      "Bash(.venv/bin/python *)",
+      "Bash(.venv/bin/pytest *)",
+      "Bash(.venv/bin/codex-metrics *)",
+      "Bash(PYTHONPATH=* .venv/bin/python *)",
+      "Bash(PYTHONPATH=* .venv/bin/codex-metrics *)",
+      "Bash(PYTHONPATH=* ./tools/codex-metrics *)",
       "Bash(PYTHONPATH=src make verify)",
-      "Bash(PYTHONPATH=src .venv/bin/python -m pytest tests/ -x -q)",
-      "Read(//opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/bin/**)",
-      "Bash(PYTHONPATH=/Users/viktor/PycharmProjects/codex-metrics/src /Users/viktor/PycharmProjects/codex-metrics/.venv/bin/python -m pytest tests/ -x -q)",
-      "Bash(PYTHONPATH=/Users/viktor/PycharmProjects/codex-metrics/src /Users/viktor/PycharmProjects/codex-metrics/.venv/bin/python -m pytest tests/test_claude_md.py -v)",
-      "Bash(PYTHONPATH=/Users/viktor/PycharmProjects/codex-metrics/src /Users/viktor/PycharmProjects/codex-metrics/.venv/bin/python -m pytest tests/ -q)"
+      "Bash(./tools/codex-metrics *)",
+      "Bash(python3 -c *)",
+      "WebFetch(domain:www.anthropic.com)",
+      "WebFetch(domain:docs.anthropic.com)"
     ]
   }
 }
