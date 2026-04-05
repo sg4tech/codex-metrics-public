@@ -89,6 +89,23 @@ Before moving a task to completion, confirm all of the following:
 - there is no known blocker that would send the task back to implementation
 - the completion handoff is recorded in the issue or repo notes
 
+### Definition of Done (thread closing checklist)
+
+Before closing a conversation thread, work through this checklist. Do not ask the user whether to proceed — if an item is incomplete, complete it automatically.
+
+**If the task involved code:**
+
+- Code review was conducted and all comments are resolved
+- QA reviewed the change and critical findings are fixed
+- Automated tests exist for the new functionality, covering happy path and relevant edge cases
+
+**In all cases:**
+
+- Retrospective: was one needed? if yes, write and commit it to `docs/retros/` now
+- Anything from chat that should be preserved has been saved to files (hypotheses, decisions, policy changes, AGENTS.md rules)
+- Commit and push are done — do them now if not yet
+- If the task included changes to `AGENTS.md`, `docs/task-lifecycle.md`, `docs/codex-metrics-policy.md`, or any other policy/rules file: run `git fetch origin master` first, then verify with `git log origin/master -- <file>`. If not merged, flag it to the user before closing — these files are read from master and changes in a feature branch have no effect.
+
 ## Transition Rules
 
 The default flow is:

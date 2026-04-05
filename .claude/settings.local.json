@@ -13,26 +13,18 @@
       "Bash(git show *)",
       "Bash(make *)",
       "Bash(ln -sf /Users/viktor/PycharmProjects/codex-metrics/.venv .venv)",
-      "Bash(.venv/bin/python --version)",
-      "Bash(.venv/bin/python -m pytest *)",
+      "Bash(ln -s AGENTS.md CLAUDE.md)",
+      "Bash(.venv/bin/python *)",
+      "Bash(.venv/bin/pytest *)",
+      "Bash(.venv/bin/codex-metrics *)",
       "Bash(PYTHONPATH=* .venv/bin/python *)",
       "Bash(PYTHONPATH=* .venv/bin/codex-metrics *)",
       "Bash(PYTHONPATH=* ./tools/codex-metrics *)",
+      "Bash(PYTHONPATH=src make verify)",
       "Bash(./tools/codex-metrics *)",
       "Bash(python3 -c *)",
       "WebFetch(domain:www.anthropic.com)",
-      "WebFetch(domain:docs.anthropic.com)",
-      "Read(//Users/viktor/PycharmProjects/codex-metrics/**)",
-      "Bash(.venv/bin/codex-metrics sync-usage:*)",
-      "Bash(.venv/bin/python -c \":*)",
-      "Bash(echo \"exit: $?\")",
-      "Bash(.venv/bin/pytest)",
-      "Bash(.venv/bin/pytest tests/test_update_codex_metrics.py tests/test_sync_usage.py -v)",
-      "Bash(.venv/bin/pytest tests/test_update_codex_metrics.py -v)",
-      "Bash(.venv/bin/pytest tests/test_update_codex_metrics.py -x -q)",
-      "Bash(.venv/bin/pytest tests/test_update_codex_metrics.py -x -q -k \"sync_usage_writes_agent_name or detect_claude\")",
-      "Bash(.venv/bin/pytest tests/test_update_codex_metrics.py -q)",
-      "Bash(.venv/bin/pip install:*)"
+      "WebFetch(domain:docs.anthropic.com)"
     ]
   }
 }
