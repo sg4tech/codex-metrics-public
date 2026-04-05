@@ -3,10 +3,17 @@
     "allow": [
       "Bash(git -C /Users/viktor/PycharmProjects/codex-metrics config --local core.hooksPath)",
       "Bash(git -C /Users/viktor/PycharmProjects/codex-metrics config core.hooksPath)",
-      "Bash(./.venv/bin/python -m pytest tests/test_git_hooks.py tests/test_commit_message.py -v)",
-      "Bash(.venv/bin/python -m pytest tests/test_storage_immutability.py -v)",
+      "Bash(git -C /Users/viktor/PycharmProjects/codex-metrics/.claude/worktrees/*)",
+      "Bash(make *)",
+      "Bash(ln -sf /Users/viktor/PycharmProjects/codex-metrics/.venv .venv)",
       "Bash(.venv/bin/python --version)",
-      "Bash(make verify:*)"
+      "Bash(.venv/bin/python -m pytest *)",
+      "Bash(PYTHONPATH=* .venv/bin/python -m pytest *)",
+      "Bash(PYTHONPATH=* .venv/bin/python -m ruff *)",
+      "Bash(PYTHONPATH=* .venv/bin/python -m mypy *)",
+      "Bash(PYTHONPATH=* ./tools/codex-metrics *)",
+      "WebFetch(domain:www.anthropic.com)",
+      "WebFetch(domain:docs.anthropic.com)"
     ]
   }
 }
