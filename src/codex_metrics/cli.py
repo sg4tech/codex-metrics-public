@@ -1148,12 +1148,12 @@ def bootstrap_project(
     return result.messages
 
 
-def _detect_claude_presence(cwd: Path) -> bool:
+def _detect_claude_presence(cwd: Path, *, claude_root: Path = CLAUDE_ROOT) -> bool:
     """Return True if Claude Code JSONL telemetry exists for the given working directory.
 
-    Checks for any .jsonl files under ~/.claude/projects/{encoded_cwd}/.
+    Checks for any .jsonl files under claude_root/projects/{encoded_cwd}/.
     """
-    project_dir = CLAUDE_ROOT / "projects" / _encode_cwd_for_claude(cwd)
+    project_dir = claude_root / "projects" / _encode_cwd_for_claude(cwd)
     if not project_dir.exists():
         return False
     return any(project_dir.glob("*.jsonl"))
@@ -1869,6 +1869,7 @@ def sync_usage(
     for task in tasks:
         previous_task = dict(task)
         task_agent_name = task.get("agent_name")
+        detected_agent_name: str | None = None
         if usage_backend is not None:
             resolved_backend: UsageBackend = usage_backend
             effective_state_path = usage_state_path
@@ -1908,6 +1909,7 @@ def sync_usage(
             )
             if claude_window.cost_usd is not None or claude_window.total_tokens is not None:
                 window = claude_window
+                detected_agent_name = claude_window.backend_name
         auto_cost_usd = window.cost_usd
         auto_total_tokens = window.total_tokens
         auto_input_tokens = window.input_tokens
@@ -1941,6 +1943,9 @@ def sync_usage(
             changed = True
         if auto_model is not None and task.get("model") != auto_model:
             task["model"] = auto_model
+            changed = True
+        if detected_agent_name is not None and task.get("agent_name") is None:
+            task["agent_name"] = detected_agent_name
             changed = True
         if changed:
             validate_goal_record(task)
@@ -1989,10 +1994,9 @@ def audit_cost_coverage(
         finished_at: str | None,
         pricing_path: Path,
         thread_id: str | None = None,
+        agent_name: str | None = None,
     ) -> tuple[float | None, int | None]:
-        # Route to ClaudeUsageBackend when state_path is claude_root (Claude goal).
-        # For Codex goals, fall back to SQLite-based backend detection.
-        if state_path == claude_root:
+        if agent_name == "claude":
             backend: UsageBackend = ClaudeUsageBackend()
         else:
             backend = select_usage_backend(state_path, cwd, thread_id)

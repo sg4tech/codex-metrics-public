@@ -38,7 +38,7 @@ class CostAuditReport:
 
 
 ThreadResolver = Callable[[Path, Path, str | None], str | None]
-UsageResolver = Callable[[Path, Path, Path, str | None, str | None, Path, str | None], tuple[float | None, int | None]]
+UsageResolver = Callable[[Path, Path, Path, str | None, str | None, Path, str | None, str | None], tuple[float | None, int | None]]
 
 
 def _build_candidate(
@@ -125,6 +125,7 @@ def _classify_goal_cost_coverage(
             goal.finished_at,
             pricing_path,
             None,
+            goal.agent_name,
         )
         if recovered_cost_usd is None and recovered_total_tokens is None:
             return _build_candidate(
@@ -165,6 +166,7 @@ def _classify_goal_cost_coverage(
         goal.finished_at,
         pricing_path,
         codex_thread_id,
+        goal.agent_name,
     )
     if recovered_cost_usd is None and recovered_total_tokens is None:
         return _build_candidate(

@@ -3699,7 +3699,7 @@ def test_claude_usage_backend_haiku_alias_resolves_pricing(tmp_path: Path) -> No
     assert window.model_name == "claude-haiku-4-5"
 
 
-def test_detect_claude_presence_true_when_jsonl_exists(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_detect_claude_presence_true_when_jsonl_exists(tmp_path: Path) -> None:
     import codex_metrics.cli as cli_module
 
     claude_root = tmp_path / "dot-claude"
@@ -3710,20 +3710,18 @@ def test_detect_claude_presence_true_when_jsonl_exists(tmp_path: Path, monkeypat
     project_dir.mkdir(parents=True)
     (project_dir / "session.jsonl").write_text("{}\n", encoding="utf-8")
 
-    monkeypatch.setattr(cli_module, "CLAUDE_ROOT", claude_root)
-    assert cli_module._detect_claude_presence(cwd) is True
+    assert cli_module._detect_claude_presence(cwd, claude_root=claude_root) is True
 
 
-def test_detect_claude_presence_false_when_no_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_detect_claude_presence_false_when_no_dir(tmp_path: Path) -> None:
     import codex_metrics.cli as cli_module
 
     claude_root = tmp_path / "dot-claude"
     claude_root.mkdir()
-    monkeypatch.setattr(cli_module, "CLAUDE_ROOT", claude_root)
-    assert cli_module._detect_claude_presence(tmp_path / "repo") is False
+    assert cli_module._detect_claude_presence(tmp_path / "repo", claude_root=claude_root) is False
 
 
-def test_detect_claude_presence_false_when_dir_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_detect_claude_presence_false_when_dir_empty(tmp_path: Path) -> None:
     import codex_metrics.cli as cli_module
 
     claude_root = tmp_path / "dot-claude"
@@ -3732,8 +3730,7 @@ def test_detect_claude_presence_false_when_dir_empty(tmp_path: Path, monkeypatch
     encoded = str(cwd).replace("/", "-").replace(".", "-")
     (claude_root / "projects" / encoded).mkdir(parents=True)  # exists but no .jsonl files
 
-    monkeypatch.setattr(cli_module, "CLAUDE_ROOT", claude_root)
-    assert cli_module._detect_claude_presence(cwd) is False
+    assert cli_module._detect_claude_presence(cwd, claude_root=claude_root) is False
 
 
 def test_resolve_goal_usage_updates_detects_claude_via_fallback(
