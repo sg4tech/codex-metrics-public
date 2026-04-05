@@ -5,7 +5,13 @@
       "Bash(git -C /Users/viktor/PycharmProjects/codex-metrics config core.hooksPath)",
       "Bash(.venv/bin/python -m pytest:*)",
       "Bash(.venv/bin/python --version)",
-      "Bash(ln -s AGENTS.md CLAUDE.md)"
+      "Bash(ln -s AGENTS.md CLAUDE.md)",
+      "Bash(PYTHONPATH=src make verify)",
+      "Bash(PYTHONPATH=src .venv/bin/python -m pytest tests/ -x -q)",
+      "Read(//opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/bin/**)",
+      "Bash(PYTHONPATH=/Users/viktor/PycharmProjects/codex-metrics/src /Users/viktor/PycharmProjects/codex-metrics/.venv/bin/python -m pytest tests/ -x -q)",
+      "Bash(PYTHONPATH=/Users/viktor/PycharmProjects/codex-metrics/src /Users/viktor/PycharmProjects/codex-metrics/.venv/bin/python -m pytest tests/test_claude_md.py -v)",
+      "Bash(PYTHONPATH=/Users/viktor/PycharmProjects/codex-metrics/src /Users/viktor/PycharmProjects/codex-metrics/.venv/bin/python -m pytest tests/ -q)"
     ]
   }
 }
