@@ -24,7 +24,13 @@
       "Bash(./tools/codex-metrics *)",
       "Bash(python3 -c *)",
       "WebFetch(domain:www.anthropic.com)",
-      "WebFetch(domain:docs.anthropic.com)"
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(/usr/local/bin/gh --version)",
+      "Bash(/opt/homebrew/bin/gh --version)",
+      "Bash(/opt/homebrew/bin/gh run:*)",
+      "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); goals=[g for g in data.get\\(''''goals'''',[]\\) if ''''H-010'''' in g.get\\(''''title'''',''''''''\\)]; [print\\(json.dumps\\({k:v for k,v in g.items\\(\\) if k != ''''notes''''},indent=2\\)\\) for g in goals]\")",
+      "Bash(PYTHONPATH=src .venv/bin/python -c \":*)"
     ]
   }
 }
