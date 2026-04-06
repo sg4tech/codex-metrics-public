@@ -2,7 +2,7 @@
 
 **Priority:** high
 **Complexity:** medium
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -36,10 +36,10 @@ src/codex_metrics/domain/
 
 ## Acceptance criteria
 
-- [ ] `from codex_metrics.domain import GoalRecord` continues to work
-- [ ] All tests pass without changing imports
-- [ ] Each submodule imports only what it needs (no cross-module cycles)
-- [ ] `make verify` passes
+- [x] `from codex_metrics.domain import GoalRecord` continues to work
+- [x] All tests pass without changing imports
+- [x] Each submodule imports only what it needs (no cross-module cycles)
+- [x] `make verify` passes
 
 ## Notes
 
