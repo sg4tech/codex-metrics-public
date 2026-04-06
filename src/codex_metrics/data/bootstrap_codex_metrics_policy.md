@@ -153,7 +153,7 @@ codex-metrics compare-metrics-history
 
 The public workflow contract should stay agent-agnostic. Provider-specific detection and telemetry support belong behind internal adapters, not in required public CLI flags.
 
-Automatic local usage sync is currently implemented for Codex telemetry. Other agents are still in scope for the product, but their support should land through the same universal command surface.
+Automatic local usage sync is implemented for Codex telemetry (SQLite) and Claude Code telemetry (JSONL under `~/.claude/projects/`). Both are detected automatically — no provider-specific flag is required. Additional agents remain in scope for the product and should land through the same universal command surface.
 
 When repository work has already started but no active task exists yet, prefer `codex-metrics ensure-active-task` before continuing with active-work commands.
 Closed-goal repair via `finish-task` or a status-closing `update` remains available for history correction, but it should stay narrow and explicit.
