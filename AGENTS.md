@@ -47,6 +47,7 @@ For history/search/reconstruction work, also read:
 - Treat agent-agnostic behavior as the default product and API constraint.
 - When changing the CLI, bootstrap flow, metrics schema, or reporting contract, prefer one universal agent-facing API over provider-specific user-visible parameters or workflows.
 - Keep provider-specific logic behind internal detection or adapter layers unless the user explicitly asks for a provider-specific public surface.
+- Before starting implementation, ask all important clarifying questions upfront — resolve ambiguity, constraints, and open decisions before writing any code, so that implementation can proceed without interruptions.
 - Treat “adjacent but not requested” output as a primary quality failure, even if the implementation is otherwise technically strong.
 - Prefer diagnosis -> guardrail -> verification over clever but weakly defended fixes.
 - Keep test-only escape hatches out of production code paths; if tests need to bypass a safety mechanism, prefer dependency injection, monkeypatching, or test fixtures over runtime environment toggles.

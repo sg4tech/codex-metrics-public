@@ -80,6 +80,7 @@ BMAD addresses "vibe coding" — the unstructured, ad-hoc use of LLMs that produ
 - Closest to BMAD's "spec-as-primary-artifact" philosophy
 - Works with Copilot, Claude Code, Gemini CLI
 - Lacks persona/role separation
+- **Detailed research:** [github-spec-kit-deep-dive.md](./github-spec-kit-deep-dive.md)
 - **Resources:** `github.com/github/spec-kit`, `speckit.org`
 
 #### CrewAI
