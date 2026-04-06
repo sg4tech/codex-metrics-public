@@ -4,9 +4,33 @@ import importlib.util
 import json
 import sqlite3
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
+
+from codex_metrics.domain import (
+    AttemptEntryRecord,
+    EffectiveGoalRecord,
+    GoalRecord,
+    apply_attempt_usage_deltas,
+    apply_goal_updates,
+    build_effective_goals,
+    compute_entry_summary,
+    compute_numeric_delta,
+    compute_summary_block,
+    create_goal_record,
+    ensure_goal_type_update_allowed,
+    finalize_goal_update,
+    next_goal_id,
+    parse_iso_datetime,
+    sync_goal_attempt_entries,
+    update_latest_attempt_entry,
+    validate_entry_record,
+    validate_goal_record,
+    validate_metrics_data,
+)
+from codex_metrics.reporting import build_operator_review
 
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "update_codex_metrics.py"
 SPEC = importlib.util.spec_from_file_location("update_codex_metrics_module", SCRIPT_PATH)
@@ -38,7 +62,7 @@ def make_goal_record(**overrides: object) -> object:
         "result_fit": None,
     }
     values.update(overrides)
-    return MODULE.GoalRecord(**values)
+    return GoalRecord(**values)
 
 
 def make_effective_goal_record(**overrides: object) -> object:
@@ -69,7 +93,7 @@ def make_effective_goal_record(**overrides: object) -> object:
         "result_fit": None,
     }
     values.update(overrides)
-    return MODULE.EffectiveGoalRecord(**values)
+    return EffectiveGoalRecord(**values)
 
 
 def make_attempt_entry_record(**overrides: object) -> object:
@@ -91,7 +115,7 @@ def make_attempt_entry_record(**overrides: object) -> object:
         "agent_name": None,
     }
     values.update(overrides)
-    return MODULE.AttemptEntryRecord(**values)
+    return AttemptEntryRecord(**values)
 
 
 def make_goal_dict(**overrides: object) -> dict[str, object]:
@@ -141,7 +165,7 @@ def make_entry_dict(**overrides: object) -> dict[str, object]:
 
 
 def test_compute_summary_block_uses_closed_goals_for_attempt_average() -> None:
-    summary = MODULE.compute_summary_block(
+    summary = compute_summary_block(
         [
             make_effective_goal_record(
                 goal_id="goal-1",
@@ -184,7 +208,7 @@ def test_compute_summary_block_uses_closed_goals_for_attempt_average() -> None:
 
 
 def test_compute_summary_block_separates_known_and_complete_cost_views() -> None:
-    summary = MODULE.compute_summary_block(
+    summary = compute_summary_block(
         [
             make_effective_goal_record(
                 goal_id="goal-1",
@@ -225,7 +249,7 @@ def test_compute_summary_block_separates_known_and_complete_cost_views() -> None
 
 
 def test_compute_summary_block_tracks_model_coverage_and_mixed_goals() -> None:
-    summary = MODULE.compute_summary_block(
+    summary = compute_summary_block(
         [
             make_effective_goal_record(
                 goal_id="goal-1",
@@ -261,7 +285,7 @@ def test_compute_summary_block_tracks_model_coverage_and_mixed_goals() -> None:
 
 
 def test_build_effective_goals_merges_superseded_chain_attempts_and_known_cost() -> None:
-    effective_goals = MODULE.build_effective_goals(
+    effective_goals = build_effective_goals(
         [
             make_goal_record(
                 goal_id="goal-1",
@@ -302,7 +326,7 @@ def test_build_effective_goals_merges_superseded_chain_attempts_and_known_cost()
 
 
 def test_compute_entry_summary_counts_failure_reasons_from_failed_entries_only() -> None:
-    summary = MODULE.compute_entry_summary(
+    summary = compute_entry_summary(
         [
             make_attempt_entry_record(
                 entry_id="entry-1",
@@ -336,7 +360,7 @@ def test_compute_entry_summary_counts_failure_reasons_from_failed_entries_only()
 
 
 def test_build_operator_review_surfaces_agent_diagnoses() -> None:
-    review = MODULE.build_operator_review(
+    review = build_operator_review(
         {
             "successes": 3,
             "known_cost_successes": 1,
@@ -363,7 +387,7 @@ def test_build_operator_review_surfaces_agent_diagnoses() -> None:
 
 
 def test_next_goal_id_ignores_malformed_and_other_day_ids() -> None:
-    goal_id = MODULE.next_goal_id(
+    goal_id = next_goal_id(
         [
             {"goal_id": "2026-03-29-001"},
             {"goal_id": "2026-03-29-0999"},
@@ -371,34 +395,34 @@ def test_next_goal_id_ignores_malformed_and_other_day_ids() -> None:
             {"goal_id": "2026-03-28-999"},
             {"goal_id": None},
         ],
-        now=MODULE.datetime(2026, 3, 29, 12, 0, tzinfo=MODULE.timezone.utc),
+        now=datetime(2026, 3, 29, 12, 0, tzinfo=timezone.utc),
     )
 
     assert goal_id == "2026-03-29-002"
 
 
 def test_compute_numeric_delta_returns_none_for_non_positive_change() -> None:
-    assert MODULE.compute_numeric_delta(5, 5) is None
-    assert MODULE.compute_numeric_delta(5, 4) is None
-    assert MODULE.compute_numeric_delta(None, 7) == 7
-    assert MODULE.compute_numeric_delta(5, 8) == 3
+    assert compute_numeric_delta(5, 5) is None
+    assert compute_numeric_delta(5, 4) is None
+    assert compute_numeric_delta(None, 7) == 7
+    assert compute_numeric_delta(5, 8) == 3
 
 
 def test_parse_iso_datetime_rejects_missing_timezone() -> None:
     with pytest.raises(ValueError, match="timezone offset is required"):
-        MODULE.parse_iso_datetime("2026-03-29T12:00:00", "started_at")
+        parse_iso_datetime("2026-03-29T12:00:00", "started_at")
 
 
 def test_validate_goal_record_rejects_missing_required_field() -> None:
     goal = make_goal_dict()
     del goal["title"]
     with pytest.raises(ValueError, match="Missing required goal field: title"):
-        MODULE.validate_goal_record(goal)
+        validate_goal_record(goal)
 
 
 def test_validate_goal_record_rejects_blank_model() -> None:
     with pytest.raises(ValueError, match="model cannot be empty"):
-        MODULE.validate_goal_record(
+        validate_goal_record(
             make_goal_dict(
                 model="   ",
                 started_at="2026-03-29T09:00:00+00:00",
@@ -411,7 +435,7 @@ def test_validate_goal_record_rejects_blank_model() -> None:
 
 def test_validate_goal_record_rejects_non_product_result_fit() -> None:
     with pytest.raises(ValueError, match="result_fit is only allowed for product goals"):
-        MODULE.validate_goal_record(
+        validate_goal_record(
             make_goal_dict(
                 title="Retro with fit",
                 goal_type="retro",
@@ -426,7 +450,7 @@ def test_validate_goal_record_rejects_non_product_result_fit() -> None:
 
 def test_validate_goal_record_rejects_success_with_miss_result_fit() -> None:
     with pytest.raises(ValueError, match="result_fit miss is not allowed when status is success"):
-        MODULE.validate_goal_record(
+        validate_goal_record(
             make_goal_dict(
                 title="Success with miss",
                 status="success",
@@ -440,7 +464,7 @@ def test_validate_goal_record_rejects_success_with_miss_result_fit() -> None:
 
 def test_validate_entry_record_rejects_non_bool_inferred_flag() -> None:
     with pytest.raises(ValueError, match="Invalid type for entry field: inferred"):
-        MODULE.validate_entry_record(
+        validate_entry_record(
             make_entry_dict(
                 inferred="yes",
                 started_at="2026-03-29T09:00:00+00:00",
@@ -476,13 +500,13 @@ def test_validate_metrics_data_rejects_supersession_cycle(tmp_path: Path) -> Non
     }
 
     with pytest.raises(ValueError, match="Detected supersession cycle"):
-        MODULE.validate_metrics_data(data, metrics_path)
+        validate_metrics_data(data, metrics_path)
 
 
 def test_validate_metrics_data_rejects_unknown_superseded_goal(tmp_path: Path) -> None:
     metrics_path = tmp_path / "metrics.json"
     with pytest.raises(ValueError, match="Referenced superseded goal not found: missing-goal"):
-        MODULE.validate_metrics_data(
+        validate_metrics_data(
             {
                 "summary": {},
                 "goals": [
@@ -531,7 +555,7 @@ def test_sync_goal_attempt_entries_creates_and_closes_attempt_history() -> None:
         notes="Second attempt succeeded",
     )
 
-    MODULE.sync_goal_attempt_entries(data, goal, previous_goal)
+    sync_goal_attempt_entries(data, goal, previous_goal)
 
     entries = sorted(data["entries"], key=lambda entry: entry["entry_id"])
     assert len(entries) == 2
@@ -580,7 +604,7 @@ def test_sync_goal_attempt_entries_preserves_model_on_latest_entry_and_summary()
         notes="Second attempt succeeded",
     )
 
-    MODULE.sync_goal_attempt_entries(data, goal, previous_goal)
+    sync_goal_attempt_entries(data, goal, previous_goal)
 
     assert data["entries"][0]["model"] == "gpt-5"
     assert goal["model"] == "gpt-5"
@@ -618,7 +642,7 @@ def test_sync_goal_attempt_entries_clears_goal_model_for_mixed_attempts() -> Non
         model="gpt-5.4",
     )
 
-    MODULE.sync_goal_attempt_entries(data, goal, previous_goal)
+    sync_goal_attempt_entries(data, goal, previous_goal)
 
     entries = sorted(data["entries"], key=lambda entry: entry["entry_id"])
     assert entries[0]["model"] == "gpt-5"
@@ -661,7 +685,7 @@ def test_sync_goal_attempt_entries_trims_excess_entries_when_attempts_drop() -> 
         notes="Compressed history",
     )
 
-    MODULE.sync_goal_attempt_entries(data, goal, None)
+    sync_goal_attempt_entries(data, goal, None)
 
     assert [entry["entry_id"] for entry in data["entries"]] == ["goal-1-attempt-001"]
 
@@ -669,7 +693,7 @@ def test_sync_goal_attempt_entries_trims_excess_entries_when_attempts_drop() -> 
 def test_apply_attempt_usage_deltas_uses_initial_goal_values_without_previous_goal() -> None:
     latest_entry = {"cost_usd": None, "tokens_total": None}
 
-    MODULE.apply_attempt_usage_deltas(
+    apply_attempt_usage_deltas(
         latest_entry,
         {"cost_usd": 0.25, "tokens_total": 123},
         None,
@@ -680,7 +704,7 @@ def test_apply_attempt_usage_deltas_uses_initial_goal_values_without_previous_go
 
 
 def test_update_latest_attempt_entry_returns_none_for_empty_entries() -> None:
-    assert MODULE.update_latest_attempt_entry([], {"goal_type": "product", "status": "success"}) is None
+    assert update_latest_attempt_entry([], {"goal_type": "product", "status": "success"}) is None
 
 
 def test_ensure_goal_type_update_allowed_rejects_existing_attempt_history() -> None:
@@ -692,7 +716,7 @@ def test_ensure_goal_type_update_allowed_rejects_existing_attempt_history() -> N
     )
 
     with pytest.raises(ValueError, match="goal_id already exists as a product goal"):
-        MODULE.ensure_goal_type_update_allowed(
+        ensure_goal_type_update_allowed(
             [{"entry_id": "goal-1-attempt-001", "goal_id": "goal-1"}],
             goal,
             "meta",
@@ -713,7 +737,7 @@ def test_create_goal_record_rejects_linked_goal_type_mismatch() -> None:
     ]
 
     with pytest.raises(ValueError, match="linked tasks must use the same task_type"):
-        MODULE.create_goal_record(
+        create_goal_record(
             tasks=tasks,
             task_id="goal-2",
             title="Product follow-up",
@@ -731,7 +755,7 @@ def test_apply_goal_updates_rejects_blank_title() -> None:
     )
 
     with pytest.raises(ValueError, match="title cannot be empty"):
-        MODULE.apply_goal_updates(
+        apply_goal_updates(
             entries=[],
             task=task,
             title="   ",
@@ -775,7 +799,7 @@ def test_finalize_goal_update_sets_attempts_and_clears_failure_reason_on_success
         failure_reason="validation_failed",
     )
 
-    MODULE.finalize_goal_update(task)
+    finalize_goal_update(task)
 
     assert task.attempts == 1
     assert task.failure_reason is None

@@ -14,26 +14,43 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 
-from codex_metrics import __version__, domain, reporting, storage
+from codex_metrics import __version__
 from codex_metrics.bootstrap import bootstrap_project as run_bootstrap_project
 from codex_metrics.completion import render_completion
 from codex_metrics.cost_audit import (
     CostAuditReport,
 )
-from codex_metrics.cost_audit import (
-    render_cost_audit_report as render_cost_coverage_audit_report,
-)
-from codex_metrics.history_audit import (
-    audit_history as build_history_audit_report,
-)
-from codex_metrics.history_audit import (
-    render_audit_report as render_history_audit_report,
-)
-from codex_metrics.history_compare import (
-    compare_metrics_to_history as build_history_compare_report,
-)
-from codex_metrics.history_compare import (
-    render_history_compare_report as render_compare_report,
+from codex_metrics.domain import (
+    ALLOWED_FAILURE_REASONS,
+    ALLOWED_RESULT_FITS,
+    ALLOWED_STATUSES,
+    ALLOWED_TASK_TYPES,
+    GoalRecord,
+    apply_goal_updates,
+    build_merged_notes,
+    choose_earliest_timestamp,
+    choose_latest_timestamp,
+    combine_optional_cost,
+    combine_optional_tokens,
+    create_goal_record,
+    default_metrics,
+    finalize_goal_update,
+    get_task_index,
+    goal_from_dict,
+    goal_to_dict,
+    load_metrics,
+    next_goal_id,
+    now_utc_datetime,
+    now_utc_iso,
+    parse_iso_datetime,
+    parse_iso_datetime_flexible,
+    resolve_linked_task_reference,
+    round_usd,
+    sync_goal_attempt_entries,
+    validate_entry_record,
+    validate_goal_record,
+    validate_goal_supersession_graph,
+    validate_non_negative_int,
 )
 from codex_metrics.history_derive import (
     DeriveSummary,
@@ -59,16 +76,14 @@ from codex_metrics.public_boundary import (
     PublicBoundaryReport,
 )
 from codex_metrics.public_boundary import (
-    render_public_boundary_report as render_public_boundary_text_report,
-)
-from codex_metrics.public_boundary import (
     verify_public_boundary as run_verify_public_boundary,
 )
-from codex_metrics.retro_timeline import (
-    derive_retro_timeline as run_derive_retro_timeline,
+from codex_metrics.reporting import (
+    generate_report_md,
 )
-from codex_metrics.retro_timeline import (
-    render_retro_timeline_report as render_retro_timeline_text_report,
+from codex_metrics.storage import (
+    atomic_write_text,
+    save_metrics,
 )
 from codex_metrics.usage_backends import (
     ClaudeUsageBackend,
@@ -84,93 +99,6 @@ from codex_metrics.workflow_fsm import (
     WorkflowResolution,
     resolve_workflow_transition,
 )
-
-build_operator_review = reporting.build_operator_review
-audit_history = build_history_audit_report
-compare_metrics_to_history = build_history_compare_report
-derive_retro_timeline = run_derive_retro_timeline
-format_coverage = reporting.format_coverage
-format_num = reporting.format_num
-format_pct = reporting.format_pct
-format_usd = reporting.format_usd
-generate_report_md = reporting.generate_report_md
-print_summary = reporting.print_summary
-render_cost_audit_report = render_cost_coverage_audit_report
-render_audit_report = render_history_audit_report
-render_history_compare_report = render_compare_report
-render_public_boundary_report = render_public_boundary_text_report
-render_retro_timeline_report = render_retro_timeline_text_report
-
-ALLOWED_STATUSES = domain.ALLOWED_STATUSES
-ALLOWED_TASK_TYPES = domain.ALLOWED_TASK_TYPES
-ALLOWED_FAILURE_REASONS = domain.ALLOWED_FAILURE_REASONS
-ALLOWED_RESULT_FITS = domain.ALLOWED_RESULT_FITS
-AttemptEntryRecord = domain.AttemptEntryRecord
-EffectiveGoalRecord = domain.EffectiveGoalRecord
-GoalRecord = domain.GoalRecord
-aggregate_chain_costs = domain.aggregate_chain_costs
-aggregate_chain_timestamps = domain.aggregate_chain_timestamps
-aggregate_chain_tokens = domain.aggregate_chain_tokens
-append_missing_attempt_entries = domain.append_missing_attempt_entries
-apply_attempt_usage_deltas = domain.apply_attempt_usage_deltas
-apply_goal_updates = domain.apply_goal_updates
-build_attempt_entry = domain.build_attempt_entry
-build_effective_goal_record = domain.build_effective_goal_record
-build_effective_goals = domain.build_effective_goals
-build_goal_chain = domain.build_goal_chain
-build_merged_notes = domain.build_merged_notes
-choose_earliest_timestamp = domain.choose_earliest_timestamp
-choose_latest_timestamp = domain.choose_latest_timestamp
-close_open_attempt_entry = domain.close_open_attempt_entry
-close_previous_open_attempt = domain.close_previous_open_attempt
-combine_optional_cost = domain.combine_optional_cost
-combine_optional_tokens = domain.combine_optional_tokens
-compute_entry_summary = domain.compute_entry_summary
-compute_numeric_delta = domain.compute_numeric_delta
-compute_summary_block = domain.compute_summary_block
-create_goal_record = domain.create_goal_record
-default_metrics = domain.default_metrics
-effective_goal_to_dict = domain.effective_goal_to_dict
-empty_summary_block = domain.empty_summary_block
-ensure_goal_type_update_allowed = domain.ensure_goal_type_update_allowed
-entry_from_dict = domain.entry_from_dict
-entry_to_dict = domain.entry_to_dict
-finalize_goal_update = domain.finalize_goal_update
-get_closed_records = domain.get_closed_records
-get_failed_records = domain.get_failed_records
-get_goal_entries = domain.get_goal_entries
-get_successful_records = domain.get_successful_records
-get_task = domain.get_task
-get_task_index = domain.get_task_index
-goal_from_dict = domain.goal_from_dict
-goal_to_dict = domain.goal_to_dict
-load_metrics = domain.load_metrics
-next_entry_id = domain.next_entry_id
-next_goal_id = domain.next_goal_id
-normalize_legacy_metrics_data = domain.normalize_legacy_metrics_data
-now_utc_datetime = domain.now_utc_datetime
-now_utc_iso = domain.now_utc_iso
-parse_iso_datetime = domain.parse_iso_datetime
-parse_iso_datetime_flexible = domain.parse_iso_datetime_flexible
-recompute_summary = domain.recompute_summary
-resolve_linked_task_reference = domain.resolve_linked_task_reference
-round_usd = domain.round_usd
-sum_known_numeric_values = domain.sum_known_numeric_values
-sync_goal_attempt_entries = domain.sync_goal_attempt_entries
-trim_excess_attempt_entries = domain.trim_excess_attempt_entries
-update_latest_attempt_entry = domain.update_latest_attempt_entry
-validate_entry_business_rules = domain.validate_entry_business_rules
-validate_entry_record = domain.validate_entry_record
-validate_failure_reason = domain.validate_failure_reason
-validate_goal_entries = domain.validate_goal_entries
-validate_goal_record = domain.validate_goal_record
-validate_goal_supersession_graph = domain.validate_goal_supersession_graph
-validate_metrics_data = domain.validate_metrics_data
-validate_non_negative_float = domain.validate_non_negative_float
-validate_non_negative_int = domain.validate_non_negative_int
-validate_status = domain.validate_status
-validate_task_business_rules = domain.validate_task_business_rules
-validate_task_type = domain.validate_task_type
 
 METRICS_JSON_PATH = Path("metrics/codex_metrics.json")
 REPORT_MD_PATH = Path("docs/codex-metrics.md")
@@ -189,11 +117,6 @@ USAGE_FIELD_PATTERNS = {
     "timestamp": re.compile(r"\bevent\.timestamp=([^ ]+)"),
 }
 THREAD_MODEL_PATTERN = re.compile(r"\bmodel=([A-Za-z0-9._-]+)")
-ensure_parent_dir = storage.ensure_parent_dir
-atomic_write_text = storage.atomic_write_text
-save_metrics = storage.save_metrics
-metrics_lock_path = storage.metrics_lock_path
-metrics_mutation_lock = storage.metrics_mutation_lock
 
 MEANINGFUL_WORKTREE_DIRS = {"src", "tests", "docs", "scripts", "tools"}
 MEANINGFUL_WORKTREE_FILES = {"AGENTS.md", "README.md", "Makefile", "pyproject.toml"}

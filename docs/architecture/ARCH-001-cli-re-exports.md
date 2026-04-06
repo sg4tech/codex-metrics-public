@@ -2,7 +2,7 @@
 
 **Priority:** high
 **Complexity:** low
-**Status:** open
+**Status:** closed
 
 ## Problem
 
@@ -27,6 +27,6 @@ Tests and scripts that import from `cli` pull the entire CLI layer as a dependen
 
 ## Acceptance criteria
 
-- [ ] No re-exports in `cli.py` (or all remaining ones are marked deprecated)
-- [ ] All tests import from the correct module
-- [ ] `make verify` passes
+- [x] No re-exports in `cli.py` (or all remaining ones are marked deprecated)
+- [x] All tests import from the correct module
+- [x] `make verify` passes

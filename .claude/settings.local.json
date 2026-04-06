@@ -53,7 +53,20 @@
       "WebFetch(domain:steviee.medium.com)",
       "WebFetch(domain:ainativedev.io)",
       "WebFetch(domain:codestandup.com)",
-      "Bash(wc *)"
+      "Bash(wc *)",
+      "Bash(PYTHONPATH=src grep -n \"from codex_metrics.cli import\\\\|from codex_metrics import cli\\\\|import codex_metrics.cli\" tests/ src/ -r)",
+      "mcp__mcp-registry__search_mcp_registry",
+      "Bash(PYTHONPATH=src python3 -c \":*)",
+      "Read(//Users/viktor/PycharmProjects/codex-metrics/.venv/bin/**)",
+      "Read(//Users/viktor/PycharmProjects/codex-metrics/venv/**)",
+      "Bash(PYTHONPATH=src /Users/viktor/PycharmProjects/codex-metrics/.venv/bin/python3 -c \"import codex_metrics.cli\")",
+      "Bash(PYTHONPATH=src /Users/viktor/PycharmProjects/codex-metrics/.venv/bin/python3 -c \"import codex_metrics.commands\")",
+      "Read(//Users/viktor/PycharmProjects/codex-metrics/**)",
+      "Bash(PYTHONPATH=src .venv/bin/python3 -m pytest tests/test_update_codex_metrics.py -x -q --tb=short)",
+      "Bash(PYTHONPATH=src .venv/bin/python3 -m pytest tests/test_update_codex_metrics.py -q --tb=short --deselect tests/test_update_codex_metrics.py::test_module_entrypoint_exposes_cli_version)",
+      "Bash(ln -s /Users/viktor/PycharmProjects/codex-metrics/.venv .venv)",
+      "Bash(.venv/bin/ruff check:*)",
+      "Bash(.venv/bin/mypy src/codex_metrics/cli.py src/codex_metrics/commands.py --no-error-summary)"
     ]
   }
 }
