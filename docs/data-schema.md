@@ -61,8 +61,8 @@ One task (goal). Corresponds to a Linear issue or a retrospective.
 | `supersedes_goal_id` | string\|null | | ID of the goal this one replaces (used in retry chains) |
 | `status` | string | ✓ | One of: `in_progress` / `success` / `fail` |
 | `attempts` | int | ✓ | Number of attempts. `0` if never closed. Closed goals require at least `1`. |
-| `started_at` | string\|null | | ISO 8601 with timezone. Example: `2026-04-06T10:00:00+00:00` |
-| `finished_at` | string\|null | | ISO 8601 with timezone. Must be `null` when `status=in_progress`. |
+| `started_at` | string\|null | | ISO 8601 with timezone. Example: `2026-04-06T10:00:00+00:00`. In-memory Python type: `datetime \| None` (parsed by `serde.py`). |
+| `finished_at` | string\|null | | ISO 8601 with timezone. Must be `null` when `status=in_progress`. In-memory Python type: `datetime \| None`. |
 | `cost_usd` | float\|null | | Cost in USD. `null` means no data available. |
 | `input_tokens` | int\|null | | Non-cached input tokens. `null` means no data. |
 | `cached_input_tokens` | int\|null | | Tokens served from cache. `null` means no data. |
