@@ -10,6 +10,7 @@ from typing import Any, Protocol
 
 from codex_metrics.cost_audit import CostAuditReport, render_cost_audit_report
 from codex_metrics.domain import (
+    get_goal_entries,
     get_task,
     load_metrics,
     recompute_summary,
@@ -419,7 +420,6 @@ def handle_bootstrap(args: Namespace, cli_module: CommandRuntime) -> int:
 def handle_show(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
     data = load_metrics(metrics_path)
-    recompute_summary(data)
     warning = None
     resolution = cli_module.resolve_workflow_resolution(data, Path.cwd(), WorkflowEvent.SHOW)
     if resolution.decision.action == "warning":
@@ -457,7 +457,7 @@ def handle_ensure_active_task(args: Namespace, cli_module: CommandRuntime) -> in
         resolution = cli_module.ensure_active_task(data, Path.cwd())
         if resolution.status == "created" and resolution.goal_id is not None:
             created_goal = get_task(data["goals"], resolution.goal_id)
-            goal_entries = [e for e in data["entries"] if e.get("goal_id") == resolution.goal_id]
+            goal_entries = get_goal_entries(data["entries"], resolution.goal_id)
             append_event(metrics_path, "goal_started", goal=created_goal, entries=goal_entries)
     print(resolution.message)
     return 0
@@ -546,7 +546,6 @@ def handle_derive_retro_timeline(args: Namespace, cli_module: CommandRuntime) ->
     warehouse_path = Path(args.warehouse_path).expanduser()
     cwd = Path(args.cwd).expanduser()
     data = load_metrics(metrics_path)
-    recompute_summary(data)
     with metrics_mutation_lock(warehouse_path):
         report = derive_retro_timeline(
             data,
@@ -614,7 +613,7 @@ def handle_sync_usage(args: Namespace, cli_module: CommandRuntime) -> int:
         )
         for goal in data["goals"]:
             if goal != snapshot_before.get(goal["goal_id"], {}):
-                goal_entries = [e for e in data["entries"] if e.get("goal_id") == goal["goal_id"]]
+                goal_entries = get_goal_entries(data["entries"], goal["goal_id"])
                 append_event(metrics_path, "usage_synced", goal=goal, entries=goal_entries)
         recompute_summary(data)
         record_usage_sync_observation(
@@ -642,7 +641,7 @@ def handle_merge_tasks(args: Namespace, cli_module: CommandRuntime) -> int:
             keep_task_id=args.keep_task_id,
             drop_task_id=args.drop_task_id,
         )
-        kept_entries = [e for e in data["entries"] if e.get("goal_id") == args.keep_task_id]
+        kept_entries = get_goal_entries(data["entries"], args.keep_task_id)
         # Capture any downstream goals whose supersession link was rewritten
         relinked_goals = [
             g for g in data["goals"]
@@ -723,7 +722,7 @@ def handle_update(args: Namespace, cli_module: CommandRuntime) -> int:
         )
 
         sync_goal_attempt_entries(data, task, previous_task)
-        goal_entries = [e for e in data["entries"] if e.get("goal_id") == task["goal_id"]]
+        goal_entries = get_goal_entries(data["entries"], task["goal_id"])
         append_event(
             metrics_path,
             _command_to_event_type(getattr(args, "command", None)),
@@ -848,7 +847,6 @@ def handle_render_report(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
     report_path = Path(args.report_path)
     data = load_metrics(metrics_path)
-    recompute_summary(data)
     cli_module.save_report(report_path, data)
     print(f"Rendered markdown report: {report_path}")
     return 0
