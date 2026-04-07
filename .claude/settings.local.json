@@ -61,7 +61,13 @@
       "WebFetch(domain:steviee.medium.com)",
       "WebFetch(domain:ainativedev.io)",
       "WebFetch(domain:codestandup.com)",
-      "mcp__mcp-registry__search_mcp_registry"
+      "mcp__mcp-registry__search_mcp_registry",
+      "Read(//usr/local/bin/**)",
+      "Read(//opt/homebrew/bin/**)",
+      "Bash(/Users/viktor/PycharmProjects/codex-metrics/.venv/bin/python -c \"import codex_metrics; print\\(codex_metrics.__file__\\)\")",
+      "Bash(/Users/viktor/PycharmProjects/codex-metrics/.venv/bin/pip install:*)",
+      "Bash(ln -s /Users/viktor/PycharmProjects/codex-metrics/.venv .venv)",
+      "Bash(PYTHONPATH=src .venv/bin/ruff check --fix src/codex_metrics/domain/__init__.py)"
     ]
   }
 }
