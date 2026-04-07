@@ -365,13 +365,19 @@ def test_derive_retro_timeline_persists_sqlite_tables(tmp_path: Path) -> None:
 
 
 def test_derive_retro_timeline_command_writes_report_and_tables(repo: Path) -> None:
-    metrics_path = repo / "metrics" / "codex_metrics.json"
+    metrics_path = repo / "metrics" / "events.ndjson"
     warehouse_path = repo / "metrics" / ".codex-metrics" / "retro.sqlite"
     metrics_path.parent.mkdir(parents=True, exist_ok=True)
-    metrics_path.write_text(
-        json.dumps(_build_metrics_data(), indent=2),
-        encoding="utf-8",
-    )
+    # Write goals as NDJSON events (one event per goal)
+    metrics_data = _build_metrics_data()
+    with metrics_path.open("w", encoding="utf-8") as f:
+        for goal in metrics_data["goals"]:
+            goal_with_all_fields = {
+                "agent_name": None,
+                **goal,
+            }
+            event = {"event_type": "goal_started", "ts": goal["started_at"], "goal": goal_with_all_fields, "entries": []}
+            f.write(json.dumps(event) + "\n")
     _build_normalized_history_db(warehouse_path, repo)
 
     result = run_cmd(

@@ -83,7 +83,6 @@ from codex_metrics.reporting import (
 )
 from codex_metrics.storage import (
     atomic_write_text,
-    save_metrics,
 )
 from codex_metrics.usage_backends import (
     ClaudeUsageBackend,
@@ -100,7 +99,8 @@ from codex_metrics.workflow_fsm import (
     resolve_workflow_transition,
 )
 
-METRICS_JSON_PATH = Path("metrics/codex_metrics.json")
+EVENTS_NDJSON_PATH = Path("metrics/events.ndjson")
+METRICS_JSON_PATH = EVENTS_NDJSON_PATH  # backward-compat alias used by args.metrics_path
 REPORT_MD_PATH = Path("docs/codex-metrics.md")
 CODEX_STATE_PATH = Path.home() / ".codex" / "state_5.sqlite"
 CODEX_LOGS_PATH = Path.home() / ".codex" / "logs_1.sqlite"
@@ -121,6 +121,7 @@ THREAD_MODEL_PATTERN = re.compile(r"\bmodel=([A-Za-z0-9._-]+)")
 MEANINGFUL_WORKTREE_DIRS = {"src", "tests", "docs", "scripts", "tools"}
 MEANINGFUL_WORKTREE_FILES = {"AGENTS.md", "README.md", "Makefile", "pyproject.toml"}
 LOW_SIGNAL_WORKTREE_PATHS = {
+    Path("metrics/events.ndjson"),
     Path("metrics/codex_metrics.json"),
     Path("docs/codex-metrics.md"),
 }
@@ -1038,9 +1039,14 @@ def init_files(metrics_path: Path, report_path: Path | None, force: bool = False
             raise ValueError(
                 f"Metrics files already exist: {joined_paths}. Use --force to overwrite."
             )
-    data = default_metrics()
-    save_metrics(metrics_path, data)
+    from codex_metrics.domain import recompute_summary
+    from codex_metrics.storage import ensure_parent_dir
+
+    ensure_parent_dir(metrics_path)
+    metrics_path.write_text("", encoding="utf-8")
     if report_path is not None:
+        data = default_metrics()
+        recompute_summary(data)
         save_report(report_path, data)
 
 

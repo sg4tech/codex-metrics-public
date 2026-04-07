@@ -33,7 +33,7 @@ For history/search/reconstruction work, also read:
 The following docs exist for reference — consult them as needed, not on every task:
 
 - `docs/architecture.md` — code structure: modules, pipeline stages, storage, CLI entry points
-- `docs/data-schema.md` — full field reference for `codex_metrics.json` (GoalRecord, AttemptEntryRecord, summary)
+- `docs/data-schema.md` — full field reference for the in-memory data model (GoalRecord, AttemptEntryRecord, summary); storage is `metrics/events.ndjson`
 - `docs/data-invariants.md` — business rules enforced by validation logic
 - `docs/glossary.md` — terminology: goal vs task, entry vs attempt, inferred, supersedes chain, EffectiveGoalRecord, etc.
 - `docs/decisions.md` — why key architectural choices were made
@@ -73,15 +73,15 @@ The following docs exist for reference — consult them as needed, not on every 
 
 Do not edit metrics files manually when the updater script can regenerate them.
 
-Never manually remove immutability flags (`chflags nouchg`, `chattr -i`) from `metrics/codex_metrics.json` or any other protected file. These flags are set intentionally by the application guard. If a git or tooling command fails near a file with `uchg`/immutable flags, diagnose the actual cause — do not assume the flag is the problem and do not remove it without an explicit user instruction.
-
 Use:
 
 `./tools/codex-metrics ...`
 
-Generated files:
-- `metrics/codex_metrics.json`
-- `docs/codex-metrics.md` as an optional export, not a required default artifact
+Tracked files:
+- `metrics/events.ndjson` — append-only event log; the source of truth; tracked in git
+- `docs/codex-metrics.md` — optional markdown export, not a required default artifact
+
+Do not edit `metrics/events.ndjson` manually. All mutations must go through the CLI.
 
 For the codex-metrics workflow, goal semantics, reporting invariants, and update/close rules, follow `docs/codex-metrics-policy.md`.
 Treat metrics bookkeeping as part of the definition of done for this repository.
@@ -125,7 +125,7 @@ After changing the CLI, update flow, bootstrap flow, or metrics semantics:
 
 - run the relevant tests
 - run a CLI smoke test
-- verify that the workflow updates `metrics/codex_metrics.json`
+- verify that the workflow appends to `metrics/events.ndjson`
 - if the task changes markdown export behavior, also verify `./tools/codex-metrics render-report`
 
 Minimum validation commands:

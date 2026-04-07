@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from datetime import timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
@@ -521,11 +520,16 @@ def normalize_legacy_metrics_data(data: dict[str, Any]) -> None:
 
 
 def load_metrics(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return default_metrics()
-    with path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
+    from codex_metrics.event_store import replay_events
+
+    goals_list, entries_list = replay_events(path)
+    data: dict[str, Any] = {
+        "summary": empty_summary_block(include_by_task_type=True),
+        "goals": goals_list,
+        "entries": entries_list,
+    }
     normalize_legacy_metrics_data(data)
+    recompute_summary(data)
     validate_metrics_data(data, path)
     return data
 

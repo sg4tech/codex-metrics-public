@@ -46,9 +46,9 @@ The three-stage transcript workflow: `ingest` loads raw Codex sources into the S
 
 An `AttemptEntryRecord` with `inferred=true`, meaning the row was synthesized during history reconstruction in the history pipeline or auto-closed when a newer attempt started, rather than captured as an explicit user-visible attempt record.
 
-### immutability guard
+### event log
 
-The OS-level wrapper around `save_metrics` that temporarily clears the file's immutable bit, writes the JSON, and restores protection afterward so the metrics file is harder to edit accidentally.
+The append-only NDJSON file at `metrics/events.ndjson`. Each CLI command appends one JSON line (an event). State is reconstructed at read time by replaying all events in file order, last-write-wins per `goal_id` / `entry_id`. Replaces the former mutable `metrics/codex_metrics.json`.
 
 ### known vs complete coverage
 

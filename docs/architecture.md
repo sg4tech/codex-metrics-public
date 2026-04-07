@@ -95,11 +95,12 @@ Transitions produce a `WorkflowDecision(action, message)`. Commands call `classi
 
 ## Data and Storage
 
-**Primary store:** `metrics/codex_metrics.json`
-- JSON object with `goals` (list of `GoalRecord`) and `entries` (list of `AttemptEntryRecord`)
-- Protected by OS-level immutability flag (`chflags uchg` on macOS)
-- Mutations go through a fcntl lockfile to serialise concurrent access
-- All writes are atomic (write to temp file, then rename)
+**Primary store:** `metrics/events.ndjson`
+- Append-only NDJSON event log; one JSON line per CLI command
+- Event types: `goal_started`, `goal_continued`, `goal_finished`, `goal_updated`, `goals_merged`, `usage_synced`
+- State reconstructed at read time via last-write-wins replay per `goal_id` / `entry_id`
+- Summary is always computed in-memory from the replayed state; it is never persisted
+- Mutations serialised via fcntl lockfile (`metrics/events.ndjson.lock`)
 
 **History warehouse:** `.codex-metrics/codex_raw_history.sqlite`
 - Intermediate cache populated by `history_ingest.py`

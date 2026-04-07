@@ -40,18 +40,9 @@ Configuration in `pyproject.toml`:
 
 ## conftest.py
 
-There is a single fixture in `conftest.py`:
+`conftest.py` is empty (only the `from __future__ import annotations` header). No shared fixtures are needed at the top level.
 
-```python
-@pytest.fixture(autouse=True)
-def unlock_tmp_path_immutability(tmp_path: Path) -> Path:
-    yield tmp_path
-    # after each test: removes immutability flags from all files in tmp_path
-```
-
-**Why this matters:** `save_metrics` sets `chflags uchg` on the metrics file after writing. Without this fixture, pytest would fail to clean up `tmp_path` after any test that creates a metrics file.
-
-`autouse=True` — applies to every test automatically; nothing needs to be declared explicitly.
+The former `unlock_tmp_path_immutability` autouse fixture was removed when the OS-level immutability guard (`chflags uchg`) was replaced by the append-only event log. `tmp_path` cleanup now works without intervention.
 
 ---
 

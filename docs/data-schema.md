@@ -1,6 +1,6 @@
-# codex_metrics.json Schema
+# Data Schema
 
-The primary data store is `metrics/codex_metrics.json`. All fields are documented here.
+The primary store is `metrics/events.ndjson` — an append-only NDJSON event log. State is reconstructed in-memory by replaying events; the in-memory structure has the shape documented here. All fields are documented below.
 
 ---
 
@@ -16,11 +16,11 @@ The primary data store is `metrics/codex_metrics.json`. All fields are documente
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `summary` | object | Aggregated statistics. Recomputed on every `update`. Do not edit manually. |
+| `summary` | object | Aggregated statistics. Computed in-memory on every `load_metrics` call; never stored in `events.ndjson`. |
 | `goals` | array | List of `GoalRecord` objects in chronological order. |
 | `entries` | array | List of `AttemptEntryRecord` objects — one per attempt within a goal. |
 
-> The `tasks` key is a legacy alias for `goals`. It is automatically stripped by `save_metrics` on write and is never present in the file.
+> The `tasks` key is a legacy alias for `goals`. It is normalised to `goals` in-memory during event replay and is never stored in `events.ndjson`.
 
 ---
 

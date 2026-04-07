@@ -32,3 +32,6 @@ metrics/.codex-metrics/
 # Local Claude workspace state
 .claude/*
 !.claude/settings.local.json
+
+# Legacy mutable metrics file (replaced by metrics/events.ndjson event log)
+metrics/codex_metrics.json

@@ -6,42 +6,33 @@ Format: decision title, context, reasoning, known trade-offs. Add new entries as
 
 ---
 
-## JSON as the primary store, not SQLite
+## Append-only NDJSON event log, not a mutable JSON file
 
-**Context:** the tool tracks metrics for AI agent tasks. The data needs to be stored persistently.
+**Context:** the tool tracks metrics for AI agent tasks across parallel git worktrees. The data needs to be stored persistently without causing merge conflicts.
 
-**Decision:** `metrics/codex_metrics.json` is the source of truth. SQLite is used only as an intermediate cache for the history pipeline.
+**Decision:** `metrics/events.ndjson` is the source of truth — an append-only NDJSON log where each CLI command adds one line. State is reconstructed at read time by replaying all events in file order, last-write-wins per `goal_id` / `entry_id`. The summary is always computed in-memory; it is never stored.
 
 **Reasoning:**
-- Human-readable and git-diffable — changes are visible in pull requests
-- Trivially portable — no tooling required to inspect or back up
-- Simple to load entirely into memory; the dataset is small (hundreds of goals)
+- Append-only log eliminates git merge conflicts: parallel worktrees each append new lines, and `git merge` can automatically concatenate them without conflict
+- No write-back of full state means no risk of one worktree overwriting another's data
+- Human-readable and git-diffable — each line is a discrete command event
+- Replay is deterministic and can be inspected independently of the live system
 
-**Trade-offs:** not suitable if the dataset grows to tens of thousands of records or requires concurrent multi-writer access.
+**Trade-offs:** read-time replay adds a small cost on every `load_metrics` call (acceptable for hundreds of goals). The `tasks` / `goals` legacy alias is normalised in-memory during replay, not persisted.
+
+**Supersedes:** the earlier decision to use `metrics/codex_metrics.json` as a mutable JSON file (removed from git tracking; added to `.gitignore`).
 
 ---
 
 ## fcntl for cross-process locking, not threading.Lock
 
-**Context:** multiple CLI invocations may run concurrently against the same `codex_metrics.json`.
+**Context:** multiple CLI invocations may run concurrently against the same `events.ndjson`.
 
 **Decision:** `storage.metrics_mutation_lock` uses `fcntl.flock`.
 
 **Reasoning:** the tool runs as short-lived CLI processes, not a long-lived server. Concurrent access comes from multiple processes, not threads within one process. `fcntl.flock` works across processes; `threading.Lock` does not.
 
 **Trade-offs:** fcntl is POSIX-only (no Windows support). Acceptable because the tool targets macOS/Linux developer environments.
-
----
-
-## OS-level immutability flags on the metrics file
-
-**Context:** `codex_metrics.json` is the source of truth. Accidental overwrites or edits by tools (editors, scripts) would corrupt data silently.
-
-**Decision:** `save_metrics` sets `chflags uchg` (macOS) on the file after every write. The flag is lifted only during the write operation via `metrics_file_immutability_guard`.
-
-**Reasoning:** creates a hard barrier against accidental mutation by any process other than the CLI itself. Catches mistakes early (permission error) rather than silently corrupting data.
-
-**Trade-offs:** complicates tests (requires `unlock_tmp_path_immutability` fixture in conftest.py). Never remove the flag manually to unblock a failing command — diagnose the root cause instead.
 
 ---
 

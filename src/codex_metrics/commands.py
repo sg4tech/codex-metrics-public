@@ -15,6 +15,7 @@ from codex_metrics.domain import (
     recompute_summary,
     sync_goal_attempt_entries,
 )
+from codex_metrics.event_store import append_event
 from codex_metrics.history_audit import audit_history, render_audit_report
 from codex_metrics.history_compare import (
     compare_metrics_to_history,
@@ -31,7 +32,7 @@ from codex_metrics.retro_timeline import (
     derive_retro_timeline,
     render_retro_timeline_report,
 )
-from codex_metrics.storage import metrics_mutation_lock, save_metrics
+from codex_metrics.storage import metrics_mutation_lock
 from codex_metrics.workflow_fsm import (
     WorkflowEvent,
 )
@@ -124,6 +125,17 @@ class CommandRuntime(Protocol):
         cwd: Path,
         claude_root: Path = ...,
     ) -> dict[str, Any]: ...
+
+
+_COMMAND_TO_EVENT_TYPE: dict[str, str] = {
+    "start-task": "goal_started",
+    "continue-task": "goal_continued",
+    "finish-task": "goal_finished",
+}
+
+
+def _command_to_event_type(command: str | None) -> str:
+    return _COMMAND_TO_EVENT_TYPE.get(command or "", "goal_updated")
 
 
 def _resolve_invocation_path() -> Path:
@@ -443,9 +455,10 @@ def handle_ensure_active_task(args: Namespace, cli_module: CommandRuntime) -> in
     with metrics_mutation_lock(metrics_path):
         data = load_metrics(metrics_path)
         resolution = cli_module.ensure_active_task(data, Path.cwd())
-        if resolution.status == "created":
-            recompute_summary(data)
-            save_metrics(metrics_path, data)
+        if resolution.status == "created" and resolution.goal_id is not None:
+            created_goal = get_task(data["goals"], resolution.goal_id)
+            goal_entries = [e for e in data["entries"] if e.get("goal_id") == resolution.goal_id]
+            append_event(metrics_path, "goal_started", goal=created_goal, entries=goal_entries)
     print(resolution.message)
     return 0
 
@@ -588,6 +601,7 @@ def handle_sync_usage(args: Namespace, cli_module: CommandRuntime) -> int:
     claude_root = Path(args.claude_root) if getattr(args, "claude_root", None) is not None else Path.home() / ".claude"
     with metrics_mutation_lock(metrics_path):
         data = load_metrics(metrics_path)
+        snapshot_before = {goal["goal_id"]: dict(goal) for goal in data["goals"]}
         updated_tasks = cli_module.sync_usage(
             data=data,
             cwd=Path.cwd(),
@@ -598,8 +612,11 @@ def handle_sync_usage(args: Namespace, cli_module: CommandRuntime) -> int:
             usage_backend=getattr(args, "usage_backend", None),
             claude_root=claude_root,
         )
+        for goal in data["goals"]:
+            if goal != snapshot_before.get(goal["goal_id"], {}):
+                goal_entries = [e for e in data["entries"] if e.get("goal_id") == goal["goal_id"]]
+                append_event(metrics_path, "usage_synced", goal=goal, entries=goal_entries)
         recompute_summary(data)
-        save_metrics(metrics_path, data)
         record_usage_sync_observation(
             metrics_path,
             command="sync-usage",
@@ -619,13 +636,27 @@ def handle_merge_tasks(args: Namespace, cli_module: CommandRuntime) -> int:
     report_path = Path(args.report_path) if getattr(args, "write_report", False) else None
     with metrics_mutation_lock(metrics_path):
         data = load_metrics(metrics_path)
+        goals_snapshot = {g["goal_id"]: dict(g) for g in data["goals"]}
         task = cli_module.merge_tasks(
             data=data,
             keep_task_id=args.keep_task_id,
             drop_task_id=args.drop_task_id,
         )
+        kept_entries = [e for e in data["entries"] if e.get("goal_id") == args.keep_task_id]
+        # Capture any downstream goals whose supersession link was rewritten
+        relinked_goals = [
+            g for g in data["goals"]
+            if g["goal_id"] != args.keep_task_id and g != goals_snapshot.get(g["goal_id"], {})
+        ]
+        append_event(
+            metrics_path,
+            "goals_merged",
+            goal=task,
+            entries=kept_entries,
+            dropped_goal_id=args.drop_task_id,
+            goals=relinked_goals if relinked_goals else None,
+        )
         recompute_summary(data)
-        save_metrics(metrics_path, data)
         record_goal_merge_observation(
             metrics_path,
             command="merge-tasks",
@@ -692,8 +723,14 @@ def handle_update(args: Namespace, cli_module: CommandRuntime) -> int:
         )
 
         sync_goal_attempt_entries(data, task, previous_task)
+        goal_entries = [e for e in data["entries"] if e.get("goal_id") == task["goal_id"]]
+        append_event(
+            metrics_path,
+            _command_to_event_type(getattr(args, "command", None)),
+            goal=task,
+            entries=goal_entries,
+        )
         recompute_summary(data)
-        save_metrics(metrics_path, data)
         record_goal_mutation_observation(
             metrics_path,
             command=getattr(args, "command", "update"),
