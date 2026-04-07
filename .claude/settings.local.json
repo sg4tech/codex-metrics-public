@@ -67,7 +67,10 @@
       "Bash(/Users/viktor/PycharmProjects/codex-metrics/.venv/bin/python -c \"import codex_metrics; print\\(codex_metrics.__file__\\)\")",
       "Bash(/Users/viktor/PycharmProjects/codex-metrics/.venv/bin/pip install:*)",
       "Bash(ln -s /Users/viktor/PycharmProjects/codex-metrics/.venv .venv)",
-      "Bash(PYTHONPATH=src .venv/bin/ruff check --fix src/codex_metrics/domain/__init__.py)"
+      "Bash(PYTHONPATH=src .venv/bin/ruff check --fix src/codex_metrics/domain/__init__.py)",
+      "Read(//Users/viktor/.config/gh/**)",
+      "Bash(PYTHONPATH=src .venv/bin/ruff check .)",
+      "Bash(PYTHONPATH=src .venv/bin/mypy src scripts)"
     ]
   }
 }

@@ -94,19 +94,25 @@ def run_module_cmd(tmp_path: Path, *args: str, extra_env=None) -> subprocess.Com
 End-to-end test pattern:
 
 ```python
+from codex_metrics.domain import load_metrics
+
+def read_metrics(repo: Path) -> dict:
+    return load_metrics(repo / "metrics" / "events.ndjson")
+
 def test_start_and_finish(tmp_path: Path) -> None:
     result = run_module_cmd(tmp_path, "init")
     assert result.returncode == 0
 
-    result = run_module_cmd(tmp_path, "start-task", "--title", "My task", "--type", "product")
+    result = run_module_cmd(tmp_path, "start-task", "--title", "My task", "--task-type", "product")
     assert result.returncode == 0
 
-    metrics_path = tmp_path / "metrics" / "codex_metrics.json"
-    data = json.loads(metrics_path.read_text())
+    data = read_metrics(tmp_path)
     goals = data["goals"]
     assert len(goals) == 1
     assert goals[0]["status"] == "in_progress"
 ```
+
+**Do not read `metrics/events.ndjson` with `json.loads` directly.** The file is NDJSON (one JSON object per line), not a single JSON document. Use `load_metrics()` or `replay_events()` to read it correctly.
 
 ---
 
@@ -197,10 +203,32 @@ To enable: `CODEX_SUBPROCESS_COVERAGE=1 make test`.
 
 ---
 
+## Inject-corrupt-data tests
+
+Some tests verify that `show` rejects invalid state by writing bad data directly into `events.ndjson`. These tests must write valid NDJSON events (one JSON object per line) — not raw JSON dicts or old-format payloads.
+
+```python
+def test_invalid_goal_type_fails(repo: Path) -> None:
+    events_path = repo / "metrics" / "events.ndjson"
+    # Write a goal_started event with an invalid field value
+    invalid_goal = {"goal_id": "goal-1", "goal_type": "invalid_type", ...}
+    event = {"event_type": "goal_started", "ts": "2026-01-01T00:00:00+00:00",
+             "goal": invalid_goal, "entries": []}
+    events_path.write_text(json.dumps(event) + "\n", encoding="utf-8")
+
+    result = run_cmd(repo, "show")
+    assert result.returncode != 0
+    assert "invalid_type" in result.stderr
+```
+
+**Common mistake:** writing a raw JSON dict (the old `codex_metrics.json` format) to `events.ndjson`. During replay, a line with no `event_type` field is silently skipped, so the file loads as empty state — the test passes when it should fail.
+
+---
+
 ## Common pitfalls
 
-**Immutability blocking the test:**
-The `unlock_tmp_path_immutability` fixture handles this automatically. If it doesn't, verify that the file is created inside `tmp_path`, not alongside it.
+**Reading the event log as JSON:**
+`events.ndjson` is NDJSON, not a single JSON document. `json.loads(path.read_text())` will fail. Use `load_metrics(path)` or `replay_events(path)` instead.
 
 **PYTHONPATH in a worktree:**
 `.venv` is a symlink to the main repo. In a worktree, always use `PYTHONPATH=src` or run via `make`.
