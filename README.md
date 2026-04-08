@@ -1,12 +1,30 @@
-# codex-metrics
+# codex-metrics — track AI agent token cost and retry pressure
 
-**Track AI-agent task metrics: token cost, retry pressure, and outcome quality.**
+[![CI](https://github.com/sg4tech/codex-metrics-public/actions/workflows/ci.yml/badge.svg)](https://github.com/sg4tech/codex-metrics-public/actions/workflows/ci.yml)
 
-`codex-metrics` is an open-source tool for measuring the real cost and effectiveness of AI-assisted engineering work. It records goals, attempts, token spend, and retry patterns so you can see which workflows are productive and which are burning tokens on rework.
+**Measure the real cost and effectiveness of AI-assisted engineering work.**
+
+`codex-metrics` is a local CLI tool that records goals, attempts, token spend, and retry patterns for every AI coding session — so you can see which workflows are productive and which are burning tokens on rework.
 
 ## Why
 
-AI coding agents (Claude Code, Codex, and similar) generate real costs and vary widely in effectiveness. Without measurement, it is hard to know whether a workflow is improving or whether a particular approach is worth the token spend. `codex-metrics` gives you a lightweight, local ledger for that data.
+AI coding agents (Claude Code, Codex, and similar) generate real costs and vary widely in effectiveness. Common questions without this tool:
+
+- *"How much did my Claude Code session cost?"*
+- *"How do I track AI agent retries across tasks?"*
+- *"What is my token spend per task?"*
+- *"Did this workflow change actually improve anything?"*
+- *"Which model is more cost-effective for my work?"*
+
+`codex-metrics` gives you a lightweight, local ledger to answer all of these from real data.
+
+## When to use this
+
+- You use Claude Code, Codex, or another AI coding agent and want to know what each task actually cost
+- You suspect certain types of tasks require too many correction passes and want the numbers to confirm it
+- You changed a prompt strategy or workflow and want to verify it improved outcome quality or reduced cost
+- You run AI agents as part of a paid engineering workflow and need to track whether AI cost is eating into project margins
+- You want an AI agent to analyze your workflow history and recommend what to change next
 
 ## What It Tracks
 
@@ -15,6 +33,40 @@ AI coding agents (Claude Code, Codex, and similar) generate real costs and vary 
 - **Retry pressure** — how often attempts fail or require correction
 - **Model usage** — which model ran each session and what it cost
 - **History analysis** — parse conversation transcripts to reconstruct past sessions
+
+## Example output
+
+```
+$ codex-metrics show
+
+Codex Metrics Summary
+
+Operational summary:
+Closed goals:                    8
+Successes:                       8
+Fails:                           0
+Total attempts:                  8
+Success Rate:                    100.00%
+Attempts per Closed Goal:        1.00
+
+Known total cost (USD):          9.27
+Known total tokens:              26,337,605
+  input:                         260
+  cached:                        26,088,225
+  output:                        44,883
+
+Known Cost per Success (USD):    1.32
+Known Cost per Success (Tokens): 3,762,515
+
+Model coverage: 7/8 closed goals with an unambiguous model
+By model:
+  claude-sonnet-4-6: 7 closed, 7 successes, 0 fails
+
+Closed entries:     8
+Entry successes:    8
+Entry fails:        0
+Entry Success Rate: 100.00%
+```
 
 ## Install
 
@@ -37,16 +89,22 @@ Bootstrap a project:
 codex-metrics bootstrap
 ```
 
-Open a goal:
+Start tracking a goal:
 
 ```bash
-codex-metrics open "implement login endpoint"
+codex-metrics start-task --title "implement login endpoint" --task-type product
+```
+
+Record another attempt if the agent needed a correction:
+
+```bash
+codex-metrics continue-task --task-id 2026-04-08-001 --failure-reason wrong_scope
 ```
 
 Close it when done:
 
 ```bash
-codex-metrics close --outcome fit
+codex-metrics finish-task --task-id 2026-04-08-001 --outcome success --result-fit exact_fit
 ```
 
 Show current metrics:
@@ -70,6 +128,10 @@ This repository contains the public-safe core only. Private retrospectives, inte
 ```bash
 make verify-public-boundary
 ```
+
+## Repository
+
+[github.com/sg4tech/codex-metrics-public](https://github.com/sg4tech/codex-metrics-public)
 
 ## Contributing
 
