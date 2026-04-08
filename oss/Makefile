@@ -7,6 +7,9 @@ init:
 	$(PYTHON3) -m venv .venv
 	.venv/bin/pip install -U pip setuptools wheel
 	.venv/bin/pip install -e ".[dev]" || .venv/bin/pip install -e .
+	@echo ""
+	@echo "reminder: before starting engineering work, run: ./tools/codex-metrics start-task --title '...' --task-type meta"
+	@echo ""
 
 check-init:
 	@test -d .venv || $(MAKE) init
