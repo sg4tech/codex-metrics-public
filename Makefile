@@ -1,9 +1,10 @@
 .PHONY: lint security typecheck test verify verify-public-boundary setup-hooks init check-init
 
 PYTHON = .venv/bin/python
+PYTHON3 ?= python3
 
 init:
-	/opt/homebrew/bin/python3 -m venv .venv
+	$(PYTHON3) -m venv .venv
 	.venv/bin/pip install -U pip setuptools wheel
 	.venv/bin/pip install -e ".[dev]" || .venv/bin/pip install -e .
 
