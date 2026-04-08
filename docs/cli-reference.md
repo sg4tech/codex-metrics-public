@@ -44,7 +44,7 @@ Record another implementation pass for an existing in-progress goal.
 |------|----------|-------------|
 | `--task-id` | yes | Existing goal identifier |
 | `--notes` | no | Note for the new attempt |
-| `--failure-reason` | no | Why the previous pass failed |
+| `--failure-reason` | no | Failure reason for this new pass if it was unsuccessful |
 | `--started-at` | no | Explicit ISO8601 timestamp for the new pass |
 | `--cost-usd-add` | no | Cost for this pass |
 
@@ -236,7 +236,7 @@ Backfill known cost and token totals from local agent telemetry into existing in
 ./tools/codex-metrics sync-usage
 ```
 
-> **Note:** `sync-codex-usage` is a deprecated alias for `sync-usage` and will be removed in a future release.
+> **Note:** `sync-codex-usage` is a deprecated alias for `sync-usage`.
 
 ---
 
