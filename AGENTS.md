@@ -9,11 +9,11 @@ Before starting or continuing any engineering task, run `git pull` to ensure the
 During a task, run `git pull` again before writing new code if significant time has passed or before starting a new subtask — other agents or the user may have pushed changes in the meantime.
 
 - `AGENTS.md`
-- `docs/private/codex-metrics-policy.md`
+- `docs/codex-metrics-policy.md`
 - `docs/private/task-lifecycle.md`
 - `docs/private/local-linear-setup.md`
 
-The rules in `docs/private/codex-metrics-policy.md` are mandatory and are part of this repository's operating instructions.
+The rules in `docs/codex-metrics-policy.md` are mandatory and are part of this repository's operating instructions.
 
 For product-management, framing, and metrics-interpretation work, also read:
 
@@ -84,7 +84,7 @@ Tracked files:
 
 Do not edit `metrics/events.ndjson` manually. All mutations must go through the CLI.
 
-For the codex-metrics workflow, goal semantics, reporting invariants, and update/close rules, follow `docs/private/codex-metrics-policy.md`.
+For the codex-metrics workflow, goal semantics, reporting invariants, and update/close rules, follow `docs/codex-metrics-policy.md`.
 Treat metrics bookkeeping as part of the definition of done for this repository.
 Treat metrics from other repositories as read-only inputs for analysis. Never run mutating codex-metrics commands against another project's metrics/report files unless the user explicitly asks for that exact repository to be modified.
 
@@ -114,7 +114,7 @@ For repository-initializer or bootstrap-style commands:
 
 For workflow-shaping CLI changes:
 
-- if a new command or command flow is meant to change how agents should work, update `docs/private/codex-metrics-policy.md` in the same task
+- if a new command or command flow is meant to change how agents should work, update `docs/codex-metrics-policy.md` in the same task
 - keep the packaged policy mirror in sync with the repo policy
 - treat README-only documentation as insufficient for agent-facing workflow changes
 - model lifecycle gating as a state machine when a command’s allowed/blocked behavior depends on repository state
@@ -181,12 +181,12 @@ Local validation reminders:
 Before starting or continuing any engineering task, always read:
 
 - `AGENTS.md`
-- `docs/private/codex-metrics-policy.md`
+- `docs/codex-metrics-policy.md`
 
 Use `tools/codex-metrics ...` in this repository.
 
 If `tools/codex-metrics` is unavailable, stop and report an installation or invocation mismatch before proceeding.
 
-The rules in `docs/private/codex-metrics-policy.md` are mandatory and are part of this repository's operating instructions.
+The rules in `docs/codex-metrics-policy.md` are mandatory and are part of this repository's operating instructions.
 
 <!-- codex-metrics:end -->
