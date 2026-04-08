@@ -40,7 +40,7 @@ Quick map:
 | `H-020` | `validated` | `docs/product-hypotheses/H-020.md` | Workspace-wide history parsing may be required before cross-project analysis becomes reliable |
 | `H-021` | `active` | `docs/product-hypotheses/H-021.md` | A system-level immutable flag on the metrics file may reduce accidental edits, but it only works with a constrained privileged updater |
 | `H-022` | `active` | `docs/product-hypotheses/H-022.md` | A retrospective timeline layer may be required before we can evaluate whether retrospectives improve later product outcomes |
-| `H-023` | `validated` | `docs/product-hypotheses/H-023.md` | A public-first core with a private overlay may be the safest way to open-source `codex-metrics` without breaking internal iteration |
+| `H-023` | `confirmed` | `docs/product-hypotheses/H-023.md` | A public-first core with a private overlay may be the safest way to open-source `codex-metrics` without breaking internal iteration |
 | `H-024` | `validated` | `docs/product-hypotheses/H-024.md` | The public repository may need generated SEO-ready docs and landing pages from the start to make open-source distribution discoverable |
 | `H-025` | `active` | `docs/product-hypotheses/H-025.md` | `bootstrap` may need to become a project starter that can create a new workspace directory and optional non-codex starter setup |
 | `H-026` | `active` | `docs/product-hypotheses/H-026.md` | Full-suite automated tests may lower development cost by shrinking the feedback loop and token spend |
