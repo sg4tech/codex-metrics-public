@@ -94,6 +94,15 @@ from codex_metrics.retro_timeline import (
 from codex_metrics.retro_timeline import (
     render_retro_timeline_report_json as render_retro_timeline_json_report,
 )
+from codex_metrics.security import (
+    SecurityReport,
+)
+from codex_metrics.security import (
+    render_security_report as render_security_text_report,
+)
+from codex_metrics.security import (
+    verify_security as run_security,
+)
 from codex_metrics.usage_backends import (
     ClaudeUsageBackend,
     UsageBackend,
@@ -127,6 +136,7 @@ render_history_compare_report = render_compare_report
 render_history_compare_report_json = render_compare_json_report
 render_public_boundary_report = render_public_boundary_text_report
 render_public_boundary_report_json = render_public_boundary_json_report
+render_security_report = render_security_text_report
 render_retro_timeline_report = render_retro_timeline_text_report
 render_retro_timeline_report_json = render_retro_timeline_json_report
 render_ingest_summary_json = render_ingest_summary_json_report
@@ -265,6 +275,10 @@ def derive_codex_history(warehouse_path: Path) -> DeriveSummary:
 
 def verify_public_boundary(*, repo_root: Path, rules_path: Path) -> PublicBoundaryReport:
     return run_verify_public_boundary(repo_root=repo_root, rules_path=rules_path)
+
+
+def security(*, repo_root: Path, rules_path: Path) -> SecurityReport:
+    return run_security(repo_root=repo_root, rules_path=rules_path)
 
 
 def _run_git(cwd: Path, *args: str) -> str | None:
@@ -1592,6 +1606,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Render findings as JSON instead of human-readable text.",
     )
 
+    security_parser = subparsers.add_parser(
+        "security",
+        help="Run a fast staged-file security scan",
+        description=(
+            "Scan staged changes for secrets, token patterns, private keys, and other dangerous data "
+            "before they land in git."
+        ),
+    )
+    security_parser.add_argument("--repo-root", default=".")
+    security_parser.add_argument("--rules-path", default="config/security-rules.toml")
+
     subparsers.add_parser(
         "ensure-active-task",
         help="Recover or verify active task bookkeeping from local git changes",
@@ -1934,6 +1959,9 @@ def main() -> int:
 
     if args.command == "verify-public-boundary":
         return commands.handle_verify_public_boundary(args, sys.modules[__name__])
+
+    if args.command == "security":
+        return commands.handle_security(args, sys.modules[__name__])
 
     if args.command == "ensure-active-task":
         return commands.handle_ensure_active_task(args, sys.modules[__name__])
