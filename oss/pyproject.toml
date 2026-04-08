@@ -64,3 +64,7 @@ source = [
 [tool.coverage.report]
 show_missing = true
 skip_covered = false
+
+[tool.codex_tests]
+scripts = "scripts"
+src = "src"

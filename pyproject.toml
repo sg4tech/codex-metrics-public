@@ -67,3 +67,7 @@ source = ["codex_metrics"]
 [tool.coverage.report]
 show_missing = true
 skip_covered = false
+
+[tool.codex_tests]
+scripts = "oss/scripts"
+src = "oss/src"
