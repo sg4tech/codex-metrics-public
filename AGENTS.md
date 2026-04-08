@@ -45,7 +45,7 @@ The following docs exist for reference — consult them as needed, not on every 
 
 - For engineering work, treat Linear as the source of truth for intake and traceability: create or update the relevant Linear issue before writing code, capture the requirements and acceptance criteria there, and work only through that issue.
 - For Linear-driven engineering work, use `docs/private/task-lifecycle.md` as the working workflow guide and `docs/private/local-linear-setup.md` as the repo-specific team/status reference.
-- Standalone retrospective work is explicitly exempt from the Linear-first intake rule. Log the retrospective in `docs/retros/`, track it as `goal_type=retro`, and do not create a Linear issue unless the user explicitly asks to connect it to delivery work.
+- Standalone retrospective work is explicitly exempt from the Linear-first intake rule. Log the retrospective in `docs/private/retros/`, track it as `goal_type=retro`, and do not create a Linear issue unless the user explicitly asks to connect it to delivery work.
 - Commit subjects for engineering work must match `CODEX-123: summary`; when a change is intentionally not tied to a Linear issue, use the explicit `NO-TASK: summary` prefix instead. Retrospective-only commits must use `NO-TASK: summary`.
 - During module splits or structural refactors, preserve the existing import/export surface until a breaking change is explicitly intended and validated.
 - Treat shim modules, entrypoints, and re-exported symbols that are exercised by tests or automation as part of the compatibility contract, not as disposable implementation details.
@@ -132,7 +132,7 @@ After changing the CLI, update flow, bootstrap flow, or metrics semantics:
 Minimum validation commands:
 
 ```bash
-python -m pytest tests/test_update_codex_metrics.py
+python -m pytest tests/public/test_update_codex_metrics.py
 ./tools/codex-metrics show
 ```
 
@@ -151,7 +151,7 @@ Local validation reminders:
 
 ## Retros Rules
 
-- If the user asks to "сделай ретру" or otherwise requests a retrospective, also log it to a file in `docs/retros/`.
+- If the user asks to "сделай ретру" or otherwise requests a retrospective, also log it to a file in `docs/private/retros/`.
 - Each notable incident or debugging episode should be stored as a separate markdown file.
 - Retros should capture at minimum:
   - situation
@@ -169,7 +169,7 @@ Local validation reminders:
   - no action
 - Default retrospective follow-up to the narrowest correct scope.
 - Do not promote a lesson into reusable policy unless it is genuinely reusable beyond this repository's local development workflow.
-- `AGENTS.md` stores project rules; `docs/retros/` stores incident history and lessons.
+- `AGENTS.md` stores project rules; `docs/private/retros/` stores incident history and lessons.
 - After a meaningful task is completed successfully and the retrospective is logged, create a git commit for the finished checkpoint.
 - Do not create a commit just because lint passed or only a partial technical check succeeded; commit only after the actual task outcome is complete and stabilized.
 
