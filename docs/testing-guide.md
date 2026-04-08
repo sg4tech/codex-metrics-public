@@ -150,6 +150,8 @@ goal = make_goal_dict(status="fail", failure_reason="unclear_task", attempts=1)
 
 The same pattern exists for `make_goal_record`, `make_effective_goal_record`, and `make_attempt_entry_record` — dataclass versions of the same objects.
 
+> **Timestamps in dataclass factories:** `GoalRecord.started_at / finished_at` (and the equivalent fields in `AttemptEntryRecord` / `EffectiveGoalRecord`) are typed as `datetime | None`, not `str`. The dataclass factories automatically parse string values via an internal `_ts()` helper, so passing `started_at="2026-04-06T10:00:00+00:00"` to a factory is fine. However, constructing a dataclass directly (e.g. `GoalRecord(started_at="...")`) will produce a type error — use `datetime.fromisoformat(...)` or `parse_iso_datetime_flexible(...)` instead.
+
 ---
 
 ## Testing with SQLite (history pipeline)

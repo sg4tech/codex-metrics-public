@@ -1153,13 +1153,15 @@ def resolve_goal_usage_updates(
         None,
     )
     if usage_cost_usd is None and usage_total_tokens is None:
+        task_started_at = task.started_at.isoformat() if task.started_at is not None else None
+        task_finished_at = task.finished_at.isoformat() if task.finished_at is not None else None
         window = resolve_backend_usage_window(
             resolved_usage_backend,
             state_path=usage_state_path,
             logs_path=codex_logs_path,
             cwd=cwd,
-            started_at=started_at if started_at is not None else task.started_at,
-            finished_at=finished_at if finished_at is not None else task.finished_at,
+            started_at=started_at if started_at is not None else task_started_at,
+            finished_at=finished_at if finished_at is not None else task_finished_at,
             pricing_path=pricing_path,
             thread_id=codex_thread_id,
         )
@@ -1185,8 +1187,8 @@ def resolve_goal_usage_updates(
                 state_path=claude_root,
                 logs_path=codex_logs_path,
                 cwd=cwd,
-                started_at=started_at if started_at is not None else task.started_at,
-                finished_at=finished_at if finished_at is not None else task.finished_at,
+                started_at=started_at if started_at is not None else task_started_at,
+                finished_at=finished_at if finished_at is not None else task_finished_at,
                 pricing_path=pricing_path,
                 thread_id=None,
             )

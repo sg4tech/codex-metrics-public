@@ -8,6 +8,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -3801,8 +3802,8 @@ def test_resolve_goal_usage_updates_detects_claude_via_fallback(
         supersedes_goal_id=None,
         status="in_progress",
         attempts=1,
-        started_at="2026-03-29T09:00:00+00:00",
-        finished_at="2026-03-29T09:10:00+00:00",
+        started_at=datetime.fromisoformat("2026-03-29T09:00:00+00:00"),
+        finished_at=datetime.fromisoformat("2026-03-29T09:10:00+00:00"),
         cost_usd=None,
         input_tokens=None,
         cached_input_tokens=None,
@@ -3864,7 +3865,7 @@ def test_resolve_goal_usage_updates_no_detection_when_no_data_in_window(
         supersedes_goal_id=None,
         status="in_progress",
         attempts=1,
-        started_at="2026-03-29T09:00:00+00:00",
+        started_at=datetime.fromisoformat("2026-03-29T09:00:00+00:00"),
         finished_at=None,  # not finished yet
         cost_usd=None,
         input_tokens=None,
@@ -3922,7 +3923,7 @@ def test_resolve_goal_usage_updates_does_not_overwrite_stored_agent_name(
         supersedes_goal_id=None,
         status="in_progress",
         attempts=1,
-        started_at="2026-03-29T09:00:00+00:00",
+        started_at=datetime.fromisoformat("2026-03-29T09:00:00+00:00"),
         finished_at=None,
         cost_usd=None,
         input_tokens=None,
@@ -3986,8 +3987,8 @@ def test_resolve_goal_usage_updates_routes_to_claude_backend(
         supersedes_goal_id=None,
         status="in_progress",
         attempts=1,
-        started_at="2026-03-29T09:00:00+00:00",
-        finished_at="2026-03-29T09:10:00+00:00",
+        started_at=datetime.fromisoformat("2026-03-29T09:00:00+00:00"),
+        finished_at=datetime.fromisoformat("2026-03-29T09:10:00+00:00"),
         cost_usd=None,
         input_tokens=None,
         cached_input_tokens=None,

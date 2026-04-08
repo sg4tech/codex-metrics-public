@@ -1,9 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git -C /Users/viktor/PycharmProjects/codex-metrics config --local core.hooksPath)",
-      "Bash(git -C /Users/viktor/PycharmProjects/codex-metrics config core.hooksPath)",
-      "Bash(git -C /Users/viktor/PycharmProjects/codex-metrics/.claude/worktrees/*)",
+      "Bash(git config --local *)",
+      "Bash(git config *)",
+      "Bash(git -C *)",
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git diff *)",
@@ -23,7 +23,6 @@
       "Bash(PYTHONPATH=src make *)",
       "Bash(PYTHONPATH=src .venv/bin/python -c *)",
       "Bash(PYTHONPATH=src python3 -c *)",
-      "Bash(PYTHONPATH=src /Users/viktor/PycharmProjects/codex-metrics/.venv/bin/python3 -c *)",
       "Bash(PYTHONPATH=src grep *)",
       "Bash(make *)",
       "Bash(./tools/codex-metrics *)",
@@ -37,9 +36,7 @@
       "Bash(sed *)",
       "Bash(cat *)",
       "Bash(wc *)",
-      "Read(//Users/viktor/PycharmProjects/codex-metrics/.venv/bin/**)",
-      "Read(//Users/viktor/PycharmProjects/codex-metrics/venv/**)",
-      "Read(//Users/viktor/PycharmProjects/codex-metrics/**)",
+      "Read(//**)",
       "Bash(ln -s AGENTS.md CLAUDE.md)",
       "WebSearch",
       "WebFetch(domain:github.com)",
@@ -64,13 +61,15 @@
       "mcp__mcp-registry__search_mcp_registry",
       "Read(//usr/local/bin/**)",
       "Read(//opt/homebrew/bin/**)",
-      "Bash(/Users/viktor/PycharmProjects/codex-metrics/.venv/bin/python -c \"import codex_metrics; print\\(codex_metrics.__file__\\)\")",
-      "Bash(/Users/viktor/PycharmProjects/codex-metrics/.venv/bin/pip install:*)",
-      "Bash(ln -s /Users/viktor/PycharmProjects/codex-metrics/.venv .venv)",
+      "Bash(.venv/bin/pip *)",
+      "Bash(ln -s * .venv)",
       "Bash(PYTHONPATH=src .venv/bin/ruff check --fix src/codex_metrics/domain/__init__.py)",
       "Read(//Users/viktor/.config/gh/**)",
       "Bash(PYTHONPATH=src .venv/bin/ruff check .)",
-      "Bash(PYTHONPATH=src .venv/bin/mypy src scripts)"
+      "Bash(PYTHONPATH=src .venv/bin/mypy src scripts)",
+      "Skill(commit-commands:commit)",
+      "Skill(commit-commands:commit:*)",
+      "Bash(xargs ls:*)"
     ]
   }
 }

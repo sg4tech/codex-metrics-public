@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import Any
@@ -15,11 +15,9 @@ from codex_metrics.domain.models import (
 )
 from codex_metrics.domain.serde import entry_from_dict, entry_to_dict, goal_from_dict, goal_to_dict
 from codex_metrics.domain.time_utils import (
-    choose_earliest_timestamp,
-    choose_latest_timestamp,
     now_utc_datetime,
     now_utc_iso,
-    parse_iso_datetime,
+    parse_iso_datetime_flexible,
 )
 from codex_metrics.domain.validation import (
     build_goal_chain,
@@ -195,12 +193,14 @@ def aggregate_chain_model(chain: list[GoalRecord]) -> tuple[str | None, bool, bo
     return aggregated_model, model_complete, model_consistent
 
 
-def aggregate_chain_timestamps(chain: list[GoalRecord]) -> tuple[str | None, str | None]:
+def aggregate_chain_timestamps(chain: list[GoalRecord]) -> tuple[datetime | None, datetime | None]:
     started_at = None
     finished_at = None
     for goal in chain:
-        started_at = choose_earliest_timestamp(started_at, goal.started_at)
-        finished_at = choose_latest_timestamp(finished_at, goal.finished_at)
+        if goal.started_at is not None and (started_at is None or goal.started_at < started_at):
+            started_at = goal.started_at
+        if goal.finished_at is not None and (finished_at is None or goal.finished_at > finished_at):
+            finished_at = goal.finished_at
     return started_at, finished_at
 
 
@@ -584,8 +584,8 @@ def build_attempt_entry(
             entry_type=goal["goal_type"],
             inferred=inferred,
             status=status,
-            started_at=started_at,
-            finished_at=finished_at,
+            started_at=parse_iso_datetime_flexible(started_at, "started_at") if started_at is not None else None,
+            finished_at=parse_iso_datetime_flexible(finished_at, "finished_at") if finished_at is not None else None,
             cost_usd=cost_usd,
             input_tokens=input_tokens,
             cached_input_tokens=cached_input_tokens,
@@ -794,7 +794,7 @@ def create_goal_record(
         supersedes_goal_id=linked_task_id,
         status="in_progress",
         attempts=0,
-        started_at=started_at or now_utc_iso(),
+        started_at=parse_iso_datetime_flexible(started_at, "started_at") if started_at is not None else now_utc_datetime(),
         finished_at=None,
         cost_usd=None,
         input_tokens=None,
@@ -944,9 +944,9 @@ def apply_goal_updates(
     if notes is not None:
         task.notes = notes
     if started_at is not None:
-        task.started_at = started_at
+        task.started_at = parse_iso_datetime_flexible(started_at, "started_at")
     if finished_at is not None:
-        task.finished_at = finished_at
+        task.finished_at = parse_iso_datetime_flexible(finished_at, "finished_at")
 
 
 def finalize_goal_update(task: GoalRecord) -> None:
@@ -954,12 +954,9 @@ def finalize_goal_update(task: GoalRecord) -> None:
         task.attempts = 1
     if task.status in {"success", "fail"} and not task.finished_at:
         finished_dt = now_utc_datetime()
-        started_at_value = task.started_at
-        if started_at_value is not None:
-            started_dt = parse_iso_datetime(started_at_value, "started_at")
-            if finished_dt < started_dt:
-                finished_dt = started_dt
-        task.finished_at = finished_dt.isoformat()
+        if task.started_at is not None and finished_dt < task.started_at:
+            finished_dt = task.started_at
+        task.finished_at = finished_dt
     if (
         task.goal_type == "product"
         and task.status in {"success", "fail"}
@@ -968,10 +965,8 @@ def finalize_goal_update(task: GoalRecord) -> None:
         and task.started_at is not None
         and task.finished_at is not None
     ):
-        started_dt = parse_iso_datetime(task.started_at, "started_at")
-        finished_dt = parse_iso_datetime(task.finished_at, "finished_at")
-        if started_dt == finished_dt:
-            task.started_at = (started_dt - timedelta(seconds=1)).isoformat()
+        if task.started_at == task.finished_at:
+            task.started_at = task.started_at - timedelta(seconds=1)
     if task.status == "success":
         task.failure_reason = None
 

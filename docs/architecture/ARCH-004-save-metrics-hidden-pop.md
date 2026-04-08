@@ -2,7 +2,7 @@
 
 **Priority:** medium
 **Complexity:** low
-**Status:** open
+**Status:** obsolete — `save_metrics` was removed in CODEX-50 (NDJSON event store migration); storage.py is now a pure I/O layer with no business-logic transforms
 
 ## Problem
 

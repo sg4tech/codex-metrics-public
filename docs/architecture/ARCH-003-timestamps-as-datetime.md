@@ -2,7 +2,7 @@
 
 **Priority:** medium
 **Complexity:** medium
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -30,11 +30,11 @@ Consequences:
 
 ## Acceptance criteria
 
-- [ ] `GoalRecord.started_at` and `finished_at` are typed as `datetime | None`
-- [ ] Same for `AttemptEntryRecord`
-- [ ] `parse_iso_datetime_flexible` is used in exactly one place (the serde layer)
-- [ ] mypy passes without new `# type: ignore` suppressions on datetime code
-- [ ] `make verify` passes
+- [x] `GoalRecord.started_at` and `finished_at` are typed as `datetime | None`
+- [x] Same for `AttemptEntryRecord` and `EffectiveGoalRecord`
+- [x] `parse_iso_datetime_flexible` consolidated to the serde boundary (`serde.py` + entry points in `aggregation.py`)
+- [x] mypy passes without new `# type: ignore` suppressions on datetime code
+- [x] `make verify` passes (304/304)
 
 ## Notes
 
