@@ -55,6 +55,12 @@ from codex_metrics.git_state import (
     StartedWorkReport,
     detect_started_work,
 )
+from codex_metrics.git_state import (
+    _is_meaningful_worktree_path as _git_state_is_meaningful_worktree_path,
+)
+from codex_metrics.git_state import (
+    _normalize_worktree_path as _git_state_normalize_worktree_path,
+)
 from codex_metrics.history_derive import (
     DeriveSummary,
 )
@@ -128,6 +134,15 @@ USAGE_FIELD_PATTERNS = {
     "timestamp": re.compile(r"\bevent\.timestamp=([^ ]+)"),
 }
 THREAD_MODEL_PATTERN = re.compile(r"\bmodel=([A-Za-z0-9._-]+)")
+
+
+def _normalize_worktree_path(path_text: str) -> str:
+    return _git_state_normalize_worktree_path(path_text)
+
+
+def _is_meaningful_worktree_path(path_text: str) -> bool:
+    return _git_state_is_meaningful_worktree_path(path_text)
+
 
 @dataclass(frozen=True)
 class ActiveTaskResolution:

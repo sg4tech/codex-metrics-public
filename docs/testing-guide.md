@@ -28,7 +28,7 @@ Configuration in `pyproject.toml`:
 | `test_update_codex_metrics_domain.py` | Domain logic (unit) |
 | `test_workflow_fsm.py` | State machine transitions |
 | `test_history_{ingest,normalize,derive,compare,audit}.py` | Pipeline stages |
-| `test_storage_{roundtrip,immutability}.py` | File I/O and lockfiles |
+| `test_storage_roundtrip.py` | Event log I/O and replay |
 | `test_{cost_audit,reporting,retro_timeline}.py` | Analysis and reporting |
 | `test_{git_hooks,commit_message,public_boundary}.py` | Integrations |
 | `test_observability.py` | Event store |
@@ -223,7 +223,7 @@ def test_invalid_goal_type_fails(repo: Path) -> None:
     assert "invalid_type" in result.stderr
 ```
 
-**Common mistake:** writing a raw JSON dict (the old `codex_metrics.json` format) to `events.ndjson`. During replay, a line with no `event_type` field is silently skipped, so the file loads as empty state — the test passes when it should fail.
+**Common mistake:** writing a raw JSON dict without the expected event shape to `events.ndjson`. During replay, a line with no `event_type` field is silently skipped, so the file loads as empty state — the test passes when it should fail.
 
 ---
 
@@ -235,5 +235,5 @@ def test_invalid_goal_type_fails(repo: Path) -> None:
 **PYTHONPATH in a worktree:**
 `.venv` is a symlink to the main repo. In a worktree, always use `PYTHONPATH=src` or run via `make`.
 
-**Test mutating the real `metrics/codex_metrics.json`:**
-CLI commands in end-to-end tests must be run with `cwd=tmp_path`. This makes them resolve `metrics/codex_metrics.json` relative to `tmp_path`, not the actual repository.
+**Test mutating the real event log:**
+CLI commands in end-to-end tests must be run with `cwd=tmp_path`. This makes them resolve `metrics/events.ndjson` relative to `tmp_path`, not the actual repository.

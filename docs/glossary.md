@@ -12,7 +12,7 @@ These are the same unit of work at different layers: an `attempt` is the concept
 
 ### AttemptEntryRecord
 
-The stored dataclass for one attempt row in `metrics/codex_metrics.json`, keyed by `entry_id` and linked back to its parent `GoalRecord` through `goal_id`.
+The stored dataclass for one attempt row in the event log, keyed by `entry_id` and linked back to its parent `GoalRecord` through `goal_id`.
 
 ### by_goal_type / by_task_type
 
@@ -28,7 +28,7 @@ The derived, non-persisted view of a goal chain after following `supersedes_goal
 
 ### goal
 
-The canonical stored unit of work in `metrics/codex_metrics.json`; `task` is the older and more conversational alias still used in CLI flags, helper names, and legacy data paths.
+The canonical stored unit of work in the event log; `task` is the older and more conversational alias still used in CLI flags, helper names, and legacy data paths.
 
 ### goal_type
 
@@ -36,7 +36,7 @@ The stored classification for a goal, with `product` for delivery work, `retro` 
 
 ### GoalRecord
 
-The stored dataclass for one goal in `metrics/codex_metrics.json`; it holds the raw per-goal fields before any supersession-chain aggregation is applied.
+The stored dataclass for one goal in the event log; it holds the raw per-goal fields before any supersession-chain aggregation is applied.
 
 ### history pipeline
 
@@ -48,7 +48,7 @@ An `AttemptEntryRecord` with `inferred=true`, meaning the row was synthesized du
 
 ### event log
 
-The append-only NDJSON file at `metrics/events.ndjson`. Each CLI command appends one JSON line (an event). State is reconstructed at read time by replaying all events in file order, last-write-wins per `goal_id` / `entry_id`. Replaces the former mutable `metrics/codex_metrics.json`.
+The append-only NDJSON file at `metrics/events.ndjson`. Each CLI command appends one JSON line (an event). State is reconstructed at read time by replaying all events in file order, last-write-wins per `goal_id` / `entry_id`. It is the canonical metrics store.
 
 ### known vs complete coverage
 
@@ -64,11 +64,11 @@ The product-only quality label for how well the delivered outcome matched the re
 
 ### source of truth
 
-`metrics/codex_metrics.json` is the authoritative metrics store; the markdown report is an export, not the canonical record, and the JSON file wins if the two disagree.
+`metrics/events.ndjson` is the authoritative metrics store; the markdown report is an export, not the canonical record, and replayed event state wins if anything else disagrees.
 
 ### summary block
 
-The computed aggregate under `summary` in `metrics/codex_metrics.json`, including nested per-type and per-model rollups; it is regenerated from stored goals and entries and is never edited by hand.
+The computed aggregate under `summary` in replayed metrics state, including nested per-type and per-model rollups; it is regenerated from stored goals and entries and is never edited by hand.
 
 ### supersedes / supersedes chain
 

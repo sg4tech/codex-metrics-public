@@ -1,6 +1,6 @@
 # codex-metrics: Code Architecture
 
-CLI tool for tracking AI agent task metrics — goals, attempt history, token usage, and cost — stored in a versioned JSON file.
+CLI tool for tracking AI agent task metrics — goals, attempt history, token usage, and cost — stored in an append-only NDJSON event log.
 
 ---
 
@@ -13,7 +13,7 @@ codex-metrics/
 ├── scripts/             # Automation and utility scripts
 ├── tools/               # CLI wrapper (tools/codex-metrics)
 ├── config/              # Public boundary rules (TOML)
-├── metrics/             # Generated output: codex_metrics.json + lockfile
+├── metrics/             # Generated output: events.ndjson + lockfile
 ├── pricing/             # Token pricing data
 ├── .githooks/           # commit-msg, pre-commit, pre-push hooks
 └── pyproject.toml       # Package config, ruff, mypy, pytest settings
@@ -36,7 +36,7 @@ codex-metrics/
 | File | Role |
 |------|------|
 | `domain/` | Domain package split into submodules: `models.py` (dataclasses), `serde.py` (from_dict / to_dict — the only place that converts timestamps between `str` and `datetime`), `validation.py`, `aggregation.py`, `ids.py`, `time_utils.py`. Public API re-exported via `domain/__init__.py`. |
-| `storage.py` | Atomic file writes, fcntl lockfile, immutability guards (`file_immutability.py`) |
+| `storage.py` | Atomic file writes and fcntl lockfile helpers |
 | `commands.py` | `CommandRuntime` Protocol — dependency injection interface for CLI commands |
 | `workflow_fsm.py` | Task lifecycle state machine (see below) |
 
@@ -49,7 +49,7 @@ Codex state/logs (SQLite)
   ↓  history_ingest.py       → .codex-metrics/codex_raw_history.sqlite
   ↓  history_normalize.py    → cleaned warehouse rows
   ↓  history_derive.py       → GoalRecord + AttemptEntryRecord objects
-  ↓  history_compare.py      → diff against metrics/codex_metrics.json
+  ↓  history_compare.py      → diff against replayed metrics state
        history_compare_store.py  (persistence for compare results)
        history_audit.py          (consistency checks on derived goals)
 ```
@@ -151,7 +151,7 @@ One test file per module; naming mirrors the source:
 | `test_update_codex_metrics_domain.py` | Domain model logic |
 | `test_workflow_fsm.py` | State machine transitions |
 | `test_history_{ingest,normalize,derive,compare,audit}.py` | Pipeline stages |
-| `test_storage_{roundtrip,immutability}.py` | File I/O and locking |
+| `test_storage_roundtrip.py` | Event log I/O and replay |
 | `test_{cost_audit,reporting,retro_timeline}.py` | Analysis and reporting |
 | `test_{git_hooks,commit_message,public_boundary}.py` | Integrations |
 | `test_observability.py` | Event recording |

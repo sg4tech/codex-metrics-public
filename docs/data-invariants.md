@@ -1,6 +1,6 @@
 # Data Invariants
 
-Business rules that must always hold for data in `codex_metrics.json`.
+Business rules that must always hold for data in `metrics/events.ndjson` and the replayed in-memory state.
 
 These are enforced by `validate_task_business_rules` and `validate_entry_business_rules` in `domain.py`. This document is a human-readable summary — keep it in sync when changing validation logic.
 
@@ -73,6 +73,6 @@ These are enforced by `validate_task_business_rules` and `validate_entry_busines
 
 ## Summary block
 
-- Computed automatically by `recompute_summary`; never edited manually
+- Computed automatically during replay; never edited manually
 - `success_rate` and `attempts_per_closed_task` are `null` when `closed_tasks = 0`
 - `cost_per_success_usd` is `null` unless cost data is available for all successes

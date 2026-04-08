@@ -60,7 +60,6 @@ def test_is_meaningful_worktree_path_returns_true(path_text: str) -> None:
     "path_text",
     [
         "metrics/events.ndjson",
-        "metrics/codex_metrics.json",
         "docs/codex-metrics.md",
     ],
 )

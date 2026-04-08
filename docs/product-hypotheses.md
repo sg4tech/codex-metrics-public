@@ -29,7 +29,7 @@ Quick map:
 | `H-009` | `active` | `docs/product-hypotheses/H-009.md` | Separate input, output, and cached-input token tracking may unlock more useful cost optimization than total-token tracking alone |
 | `H-010` | `active` | `docs/product-hypotheses/H-010.md` | Agent-agnostic tracking may create more product leverage than staying Codex-only |
 | `H-011` | `active` | `docs/product-hypotheses/H-011.md` | A new chat entering an active repository should recover or enforce the active task before mutating work continues |
-| `H-012` | `active` | `docs/product-hypotheses/H-012.md` | A `mini-first` model policy may preserve most workflow value at materially lower cost |
+| `H-012` | `validated` | `docs/product-hypotheses/H-012.md` | A `mini-first` model policy may preserve most workflow value at materially lower cost |
 | `H-013` | `validated` | `docs/product-hypotheses/H-013.md` | Persisting the model used on each goal or attempt may improve quality and cost analysis |
 | `H-014` | `rejected` | `docs/product-hypotheses/H-014.md` | Token consumption speed may be useful only when normalized against product throughput |
 | `H-015` | `active` | `docs/product-hypotheses/H-015.md` | Retro or meta work may improve product throughput and lower token cost, but current history is too sparse to confirm it |
@@ -47,5 +47,5 @@ Quick map:
 | `H-027` | `active` | `docs/product-hypotheses/H-027.md` | Task duration may be required before the revenue side of P&L can be estimated |
 | `H-028` | `active` | `docs/product-hypotheses/H-028.md` | Human oversight cost may be a larger hidden expense than AI API cost |
 | `H-029` | `validated` | `docs/product-hypotheses/H-029.md` | A symlink from CLAUDE.md to AGENTS.md may improve rule uptake by putting instructions directly in context |
-| `H-030` | `active` | `docs/product-hypotheses/H-030.md` | Event sourcing may eliminate git merge conflicts on the metrics file while preserving history and sync |
+| `H-030` | `validated` | `docs/product-hypotheses/H-030.md` | Event sourcing may eliminate git merge conflicts on the metrics file while preserving history and sync |
 | `H-031` | `active` | `docs/product-hypotheses/H-031.md` | GrowthBook may help measure which features are actually useful or useless by making experiments and feature adoption easier to observe |

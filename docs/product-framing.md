@@ -17,6 +17,10 @@ Current intended category:
 
 - internal agent-facing analysis tool
 
+Current near-term strategic priority:
+
+- ship a public-safe open-source release as fast as practical without breaking the product boundary or publishing internal-only material
+
 ## Primary User
 
 The primary user is the AI agent layer that reads metrics, audits history, compares projects, and produces synthesized conclusions about AI-agent-assisted engineering work.
@@ -64,6 +68,8 @@ The following product truths are already confirmed:
 - economics means cost, token usage, and waste control together
 - the product should help decide whether workflow changes actually work and what should be changed again
 - the public product contract should stay agent-agnostic by default, even when telemetry or runtime adapters are provider-specific underneath
+- the canonical metrics store is the append-only `metrics/events.ndjson` event log, with replayed in-memory state derived at runtime
+- a competitor now makes time-to-public-release strategically important, so public packaging, repository-boundary safety, onboarding, and discoverability are first-order product concerns for the next phase
 
 The following product questions are still intentionally open and should be treated as active hypotheses until better evidence exists:
 
@@ -174,12 +180,13 @@ Future direction:
 
 In scope now:
 
-- local JSON source of truth
+- local append-only event-log source of truth
 - optional local markdown export
 - goal and attempt history
 - retry and failure visibility
 - partial automatic usage and cost ingestion from local Codex telemetry
 - agent-facing analysis surfaces for retros, verification, and workflow-change analysis
+- public-release preparation work that makes the reusable core publishable, understandable, and safe to distribute
 
 Out of scope for now:
 
@@ -200,10 +207,16 @@ That means:
 - already useful for internal agent-driven analysis and recommendation loops
 - still improving framing, UX, and cost clarity
 
+Current release priority:
+
+- near-term work should prefer the fastest safe path to a public release over lower-leverage internal polish, unless the internal work directly unlocks or de-risks that public release
+
 ## One-Month Success
 
 In one month, success should look like:
 
+- the reusable core is publicly releasable without leaking internal-only material
+- the public entry surface explains what the product is, how to install it, and why it is useful
 - the framing remains stable around agent-first analysis value
 - the metrics help an agent decide whether a workflow change improved quality, speed, and cost
 - quality signals are trusted more than intuition alone

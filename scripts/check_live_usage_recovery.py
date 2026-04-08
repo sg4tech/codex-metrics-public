@@ -98,6 +98,8 @@ def find_live_event(
 
 
 def main() -> int:
+    from codex_metrics.domain import load_metrics
+
     args = parse_args()
     cwd = Path(args.cwd).resolve()
     state_path = Path(args.state_path).expanduser().resolve()
@@ -138,7 +140,7 @@ def main() -> int:
 
     with tempfile.TemporaryDirectory(prefix="codex-metrics-live-") as tmpdir:
         tmp_path = Path(tmpdir)
-        metrics_path = tmp_path / "codex_metrics.json"
+        metrics_path = tmp_path / "metrics" / "events.ndjson"
         report_path = tmp_path / "codex_metrics.md"
         missing_state = tmp_path / "missing_state.sqlite"
         missing_logs = tmp_path / "missing_logs.sqlite"
@@ -195,7 +197,7 @@ def main() -> int:
         if sync_result.returncode != 0:
             raise RuntimeError(sync_result.stderr or sync_result.stdout)
 
-        data = json.loads(metrics_path.read_text(encoding="utf-8"))
+        data = load_metrics(metrics_path)
         goal = next(goal for goal in data["goals"] if goal["goal_id"] == "live-usage-e2e")
 
     actual_tokens = goal["tokens_total"]
