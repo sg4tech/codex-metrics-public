@@ -33,7 +33,6 @@ Configuration in `pyproject.toml`:
 | `test_{git_hooks,commit_message,public_boundary}.py` | Integrations |
 | `test_observability.py` | Event store |
 | `test_public_overlay.py` | Public/private sync |
-| `test_export_public_tree.py` | Export logic |
 | `test_claude_md.py` | Documentation generation |
 
 ---
