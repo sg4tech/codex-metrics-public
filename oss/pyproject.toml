@@ -56,10 +56,6 @@ exclude = [
   "^\\.venv/",
 ]
 
-[[tool.mypy.overrides]]
-module = "codex_metrics._version"
-follow_imports = "skip"
-
 [tool.coverage.run]
 branch = true
 parallel = true
