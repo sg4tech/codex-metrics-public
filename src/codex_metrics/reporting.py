@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from typing import Any
 
@@ -659,3 +660,40 @@ def print_summary(data: dict[str, Any]) -> None:
         print("Entry failure reasons:")
         for reason, count in summary["entries"]["failure_reasons"].items():
             print(f"- {reason}: {count}")
+
+
+def render_summary_json(data: dict[str, Any]) -> str:
+    product_quality = build_product_quality_summary(data)
+    recommendations = build_agent_recommendations(data["summary"], product_quality)
+    return json.dumps({
+        "product_quality": {
+            "closed_product_goals": product_quality.closed_product_goals,
+            "successful_product_goals": product_quality.successful_product_goals,
+            "failed_product_goals": product_quality.failed_product_goals,
+            "reviewed_product_goals": product_quality.reviewed_product_goals,
+            "unreviewed_product_goals": product_quality.unreviewed_product_goals,
+            "exact_fit_goals": product_quality.exact_fit_goals,
+            "partial_fit_goals": product_quality.partial_fit_goals,
+            "miss_goals": product_quality.miss_goals,
+            "exact_fit_rate_reviewed": product_quality.exact_fit_rate_reviewed,
+            "miss_rate_reviewed": product_quality.miss_rate_reviewed,
+            "review_coverage": product_quality.review_coverage,
+            "attempts_per_closed_product_goal": product_quality.attempts_per_closed_product_goal,
+            "known_cost_successes": product_quality.known_cost_successes,
+            "known_token_successes": product_quality.known_token_successes,
+            "known_cost_per_success_usd": product_quality.known_cost_per_success_usd,
+            "known_cost_per_success_tokens": product_quality.known_cost_per_success_tokens,
+        },
+        "recommendations": [
+            {
+                "category": r.category,
+                "priority": r.priority,
+                "diagnosis": r.diagnosis,
+                "next_action": r.next_action,
+            }
+            for r in recommendations
+        ],
+        "summary": data["summary"],
+        "goals": data["goals"],
+        "entries": data["entries"],
+    })

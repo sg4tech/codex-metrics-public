@@ -283,3 +283,55 @@ def render_history_compare_report(report: HistoryCompareReport) -> str:
         for finding in report.findings:
             lines.append(f"- {finding.category}: {finding.message}")
     return "\n".join(lines)
+
+
+def render_history_compare_report_json(report: HistoryCompareReport) -> str:
+    import json
+
+    def _scope(s: WarehouseScopeSummary) -> dict[str, object]:
+        return {
+            "projects": s.projects,
+            "threads": s.threads,
+            "attempts": s.attempts,
+            "retry_threads": s.retry_threads,
+            "transcript_threads": s.transcript_threads,
+            "usage_threads": s.usage_threads,
+            "input_tokens": s.input_tokens,
+            "cached_input_tokens": s.cached_input_tokens,
+            "output_tokens": s.output_tokens,
+            "total_tokens": s.total_tokens,
+        }
+
+    return json.dumps({
+        "ledger": {
+            "goal_count": report.ledger_goal_count,
+            "closed_goal_count": report.ledger_closed_goal_count,
+            "success_count": report.ledger_success_count,
+            "fail_count": report.ledger_fail_count,
+            "attempts_total": report.ledger_attempts_total,
+            "attempts_gt_one": report.ledger_attempts_gt_one,
+            "known_token_successes": report.ledger_known_token_successes,
+            "known_breakdown_successes": report.ledger_known_breakdown_successes,
+            "total_tokens_known": report.ledger_total_tokens_known,
+        },
+        "warehouse_global": _scope(report.warehouse_global),
+        "warehouse_project": _scope(report.warehouse_project),
+        "warehouse_projects": [
+            {
+                "project_cwd": p.project_cwd,
+                "threads": p.threads,
+                "attempts": p.attempts,
+                "retry_threads": p.retry_threads,
+                "message_count": p.message_count,
+                "usage_event_count": p.usage_event_count,
+                "log_count": p.log_count,
+                "timeline_event_count": p.timeline_event_count,
+                "total_tokens": p.total_tokens,
+            }
+            for p in report.warehouse_projects
+        ],
+        "findings": [
+            {"category": f.category, "message": f.message}
+            for f in report.findings
+        ],
+    })
