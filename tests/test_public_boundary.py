@@ -47,7 +47,7 @@ def test_load_public_boundary_rules_reads_repo_config() -> None:
     assert "metrics" in rules.forbidden_paths
     assert "docs/retros/**" in rules.forbidden_globs
     assert "/Users/[^/]+/PycharmProjects/" in rules.forbidden_regex_markers
-    assert "tests/test_public_boundary.py" in rules.marker_ignored_paths
+    assert "tests/public/test_public_boundary.py" in rules.marker_ignored_paths
 
 
 def test_verify_public_boundary_passes_for_clean_tree(tmp_path: Path) -> None:
