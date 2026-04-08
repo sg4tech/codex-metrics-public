@@ -11,7 +11,7 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["ruff", "mypy", "pytest"]
+dev = ["ruff", "mypy", "pytest", "coverage[toml]"]
 
 [project.scripts]
 codex-metrics = "codex_metrics.cli:console_main"
