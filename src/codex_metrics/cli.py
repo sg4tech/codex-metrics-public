@@ -5,7 +5,6 @@ import argparse
 import json
 import re
 import sqlite3
-import subprocess
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone  # noqa: F401
@@ -51,6 +50,10 @@ from codex_metrics.domain import (
     validate_goal_record,
     validate_goal_supersession_graph,
     validate_non_negative_int,
+)
+from codex_metrics.git_state import (
+    StartedWorkReport,
+    detect_started_work,
 )
 from codex_metrics.history_derive import (
     DeriveSummary,
@@ -126,23 +129,6 @@ USAGE_FIELD_PATTERNS = {
 }
 THREAD_MODEL_PATTERN = re.compile(r"\bmodel=([A-Za-z0-9._-]+)")
 
-MEANINGFUL_WORKTREE_DIRS = {"src", "tests", "docs", "scripts", "tools"}
-MEANINGFUL_WORKTREE_FILES = {"AGENTS.md", "README.md", "Makefile", "pyproject.toml"}
-LOW_SIGNAL_WORKTREE_PATHS = {
-    EVENTS_NDJSON_PATH,
-    Path("metrics/codex_metrics.json"),
-    Path("docs/codex-metrics.md"),
-}
-
-
-@dataclass(frozen=True)
-class StartedWorkReport:
-    started_work_detected: bool
-    changed_paths: list[str]
-    reason: str
-    git_available: bool
-
-
 @dataclass(frozen=True)
 class ActiveTaskResolution:
     status: str
@@ -169,96 +155,6 @@ def verify_public_boundary(*, repo_root: Path, rules_path: Path) -> PublicBounda
 
 def security(*, repo_root: Path, rules_path: Path) -> SecurityReport:
     return run_verify_security(repo_root=repo_root, rules_path=rules_path)
-
-
-def _run_git(cwd: Path, *args: str) -> str | None:
-    try:
-        result = subprocess.run(
-            ["git", *args],
-            cwd=cwd,
-            text=True,
-            capture_output=True,
-            check=True,
-        )
-    except (OSError, subprocess.CalledProcessError):
-        return None
-    return result.stdout.strip()
-
-
-def _normalize_worktree_path(path_text: str) -> str:
-    cleaned = path_text.strip()
-    if " -> " in cleaned:
-        cleaned = cleaned.rsplit(" -> ", maxsplit=1)[-1]
-    return cleaned
-
-
-def _is_meaningful_worktree_path(path_text: str) -> bool:
-    normalized = Path(path_text)
-    if normalized in LOW_SIGNAL_WORKTREE_PATHS:
-        return False
-    parts = normalized.parts
-    if not parts:
-        return False
-    if parts[0] in MEANINGFUL_WORKTREE_DIRS:
-        return True
-    if len(parts) == 1 and parts[0] in MEANINGFUL_WORKTREE_FILES:
-        return True
-    return False
-
-
-def detect_started_work(cwd: Path) -> StartedWorkReport:
-    repo_root = _run_git(cwd, "rev-parse", "--show-toplevel")
-    if repo_root is None:
-        return StartedWorkReport(
-            started_work_detected=False,
-            changed_paths=[],
-            reason="git is unavailable or the current directory is not inside a git repository",
-            git_available=False,
-        )
-
-    status_output = _run_git(Path(repo_root), "status", "--porcelain", "--untracked-files=normal")
-    if status_output is None:
-        return StartedWorkReport(
-            started_work_detected=False,
-            changed_paths=[],
-            reason="git status could not be read reliably",
-            git_available=False,
-        )
-
-    changed_paths: list[str] = []
-    meaningful_paths: list[str] = []
-    for line in status_output.splitlines():
-        if not line.strip():
-            continue
-        path_text = _normalize_worktree_path(line[3:] if len(line) > 3 else line)
-        if not path_text:
-            continue
-        changed_paths.append(path_text)
-        if _is_meaningful_worktree_path(path_text):
-            meaningful_paths.append(path_text)
-
-    if meaningful_paths:
-        return StartedWorkReport(
-            started_work_detected=True,
-            changed_paths=changed_paths,
-            reason=f"meaningful git changes detected: {', '.join(meaningful_paths[:5])}",
-            git_available=True,
-        )
-
-    if changed_paths:
-        return StartedWorkReport(
-            started_work_detected=False,
-            changed_paths=changed_paths,
-            reason="only low-signal changes are present, such as generated metrics or report outputs",
-            git_available=True,
-        )
-
-    return StartedWorkReport(
-        started_work_detected=False,
-        changed_paths=[],
-        reason="git working tree is clean",
-        git_available=True,
-    )
 
 
 def get_active_goals(data: dict[str, Any]) -> list[dict[str, Any]]:
