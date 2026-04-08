@@ -31,19 +31,19 @@ export-public-tree:
 	./.venv/bin/python scripts/export_public_tree.py --output-dir build/public-tree
 
 public-overlay-status:
-	./.venv/bin/python scripts/public_overlay.py --private-repo-root . --public-repo ../codex-metrics-public status
+	./.venv/bin/python scripts/public_overlay.py --private-repo-root . status
 
 public-overlay-bootstrap:
-	./.venv/bin/python scripts/public_overlay.py --private-repo-root . --public-repo ../codex-metrics-public bootstrap
+	./.venv/bin/python scripts/public_overlay.py --private-repo-root . bootstrap --public-repo git@github.com:sg4tech/codex-metrics-public.git
 
 public-overlay-verify:
 	./.venv/bin/python -m codex_metrics verify-public-boundary --repo-root oss --rules-path oss/config/public-boundary-rules.toml
 
 public-overlay-push:
-	./.venv/bin/python scripts/public_overlay.py --private-repo-root . --public-repo ../codex-metrics-public push --execute
+	./.venv/bin/python scripts/public_overlay.py --private-repo-root . push --execute
 
 public-overlay-pull:
-	./.venv/bin/python scripts/public_overlay.py --private-repo-root . --public-repo ../codex-metrics-public pull --execute
+	./.venv/bin/python scripts/public_overlay.py --private-repo-root . pull --execute
 
 coverage:
 	./.venv/bin/coverage erase

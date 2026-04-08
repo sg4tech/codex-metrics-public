@@ -8,9 +8,9 @@ import subprocess
 from pathlib import Path
 
 DEFAULT_PRIVATE_REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_PUBLIC_REPO = Path("../codex-metrics-public")
 DEFAULT_REMOTE_NAME = "public"
 DEFAULT_BRANCH = "main"
+DEFAULT_PR_BRANCH = "sync"
 DEFAULT_PREFIX = "oss"
 
 
@@ -20,11 +20,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--private-repo-root",
         default=str(DEFAULT_PRIVATE_REPO_ROOT),
         help="Path to the private repository root.",
-    )
-    parser.add_argument(
-        "--public-repo",
-        default=str(DEFAULT_PUBLIC_REPO),
-        help="Path to the sibling public repository.",
     )
     parser.add_argument(
         "--remote-name",
@@ -49,11 +44,21 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Run the bootstrap commands instead of only printing them.",
     )
+    bootstrap_parser.add_argument(
+        "--public-repo",
+        required=True,
+        help="URL or path of the public repository (used for git remote add).",
+    )
     push_parser = subparsers.add_parser("push", help="Print the command used to publish private subtree changes.")
     push_parser.add_argument(
         "--execute",
         action="store_true",
         help="Run the subtree push instead of only printing the planned shell command.",
+    )
+    push_parser.add_argument(
+        "--pr-branch",
+        default=DEFAULT_PR_BRANCH,
+        help=f"Branch to push to on the public remote (default: {DEFAULT_PR_BRANCH}). Open a PR from this branch into main.",
     )
     pull_parser = subparsers.add_parser("pull", help="Print the command used to pull public changes into private.")
     pull_parser.add_argument(
@@ -72,25 +77,22 @@ def quote_path(path: Path) -> str:
     return shlex.quote(str(path))
 
 
-def build_status_lines(*, private_repo_root: Path, public_repo: Path, prefix: str, remote_name: str, branch: str) -> list[str]:
+def build_status_lines(*, private_repo_root: Path, prefix: str, remote_name: str, branch: str, pr_branch: str) -> list[str]:
     overlay_root = private_repo_root / prefix
     lines = [
         f"private repo root: {private_repo_root}",
-        f"public repo root: {public_repo}",
         f"overlay prefix: {prefix}/",
         f"overlay directory exists: {'yes' if overlay_root.exists() else 'no'}",
         f"overlay marker exists: {'yes' if (overlay_root / 'README.md').exists() else 'no'}",
         f"recommended remote name: {remote_name}",
-        f"recommended branch: {branch}",
+        f"public base branch: {branch}",
+        f"push PR branch: {pr_branch}",
         "",
-        "initial import:",
-        f"  git remote add {remote_name} {quote_path(public_repo)}",
-        f"  git subtree add --prefix={prefix} {remote_name} {branch} --squash",
+        "sync from private to public (creates/updates PR branch):",
+        f"  git subtree push --prefix={prefix} {remote_name} {pr_branch}",
+        f"  then open a PR: {pr_branch} → {branch}",
         "",
-        "sync from private to public:",
-        f"  git subtree push --prefix={prefix} {remote_name} {branch}",
-        "",
-        "sync from public to private:",
+        "sync from public to private (after PR is merged):",
         f"  git subtree pull --prefix={prefix} {remote_name} {branch} --squash",
     ]
     return lines
@@ -103,8 +105,8 @@ def build_bootstrap_commands(*, public_repo: Path, remote_name: str, prefix: str
     ]
 
 
-def build_push_command(*, remote_name: str, prefix: str, branch: str) -> str:
-    return f"git subtree push --prefix={prefix} {remote_name} {branch}"
+def build_push_command(*, remote_name: str, prefix: str, pr_branch: str) -> str:
+    return f"git subtree push --prefix={prefix} {remote_name} {pr_branch}"
 
 
 def build_pull_command(*, remote_name: str, prefix: str, branch: str) -> str:
@@ -136,20 +138,21 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     private_repo_root = format_private_repo_root(args.private_repo_root)
-    public_repo = Path(args.public_repo).expanduser().resolve()
 
     if args.command == "status":
+        pr_branch = getattr(args, "pr_branch", DEFAULT_PR_BRANCH)
         for line in build_status_lines(
             private_repo_root=private_repo_root,
-            public_repo=public_repo,
             prefix=args.prefix,
             remote_name=args.remote_name,
             branch=args.branch,
+            pr_branch=pr_branch,
         ):
             print(line)
         return 0
 
     if args.command == "bootstrap":
+        public_repo = Path(args.public_repo).expanduser().resolve()
         commands = build_bootstrap_commands(
             public_repo=public_repo,
             remote_name=args.remote_name,
@@ -165,7 +168,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "push":
-        command = build_push_command(remote_name=args.remote_name, prefix=args.prefix, branch=args.branch)
+        command = build_push_command(remote_name=args.remote_name, prefix=args.prefix, pr_branch=args.pr_branch)
         if args.execute:
             _verify_public_boundary(private_repo_root=private_repo_root, prefix=args.prefix)
             _run(shlex.split(command), cwd=private_repo_root)

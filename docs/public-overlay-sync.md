@@ -10,13 +10,10 @@ codex-metrics/          ← private repo (this repo)
   docs/retros/          ← private, never synced
   docs/audits/          ← private, never synced
   metrics/              ← private, never synced
-
-codex-metrics-public/   ← public repo (sibling directory)
-  src/
-  tests/
-  tools/
-  docs/                 ← public-safe subset only
 ```
+
+The public repository lives on GitHub (`sg4tech/codex-metrics-public`).
+The `public` git remote in this repo points directly to it — no local mirror.
 
 `oss/` is the only sync surface. Everything outside it stays private.
 
@@ -36,14 +33,18 @@ Push private changes from `oss/` into the public repository.
 make public-overlay-push
 ```
 
-This runs boundary verification first, then `git subtree push --prefix=oss public main`.
+This runs boundary verification first, then pushes to the `sync` branch on the public remote.
 Fails loudly if the boundary check detects private content.
+
+After the push, open a PR from `sync` → `main` on GitHub manually, wait for CI, and merge.
+
+Use `--pr-branch` to override the target branch: `make public-overlay-push` passes it through to the script.
 
 **When to use:** after landing a change in `oss/` that should be public.
 
 ## Inbound: Public → Private
 
-Pull public changes (contributor patches, fixes committed directly to public) back into `oss/`.
+Pull public changes (contributor patches, fixes merged to public `main`) back into `oss/`.
 
 ```bash
 make public-overlay-pull
@@ -51,7 +52,7 @@ make public-overlay-pull
 
 This runs `git subtree pull --prefix=oss public main --squash`, then re-runs boundary verification.
 
-**When to use:** after merging a PR or committing directly in the public repo.
+**When to use:** after a PR is merged into `main` on the public repo.
 
 ## Conflict Resolution
 
