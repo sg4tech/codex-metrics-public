@@ -95,7 +95,7 @@ When editing the CLI or metrics mutation flow:
 - preserve CLI behavior unless explicitly asked otherwise
 - prefer additive changes over breaking changes
 - keep the code simple and readable
-- add or update tests together with behavior changes
+- add or update tests together with behavior changes; when a test references a new function, implement the function in the same commit — never leave a test importing a symbol that does not yet exist
 - for mutating commands such as `update`, `merge-tasks`, and sync flows, cover three test buckets when practical:
   - happy path
   - invalid-state rejection
