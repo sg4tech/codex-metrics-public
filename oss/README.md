@@ -1,51 +1,84 @@
 # codex-metrics
 
-Open-source core for tracking AI-agent-assisted engineering work.
+**Track AI-agent task metrics: token cost, retry pressure, and outcome quality.**
 
-This repository is the public surface of `codex-metrics`. It contains the
-shareable core, public-safe checks, and the guardrails that keep private data
-out of the open-source tree.
+`codex-metrics` is an open-source tool for measuring the real cost and effectiveness of AI-assisted engineering work. It records goals, attempts, token spend, and retry patterns so you can see which workflows are productive and which are burning tokens on rework.
 
-## Quick Start
+## Why
+
+AI coding agents (Claude Code, Codex, and similar) generate real costs and vary widely in effectiveness. Without measurement, it is hard to know whether a workflow is improving or whether a particular approach is worth the token spend. `codex-metrics` gives you a lightweight, local ledger for that data.
+
+## What It Tracks
+
+- **Goals and attempts** — what you asked the agent to do, how many tries it took
+- **Token cost** — input, output, and cached-input tokens per session, mapped to USD
+- **Retry pressure** — how often attempts fail or require correction
+- **Model usage** — which model ran each session and what it cost
+- **History analysis** — parse conversation transcripts to reconstruct past sessions
+
+## Install
 
 ```bash
 python -m pip install -e .
-make setup-hooks
+```
+
+Or install the standalone binary:
+
+```bash
+make package-standalone
+./dist/standalone/codex-metrics install-self
+```
+
+## Quick Start
+
+Bootstrap a project:
+
+```bash
+codex-metrics bootstrap
+```
+
+Open a goal:
+
+```bash
+codex-metrics open "implement login endpoint"
+```
+
+Close it when done:
+
+```bash
+codex-metrics close --outcome fit
+```
+
+Show current metrics:
+
+```bash
+codex-metrics show
+```
+
+## Verify Your Install
+
+```bash
 make verify
 ```
 
-## What This Repo Is For
+Runs lint, security scan, typecheck, tests, and the public boundary check.
 
-- Tracking Codex task metrics and derived reports.
-- Keeping the public boundary explicit and testable.
-- Providing a clean base for community contributions.
+## Public Boundary
 
-## What It Is Not For
+This repository contains the public-safe core only. Private retrospectives, internal audits, and local metrics history are kept in a separate private overlay. The boundary is enforced automatically:
 
-- Private retrospectives, internal audits, or local logs.
-- Secrets, tokens, personal paths, or workspace-specific state.
-- Experimental internal tooling that is not safe to publish.
-
-## Common Commands
-
-- `make verify` runs lint, security, typecheck, tests, and the public boundary check.
-- `make verify-public-boundary` scans the checkout for private-only content.
-- `make setup-hooks` enables the local pre-commit boundary hook.
+```bash
+make verify-public-boundary
+```
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before sending patches. In short:
-
-- keep changes public-safe
-- run `make verify`
-- include tests for behavior changes
-- prefer small, reviewable pull requests
+Read [CONTRIBUTING.md](CONTRIBUTING.md). In short: keep changes public-safe, run `make verify`, include tests for behavior changes.
 
 ## Security
 
-If you find a potential leak of private information or a security issue, read
-[SECURITY.md](SECURITY.md) before reporting it.
+See [SECURITY.md](SECURITY.md) for how to report potential private-data leaks or security issues.
 
-## Releases
+## Changelog
 
-Release notes and notable public changes are tracked in [CHANGELOG.md](CHANGELOG.md).
+Notable public changes are tracked in [CHANGELOG.md](CHANGELOG.md).
