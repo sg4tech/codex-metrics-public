@@ -18,6 +18,9 @@ These are enforced by `validate_task_business_rules` and `validate_entry_busines
 ### Timestamp rules
 - `finished_at` cannot be earlier than `started_at` when both are present
 - All timestamps must include a timezone offset (bare local times are rejected)
+- **Storage format:** ISO 8601 string (`"2026-04-06T10:00:00+00:00"`) in `events.ndjson`
+- **In-memory type:** `datetime | None` in `GoalRecord` / `AttemptEntryRecord` / `EffectiveGoalRecord`
+- String ↔ datetime conversion happens only in `domain/serde.py` (`_parse_ts` / `_dump_ts`). Do not call `parse_iso_datetime_flexible` outside the serde layer for goal/entry timestamps.
 
 ### result_fit rules
 - `result_fit` is only allowed when `goal_type=product`
@@ -51,6 +54,7 @@ These are enforced by `validate_task_business_rules` and `validate_entry_busines
 ### Timestamp rules
 - `finished_at` cannot be earlier than `started_at` when both are present
 - All timestamps must include a timezone offset
+- Same storage/in-memory type rules as `GoalRecord` (see above)
 
 ### Token rules
 - Same as GoalRecord: `tokens_total >= input + cached + output` when all four are present

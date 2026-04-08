@@ -35,7 +35,7 @@ codex-metrics/
 
 | File | Role |
 |------|------|
-| `domain/` | Domain package split into submodules: `models.py` (dataclasses), `serde.py` (from_dict / to_dict, timestamp parsing), `validation.py`, `aggregation.py`, `ids.py`, `time_utils.py`. Public API re-exported via `domain/__init__.py`. |
+| `domain/` | Domain package split into submodules: `models.py` (dataclasses), `serde.py` (from_dict / to_dict — the only place that converts timestamps between `str` and `datetime`), `validation.py`, `aggregation.py`, `ids.py`, `time_utils.py`. Public API re-exported via `domain/__init__.py`. |
 | `storage.py` | Atomic file writes, fcntl lockfile, immutability guards (`file_immutability.py`) |
 | `commands.py` | `CommandRuntime` Protocol — dependency injection interface for CLI commands |
 | `workflow_fsm.py` | Task lifecycle state machine (see below) |
