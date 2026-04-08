@@ -63,11 +63,11 @@ public-overlay-bootstrap:
 public-overlay-verify:
 	./.venv/bin/python -m codex_metrics verify-public-boundary --repo-root . --rules-path config/public-boundary-rules.toml
 
-public-overlay-push:
-	./.venv/bin/python scripts/public_overlay.py --private-repo-root . push --execute
-
 public-overlay-pull:
 	./.venv/bin/python scripts/public_overlay.py --private-repo-root . pull --execute
+
+public-overlay-push: public-overlay-pull
+	./.venv/bin/python scripts/public_overlay.py --private-repo-root . push --execute
 
 coverage:
 	./.venv/bin/coverage erase
