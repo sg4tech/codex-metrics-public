@@ -1,4 +1,4 @@
-.PHONY: init lint typecheck test verify security verify-public-boundary export-public-tree public-overlay-status public-overlay-bootstrap public-overlay-verify public-overlay-push public-overlay-pull coverage dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke
+.PHONY: init check-init lint typecheck test verify security verify-public-boundary export-public-tree public-overlay-status public-overlay-bootstrap public-overlay-verify public-overlay-push public-overlay-pull coverage dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke
 
 init:
 	git pull origin master
@@ -15,7 +15,10 @@ typecheck:
 test:
 	./.venv/bin/python -m pytest tests/
 
-verify: lint security typecheck test
+check-init:
+	@test -d .venv || $(MAKE) init
+
+verify: check-init lint security typecheck test
 
 security:
 	./.venv/bin/python -m codex_metrics security --repo-root . --rules-path config/security-rules.toml
