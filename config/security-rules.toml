@@ -43,8 +43,7 @@ ignored_paths = [
 
 marker_ignored_paths = [
   "config/security-rules.toml",
-  "docs/product-hypotheses/H-023.md",
-  "docs/product-hypotheses/H-023-public-boundary-verify-spec.md",
+  "docs/private/**",
   "oss/tests/test_public_boundary.py",
   "tests/public/test_public_boundary.py",
   "tests/private/test_git_hooks.py",

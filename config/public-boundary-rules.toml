@@ -21,18 +21,10 @@ allowed_roots = [
 forbidden_paths = [
   "AGENTS.md",
   "metrics",
-  "docs/TODO.md",
-  "docs/local-linear-setup.md",
+  "docs/private",
 ]
 
 forbidden_globs = [
-  "docs/retros/**",
-  "docs/audits/**",
-  "docs/notes/**",
-  "docs/pilots/**",
-  "docs/experiments/**",
-  "docs/product-hypotheses/**",
-  "docs/product-hypotheses.md",
   "*.sqlite",
   "**/*.sqlite",
   "*.db",
