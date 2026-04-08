@@ -1,21 +1,11 @@
 from __future__ import annotations
 
-import tomllib
+import sys
 from pathlib import Path
 
-
-def _load_paths() -> tuple[Path, Path, Path]:
-    for parent in Path(__file__).resolve().parents:
-        cfg = parent / "pyproject.toml"
-        if not cfg.exists():
-            continue
-        with cfg.open("rb") as f:
-            data = tomllib.load(f)
-        ct = data.get("tool", {}).get("codex_tests")
-        if ct:
-            root = parent
-            return root, root / ct["scripts"], root / ct["src"]
-    raise RuntimeError("No [tool.codex_tests] section found in any pyproject.toml")
-
-
-REPO_ROOT, ABS_SCRIPTS_DIR, ABS_SRC_DIR = _load_paths()
+# Ensure oss/tests/ is importable by its real path so that cross-test imports
+# like `from test_history_ingest import ...` work regardless of whether tests
+# run from oss/ directly or from the root repo via the tests/public/ symlink.
+_tests_dir = str(Path(__file__).resolve().parent)
+if _tests_dir not in sys.path:
+    sys.path.insert(0, _tests_dir)

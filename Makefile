@@ -1,9 +1,9 @@
-.PHONY: lint security typecheck test verify verify-public-boundary setup-hooks init check-init
+.PHONY: init check-init lint typecheck test verify security verify-public-boundary setup-hooks dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke public-overlay-status public-overlay-bootstrap public-overlay-verify public-overlay-push public-overlay-pull
 
-PYTHON = .venv/bin/python
 PYTHON3 ?= python3
 
 init:
+	git pull origin master || true
 	$(PYTHON3) -m venv .venv
 	.venv/bin/pip install -U pip setuptools wheel
 	.venv/bin/pip install -e ".[dev]" || .venv/bin/pip install -e .
@@ -12,21 +12,62 @@ check-init:
 	@test -d .venv || $(MAKE) init
 
 lint:
-	$(PYTHON) -m ruff check .
-
-security:
-	PYTHONPATH=src $(PYTHON) -m codex_metrics security --repo-root . --rules-path config/security-rules.toml
+	./.venv/bin/ruff check .
 
 typecheck:
-	$(PYTHON) -m mypy src
+	./.venv/bin/mypy src scripts
 
 test:
-	PYTHONPATH=src $(PYTHON) -m pytest tests/test_public_boundary.py
+	./.venv/bin/python -m pytest tests/
+
+verify: check-init lint security typecheck test
+
+security:
+	./.venv/bin/python -m codex_metrics security --repo-root . --rules-path config/security-rules.toml
 
 verify-public-boundary:
-	PYTHONPATH=src $(PYTHON) -m codex_metrics verify-public-boundary --repo-root . --rules-path config/public-boundary-rules.toml
+	./.venv/bin/python -m codex_metrics verify-public-boundary --repo-root . --rules-path config/public-boundary-rules.toml
 
 setup-hooks:
 	git config core.hooksPath .githooks
 
-verify: check-init lint security typecheck test verify-public-boundary
+dev-refresh-local:
+	./.venv/bin/python -m pip install --no-deps --no-build-isolation -e .
+
+package:
+	rm -rf build dist src/codex_metrics.egg-info
+	./.venv/bin/python -m build --no-isolation
+
+package-standalone:
+	rm -rf build/standalone dist/standalone
+	./.venv/bin/python scripts/build_standalone.py
+
+package-refresh-local: package
+	./.venv/bin/python -m pip install --no-deps --force-reinstall dist/*.whl
+
+package-refresh-global: package-refresh-local package-standalone
+	./dist/standalone/codex-metrics install-self $(INSTALL_SELF_ARGS)
+
+live-usage-smoke:
+	./.venv/bin/python scripts/check_live_usage_recovery.py
+
+public-overlay-status:
+	./.venv/bin/python scripts/public_overlay.py --private-repo-root . status
+
+public-overlay-bootstrap:
+	./.venv/bin/python scripts/public_overlay.py --private-repo-root . bootstrap --public-repo git@github.com:sg4tech/codex-metrics-public.git
+
+public-overlay-verify:
+	./.venv/bin/python -m codex_metrics verify-public-boundary --repo-root . --rules-path config/public-boundary-rules.toml
+
+public-overlay-push:
+	./.venv/bin/python scripts/public_overlay.py --private-repo-root . push --execute
+
+public-overlay-pull:
+	./.venv/bin/python scripts/public_overlay.py --private-repo-root . pull --execute
+
+coverage:
+	./.venv/bin/coverage erase
+	CODEX_SUBPROCESS_COVERAGE=1 ./.venv/bin/coverage run -m pytest tests/
+	./.venv/bin/coverage combine
+	./.venv/bin/coverage report -m
