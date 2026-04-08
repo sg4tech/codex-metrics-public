@@ -14,7 +14,7 @@ def _resolve_version() -> str:
     except PackageNotFoundError:
         pass
     try:
-        from codex_metrics._version import version
+        from codex_metrics._version import version  # type: ignore[import-untyped]
         return version
     except ImportError:
         return "unknown"
