@@ -483,6 +483,11 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
             raise ValueError(
                 "Warehouse does not contain normalized Codex history; run normalize-codex-history first"
             ) from exc
+        except IndexError as exc:
+            raise ValueError(
+                "Warehouse schema is incompatible with this version of codex-metrics; "
+                "run normalize-codex-history first"
+            ) from exc
 
         sessions_by_thread: dict[str, list[NormalizedSessionRow]] = {}
         messages_by_session: dict[str, list[NormalizedMessageRow]] = {}
