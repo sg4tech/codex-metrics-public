@@ -705,3 +705,15 @@ def normalize_codex_history(*, warehouse_path: Path) -> NormalizeSummary:
         usage_events=usage_events,
         logs=logs,
     )
+
+
+def render_normalize_summary_json(summary: NormalizeSummary) -> str:
+    return json.dumps({
+        "warehouse_path": str(summary.warehouse_path),
+        "projects": summary.projects,
+        "threads": summary.threads,
+        "sessions": summary.sessions,
+        "messages": summary.messages,
+        "usage_events": summary.usage_events,
+        "logs": summary.logs,
+    })

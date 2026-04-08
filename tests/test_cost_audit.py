@@ -28,6 +28,7 @@ class _FakeRuntime:
         codex_logs_path: Path,
         codex_thread_id: str | None,
         cwd: Path,
+        claude_root: Path = ...,  # type: ignore[assignment]
     ) -> CostAuditReport:
         assert data == {}
         assert pricing_path == Path("/pricing.json")

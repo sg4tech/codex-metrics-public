@@ -975,3 +975,16 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
         message_facts=message_facts,
         session_usage=session_usage,
     )
+
+
+def render_derive_summary_json(summary: DeriveSummary) -> str:
+    return json.dumps({
+        "warehouse_path": str(summary.warehouse_path),
+        "projects": summary.projects,
+        "goals": summary.goals,
+        "attempts": summary.attempts,
+        "timeline_events": summary.timeline_events,
+        "retry_chains": summary.retry_chains,
+        "message_facts": summary.message_facts,
+        "session_usage": summary.session_usage,
+    })

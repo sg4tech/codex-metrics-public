@@ -632,3 +632,75 @@ def render_retro_timeline_report(report: RetroTimelineReport) -> str:
             ]
         )
     return "\n".join(lines).rstrip()
+
+
+def render_retro_timeline_report_json(report: RetroTimelineReport) -> str:
+    def _event(e: RetroTimelineEvent) -> dict[str, object]:
+        return {
+            "retro_event_id": e.retro_event_id,
+            "message_id": e.message_id,
+            "thread_id": e.thread_id,
+            "session_path": e.session_path,
+            "event_index": e.event_index,
+            "message_index": e.message_index,
+            "message_role": e.message_role,
+            "event_time": e.event_time,
+            "event_date": e.event_date,
+            "project_cwd": e.project_cwd,
+            "retro_file_path": e.retro_file_path,
+            "title": e.title,
+            "summary": e.summary,
+            "source_kind": e.source_kind,
+        }
+
+    def _window(w: RetroMetricWindow) -> dict[str, object]:
+        return {
+            "window_id": w.window_id,
+            "retro_event_id": w.retro_event_id,
+            "window_side": w.window_side,
+            "window_strategy": w.window_strategy,
+            "window_size": w.window_size,
+            "anchor_time": w.anchor_time,
+            "window_start_time": w.window_start_time,
+            "window_end_time": w.window_end_time,
+            "product_goals_closed": w.product_goals_closed,
+            "product_success_rate": w.product_success_rate,
+            "review_coverage": w.review_coverage,
+            "exact_fit_rate": w.exact_fit_rate,
+            "partial_fit_rate": w.partial_fit_rate,
+            "miss_rate": w.miss_rate,
+            "attempts_per_closed_product_goal": w.attempts_per_closed_product_goal,
+            "known_cost_per_success_usd": w.known_cost_per_success_usd,
+            "known_cost_coverage": w.known_cost_coverage,
+        }
+
+    def _delta(d: RetroWindowDelta) -> dict[str, object]:
+        return {
+            "retro_event_id": d.retro_event_id,
+            "window_strategy": d.window_strategy,
+            "window_size": d.window_size,
+            "before_product_goals_closed": d.before_product_goals_closed,
+            "after_product_goals_closed": d.after_product_goals_closed,
+            "delta_product_success_rate": d.delta_product_success_rate,
+            "delta_exact_fit_rate": d.delta_exact_fit_rate,
+            "delta_partial_fit_rate": d.delta_partial_fit_rate,
+            "delta_miss_rate": d.delta_miss_rate,
+            "delta_attempts_per_closed_product_goal": d.delta_attempts_per_closed_product_goal,
+            "delta_known_cost_per_success_usd": d.delta_known_cost_per_success_usd,
+            "delta_known_cost_coverage": d.delta_known_cost_coverage,
+        }
+
+    return json.dumps({
+        "window_size": report.window_size,
+        "event_count": len(report.events),
+        "record_count": len(report.records),
+        "records": [
+            {
+                "event": _event(r.event),
+                "before_window": _window(r.before_window),
+                "after_window": _window(r.after_window),
+                "delta": _delta(r.delta),
+            }
+            for r in report.records
+        ],
+    })
