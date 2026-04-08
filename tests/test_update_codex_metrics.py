@@ -23,6 +23,7 @@ if str(ABS_SRC) not in sys.path:
     sys.path.insert(0, str(ABS_SRC))
 
 import codex_metrics as codex_metrics_pkg
+import codex_metrics.cli as codex_metrics_cli
 from codex_metrics.usage_backends import ClaudeUsageBackend, select_usage_backend
 from codex_metrics.usage_backends import resolve_usage_window as resolve_backend_usage_window
 
@@ -167,6 +168,10 @@ def read_metrics(repo: Path) -> dict:
         for goal in data["goals"]
     ]
     return data
+
+
+def test_legacy_metrics_json_stays_low_signal_for_worktree_detection() -> None:
+    assert codex_metrics_cli._is_meaningful_worktree_path("metrics/codex_metrics.json") is False
 
 
 def create_codex_usage_sources(

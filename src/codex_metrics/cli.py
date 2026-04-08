@@ -130,6 +130,7 @@ MEANINGFUL_WORKTREE_DIRS = {"src", "tests", "docs", "scripts", "tools"}
 MEANINGFUL_WORKTREE_FILES = {"AGENTS.md", "README.md", "Makefile", "pyproject.toml"}
 LOW_SIGNAL_WORKTREE_PATHS = {
     EVENTS_NDJSON_PATH,
+    Path("metrics/codex_metrics.json"),  # compatibility: older checkouts may still carry the legacy generated file
     Path("docs/codex-metrics.md"),
 }
 
