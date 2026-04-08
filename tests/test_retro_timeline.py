@@ -288,7 +288,7 @@ def _build_normalized_history_db(warehouse_path: Path, cwd: Path) -> None:
 
 
 def test_build_retro_timeline_report_creates_before_after_windows(tmp_path: Path) -> None:
-    metrics_path = tmp_path / "metrics" / "codex_metrics.json"
+    metrics_path = tmp_path / "metrics" / "events.ndjson"
     warehouse_path = tmp_path / "metrics" / ".codex-metrics" / "retro.sqlite"
     _build_normalized_history_db(warehouse_path, tmp_path)
     report = build_retro_timeline_report(
@@ -320,7 +320,7 @@ def test_build_retro_timeline_report_creates_before_after_windows(tmp_path: Path
 
 
 def test_derive_retro_timeline_persists_sqlite_tables(tmp_path: Path) -> None:
-    metrics_path = tmp_path / "metrics" / "codex_metrics.json"
+    metrics_path = tmp_path / "metrics" / "events.ndjson"
     warehouse_path = tmp_path / "metrics" / ".codex-metrics" / "retro.sqlite"
     _build_normalized_history_db(warehouse_path, tmp_path)
 
