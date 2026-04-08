@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import json
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from typing import Any
 
 from codex_metrics.domain import (
@@ -9,6 +8,7 @@ from codex_metrics.domain import (
     build_effective_goals,
     goal_from_dict,
 )
+from codex_metrics.redaction import redact_text
 
 
 @dataclass(frozen=True)
@@ -513,9 +513,11 @@ def generate_report_md(data: dict[str, Any]) -> str:
         return "\n".join(lines)
 
     for task in sorted(goals, key=lambda x: x.get("started_at") or "", reverse=True):
+        title = redact_text(str(task["title"]))
+        notes = redact_text(str(task.get("notes") or "n/a"))
         lines.extend(
             [
-                f"### {task['goal_id']} — {task['title']}",
+                f"### {task['goal_id']} — {title}",
                 f"- Goal type: {task['goal_type']}",
                 f"- Supersedes goal: {task.get('supersedes_goal_id') or 'n/a'}",
                 f"- Status: {task['status']}",
@@ -532,7 +534,7 @@ def generate_report_md(data: dict[str, Any]) -> str:
                 f"- Tokens: {format_num(task.get('tokens_total'))}",
                 f"- Failure reason: {task.get('failure_reason') or 'n/a'}",
                 f"- Result fit: {task.get('result_fit') or 'n/a'}",
-                f"- Notes: {task.get('notes') or 'n/a'}",
+                f"- Notes: {notes}",
                 "",
             ]
         )
@@ -657,15 +659,3 @@ def print_summary(data: dict[str, Any]) -> None:
         print("Entry failure reasons:")
         for reason, count in summary["entries"]["failure_reasons"].items():
             print(f"- {reason}: {count}")
-
-
-def render_summary_json(data: dict[str, Any]) -> str:
-    summary = data["summary"]
-    product_quality = build_product_quality_summary(data)
-    recommendations = build_agent_recommendations(summary, product_quality)
-    payload = {
-        "summary": summary,
-        "product_quality": asdict(product_quality),
-        "recommendations": [asdict(recommendation) for recommendation in recommendations],
-    }
-    return json.dumps(payload, indent=2, sort_keys=True)

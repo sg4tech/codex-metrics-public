@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from codex_metrics.domain import GoalRecord, goal_from_dict, parse_iso_datetime
+from codex_metrics.domain import GoalRecord, goal_from_dict
 
 AUDIT_CATEGORY_ORDER = (
     "likely_miss",
@@ -48,11 +47,7 @@ def _contains_hint(text: str | None, hints: tuple[str, ...]) -> bool:
 
 
 def _goal_timestamp(goal: GoalRecord) -> datetime | None:
-    if goal.finished_at is not None:
-        return parse_iso_datetime(goal.finished_at, "finished_at")
-    if goal.started_at is not None:
-        return parse_iso_datetime(goal.started_at, "started_at")
-    return None
+    return goal.finished_at or goal.started_at
 
 
 def find_likely_miss_candidates(goals: list[GoalRecord]) -> list[AuditCandidate]:
@@ -219,23 +214,3 @@ def render_audit_report(report: AuditReport) -> str:
             lines.append(f"  suggested_result_fit: {candidate.suggested_result_fit}")
 
     return "\n".join(lines)
-
-
-def render_audit_report_json(report: AuditReport) -> str:
-    payload = {
-        "candidate_count": len(report.candidates),
-        "candidates": [
-            {
-                "category": candidate.category,
-                "goal_id": candidate.goal_id,
-                "goal_type": candidate.goal_type,
-                "status": candidate.status,
-                "title": candidate.title,
-                "reason": candidate.reason,
-                "suggested_result_fit": candidate.suggested_result_fit,
-                "related_goal_id": candidate.related_goal_id,
-            }
-            for candidate in report.candidates
-        ],
-    }
-    return json.dumps(payload, indent=2, sort_keys=True)

@@ -6,7 +6,7 @@ from importlib import resources
 from pathlib import Path
 from typing import Protocol
 
-from codex_metrics.storage import atomic_write_text, ensure_parent_dir, save_metrics
+from codex_metrics.storage import atomic_write_text, ensure_parent_dir
 
 START_MARKER = "<!-- codex-metrics:start -->"
 END_MARKER = "<!-- codex-metrics:end -->"
@@ -240,7 +240,9 @@ def bootstrap_project(
             messages.append(f"Would keep instructions file unchanged: {agents_path}")
     else:
         if plan.create_metrics:
-            save_metrics(metrics_path, plan.metrics_data)
+            ensure_parent_dir(metrics_path)
+            if not metrics_path.exists():
+                metrics_path.touch()
 
         if report_path is None:
             messages.append("Skipping markdown report generation by default")

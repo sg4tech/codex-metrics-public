@@ -1,170 +1,44 @@
 from __future__ import annotations
 
-import json
-from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any
 
-ALLOWED_STATUSES = {"in_progress", "success", "fail"}
-ALLOWED_TASK_TYPES = {"product", "retro", "meta"}
-ALLOWED_FAILURE_REASONS = {
-    "unclear_task",
-    "missing_context",
-    "validation_failed",
-    "environment_issue",
-    "model_mistake",
-    "scope_too_large",
-    "tooling_issue",
-    "other",
-}
-ALLOWED_RESULT_FITS = {"exact_fit", "partial_fit", "miss"}
-
-
-@dataclass
-class GoalRecord:
-    goal_id: str
-    title: str
-    goal_type: str
-    supersedes_goal_id: str | None
-    status: str
-    attempts: int
-    started_at: str | None
-    finished_at: str | None
-    cost_usd: float | None
-    input_tokens: int | None
-    cached_input_tokens: int | None
-    output_tokens: int | None
-    tokens_total: int | None
-    failure_reason: str | None
-    notes: str | None
-    agent_name: str | None = None
-    result_fit: str | None = None
-    model: str | None = None
+from codex_metrics.domain.ids import next_entry_id
+from codex_metrics.domain.models import (
+    ALLOWED_TASK_TYPES,
+    AttemptEntryRecord,
+    EffectiveGoalRecord,
+    GoalRecord,
+    StatusRecordT,
+)
+from codex_metrics.domain.serde import entry_from_dict, entry_to_dict, goal_from_dict, goal_to_dict
+from codex_metrics.domain.time_utils import (
+    now_utc_datetime,
+    now_utc_iso,
+    parse_iso_datetime_flexible,
+)
+from codex_metrics.domain.validation import (
+    build_goal_chain,
+    validate_agent_name,
+    validate_entry_record,
+    validate_failure_reason,
+    validate_goal_entries,
+    validate_goal_record,
+    validate_metrics_data,
+    validate_model_name,
+    validate_non_negative_float,
+    validate_non_negative_int,
+    validate_result_fit,
+    validate_status,
+    validate_task_type,
+)
 
 
-@dataclass
-class AttemptEntryRecord:
-    entry_id: str
-    goal_id: str
-    entry_type: str
-    inferred: bool
-    status: str
-    started_at: str | None
-    finished_at: str | None
-    cost_usd: float | None
-    input_tokens: int | None
-    cached_input_tokens: int | None
-    output_tokens: int | None
-    tokens_total: int | None
-    failure_reason: str | None
-    notes: str | None
-    agent_name: str | None = None
-    model: str | None = None
-
-
-@dataclass
-class EffectiveGoalRecord:
-    goal_id: str
-    title: str
-    goal_type: str
-    status: str
-    attempts: int
-    started_at: str | None
-    finished_at: str | None
-    cost_usd: float | None
-    cost_usd_known: float | None
-    cost_complete: bool
-    input_tokens: int | None
-    input_tokens_known: int | None
-    cached_input_tokens: int | None
-    cached_input_tokens_known: int | None
-    output_tokens: int | None
-    output_tokens_known: int | None
-    token_breakdown_complete: bool
-    tokens_total: int | None
-    tokens_total_known: int | None
-    tokens_complete: bool
-    failure_reason: str | None
-    notes: str | None
-    supersedes_goal_id: str | None
-    result_fit: str | None = None
-    model: str | None = None
-    model_complete: bool = False
-    model_consistent: bool = False
-
-
-StatusRecordT = TypeVar("StatusRecordT", GoalRecord, AttemptEntryRecord, EffectiveGoalRecord)
-
-
-LEGACY_GOAL_SUPERSEDES_MAP = {
-    "2026-03-29-008": "2026-03-29-007",
-}
-
-
-def goal_from_dict(goal: dict[str, Any]) -> GoalRecord:
-    return GoalRecord(
-        goal_id=goal["goal_id"],
-        title=goal["title"],
-        goal_type=goal["goal_type"],
-        supersedes_goal_id=goal.get("supersedes_goal_id"),
-        status=goal["status"],
-        attempts=int(goal["attempts"]),
-        started_at=goal.get("started_at"),
-        finished_at=goal.get("finished_at"),
-        cost_usd=None if goal.get("cost_usd") is None else float(goal["cost_usd"]),
-        input_tokens=None if goal.get("input_tokens") is None else int(goal["input_tokens"]),
-        cached_input_tokens=None if goal.get("cached_input_tokens") is None else int(goal["cached_input_tokens"]),
-        output_tokens=None if goal.get("output_tokens") is None else int(goal["output_tokens"]),
-        tokens_total=None if goal.get("tokens_total") is None else int(goal["tokens_total"]),
-        failure_reason=goal.get("failure_reason"),
-        notes=goal.get("notes"),
-        agent_name=goal.get("agent_name"),
-        result_fit=goal.get("result_fit"),
-        model=None if goal.get("model") is None else str(goal["model"]).strip(),
-    )
-
-
-def goal_to_dict(goal: GoalRecord) -> dict[str, Any]:
-    return asdict(goal)
-
-
-def entry_from_dict(entry: dict[str, Any]) -> AttemptEntryRecord:
-    return AttemptEntryRecord(
-        entry_id=entry["entry_id"],
-        goal_id=entry["goal_id"],
-        entry_type=entry["entry_type"],
-        inferred=bool(entry.get("inferred", False)),
-        status=entry["status"],
-        started_at=entry.get("started_at"),
-        finished_at=entry.get("finished_at"),
-        cost_usd=None if entry.get("cost_usd") is None else float(entry["cost_usd"]),
-        input_tokens=None if entry.get("input_tokens") is None else int(entry["input_tokens"]),
-        cached_input_tokens=None if entry.get("cached_input_tokens") is None else int(entry["cached_input_tokens"]),
-        output_tokens=None if entry.get("output_tokens") is None else int(entry["output_tokens"]),
-        tokens_total=None if entry.get("tokens_total") is None else int(entry["tokens_total"]),
-        failure_reason=entry.get("failure_reason"),
-        notes=entry.get("notes"),
-        agent_name=entry.get("agent_name"),
-        model=None if entry.get("model") is None else str(entry["model"]).strip(),
-    )
-
-
-def entry_to_dict(entry: AttemptEntryRecord) -> dict[str, Any]:
-    return asdict(entry)
-
-
-def effective_goal_to_dict(goal: EffectiveGoalRecord) -> dict[str, Any]:
-    return asdict(goal)
-
-
-def now_utc_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-
-
-def now_utc_datetime() -> datetime:
-    return datetime.now(timezone.utc).replace(microsecond=0)
+def round_usd(value: Decimal | float) -> float:
+    decimal_value = value if isinstance(value, Decimal) else Decimal(str(value))
+    return float(decimal_value.quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP))
 
 
 def empty_summary_block(include_by_task_type: bool = False) -> dict[str, Any]:
@@ -226,449 +100,6 @@ def default_metrics() -> dict[str, Any]:
     }
 
 
-def round_usd(value: Decimal | float) -> float:
-    decimal_value = value if isinstance(value, Decimal) else Decimal(str(value))
-    return float(decimal_value.quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP))
-
-
-def parse_iso_datetime_flexible(value: str, field_name: str) -> datetime:
-    normalized = value.replace("Z", "+00:00")
-    return parse_iso_datetime(normalized, field_name)
-
-
-def parse_iso_datetime(value: str, field_name: str) -> datetime:
-    try:
-        parsed = datetime.fromisoformat(value)
-    except ValueError as exc:
-        raise ValueError(f"Invalid {field_name}: {value}") from exc
-
-    if parsed.tzinfo is None:
-        raise ValueError(f"Invalid {field_name}: timezone offset is required")
-    return parsed
-
-
-def validate_status(status: str) -> None:
-    if status not in ALLOWED_STATUSES:
-        raise ValueError(f"Invalid status: {status}. Allowed: {sorted(ALLOWED_STATUSES)}")
-
-
-def validate_task_type(task_type: str) -> None:
-    if task_type not in ALLOWED_TASK_TYPES:
-        raise ValueError(f"Invalid task type: {task_type}. Allowed: {sorted(ALLOWED_TASK_TYPES)}")
-
-
-def validate_failure_reason(reason: str | None) -> None:
-    if reason is None:
-        return
-    if reason not in ALLOWED_FAILURE_REASONS:
-        raise ValueError(f"Invalid failure reason: {reason}. Allowed: {sorted(ALLOWED_FAILURE_REASONS)}")
-
-
-def validate_result_fit(result_fit: str | None) -> None:
-    if result_fit is None:
-        return
-    if result_fit not in ALLOWED_RESULT_FITS:
-        raise ValueError(f"Invalid result_fit: {result_fit}. Allowed: {sorted(ALLOWED_RESULT_FITS)}")
-
-
-def validate_agent_name(agent_name: str | None) -> None:
-    if agent_name is None:
-        return
-    if not agent_name.strip():
-        raise ValueError("agent_name cannot be empty")
-
-
-def validate_non_negative_int(value: int, field_name: str) -> None:
-    if value < 0:
-        raise ValueError(f"{field_name} cannot be negative")
-
-
-def validate_non_negative_float(value: float, field_name: str) -> None:
-    if value < 0:
-        raise ValueError(f"{field_name} cannot be negative")
-
-
-def validate_model_name(model: str | None) -> None:
-    if model is None:
-        return
-    if not model.strip():
-        raise ValueError("model cannot be empty")
-
-
-def validate_token_breakdown_consistency(
-    *,
-    input_tokens: int | None,
-    cached_input_tokens: int | None,
-    output_tokens: int | None,
-    tokens_total: int | None,
-    field_name: str,
-) -> None:
-    if input_tokens is None or cached_input_tokens is None or output_tokens is None or tokens_total is None:
-        return
-    minimum_expected_total = input_tokens + cached_input_tokens + output_tokens
-    if tokens_total < minimum_expected_total:
-        raise ValueError(
-            f"{field_name} cannot be smaller than input_tokens + cached_input_tokens + output_tokens when all are present"
-        )
-
-
-def validate_task_business_rules(task: dict[str, Any]) -> None:
-    started_at = task.get("started_at")
-    finished_at = task.get("finished_at")
-    status = task["status"]
-    attempts = task["attempts"]
-    failure_reason = task.get("failure_reason")
-    goal_type = task["goal_type"]
-    result_fit = task.get("result_fit")
-    started_dt = parse_iso_datetime(started_at, "started_at") if started_at is not None else None
-    finished_dt = parse_iso_datetime(finished_at, "finished_at") if finished_at is not None else None
-
-    if status == "fail" and failure_reason is None:
-        raise ValueError("failure_reason is required when status is fail")
-    if status == "success" and failure_reason is not None:
-        raise ValueError("failure_reason must be empty when status is success")
-    if status in {"success", "fail"} and attempts == 0:
-        raise ValueError("closed goals must have at least one attempt")
-    if status == "in_progress" and finished_at is not None:
-        raise ValueError("finished_at must be empty when status is in_progress")
-    if started_dt is not None and finished_dt is not None and finished_dt < started_dt:
-        raise ValueError("finished_at cannot be earlier than started_at")
-    if result_fit is not None and goal_type != "product":
-        raise ValueError("result_fit is only allowed for product goals")
-    if status == "in_progress" and result_fit is not None:
-        raise ValueError("result_fit must be empty when status is in_progress")
-    if status == "success" and result_fit == "miss":
-        raise ValueError("result_fit miss is not allowed when status is success")
-    if status == "fail" and result_fit not in {None, "miss"}:
-        raise ValueError("failed product goals may only use result_fit miss")
-
-
-def validate_entry_business_rules(entry: dict[str, Any]) -> None:
-    started_at = entry.get("started_at")
-    finished_at = entry.get("finished_at")
-    status = entry["status"]
-    failure_reason = entry.get("failure_reason")
-    inferred = bool(entry.get("inferred", False))
-
-    started_dt = parse_iso_datetime(started_at, "started_at") if started_at is not None else None
-    finished_dt = parse_iso_datetime(finished_at, "finished_at") if finished_at is not None else None
-
-    if status == "fail" and failure_reason is None and not inferred:
-        raise ValueError("failure_reason is required when status is fail")
-    if status == "success" and failure_reason is not None:
-        raise ValueError("failure_reason must be empty when status is success")
-    if status == "in_progress" and finished_at is not None:
-        raise ValueError("finished_at must be empty when status is in_progress")
-    if started_dt is not None and finished_dt is not None and finished_dt < started_dt:
-        raise ValueError("finished_at cannot be earlier than started_at")
-
-
-def validate_goal_record(goal: dict[str, Any]) -> None:
-    required_fields: dict[str, type[Any] | tuple[type[Any], ...]] = {
-        "goal_id": str,
-        "title": str,
-        "goal_type": str,
-        "supersedes_goal_id": (str, type(None)),
-        "status": str,
-        "attempts": int,
-        "started_at": (str, type(None)),
-        "finished_at": (str, type(None)),
-        "cost_usd": (int, float, type(None)),
-        "input_tokens": (int, type(None)),
-        "cached_input_tokens": (int, type(None)),
-        "output_tokens": (int, type(None)),
-        "tokens_total": (int, type(None)),
-        "failure_reason": (str, type(None)),
-        "notes": (str, type(None)),
-    }
-
-    for field_name, allowed_types in required_fields.items():
-        if field_name not in goal:
-            raise ValueError(f"Missing required goal field: {field_name}")
-        if not isinstance(goal[field_name], allowed_types):
-            raise ValueError(f"Invalid type for goal field: {field_name}")
-    if "result_fit" in goal and not isinstance(goal["result_fit"], (str, type(None))):
-        raise ValueError("Invalid type for goal field: result_fit")
-    if "agent_name" in goal and not isinstance(goal["agent_name"], (str, type(None))):
-        raise ValueError("Invalid type for goal field: agent_name")
-    if "model" in goal and not isinstance(goal["model"], (str, type(None))):
-        raise ValueError("Invalid type for goal field: model")
-
-    goal_record = goal_from_dict(goal)
-    if not goal_record.goal_id.strip():
-        raise ValueError("goal_id cannot be empty")
-    if not goal_record.title.strip():
-        raise ValueError("title cannot be empty")
-
-    validate_task_type(goal_record.goal_type)
-    validate_status(goal_record.status)
-    validate_non_negative_int(goal_record.attempts, "attempts")
-
-    if goal_record.cost_usd is not None:
-        validate_non_negative_float(goal_record.cost_usd, "cost_usd")
-    if goal_record.input_tokens is not None:
-        validate_non_negative_int(goal_record.input_tokens, "input_tokens")
-    if goal_record.cached_input_tokens is not None:
-        validate_non_negative_int(goal_record.cached_input_tokens, "cached_input_tokens")
-    if goal_record.output_tokens is not None:
-        validate_non_negative_int(goal_record.output_tokens, "output_tokens")
-    if goal_record.tokens_total is not None:
-        validate_non_negative_int(goal_record.tokens_total, "tokens_total")
-    validate_token_breakdown_consistency(
-        input_tokens=goal_record.input_tokens,
-        cached_input_tokens=goal_record.cached_input_tokens,
-        output_tokens=goal_record.output_tokens,
-        tokens_total=goal_record.tokens_total,
-        field_name="tokens_total",
-    )
-
-    validate_failure_reason(goal_record.failure_reason)
-    validate_agent_name(goal_record.agent_name)
-    validate_result_fit(goal_record.result_fit)
-    validate_model_name(goal_record.model)
-    validate_task_business_rules(goal)
-
-
-def validate_entry_record(entry: dict[str, Any]) -> None:
-    required_fields: dict[str, type[Any] | tuple[type[Any], ...]] = {
-        "entry_id": str,
-        "goal_id": str,
-        "entry_type": str,
-        "status": str,
-        "started_at": (str, type(None)),
-        "finished_at": (str, type(None)),
-        "cost_usd": (int, float, type(None)),
-        "input_tokens": (int, type(None)),
-        "cached_input_tokens": (int, type(None)),
-        "output_tokens": (int, type(None)),
-        "tokens_total": (int, type(None)),
-        "failure_reason": (str, type(None)),
-        "notes": (str, type(None)),
-    }
-
-    for field_name, allowed_types in required_fields.items():
-        if field_name not in entry:
-            raise ValueError(f"Missing required entry field: {field_name}")
-        if not isinstance(entry[field_name], allowed_types):
-            raise ValueError(f"Invalid type for entry field: {field_name}")
-
-    entry_record = entry_from_dict(entry)
-    if not entry_record.entry_id.strip():
-        raise ValueError("entry_id cannot be empty")
-    if not entry_record.goal_id.strip():
-        raise ValueError("goal_id cannot be empty")
-    if not entry_record.entry_type.strip():
-        raise ValueError("entry_type cannot be empty")
-
-    validate_status(entry_record.status)
-    if "inferred" in entry and not isinstance(entry["inferred"], bool):
-        raise ValueError("Invalid type for entry field: inferred")
-    if "agent_name" in entry and not isinstance(entry["agent_name"], (str, type(None))):
-        raise ValueError("Invalid type for entry field: agent_name")
-    if "model" in entry and not isinstance(entry["model"], (str, type(None))):
-        raise ValueError("Invalid type for entry field: model")
-    if entry_record.cost_usd is not None:
-        validate_non_negative_float(entry_record.cost_usd, "cost_usd")
-    if entry_record.input_tokens is not None:
-        validate_non_negative_int(entry_record.input_tokens, "input_tokens")
-    if entry_record.cached_input_tokens is not None:
-        validate_non_negative_int(entry_record.cached_input_tokens, "cached_input_tokens")
-    if entry_record.output_tokens is not None:
-        validate_non_negative_int(entry_record.output_tokens, "output_tokens")
-    if entry_record.tokens_total is not None:
-        validate_non_negative_int(entry_record.tokens_total, "tokens_total")
-    validate_token_breakdown_consistency(
-        input_tokens=entry_record.input_tokens,
-        cached_input_tokens=entry_record.cached_input_tokens,
-        output_tokens=entry_record.output_tokens,
-        tokens_total=entry_record.tokens_total,
-        field_name="tokens_total",
-    )
-    validate_failure_reason(entry_record.failure_reason)
-    validate_agent_name(entry_record.agent_name)
-    validate_model_name(entry_record.model)
-    validate_entry_business_rules(entry)
-
-
-def build_goal_chain(goal_by_id: dict[str, GoalRecord], terminal_goal: GoalRecord) -> list[GoalRecord]:
-    chain: list[GoalRecord] = []
-    current_goal = terminal_goal
-    visited_goal_ids: set[str] = set()
-    while True:
-        goal_id = current_goal.goal_id
-        if goal_id in visited_goal_ids:
-            raise ValueError(f"Detected supersession cycle at goal: {goal_id}")
-        visited_goal_ids.add(goal_id)
-        chain.append(current_goal)
-        previous_goal_id = current_goal.supersedes_goal_id
-        if previous_goal_id is None:
-            break
-        previous_goal = goal_by_id.get(previous_goal_id)
-        if previous_goal is None:
-            raise ValueError(f"Referenced superseded goal not found: {previous_goal_id}")
-        current_goal = previous_goal
-
-    chain.reverse()
-    return chain
-
-
-def validate_goal_supersession_graph(goals: list[dict[str, Any]]) -> None:
-    goal_records = [goal_from_dict(goal) for goal in goals]
-    goal_by_id = {goal.goal_id: goal for goal in goal_records}
-    for goal in goal_records:
-        build_goal_chain(goal_by_id, goal)
-
-
-def validate_metrics_data(data: dict[str, Any], path: Path) -> None:
-    if "summary" not in data or "goals" not in data or "entries" not in data:
-        raise ValueError(f"Invalid metrics file format: {path}")
-    if not isinstance(data["summary"], dict):
-        raise ValueError(f"Invalid metrics summary format: {path}")
-    if not isinstance(data["goals"], list):
-        raise ValueError(f"Invalid metrics goals format: {path}")
-    if not isinstance(data["entries"], list):
-        raise ValueError(f"Invalid metrics entries format: {path}")
-
-    goal_ids: set[str] = set()
-    for goal in data["goals"]:
-        if not isinstance(goal, dict):
-            raise ValueError("Each goal record must be an object")
-        validate_goal_record(goal)
-        goal_id = goal["goal_id"]
-        if goal_id in goal_ids:
-            raise ValueError(f"Duplicate goal_id found: {goal_id}")
-        goal_ids.add(goal_id)
-
-    for goal in data["goals"]:
-        superseded_goal_id = goal.get("supersedes_goal_id")
-        if superseded_goal_id is not None and superseded_goal_id not in goal_ids:
-            raise ValueError(f"Referenced superseded goal not found: {superseded_goal_id}")
-
-    validate_goal_supersession_graph(data["goals"])
-
-    entry_ids: set[str] = set()
-    for entry in data["entries"]:
-        if not isinstance(entry, dict):
-            raise ValueError("Each entry record must be an object")
-        validate_entry_record(entry)
-        entry_id = entry["entry_id"]
-        if entry_id in entry_ids:
-            raise ValueError(f"Duplicate entry_id found: {entry_id}")
-        if entry["goal_id"] not in goal_ids:
-            raise ValueError(f"Entry references unknown goal_id: {entry['goal_id']}")
-        entry_ids.add(entry_id)
-
-
-def normalize_legacy_metrics_data(data: dict[str, Any]) -> None:
-    if "tasks" in data and "goals" not in data:
-        tasks = data.get("tasks")
-        if isinstance(tasks, list):
-            legacy_goals: list[dict[str, Any]] = []
-            legacy_entries: list[dict[str, Any]] = []
-            for task in tasks:
-                if not isinstance(task, dict):
-                    continue
-                task_type = task.get("task_type", "product")
-                supersedes_task_id = task.get("supersedes_task_id")
-                task_id = task.get("task_id")
-                if task_id in LEGACY_GOAL_SUPERSEDES_MAP and supersedes_task_id is None:
-                    supersedes_task_id = LEGACY_GOAL_SUPERSEDES_MAP[task_id]
-                goal = {
-                    "goal_id": task_id,
-                    "title": task.get("title"),
-                    "goal_type": task_type,
-                    "supersedes_goal_id": supersedes_task_id,
-                    "status": task.get("status"),
-                    "attempts": task.get("attempts"),
-                    "started_at": task.get("started_at"),
-                    "finished_at": task.get("finished_at"),
-                    "cost_usd": task.get("cost_usd"),
-                    "input_tokens": task.get("input_tokens"),
-                    "cached_input_tokens": task.get("cached_input_tokens"),
-                    "output_tokens": task.get("output_tokens"),
-                    "tokens_total": task.get("tokens_total"),
-                    "failure_reason": task.get("failure_reason"),
-                    "notes": task.get("notes"),
-                    "agent_name": task.get("agent_name"),
-                    "result_fit": task.get("result_fit"),
-                    "model": task.get("model"),
-                }
-                legacy_goals.append(goal)
-                legacy_entries.append(
-                    {
-                        "entry_id": task_id,
-                        "goal_id": task_id,
-                        "entry_type": task_type,
-                        "status": task.get("status"),
-                        "started_at": task.get("started_at"),
-                        "finished_at": task.get("finished_at"),
-                        "cost_usd": task.get("cost_usd"),
-                        "input_tokens": task.get("input_tokens"),
-                        "cached_input_tokens": task.get("cached_input_tokens"),
-                        "output_tokens": task.get("output_tokens"),
-                        "tokens_total": task.get("tokens_total"),
-                        "failure_reason": task.get("failure_reason"),
-                        "notes": task.get("notes"),
-                        "agent_name": task.get("agent_name"),
-                        "model": task.get("model"),
-                    }
-                )
-            data["goals"] = legacy_goals
-            data["entries"] = legacy_entries
-
-    goals: Any = data.get("goals")
-    if isinstance(goals, list):
-        for goal in goals:
-            if isinstance(goal, dict) and "goal_type" not in goal:
-                goal["goal_type"] = goal.pop("task_type", "product")
-            if isinstance(goal, dict) and "goal_id" not in goal:
-                goal["goal_id"] = goal.pop("task_id")
-            if isinstance(goal, dict) and "supersedes_goal_id" not in goal:
-                goal["supersedes_goal_id"] = goal.pop("supersedes_task_id", None)
-            if isinstance(goal, dict) and "agent_name" not in goal:
-                goal["agent_name"] = None
-            if isinstance(goal, dict) and "result_fit" not in goal:
-                goal["result_fit"] = None
-            if isinstance(goal, dict) and "input_tokens" not in goal:
-                goal["input_tokens"] = None
-            if isinstance(goal, dict) and "cached_input_tokens" not in goal:
-                goal["cached_input_tokens"] = None
-            if isinstance(goal, dict) and "output_tokens" not in goal:
-                goal["output_tokens"] = None
-
-    entries: Any = data.get("entries")
-    if not isinstance(entries, list) and isinstance(goals, list):
-        data["entries"] = []
-        entries = data["entries"]
-
-    if isinstance(entries, list):
-        for entry in entries:
-            if isinstance(entry, dict) and "goal_id" not in entry:
-                entry["goal_id"] = entry.get("task_id")
-            if isinstance(entry, dict) and "entry_id" not in entry:
-                entry["entry_id"] = entry.get("goal_id")
-            if isinstance(entry, dict) and "entry_type" not in entry:
-                entry["entry_type"] = entry.get("task_type", "update")
-            if isinstance(entry, dict) and "agent_name" not in entry:
-                entry["agent_name"] = None
-            if isinstance(entry, dict) and "input_tokens" not in entry:
-                entry["input_tokens"] = None
-            if isinstance(entry, dict) and "cached_input_tokens" not in entry:
-                entry["cached_input_tokens"] = None
-            if isinstance(entry, dict) and "output_tokens" not in entry:
-                entry["output_tokens"] = None
-
-
-def load_metrics(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return default_metrics()
-    with path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
-    normalize_legacy_metrics_data(data)
-    validate_metrics_data(data, path)
-    return data
-
-
 def get_task_index(tasks: list[dict[str, Any]], task_id: str) -> int | None:
     for idx, task in enumerate(tasks):
         if task.get("goal_id") == task_id:
@@ -679,22 +110,6 @@ def get_task_index(tasks: list[dict[str, Any]], task_id: str) -> int | None:
 def get_task(tasks: list[dict[str, Any]], task_id: str) -> dict[str, Any] | None:
     task_index = get_task_index(tasks, task_id)
     return None if task_index is None else tasks[task_index]
-
-
-def choose_earliest_timestamp(first: str | None, second: str | None) -> str | None:
-    if first is None:
-        return second
-    if second is None:
-        return first
-    return first if parse_iso_datetime(first, "timestamp") <= parse_iso_datetime(second, "timestamp") else second
-
-
-def choose_latest_timestamp(first: str | None, second: str | None) -> str | None:
-    if first is None:
-        return second
-    if second is None:
-        return first
-    return first if parse_iso_datetime(first, "timestamp") >= parse_iso_datetime(second, "timestamp") else second
 
 
 def combine_optional_cost(first: float | None, second: float | None) -> float | None:
@@ -774,12 +189,14 @@ def aggregate_chain_model(chain: list[GoalRecord]) -> tuple[str | None, bool, bo
     return aggregated_model, model_complete, model_consistent
 
 
-def aggregate_chain_timestamps(chain: list[GoalRecord]) -> tuple[str | None, str | None]:
+def aggregate_chain_timestamps(chain: list[GoalRecord]) -> tuple[datetime | None, datetime | None]:
     started_at = None
     finished_at = None
     for goal in chain:
-        started_at = choose_earliest_timestamp(started_at, goal.started_at)
-        finished_at = choose_latest_timestamp(finished_at, goal.finished_at)
+        if goal.started_at is not None and (started_at is None or goal.started_at < started_at):
+            started_at = goal.started_at
+        if goal.finished_at is not None and (finished_at is None or goal.finished_at > finished_at):
+            finished_at = goal.finished_at
     return started_at, finished_at
 
 
@@ -998,6 +415,119 @@ def recompute_summary(data: dict[str, Any]) -> None:
     data["summary"] = summary
 
 
+def normalize_legacy_metrics_data(data: dict[str, Any]) -> None:
+    if "tasks" in data and "goals" not in data:
+        tasks = data.get("tasks")
+        if isinstance(tasks, list):
+            legacy_goals: list[dict[str, Any]] = []
+            legacy_entries: list[dict[str, Any]] = []
+            for task in tasks:
+                if not isinstance(task, dict):
+                    continue
+                task_type = task.get("task_type", "product")
+                supersedes_task_id = task.get("supersedes_task_id")
+                task_id = task.get("task_id")
+                goal = {
+                    "goal_id": task_id,
+                    "title": task.get("title"),
+                    "goal_type": task_type,
+                    "supersedes_goal_id": supersedes_task_id,
+                    "status": task.get("status"),
+                    "attempts": task.get("attempts"),
+                    "started_at": task.get("started_at"),
+                    "finished_at": task.get("finished_at"),
+                    "cost_usd": task.get("cost_usd"),
+                    "input_tokens": task.get("input_tokens"),
+                    "cached_input_tokens": task.get("cached_input_tokens"),
+                    "output_tokens": task.get("output_tokens"),
+                    "tokens_total": task.get("tokens_total"),
+                    "failure_reason": task.get("failure_reason"),
+                    "notes": task.get("notes"),
+                    "agent_name": task.get("agent_name"),
+                    "result_fit": task.get("result_fit"),
+                    "model": task.get("model"),
+                }
+                legacy_goals.append(goal)
+                legacy_entries.append(
+                    {
+                        "entry_id": task_id,
+                        "goal_id": task_id,
+                        "entry_type": task_type,
+                        "status": task.get("status"),
+                        "started_at": task.get("started_at"),
+                        "finished_at": task.get("finished_at"),
+                        "cost_usd": task.get("cost_usd"),
+                        "input_tokens": task.get("input_tokens"),
+                        "cached_input_tokens": task.get("cached_input_tokens"),
+                        "output_tokens": task.get("output_tokens"),
+                        "tokens_total": task.get("tokens_total"),
+                        "failure_reason": task.get("failure_reason"),
+                        "notes": task.get("notes"),
+                        "agent_name": task.get("agent_name"),
+                        "model": task.get("model"),
+                    }
+                )
+            data["goals"] = legacy_goals
+            data["entries"] = legacy_entries
+
+    goals: Any = data.get("goals")
+    if isinstance(goals, list):
+        for goal in goals:
+            if isinstance(goal, dict) and "goal_type" not in goal:
+                goal["goal_type"] = goal.pop("task_type", "product")
+            if isinstance(goal, dict) and "goal_id" not in goal:
+                goal["goal_id"] = goal.pop("task_id")
+            if isinstance(goal, dict) and "supersedes_goal_id" not in goal:
+                goal["supersedes_goal_id"] = goal.pop("supersedes_task_id", None)
+            if isinstance(goal, dict) and "agent_name" not in goal:
+                goal["agent_name"] = None
+            if isinstance(goal, dict) and "result_fit" not in goal:
+                goal["result_fit"] = None
+            if isinstance(goal, dict) and "input_tokens" not in goal:
+                goal["input_tokens"] = None
+            if isinstance(goal, dict) and "cached_input_tokens" not in goal:
+                goal["cached_input_tokens"] = None
+            if isinstance(goal, dict) and "output_tokens" not in goal:
+                goal["output_tokens"] = None
+
+    entries: Any = data.get("entries")
+    if not isinstance(entries, list) and isinstance(goals, list):
+        data["entries"] = []
+        entries = data["entries"]
+
+    if isinstance(entries, list):
+        for entry in entries:
+            if isinstance(entry, dict) and "goal_id" not in entry:
+                entry["goal_id"] = entry.get("task_id")
+            if isinstance(entry, dict) and "entry_id" not in entry:
+                entry["entry_id"] = entry.get("goal_id")
+            if isinstance(entry, dict) and "entry_type" not in entry:
+                entry["entry_type"] = entry.get("task_type", "update")
+            if isinstance(entry, dict) and "agent_name" not in entry:
+                entry["agent_name"] = None
+            if isinstance(entry, dict) and "input_tokens" not in entry:
+                entry["input_tokens"] = None
+            if isinstance(entry, dict) and "cached_input_tokens" not in entry:
+                entry["cached_input_tokens"] = None
+            if isinstance(entry, dict) and "output_tokens" not in entry:
+                entry["output_tokens"] = None
+
+
+def load_metrics(path: Path) -> dict[str, Any]:
+    from codex_metrics.event_store import replay_events
+
+    goals_list, entries_list = replay_events(path)
+    data: dict[str, Any] = {
+        "summary": empty_summary_block(include_by_task_type=True),
+        "goals": goals_list,
+        "entries": entries_list,
+    }
+    normalize_legacy_metrics_data(data)
+    recompute_summary(data)
+    validate_metrics_data(data, path)
+    return data
+
+
 def get_goal_entries(entries: list[dict[str, Any]], goal_id: str) -> list[dict[str, Any]]:
     return [entry for entry in entries if entry.get("goal_id") == goal_id]
 
@@ -1010,34 +540,6 @@ def ensure_goal_type_update_allowed(entries: list[dict[str, Any]], goal: GoalRec
             f"goal_id already exists as a {goal.goal_type} goal; "
             "use a new --task-id or omit it for auto-generation to create a new goal"
         )
-
-
-def next_entry_id(entries: list[dict[str, Any]], goal_id: str) -> str:
-    existing_ids = {entry["entry_id"] for entry in entries}
-    entry_number = 1
-    while True:
-        candidate = f"{goal_id}-attempt-{entry_number:03d}"
-        if candidate not in existing_ids:
-            return candidate
-        entry_number += 1
-
-
-def next_goal_id(tasks: list[dict[str, Any]], now: datetime | None = None) -> str:
-    current_time = now or now_utc_datetime()
-    date_prefix = current_time.date().isoformat()
-    prefix = f"{date_prefix}-"
-    max_suffix = 0
-
-    for task in tasks:
-        goal_id = task.get("goal_id")
-        if not isinstance(goal_id, str) or not goal_id.startswith(prefix):
-            continue
-        suffix = goal_id.removeprefix(prefix)
-        if len(suffix) != 3 or not suffix.isdigit():
-            continue
-        max_suffix = max(max_suffix, int(suffix))
-
-    return f"{date_prefix}-{max_suffix + 1:03d}"
 
 
 def compute_numeric_delta(previous_value: float | int | None, current_value: float | int | None) -> float | int | None:
@@ -1076,8 +578,8 @@ def build_attempt_entry(
             entry_type=goal["goal_type"],
             inferred=inferred,
             status=status,
-            started_at=started_at,
-            finished_at=finished_at,
+            started_at=parse_iso_datetime_flexible(started_at, "started_at") if started_at is not None else None,
+            finished_at=parse_iso_datetime_flexible(finished_at, "finished_at") if finished_at is not None else None,
             cost_usd=cost_usd,
             input_tokens=input_tokens,
             cached_input_tokens=cached_input_tokens,
@@ -1231,11 +733,6 @@ def refresh_goal_model_summary(goal: dict[str, Any], goal_entries: list[dict[str
         goal["model"] = None
 
 
-def validate_goal_entries(goal_entries: list[dict[str, Any]]) -> None:
-    for entry in goal_entries:
-        validate_entry_record(entry)
-
-
 def sync_goal_attempt_entries(data: dict[str, Any], goal: dict[str, Any], previous_goal: dict[str, Any] | None) -> None:
     entries: list[dict[str, Any]] = data["entries"]
     goal_entries = get_goal_entries(entries, goal["goal_id"])
@@ -1291,7 +788,7 @@ def create_goal_record(
         supersedes_goal_id=linked_task_id,
         status="in_progress",
         attempts=0,
-        started_at=started_at or now_utc_iso(),
+        started_at=parse_iso_datetime_flexible(started_at, "started_at") if started_at is not None else now_utc_datetime(),
         finished_at=None,
         cost_usd=None,
         input_tokens=None,
@@ -1441,9 +938,9 @@ def apply_goal_updates(
     if notes is not None:
         task.notes = notes
     if started_at is not None:
-        task.started_at = started_at
+        task.started_at = parse_iso_datetime_flexible(started_at, "started_at")
     if finished_at is not None:
-        task.finished_at = finished_at
+        task.finished_at = parse_iso_datetime_flexible(finished_at, "finished_at")
 
 
 def finalize_goal_update(task: GoalRecord) -> None:
@@ -1451,12 +948,9 @@ def finalize_goal_update(task: GoalRecord) -> None:
         task.attempts = 1
     if task.status in {"success", "fail"} and not task.finished_at:
         finished_dt = now_utc_datetime()
-        started_at_value = task.started_at
-        if started_at_value is not None:
-            started_dt = parse_iso_datetime(started_at_value, "started_at")
-            if finished_dt < started_dt:
-                finished_dt = started_dt
-        task.finished_at = finished_dt.isoformat()
+        if task.started_at is not None and finished_dt < task.started_at:
+            finished_dt = task.started_at
+        task.finished_at = finished_dt
     if (
         task.goal_type == "product"
         and task.status in {"success", "fail"}
@@ -1465,10 +959,8 @@ def finalize_goal_update(task: GoalRecord) -> None:
         and task.started_at is not None
         and task.finished_at is not None
     ):
-        started_dt = parse_iso_datetime(task.started_at, "started_at")
-        finished_dt = parse_iso_datetime(task.finished_at, "finished_at")
-        if started_dt == finished_dt:
-            task.started_at = (started_dt - timedelta(seconds=1)).isoformat()
+        if task.started_at == task.finished_at:
+            task.started_at = task.started_at - timedelta(seconds=1)
     if task.status == "success":
         task.failure_reason = None
 

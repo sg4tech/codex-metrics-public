@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from codex_metrics.domain import now_utc_iso
+from codex_metrics.redaction import redact_text, redact_value
 from codex_metrics.storage import ensure_parent_dir
 
 OBSERVABILITY_DIRNAME = ".codex-metrics"
@@ -139,7 +140,8 @@ def _store_event(
     paths = observability_paths(metrics_path)
     event_id = uuid.uuid4().hex
     occurred_at = now_utc_iso()
-    payload_json = _json_text(payload)
+    redacted_payload = redact_value(payload)
+    payload_json = _json_text(redacted_payload)
     debug_line = _build_debug_line(
         event_id=event_id,
         event_type=event_type,
@@ -154,7 +156,7 @@ def _store_event(
         attempts_after=attempts_after,
         result_fit_before=result_fit_before,
         result_fit_after=result_fit_after,
-        payload=payload,
+        payload=redacted_payload,
     )
     ensure_parent_dir(paths.event_store_path)
     with sqlite3.connect(paths.event_store_path) as conn:
@@ -237,7 +239,7 @@ def _record_event_best_effort(
         paths = observability_paths(metrics_path)
         fallback_payload = {
             "error": type(exc).__name__,
-            "message": str(exc),
+            "message": redact_text(str(exc)),
             "event_type": event_type,
             "goal_id": goal_id,
             "command": command,

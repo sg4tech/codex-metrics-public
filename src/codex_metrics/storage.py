@@ -2,14 +2,11 @@ from __future__ import annotations
 
 import contextlib
 import fcntl
-import json
 import os
 import tempfile
 import time
 from pathlib import Path
 from typing import Any
-
-from codex_metrics.file_immutability import metrics_file_immutability_guard
 
 LOCKFILE_SUFFIX = ".lock"
 
@@ -32,14 +29,6 @@ def atomic_write_text(path: Path, content: str) -> None:
         tmp_path = Path(tmp_file.name)
     tmp_path.replace(path)
 
-
-def save_metrics(path: Path, data: dict[str, Any]) -> None:
-    with metrics_file_immutability_guard(path):
-        ensure_parent_dir(path)
-        data_to_save = dict(data)
-        data_to_save.pop("tasks", None)
-        serialized = json.dumps(data_to_save, ensure_ascii=False, indent=2) + "\n"
-        atomic_write_text(path, serialized)
 
 
 def metrics_lock_path(metrics_path: Path) -> Path:

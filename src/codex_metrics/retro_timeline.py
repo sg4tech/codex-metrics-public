@@ -93,7 +93,8 @@ class RetroTimelineReport:
 
 
 def _goal_timestamp(goal: EffectiveGoalRecord) -> str | None:
-    return goal.finished_at or goal.started_at
+    ts = goal.finished_at or goal.started_at
+    return ts.isoformat() if ts is not None else None
 
 
 def _parse_timestamp(value: str) -> datetime:
@@ -631,93 +632,3 @@ def render_retro_timeline_report(report: RetroTimelineReport) -> str:
             ]
         )
     return "\n".join(lines).rstrip()
-
-
-def _event_to_dict(event: RetroTimelineEvent) -> dict[str, Any]:
-    return {
-        "retro_event_id": event.retro_event_id,
-        "message_id": event.message_id,
-        "thread_id": event.thread_id,
-        "session_path": event.session_path,
-        "event_index": event.event_index,
-        "message_index": event.message_index,
-        "message_role": event.message_role,
-        "event_time": event.event_time,
-        "event_date": event.event_date,
-        "project_cwd": event.project_cwd,
-        "retro_file_path": event.retro_file_path,
-        "title": event.title,
-        "summary": event.summary,
-        "source_kind": event.source_kind,
-        "raw_json": event.raw_json,
-    }
-
-
-def _window_to_dict(window: RetroMetricWindow) -> dict[str, Any]:
-    return {
-        "window_id": window.window_id,
-        "retro_event_id": window.retro_event_id,
-        "window_side": window.window_side,
-        "window_strategy": window.window_strategy,
-        "window_size": window.window_size,
-        "anchor_time": window.anchor_time,
-        "window_start_time": window.window_start_time,
-        "window_end_time": window.window_end_time,
-        "product_goals_closed": window.product_goals_closed,
-        "product_success_rate": window.product_success_rate,
-        "review_coverage": window.review_coverage,
-        "exact_fit_rate": window.exact_fit_rate,
-        "partial_fit_rate": window.partial_fit_rate,
-        "miss_rate": window.miss_rate,
-        "attempts_per_closed_product_goal": window.attempts_per_closed_product_goal,
-        "known_cost_per_success_usd": window.known_cost_per_success_usd,
-        "known_cost_coverage": window.known_cost_coverage,
-        "failure_reason_summary": window.failure_reason_summary,
-        "goal_ids_json": window.goal_ids_json,
-        "raw_json": window.raw_json,
-    }
-
-
-def _delta_to_dict(delta: RetroWindowDelta) -> dict[str, Any]:
-    return {
-        "retro_event_id": delta.retro_event_id,
-        "window_strategy": delta.window_strategy,
-        "window_size": delta.window_size,
-        "before_product_goals_closed": delta.before_product_goals_closed,
-        "after_product_goals_closed": delta.after_product_goals_closed,
-        "delta_product_success_rate": delta.delta_product_success_rate,
-        "delta_exact_fit_rate": delta.delta_exact_fit_rate,
-        "delta_partial_fit_rate": delta.delta_partial_fit_rate,
-        "delta_miss_rate": delta.delta_miss_rate,
-        "delta_attempts_per_closed_product_goal": delta.delta_attempts_per_closed_product_goal,
-        "delta_known_cost_per_success_usd": delta.delta_known_cost_per_success_usd,
-        "delta_known_cost_coverage": delta.delta_known_cost_coverage,
-        "raw_json": delta.raw_json,
-    }
-
-
-def _record_to_dict(record: RetroTimelineRecord) -> dict[str, Any]:
-    return {
-        "event": _event_to_dict(record.event),
-        "before_window": _window_to_dict(record.before_window),
-        "after_window": _window_to_dict(record.after_window),
-        "delta": _delta_to_dict(record.delta),
-    }
-
-
-def render_retro_timeline_report_json(report: RetroTimelineReport) -> str:
-    payload = {
-        "metrics_path": str(report.metrics_path),
-        "warehouse_path": str(report.warehouse_path),
-        "cwd": str(report.cwd),
-        "window_size": report.window_size,
-        "event_count": len(report.events),
-        "window_count": len(report.windows),
-        "delta_count": len(report.deltas),
-        "record_count": len(report.records),
-        "events": [_event_to_dict(event) for event in report.events],
-        "windows": [_window_to_dict(window) for window in report.windows],
-        "deltas": [_delta_to_dict(delta) for delta in report.deltas],
-        "records": [_record_to_dict(record) for record in report.records],
-    }
-    return json.dumps(payload, indent=2, sort_keys=True)

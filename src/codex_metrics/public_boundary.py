@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import fnmatch
-import json
 import re
 import subprocess
 import tomllib
@@ -122,25 +121,6 @@ def render_public_boundary_report(report: PublicBoundaryReport) -> str:
             f"- [{finding.kind}] {location} | rule={finding.matched_rule} | {finding.message}"
         )
     return "\n".join(lines)
-
-
-def render_public_boundary_report_json(report: PublicBoundaryReport) -> str:
-    payload = {
-        "repo_root": str(report.repo_root),
-        "rules_path": str(report.rules_path),
-        "files_scanned": report.files_scanned,
-        "findings": [
-            {
-                "kind": finding.kind,
-                "path": finding.path,
-                "message": finding.message,
-                "matched_rule": finding.matched_rule,
-                "line": finding.line,
-            }
-            for finding in report.findings
-        ],
-    }
-    return json.dumps(payload, indent=2, sort_keys=True)
 
 
 def _collect_candidate_paths(repo_root: Path, rules: PublicBoundaryRules) -> list[str]:

@@ -7,6 +7,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from codex_metrics.history_normalize import (
+    NormalizedLogRow,
+    NormalizedMessageRow,
+    NormalizedSessionRow,
+    NormalizedThreadRow,
+    NormalizedUsageEventRow,
+)
+
 
 @dataclass(frozen=True)
 class DeriveSummary:
@@ -18,20 +26,6 @@ class DeriveSummary:
     retry_chains: int
     message_facts: int
     session_usage: int
-
-
-def render_derive_summary_json(summary: DeriveSummary) -> str:
-    payload = {
-        "warehouse_path": str(summary.warehouse_path),
-        "projects": summary.projects,
-        "goals": summary.goals,
-        "attempts": summary.attempts,
-        "timeline_events": summary.timeline_events,
-        "retry_chains": summary.retry_chains,
-        "message_facts": summary.message_facts,
-        "session_usage": summary.session_usage,
-    }
-    return json.dumps(payload, indent=2, sort_keys=True)
 
 
 def _normalize_timestamp(value: str | None) -> str | None:
@@ -273,8 +267,8 @@ def _clear_derived_tables(conn: sqlite3.Connection) -> None:
     conn.execute("DELETE FROM derived_projects")
 
 
-def _fetch_normalized_threads(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    return conn.execute(
+def _fetch_normalized_threads(conn: sqlite3.Connection) -> list[NormalizedThreadRow]:
+    rows = conn.execute(
         """
         SELECT thread_id, source_path, cwd, model_provider, model, title, archived,
                session_count, event_count, message_count, log_count,
@@ -283,10 +277,29 @@ def _fetch_normalized_threads(conn: sqlite3.Connection) -> list[sqlite3.Row]:
         ORDER BY thread_id
         """
     ).fetchall()
+    return [
+        NormalizedThreadRow(
+            thread_id=row["thread_id"],
+            source_path=row["source_path"],
+            cwd=row["cwd"],
+            model_provider=row["model_provider"],
+            model=row["model"],
+            title=row["title"],
+            archived=row["archived"],
+            session_count=row["session_count"],
+            event_count=row["event_count"],
+            message_count=row["message_count"],
+            log_count=row["log_count"],
+            first_seen_at=row["first_seen_at"],
+            last_seen_at=row["last_seen_at"],
+            raw_json=row["raw_json"],
+        )
+        for row in rows
+    ]
 
 
-def _fetch_normalized_sessions(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    return conn.execute(
+def _fetch_normalized_sessions(conn: sqlite3.Connection) -> list[NormalizedSessionRow]:
+    rows = conn.execute(
         """
         SELECT session_path, thread_id, source_path, session_timestamp, cwd, source,
                model_provider, cli_version, originator, event_count, message_count,
@@ -295,10 +308,29 @@ def _fetch_normalized_sessions(conn: sqlite3.Connection) -> list[sqlite3.Row]:
         ORDER BY thread_id, session_timestamp, session_path
         """
     ).fetchall()
+    return [
+        NormalizedSessionRow(
+            session_path=row["session_path"],
+            thread_id=row["thread_id"],
+            source_path=row["source_path"],
+            session_timestamp=row["session_timestamp"],
+            cwd=row["cwd"],
+            source=row["source"],
+            model_provider=row["model_provider"],
+            cli_version=row["cli_version"],
+            originator=row["originator"],
+            event_count=row["event_count"],
+            message_count=row["message_count"],
+            first_event_at=row["first_event_at"],
+            last_event_at=row["last_event_at"],
+            raw_json=row["raw_json"],
+        )
+        for row in rows
+    ]
 
 
-def _fetch_normalized_messages(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    return conn.execute(
+def _fetch_normalized_messages(conn: sqlite3.Connection) -> list[NormalizedMessageRow]:
+    rows = conn.execute(
         """
         SELECT message_id, thread_id, session_path, source_path, event_index, message_index,
                role, text, timestamp, raw_json
@@ -306,10 +338,25 @@ def _fetch_normalized_messages(conn: sqlite3.Connection) -> list[sqlite3.Row]:
         ORDER BY thread_id, session_path, event_index, message_index
         """
     ).fetchall()
+    return [
+        NormalizedMessageRow(
+            message_id=row["message_id"],
+            thread_id=row["thread_id"],
+            session_path=row["session_path"],
+            source_path=row["source_path"],
+            event_index=row["event_index"],
+            message_index=row["message_index"],
+            role=row["role"],
+            text=row["text"],
+            timestamp=row["timestamp"],
+            raw_json=row["raw_json"],
+        )
+        for row in rows
+    ]
 
 
-def _fetch_normalized_usage_events(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    return conn.execute(
+def _fetch_normalized_usage_events(conn: sqlite3.Connection) -> list[NormalizedUsageEventRow]:
+    rows = conn.execute(
         """
         SELECT usage_event_id, thread_id, session_path, source_path, event_index, timestamp,
                input_tokens, cached_input_tokens, output_tokens, reasoning_output_tokens,
@@ -318,16 +365,48 @@ def _fetch_normalized_usage_events(conn: sqlite3.Connection) -> list[sqlite3.Row
         ORDER BY thread_id, session_path, event_index, usage_event_id
         """
     ).fetchall()
+    return [
+        NormalizedUsageEventRow(
+            usage_event_id=row["usage_event_id"],
+            thread_id=row["thread_id"],
+            session_path=row["session_path"],
+            source_path=row["source_path"],
+            event_index=row["event_index"],
+            timestamp=row["timestamp"],
+            input_tokens=row["input_tokens"],
+            cached_input_tokens=row["cached_input_tokens"],
+            output_tokens=row["output_tokens"],
+            reasoning_output_tokens=row["reasoning_output_tokens"],
+            total_tokens=row["total_tokens"],
+            model=row["model"],
+            raw_json=row["raw_json"],
+        )
+        for row in rows
+    ]
 
 
-def _fetch_normalized_logs(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    return conn.execute(
+def _fetch_normalized_logs(conn: sqlite3.Connection) -> list[NormalizedLogRow]:
+    rows = conn.execute(
         """
         SELECT source_path, row_id, thread_id, ts, ts_iso, level, target, body, raw_json
         FROM normalized_logs
         ORDER BY thread_id, ts, row_id
         """
     ).fetchall()
+    return [
+        NormalizedLogRow(
+            source_path=row["source_path"],
+            row_id=row["row_id"],
+            thread_id=row["thread_id"],
+            ts=row["ts"],
+            ts_iso=row["ts_iso"],
+            level=row["level"],
+            target=row["target"],
+            body=row["body"],
+            raw_json=row["raw_json"],
+        )
+        for row in rows
+    ]
 
 
 def _sum_known_int(values: list[int | None]) -> int | None:
@@ -360,7 +439,7 @@ def _resolve_assistant_message_event_index(
     return None
 
 
-def _resolve_message_model(usage_event: sqlite3.Row | None, thread_model: str | None) -> str | None:
+def _resolve_message_model(usage_event: NormalizedUsageEventRow | None, thread_model: str | None) -> str | None:
     if usage_event is not None:
         usage_model = usage_event["model"]
         if isinstance(usage_model, str):
@@ -404,11 +483,16 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
             raise ValueError(
                 "Warehouse does not contain normalized Codex history; run normalize-codex-history first"
             ) from exc
+        except IndexError as exc:
+            raise ValueError(
+                "Warehouse schema is incompatible with this version of codex-metrics; "
+                "run normalize-codex-history first"
+            ) from exc
 
-        sessions_by_thread: dict[str, list[sqlite3.Row]] = {}
-        messages_by_session: dict[str, list[sqlite3.Row]] = {}
-        usage_events_by_session: dict[str, list[sqlite3.Row]] = {}
-        logs_by_thread: dict[str, list[sqlite3.Row]] = {}
+        sessions_by_thread: dict[str, list[NormalizedSessionRow]] = {}
+        messages_by_session: dict[str, list[NormalizedMessageRow]] = {}
+        usage_events_by_session: dict[str, list[NormalizedUsageEventRow]] = {}
+        logs_by_thread: dict[str, list[NormalizedLogRow]] = {}
         project_stats: dict[str, dict[str, Any]] = {}
 
         def get_project_stats(project_cwd: str) -> dict[str, Any]:
@@ -454,7 +538,7 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
 
         _clear_derived_tables(conn)
 
-        message_usage_groups: dict[str, dict[int, list[sqlite3.Row]]] = {}
+        message_usage_groups: dict[str, dict[int, list[NormalizedUsageEventRow]]] = {}
         for session_path, session_messages in messages_by_session.items():
             assistant_event_indices = sorted(
                 {
@@ -465,7 +549,7 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
             )
             if not assistant_event_indices:
                 continue
-            usage_groups_for_session: dict[int, list[sqlite3.Row]] = {}
+            usage_groups_for_session: dict[int, list[NormalizedUsageEventRow]] = {}
             for usage_row in usage_events_by_session.get(session_path, []):
                 usage_event_index = int(usage_row["event_index"])
                 target_event_index = _resolve_assistant_message_event_index(
@@ -537,7 +621,7 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                     }
                 )
 
-            message_rows_by_session: dict[str, list[sqlite3.Row]] = {}
+            message_rows_by_session: dict[str, list[NormalizedMessageRow]] = {}
             for message_row in thread_messages:
                 message_rows_by_session.setdefault(message_row["session_path"], []).append(message_row)
 
@@ -744,8 +828,8 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                         usage_output_tokens,
                         usage_reasoning_output_tokens,
                         usage_total_tokens,
-                        _normalize_timestamp(min((row["timestamp"] for row in usage_rows if _normalize_timestamp(row["timestamp"]) is not None), default=None)),
-                        _normalize_timestamp(max((row["timestamp"] for row in usage_rows if _normalize_timestamp(row["timestamp"]) is not None), default=None)),
+                        min((ts for row in usage_rows if (ts := _normalize_timestamp(row["timestamp"])) is not None), default=None),
+                        max((ts for row in usage_rows if (ts := _normalize_timestamp(row["timestamp"])) is not None), default=None),
                         json.dumps(
                             {
                                 "thread_id": thread_id,

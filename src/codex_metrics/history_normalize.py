@@ -6,7 +6,82 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
+
+
+class NormalizedThreadRow(TypedDict):
+    thread_id: str
+    source_path: str
+    cwd: str | None
+    model_provider: str | None
+    model: str | None
+    title: str | None
+    archived: int | None
+    session_count: int
+    event_count: int
+    message_count: int
+    log_count: int
+    first_seen_at: str | None
+    last_seen_at: str | None
+    raw_json: str
+
+
+class NormalizedSessionRow(TypedDict):
+    session_path: str
+    thread_id: str | None
+    source_path: str
+    session_timestamp: str | None
+    cwd: str | None
+    source: str | None
+    model_provider: str | None
+    cli_version: str | None
+    originator: str | None
+    event_count: int
+    message_count: int
+    first_event_at: str | None
+    last_event_at: str | None
+    raw_json: str
+
+
+class NormalizedMessageRow(TypedDict):
+    message_id: str
+    thread_id: str | None
+    session_path: str
+    source_path: str
+    event_index: int
+    message_index: int
+    role: str
+    text: str
+    timestamp: str | None
+    raw_json: str
+
+
+class NormalizedUsageEventRow(TypedDict):
+    usage_event_id: str
+    thread_id: str | None
+    session_path: str
+    source_path: str
+    event_index: int
+    timestamp: str | None
+    input_tokens: int | None
+    cached_input_tokens: int | None
+    output_tokens: int | None
+    reasoning_output_tokens: int | None
+    total_tokens: int | None
+    model: str | None
+    raw_json: str
+
+
+class NormalizedLogRow(TypedDict):
+    source_path: str
+    row_id: int
+    thread_id: str | None
+    ts: int | None
+    ts_iso: str | None
+    level: str | None
+    target: str | None
+    body: str | None
+    raw_json: str
 
 
 @dataclass(frozen=True)
@@ -18,19 +93,6 @@ class NormalizeSummary:
     messages: int
     usage_events: int
     logs: int
-
-
-def render_normalize_summary_json(summary: NormalizeSummary) -> str:
-    payload = {
-        "warehouse_path": str(summary.warehouse_path),
-        "projects": summary.projects,
-        "threads": summary.threads,
-        "sessions": summary.sessions,
-        "messages": summary.messages,
-        "usage_events": summary.usage_events,
-        "logs": summary.logs,
-    }
-    return json.dumps(payload, indent=2, sort_keys=True)
 
 
 def _iso_from_unix_seconds(value: int | None) -> str | None:

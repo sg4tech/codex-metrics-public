@@ -72,12 +72,12 @@ The structured metrics file is the source of truth.
 
 For this repository:
 
-- source of truth: `metrics/codex_metrics.json`
+- source of truth: `metrics/events.ndjson` (append-only event log; tracked in git)
 - optional export: `docs/codex-metrics.md`
 
-If they disagree, the structured metrics file wins.
+If they disagree, the event log wins.
 
-Do not edit generated metrics files manually when the CLI can regenerate them.
+Do not edit `metrics/events.ndjson` manually. All mutations must go through the CLI.
 
 ## Required Workflow
 

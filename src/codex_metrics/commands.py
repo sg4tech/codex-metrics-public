@@ -5,29 +5,41 @@ import shutil
 import stat
 import sys
 from argparse import Namespace
-from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import Any, Protocol
 
-from codex_metrics.cost_audit import CostAuditReport
-from codex_metrics.history_audit import AuditReport
-from codex_metrics.history_compare import HistoryCompareReport
-from codex_metrics.history_derive import DeriveSummary
-from codex_metrics.history_ingest import IngestSummary
-from codex_metrics.history_normalize import NormalizeSummary
+from codex_metrics.cost_audit import CostAuditReport, render_cost_audit_report
+from codex_metrics.domain import (
+    get_goal_entries,
+    get_task,
+    load_metrics,
+    recompute_summary,
+    sync_goal_attempt_entries,
+)
+from codex_metrics.event_store import append_event
+from codex_metrics.history_audit import audit_history, render_audit_report
+from codex_metrics.history_compare import (
+    compare_metrics_to_history,
+    render_history_compare_report,
+)
 from codex_metrics.observability import (
     record_goal_merge_observation,
     record_goal_mutation_observation,
     record_usage_sync_observation,
 )
-from codex_metrics.retro_timeline import RetroTimelineReport
+from codex_metrics.public_boundary import render_public_boundary_report
+from codex_metrics.reporting import print_summary
+from codex_metrics.retro_timeline import (
+    derive_retro_timeline,
+    render_retro_timeline_report,
+)
+from codex_metrics.storage import metrics_mutation_lock
 from codex_metrics.workflow_fsm import (
     WorkflowEvent,
 )
 
 
 class CommandRuntime(Protocol):
-    def metrics_mutation_lock(self, metrics_path: Path) -> AbstractContextManager[Any]: ...
     def init_files(self, metrics_path: Path, report_path: Path | None, force: bool = False) -> None: ...
     def bootstrap_project(
         self,
@@ -41,10 +53,6 @@ class CommandRuntime(Protocol):
         force: bool = False,
         dry_run: bool = False,
     ) -> list[str]: ...
-    def load_metrics(self, path: Path) -> dict[str, Any]: ...
-    def recompute_summary(self, data: dict[str, Any]) -> None: ...
-    def print_summary(self, data: dict[str, Any]) -> None: ...
-    def render_summary_json(self, data: dict[str, Any]) -> str: ...
     def sync_usage(
         self,
         data: dict[str, Any],
@@ -54,6 +62,7 @@ class CommandRuntime(Protocol):
         usage_logs_path: Path,
         usage_thread_id: str | None,
         usage_backend: str | None = None,
+        claude_root: Path = ...,
     ) -> int: ...
     def sync_codex_usage(
         self,
@@ -64,40 +73,15 @@ class CommandRuntime(Protocol):
         codex_logs_path: Path,
         codex_thread_id: str | None,
     ) -> int: ...
-    def save_metrics(self, path: Path, data: dict[str, Any]) -> None: ...
     def save_report(self, path: Path, data: dict[str, Any]) -> None: ...
     def detect_started_work(self, cwd: Path) -> Any: ...
     def ensure_active_task(self, data: dict[str, Any], cwd: Path) -> Any: ...
     def get_active_goals(self, data: dict[str, Any]) -> list[dict[str, Any]]: ...
     def resolve_workflow_resolution(self, data: dict[str, Any], cwd: Path, event: WorkflowEvent) -> Any: ...
-    def audit_history(self, data: dict[str, Any]) -> AuditReport: ...
-    def compare_metrics_to_history(self, data: dict[str, Any], *, warehouse_path: Path, cwd: Path, metrics_path: Path) -> HistoryCompareReport: ...
-    def derive_retro_timeline(
-        self,
-        data: dict[str, Any],
-        *,
-        warehouse_path: Path,
-        cwd: Path,
-        metrics_path: Path,
-        window_size: int,
-    ) -> RetroTimelineReport: ...
     def ingest_codex_history(self, source_root: Path, warehouse_path: Path) -> Any: ...
     def normalize_codex_history(self, warehouse_path: Path) -> Any: ...
     def derive_codex_history(self, warehouse_path: Path) -> Any: ...
     def verify_public_boundary(self, *, repo_root: Path, rules_path: Path) -> Any: ...
-    def security(self, *, repo_root: Path, rules_path: Path) -> Any: ...
-    def render_audit_report(self, report: AuditReport) -> str: ...
-    def render_audit_report_json(self, report: AuditReport) -> str: ...
-    def render_history_compare_report(self, report: HistoryCompareReport) -> str: ...
-    def render_history_compare_report_json(self, report: HistoryCompareReport) -> str: ...
-    def render_retro_timeline_report(self, report: RetroTimelineReport) -> str: ...
-    def render_retro_timeline_report_json(self, report: RetroTimelineReport) -> str: ...
-    def render_public_boundary_report(self, report: Any) -> str: ...
-    def render_public_boundary_report_json(self, report: Any) -> str: ...
-    def render_security_report(self, report: Any) -> str: ...
-    def render_ingest_summary_json(self, summary: IngestSummary) -> str: ...
-    def render_normalize_summary_json(self, summary: NormalizeSummary) -> str: ...
-    def render_derive_summary_json(self, summary: DeriveSummary) -> str: ...
     def audit_cost_coverage(
         self,
         data: dict[str, Any],
@@ -107,11 +91,9 @@ class CommandRuntime(Protocol):
         codex_logs_path: Path,
         codex_thread_id: str | None,
         cwd: Path,
+        claude_root: Path = ...,
     ) -> CostAuditReport: ...
-    def render_cost_audit_report(self, report: CostAuditReport) -> str: ...
-    def render_cost_audit_report_json(self, report: CostAuditReport) -> str: ...
     def merge_tasks(self, data: dict[str, Any], keep_task_id: str, drop_task_id: str) -> dict[str, Any]: ...
-    def get_task(self, tasks: list[dict[str, Any]], task_id: str) -> dict[str, Any] | None: ...
     def upsert_task(
         self,
         *,
@@ -142,13 +124,19 @@ class CommandRuntime(Protocol):
         codex_logs_path: Path,
         codex_thread_id: str | None,
         cwd: Path,
+        claude_root: Path = ...,
     ) -> dict[str, Any]: ...
-    def sync_goal_attempt_entries(
-        self,
-        data: dict[str, Any],
-        goal: dict[str, Any],
-        previous_goal: dict[str, Any] | None,
-    ) -> None: ...
+
+
+_COMMAND_TO_EVENT_TYPE: dict[str, str] = {
+    "start-task": "goal_started",
+    "continue-task": "goal_continued",
+    "finish-task": "goal_finished",
+}
+
+
+def _command_to_event_type(command: str | None) -> str:
+    return _COMMAND_TO_EVENT_TYPE.get(command or "", "goal_updated")
 
 
 def _resolve_invocation_path() -> Path:
@@ -371,7 +359,7 @@ def handle_install_self(args: Namespace, _cli_module: CommandRuntime) -> int:
 def handle_init(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
     report_path = Path(args.report_path) if getattr(args, "write_report", False) else None
-    with cli_module.metrics_mutation_lock(metrics_path):
+    with metrics_mutation_lock(metrics_path):
         cli_module.init_files(metrics_path, report_path, force=args.force)
     print(f"Initialized {metrics_path}")
     if report_path is not None:
@@ -396,7 +384,7 @@ def handle_bootstrap(args: Namespace, cli_module: CommandRuntime) -> int:
     wrapper_exists = command_path.exists()
     wrapper_matches = wrapper_exists and command_path.read_text(encoding="utf-8") == wrapper_content
 
-    with cli_module.metrics_mutation_lock(metrics_path):
+    with metrics_mutation_lock(metrics_path):
         messages = cli_module.bootstrap_project(
             target_dir=target_dir,
             metrics_path=metrics_path,
@@ -431,18 +419,14 @@ def handle_bootstrap(args: Namespace, cli_module: CommandRuntime) -> int:
 
 def handle_show(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
-    data = cli_module.load_metrics(metrics_path)
-    cli_module.recompute_summary(data)
+    data = load_metrics(metrics_path)
     warning = None
     resolution = cli_module.resolve_workflow_resolution(data, Path.cwd(), WorkflowEvent.SHOW)
     if resolution.decision.action == "warning":
         warning = f"Warning: {resolution.decision.message}."
     if warning is not None:
         print(warning)
-    if getattr(args, "json", False):
-        print(cli_module.render_summary_json(data))
-    else:
-        cli_module.print_summary(data)
+    print_summary(data)
     return 0
 
 
@@ -468,24 +452,22 @@ def _require_active_goal_for_existing_mutation(cli_module: CommandRuntime, cwd: 
 
 def handle_ensure_active_task(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
-    with cli_module.metrics_mutation_lock(metrics_path):
-        data = cli_module.load_metrics(metrics_path)
+    with metrics_mutation_lock(metrics_path):
+        data = load_metrics(metrics_path)
         resolution = cli_module.ensure_active_task(data, Path.cwd())
-        if resolution.status == "created":
-            cli_module.recompute_summary(data)
-            cli_module.save_metrics(metrics_path, data)
+        if resolution.status == "created" and resolution.goal_id is not None:
+            created_goal = get_task(data["goals"], resolution.goal_id)
+            goal_entries = get_goal_entries(data["entries"], resolution.goal_id)
+            append_event(metrics_path, "goal_started", goal=created_goal, entries=goal_entries)
     print(resolution.message)
     return 0
 
 
 def handle_audit_history(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
-    data = cli_module.load_metrics(metrics_path)
-    report = cli_module.audit_history(data)
-    if getattr(args, "json", False):
-        print(cli_module.render_audit_report_json(report))
-    else:
-        print(cli_module.render_audit_report(report))
+    data = load_metrics(metrics_path)
+    report = audit_history(data)
+    print(render_audit_report(report))
     return 0
 
 
@@ -493,81 +475,69 @@ def handle_compare_metrics_to_history(args: Namespace, cli_module: CommandRuntim
     metrics_path = Path(args.metrics_path)
     warehouse_path = Path(args.warehouse_path).expanduser()
     cwd = Path(args.cwd).expanduser()
-    data = cli_module.load_metrics(metrics_path)
-    report = cli_module.compare_metrics_to_history(
+    data = load_metrics(metrics_path)
+    report = compare_metrics_to_history(
         data,
         warehouse_path=warehouse_path,
         cwd=cwd,
         metrics_path=metrics_path,
     )
-    if getattr(args, "json", False):
-        print(cli_module.render_history_compare_report_json(report))
-    else:
-        print(cli_module.render_history_compare_report(report))
+    print(render_history_compare_report(report))
     return 0
 
 
 def handle_ingest_codex_history(args: Namespace, cli_module: CommandRuntime) -> int:
     source_root = Path(args.source_root).expanduser()
     warehouse_path = Path(args.warehouse_path).expanduser()
-    with cli_module.metrics_mutation_lock(warehouse_path):
+    with metrics_mutation_lock(warehouse_path):
         summary = cli_module.ingest_codex_history(source_root, warehouse_path)
-    if getattr(args, "json", False):
-        print(cli_module.render_ingest_summary_json(summary))
-    else:
-        print(f"Ingested Codex history into {summary.warehouse_path}")
-        print(f"Source root: {summary.source_root}")
-        print(f"Scanned files: {summary.scanned_files}")
-        print(f"Imported files: {summary.imported_files}")
-        print(f"Skipped files: {summary.skipped_files}")
-        print(f"Projects: {summary.projects}")
-        print(f"Threads: {summary.threads}")
-        print(f"Sessions: {summary.sessions}")
-        print(f"Session events: {summary.session_events}")
-        print(f"Token count events: {summary.token_count_events}")
-        print(f"Token usage events: {summary.token_usage_events}")
-        print(f"Input tokens: {summary.input_tokens}")
-        print(f"Cached input tokens: {summary.cached_input_tokens}")
-        print(f"Output tokens: {summary.output_tokens}")
-        print(f"Reasoning output tokens: {summary.reasoning_output_tokens}")
-        print(f"Total tokens: {summary.total_tokens}")
-        print(f"Messages: {summary.messages}")
-        print(f"Logs: {summary.logs}")
+    print(f"Ingested Codex history into {summary.warehouse_path}")
+    print(f"Source root: {summary.source_root}")
+    print(f"Scanned files: {summary.scanned_files}")
+    print(f"Imported files: {summary.imported_files}")
+    print(f"Skipped files: {summary.skipped_files}")
+    print(f"Projects: {summary.projects}")
+    print(f"Threads: {summary.threads}")
+    print(f"Sessions: {summary.sessions}")
+    print(f"Session events: {summary.session_events}")
+    print(f"Token count events: {summary.token_count_events}")
+    print(f"Token usage events: {summary.token_usage_events}")
+    print(f"Input tokens: {summary.input_tokens}")
+    print(f"Cached input tokens: {summary.cached_input_tokens}")
+    print(f"Output tokens: {summary.output_tokens}")
+    print(f"Reasoning output tokens: {summary.reasoning_output_tokens}")
+    print(f"Total tokens: {summary.total_tokens}")
+    print(f"Messages: {summary.messages}")
+    print(f"Logs: {summary.logs}")
     return 0
 
 
 def handle_normalize_codex_history(args: Namespace, cli_module: CommandRuntime) -> int:
     warehouse_path = Path(args.warehouse_path).expanduser()
-    with cli_module.metrics_mutation_lock(warehouse_path):
+    with metrics_mutation_lock(warehouse_path):
         summary = cli_module.normalize_codex_history(warehouse_path)
-    if getattr(args, "json", False):
-        print(cli_module.render_normalize_summary_json(summary))
-    else:
-        print(f"Normalized Codex history in {summary.warehouse_path}")
-        print(f"Projects: {summary.projects}")
-        print(f"Threads: {summary.threads}")
-        print(f"Sessions: {summary.sessions}")
-        print(f"Messages: {summary.messages}")
-        print(f"Usage events: {summary.usage_events}")
-        print(f"Logs: {summary.logs}")
+    print(f"Normalized Codex history in {summary.warehouse_path}")
+    print(f"Projects: {summary.projects}")
+    print(f"Threads: {summary.threads}")
+    print(f"Sessions: {summary.sessions}")
+    print(f"Messages: {summary.messages}")
+    print(f"Usage events: {summary.usage_events}")
+    print(f"Logs: {summary.logs}")
     return 0
 
 
 def handle_derive_codex_history(args: Namespace, cli_module: CommandRuntime) -> int:
     warehouse_path = Path(args.warehouse_path).expanduser()
-    with cli_module.metrics_mutation_lock(warehouse_path):
+    with metrics_mutation_lock(warehouse_path):
         summary = cli_module.derive_codex_history(warehouse_path)
-    if getattr(args, "json", False):
-        print(cli_module.render_derive_summary_json(summary))
-    else:
-        print(f"Derived Codex history in {summary.warehouse_path}")
-        print(f"Projects: {summary.projects}")
-        print(f"Goals: {summary.goals}")
-        print(f"Attempts: {summary.attempts}")
-        print(f"Timeline events: {summary.timeline_events}")
-        print(f"Retry chains: {summary.retry_chains}")
-        print(f"Message facts: {summary.message_facts}")
-        print(f"Session usage: {summary.session_usage}")
+    print(f"Derived Codex history in {summary.warehouse_path}")
+    print(f"Projects: {summary.projects}")
+    print(f"Goals: {summary.goals}")
+    print(f"Attempts: {summary.attempts}")
+    print(f"Timeline events: {summary.timeline_events}")
+    print(f"Retry chains: {summary.retry_chains}")
+    print(f"Message facts: {summary.message_facts}")
+    print(f"Session usage: {summary.session_usage}")
     return 0
 
 
@@ -575,20 +545,16 @@ def handle_derive_retro_timeline(args: Namespace, cli_module: CommandRuntime) ->
     metrics_path = Path(args.metrics_path)
     warehouse_path = Path(args.warehouse_path).expanduser()
     cwd = Path(args.cwd).expanduser()
-    data = cli_module.load_metrics(metrics_path)
-    cli_module.recompute_summary(data)
-    with cli_module.metrics_mutation_lock(warehouse_path):
-        report = cli_module.derive_retro_timeline(
+    data = load_metrics(metrics_path)
+    with metrics_mutation_lock(warehouse_path):
+        report = derive_retro_timeline(
             data,
             warehouse_path=warehouse_path,
             cwd=cwd,
             metrics_path=metrics_path,
             window_size=args.window_size,
         )
-    if getattr(args, "json", False):
-        print(cli_module.render_retro_timeline_report_json(report))
-    else:
-        print(cli_module.render_retro_timeline_report(report))
+    print(render_retro_timeline_report(report))
     return 0
 
 
@@ -597,7 +563,8 @@ def handle_audit_cost_coverage(args: Namespace, cli_module: CommandRuntime) -> i
     pricing_path = Path(args.pricing_path)
     codex_state_path = Path(args.codex_state_path)
     codex_logs_path = Path(args.codex_logs_path)
-    data = cli_module.load_metrics(metrics_path)
+    claude_root = Path(args.claude_root) if getattr(args, "claude_root", None) is not None else Path.home() / ".claude"
+    data = load_metrics(metrics_path)
     report = cli_module.audit_cost_coverage(
         data,
         pricing_path=pricing_path,
@@ -605,11 +572,9 @@ def handle_audit_cost_coverage(args: Namespace, cli_module: CommandRuntime) -> i
         codex_logs_path=codex_logs_path,
         codex_thread_id=args.codex_thread_id,
         cwd=Path.cwd(),
+        claude_root=claude_root,
     )
-    if getattr(args, "json", False):
-        print(cli_module.render_cost_audit_report_json(report))
-    else:
-        print(cli_module.render_cost_audit_report(report))
+    print(render_cost_audit_report(report))
     return 0
 
 
@@ -618,19 +583,7 @@ def handle_verify_public_boundary(args: Namespace, cli_module: CommandRuntime) -
         repo_root=Path(args.repo_root).expanduser(),
         rules_path=Path(args.rules_path).expanduser(),
     )
-    if getattr(args, "json", False):
-        print(cli_module.render_public_boundary_report_json(report))
-    else:
-        print(cli_module.render_public_boundary_report(report))
-    return 0 if not report.findings else 1
-
-
-def handle_security(args: Namespace, cli_module: CommandRuntime) -> int:
-    report = cli_module.security(
-        repo_root=Path(args.repo_root).expanduser(),
-        rules_path=Path(args.rules_path).expanduser(),
-    )
-    print(cli_module.render_security_report(report))
+    print(render_public_boundary_report(report))
     return 0 if not report.findings else 1
 
 
@@ -644,8 +597,10 @@ def handle_sync_usage(args: Namespace, cli_module: CommandRuntime) -> int:
     pricing_path = Path(args.pricing_path)
     usage_state_path = Path(args.usage_state_path)
     usage_logs_path = Path(args.usage_logs_path)
-    with cli_module.metrics_mutation_lock(metrics_path):
-        data = cli_module.load_metrics(metrics_path)
+    claude_root = Path(args.claude_root) if getattr(args, "claude_root", None) is not None else Path.home() / ".claude"
+    with metrics_mutation_lock(metrics_path):
+        data = load_metrics(metrics_path)
+        snapshot_before = {goal["goal_id"]: dict(goal) for goal in data["goals"]}
         updated_tasks = cli_module.sync_usage(
             data=data,
             cwd=Path.cwd(),
@@ -654,9 +609,13 @@ def handle_sync_usage(args: Namespace, cli_module: CommandRuntime) -> int:
             usage_logs_path=usage_logs_path,
             usage_thread_id=args.usage_thread_id,
             usage_backend=getattr(args, "usage_backend", None),
+            claude_root=claude_root,
         )
-        cli_module.recompute_summary(data)
-        cli_module.save_metrics(metrics_path, data)
+        for goal in data["goals"]:
+            if goal != snapshot_before.get(goal["goal_id"], {}):
+                goal_entries = get_goal_entries(data["entries"], goal["goal_id"])
+                append_event(metrics_path, "usage_synced", goal=goal, entries=goal_entries)
+        recompute_summary(data)
         record_usage_sync_observation(
             metrics_path,
             command="sync-usage",
@@ -667,22 +626,36 @@ def handle_sync_usage(args: Namespace, cli_module: CommandRuntime) -> int:
         if report_path is not None:
             cli_module.save_report(report_path, data)
     print(f"Synchronized usage for {updated_tasks} task(s)")
-    cli_module.print_summary(data)
+    print_summary(data)
     return 0
 
 
 def handle_merge_tasks(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
     report_path = Path(args.report_path) if getattr(args, "write_report", False) else None
-    with cli_module.metrics_mutation_lock(metrics_path):
-        data = cli_module.load_metrics(metrics_path)
+    with metrics_mutation_lock(metrics_path):
+        data = load_metrics(metrics_path)
+        goals_snapshot = {g["goal_id"]: dict(g) for g in data["goals"]}
         task = cli_module.merge_tasks(
             data=data,
             keep_task_id=args.keep_task_id,
             drop_task_id=args.drop_task_id,
         )
-        cli_module.recompute_summary(data)
-        cli_module.save_metrics(metrics_path, data)
+        kept_entries = get_goal_entries(data["entries"], args.keep_task_id)
+        # Capture any downstream goals whose supersession link was rewritten
+        relinked_goals = [
+            g for g in data["goals"]
+            if g["goal_id"] != args.keep_task_id and g != goals_snapshot.get(g["goal_id"], {})
+        ]
+        append_event(
+            metrics_path,
+            "goals_merged",
+            goal=task,
+            entries=kept_entries,
+            dropped_goal_id=args.drop_task_id,
+            goals=relinked_goals if relinked_goals else None,
+        )
+        recompute_summary(data)
         record_goal_merge_observation(
             metrics_path,
             command="merge-tasks",
@@ -695,7 +668,7 @@ def handle_merge_tasks(args: Namespace, cli_module: CommandRuntime) -> int:
     print(f"Merged goal {args.drop_task_id} into {args.keep_task_id}")
     print(f"Status: {task['status']}")
     print(f"Attempts: {task['attempts']}")
-    cli_module.print_summary(data)
+    print_summary(data)
     return 0
 
 
@@ -705,14 +678,15 @@ def handle_update(args: Namespace, cli_module: CommandRuntime) -> int:
     pricing_path = Path(args.pricing_path)
     codex_state_path = Path(args.codex_state_path)
     codex_logs_path = Path(args.codex_logs_path)
-    with cli_module.metrics_mutation_lock(metrics_path):
-        data = cli_module.load_metrics(metrics_path)
+    claude_root = Path(args.claude_root) if getattr(args, "claude_root", None) is not None else Path.home() / ".claude"
+    with metrics_mutation_lock(metrics_path):
+        data = load_metrics(metrics_path)
         if args.task_id is not None and _command_requires_active_goal(args):
             _require_active_goal_for_existing_mutation(cli_module, Path.cwd(), data)
         previous_task = None
         existing_task = None
         if args.task_id is not None:
-            existing_task = cli_module.get_task(data["goals"], args.task_id)
+            existing_task = get_task(data["goals"], args.task_id)
         if existing_task is not None:
             previous_task = dict(existing_task)
 
@@ -744,11 +718,18 @@ def handle_update(args: Namespace, cli_module: CommandRuntime) -> int:
             codex_logs_path=codex_logs_path,
             codex_thread_id=args.codex_thread_id,
             cwd=Path.cwd(),
+            claude_root=claude_root,
         )
 
-        cli_module.sync_goal_attempt_entries(data, task, previous_task)
-        cli_module.recompute_summary(data)
-        cli_module.save_metrics(metrics_path, data)
+        sync_goal_attempt_entries(data, task, previous_task)
+        goal_entries = get_goal_entries(data["entries"], task["goal_id"])
+        append_event(
+            metrics_path,
+            _command_to_event_type(getattr(args, "command", None)),
+            goal=task,
+            entries=goal_entries,
+        )
+        recompute_summary(data)
         record_goal_mutation_observation(
             metrics_path,
             command=getattr(args, "command", "update"),
@@ -761,7 +742,7 @@ def handle_update(args: Namespace, cli_module: CommandRuntime) -> int:
     print(f"Updated goal {task['goal_id']}")
     print(f"Status: {task['status']}")
     print(f"Attempts: {task['attempts']}")
-    cli_module.print_summary(data)
+    print_summary(data)
     return 0
 
 
@@ -793,6 +774,7 @@ def _build_update_namespace(args: Namespace, **overrides: Any) -> Namespace:
         "codex_state_path": getattr(args, "codex_state_path", None),
         "codex_logs_path": getattr(args, "codex_logs_path", None),
         "codex_thread_id": getattr(args, "codex_thread_id", None),
+        "claude_root": getattr(args, "claude_root", None),
         "metrics_path": getattr(args, "metrics_path", None),
         "report_path": getattr(args, "report_path", None),
         "write_report": getattr(args, "write_report", False),
@@ -864,8 +846,7 @@ def handle_finish_task(args: Namespace, cli_module: CommandRuntime) -> int:
 def handle_render_report(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
     report_path = Path(args.report_path)
-    data = cli_module.load_metrics(metrics_path)
-    cli_module.recompute_summary(data)
+    data = load_metrics(metrics_path)
     cli_module.save_report(report_path, data)
     print(f"Rendered markdown report: {report_path}")
     return 0

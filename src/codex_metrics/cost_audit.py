@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
 from codex_metrics.domain import GoalRecord, goal_from_dict
+
+
+def _ts_str(value: datetime | None) -> str | None:
+    return value.isoformat() if value is not None else None
 
 AUDIT_CATEGORY_ORDER = (
     "sync_gap",
@@ -39,7 +43,7 @@ class CostAuditReport:
 
 
 ThreadResolver = Callable[[Path, Path, str | None], str | None]
-UsageResolver = Callable[[Path, Path, Path, str | None, str | None, Path, str | None], tuple[float | None, int | None]]
+UsageResolver = Callable[[Path, Path, Path, str | None, str | None, Path, str | None, str | None], tuple[float | None, int | None]]
 
 
 def _build_candidate(
@@ -56,8 +60,8 @@ def _build_candidate(
         status=goal.status,
         title=goal.title,
         reason=reason,
-        started_at=goal.started_at,
-        finished_at=goal.finished_at,
+        started_at=_ts_str(goal.started_at),
+        finished_at=_ts_str(goal.finished_at),
         has_cost=goal.cost_usd is not None,
         has_tokens=goal.tokens_total is not None,
         suggested_next_action=suggested_next_action,
@@ -70,6 +74,7 @@ def _classify_goal_cost_coverage(
     pricing_path: Path,
     codex_state_path: Path,
     codex_logs_path: Path,
+    claude_root: Path,
     cwd: Path,
     codex_thread_id: str | None,
     find_thread_id: ThreadResolver,
@@ -105,6 +110,42 @@ def _classify_goal_cost_coverage(
             suggested_next_action="Start the goal before the real Codex work begins and close it after the work ends so usage falls inside the recorded window.",
         )
 
+    is_claude_goal = goal.agent_name == "claude"
+
+    if is_claude_goal:
+        # Claude uses JSONL telemetry under claude_root/projects/, not Codex SQLite.
+        if not (claude_root / "projects").exists():
+            return _build_candidate(
+                goal,
+                category="telemetry_unavailable",
+                reason="Claude Code telemetry directory (claude_root/projects) is unavailable for cost recovery",
+                suggested_next_action="Ensure ~/.claude/projects/ exists and contains session JSONL files.",
+            )
+        # No thread resolution for Claude — lookup is by directory, not SQLite row.
+        recovered_cost_usd, recovered_total_tokens = resolve_usage_window(
+            claude_root,
+            codex_logs_path,  # unused for Claude, passed for interface compatibility
+            cwd,
+            _ts_str(goal.started_at),
+            _ts_str(goal.finished_at),
+            pricing_path,
+            None,
+            goal.agent_name,
+        )
+        if recovered_cost_usd is None and recovered_total_tokens is None:
+            return _build_candidate(
+                goal,
+                category="no_usage_data_found",
+                reason="goal has a closed window but no recoverable Claude usage was found in the JSONL telemetry",
+                suggested_next_action="Verify that Claude work actually occurred inside the recorded goal window.",
+            )
+        return _build_candidate(
+            goal,
+            category="sync_gap",
+            reason="recoverable Claude usage exists for the goal window, but the stored goal still has no cost coverage",
+            suggested_next_action="Run sync-usage or inspect why automatic usage recovery was skipped during update.",
+        )
+
     if not codex_state_path.exists() or not codex_logs_path.exists():
         return _build_candidate(
             goal,
@@ -126,10 +167,11 @@ def _classify_goal_cost_coverage(
         codex_state_path,
         codex_logs_path,
         cwd,
-        goal.started_at,
-        goal.finished_at,
+        _ts_str(goal.started_at),
+        _ts_str(goal.finished_at),
         pricing_path,
         codex_thread_id,
+        goal.agent_name,
     )
     if recovered_cost_usd is None and recovered_total_tokens is None:
         return _build_candidate(
@@ -154,6 +196,7 @@ def audit_cost_coverage(
     codex_state_path: Path,
     codex_logs_path: Path,
     cwd: Path,
+    claude_root: Path = Path.home() / ".claude",
     codex_thread_id: str | None,
     find_thread_id: ThreadResolver,
     resolve_usage_window: UsageResolver,
@@ -173,6 +216,7 @@ def audit_cost_coverage(
                 pricing_path=pricing_path,
                 codex_state_path=codex_state_path,
                 codex_logs_path=codex_logs_path,
+                claude_root=claude_root,
                 cwd=cwd,
                 codex_thread_id=codex_thread_id,
                 find_thread_id=find_thread_id,
@@ -224,27 +268,3 @@ def render_cost_audit_report(report: CostAuditReport) -> str:
             lines.append(f"  suggested_next_action: {candidate.suggested_next_action}")
 
     return "\n".join(lines)
-
-
-def render_cost_audit_report_json(report: CostAuditReport) -> str:
-    payload = {
-        "covered_goals": report.covered_goals,
-        "candidate_count": len(report.candidates),
-        "candidates": [
-            {
-                "category": candidate.category,
-                "goal_id": candidate.goal_id,
-                "goal_type": candidate.goal_type,
-                "status": candidate.status,
-                "title": candidate.title,
-                "reason": candidate.reason,
-                "started_at": candidate.started_at,
-                "finished_at": candidate.finished_at,
-                "has_cost": candidate.has_cost,
-                "has_tokens": candidate.has_tokens,
-                "suggested_next_action": candidate.suggested_next_action,
-            }
-            for candidate in report.candidates
-        ],
-    }
-    return json.dumps(payload, indent=2, sort_keys=True)

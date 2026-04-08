@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -284,62 +283,3 @@ def render_history_compare_report(report: HistoryCompareReport) -> str:
         for finding in report.findings:
             lines.append(f"- {finding.category}: {finding.message}")
     return "\n".join(lines)
-
-
-def _scope_summary_to_dict(summary: WarehouseScopeSummary) -> dict[str, Any]:
-    return {
-        "projects": summary.projects,
-        "threads": summary.threads,
-        "attempts": summary.attempts,
-        "retry_threads": summary.retry_threads,
-        "transcript_threads": summary.transcript_threads,
-        "usage_threads": summary.usage_threads,
-        "input_tokens": summary.input_tokens,
-        "cached_input_tokens": summary.cached_input_tokens,
-        "output_tokens": summary.output_tokens,
-        "total_tokens": summary.total_tokens,
-    }
-
-
-def _project_summary_to_dict(project: WarehouseProjectSummary) -> dict[str, Any]:
-    return {
-        "project_cwd": project.project_cwd,
-        "threads": project.threads,
-        "attempts": project.attempts,
-        "retry_threads": project.retry_threads,
-        "message_count": project.message_count,
-        "usage_event_count": project.usage_event_count,
-        "log_count": project.log_count,
-        "timeline_event_count": project.timeline_event_count,
-        "total_tokens": project.total_tokens,
-    }
-
-
-def render_history_compare_report_json(report: HistoryCompareReport) -> str:
-    payload = {
-        "metrics_path": str(report.metrics_path),
-        "warehouse_path": str(report.warehouse_path),
-        "cwd": str(report.cwd),
-        "ledger": {
-            "goal_count": report.ledger_goal_count,
-            "closed_goal_count": report.ledger_closed_goal_count,
-            "success_count": report.ledger_success_count,
-            "fail_count": report.ledger_fail_count,
-            "attempts_total": report.ledger_attempts_total,
-            "attempts_gt_one": report.ledger_attempts_gt_one,
-            "known_token_successes": report.ledger_known_token_successes,
-            "known_breakdown_successes": report.ledger_known_breakdown_successes,
-            "total_tokens_known": report.ledger_total_tokens_known,
-        },
-        "warehouse_global": _scope_summary_to_dict(report.warehouse_global),
-        "warehouse_project": _scope_summary_to_dict(report.warehouse_project),
-        "warehouse_projects": [_project_summary_to_dict(project) for project in report.warehouse_projects],
-        "findings": [
-            {
-                "category": finding.category,
-                "message": finding.message,
-            }
-            for finding in report.findings
-        ],
-    }
-    return json.dumps(payload, indent=2, sort_keys=True)
