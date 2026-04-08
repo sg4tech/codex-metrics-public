@@ -103,6 +103,7 @@ The initial implementation has already landed with the following shape:
 - the pre-commit hook in the public repo uses the same boundary check
 - a separate lightweight `security` command now scans staged changes for private-key and token-style leakage before commit
 - the pre-commit hook in the private repo now invokes that `security` command before Ruff, so dangerous data is blocked early in the local workflow
+- the pre-commit and commit-msg hooks resolve the repository root with `git rev-parse --show-toplevel`, so linked worktrees target the active worktree instead of the hook script's physical location
 - log-like runtime outputs are ignored at the git level so they are less likely to be staged in the first place
 
 The remaining work is mostly operational hardening and public polish:

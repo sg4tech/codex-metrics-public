@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 from codex_metrics.git_hooks import (
@@ -188,3 +189,59 @@ def test_run_security_scan_no_rules_file_skips_gracefully(monkeypatch, tmp_path:
 
     assert result == 0
     assert "skipping" in capsys.readouterr().out
+
+
+def _write_python_wrapper(path: Path, marker_path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "#!/bin/sh\n"
+        f"printf '%s\\n' \"$@\" > {marker_path.as_posix()!r}\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    path.chmod(0o755)
+
+
+def test_pre_commit_uses_git_worktree_root_for_security_scan(tmp_path: Path) -> None:
+    main_repo = tmp_path / "main-repo"
+    worktree_repo = tmp_path / "worktree-repo"
+    main_repo.mkdir()
+    worktree_repo.mkdir()
+
+    (main_repo / ".githooks").mkdir(parents=True)
+    pre_commit_source = Path(__file__).resolve().parents[1] / ".githooks" / "pre-commit"
+    (main_repo / ".githooks" / "pre-commit").write_text(pre_commit_source.read_text(encoding="utf-8"), encoding="utf-8")
+    (main_repo / ".githooks" / "pre-commit").chmod(0o755)
+
+    subprocess.run(["git", "init"], cwd=worktree_repo, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.name", "Test User"], cwd=worktree_repo, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=worktree_repo, check=True, capture_output=True)
+
+    (worktree_repo / "config").mkdir()
+    (worktree_repo / "config" / "security-rules.toml").write_text(
+        "forbidden_paths = []\nforbidden_globs = []\nforbidden_extensions = []\nforbidden_literal_markers = []\nforbidden_regex_markers = []\nignored_paths = []\nmarker_ignored_paths = []\n",
+        encoding="utf-8",
+    )
+    (worktree_repo / "notes.txt").write_text("safe\n", encoding="utf-8")
+
+    subprocess.run(["git", "add", "config/security-rules.toml", "notes.txt"], cwd=worktree_repo, check=True, capture_output=True)
+
+    main_marker = tmp_path / "main-python.args"
+    worktree_marker = tmp_path / "worktree-python.args"
+    _write_python_wrapper(main_repo / ".venv" / "bin" / "python", main_marker)
+    _write_python_wrapper(worktree_repo / ".venv" / "bin" / "python", worktree_marker)
+
+    result = subprocess.run(
+        ["/bin/sh", str(main_repo / ".githooks" / "pre-commit")],
+        cwd=worktree_repo,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    assert not main_marker.exists()
+    assert worktree_marker.exists()
+    hook_args = worktree_marker.read_text(encoding="utf-8").splitlines()
+    assert "--repo-root" in hook_args
+    assert str(worktree_repo) in hook_args

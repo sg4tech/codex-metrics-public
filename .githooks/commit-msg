@@ -1,5 +1,5 @@
 #!/bin/sh
 set -eu
 
-repo_root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+repo_root="$(git rev-parse --show-toplevel)"
 PYTHONPATH="$repo_root/src${PYTHONPATH:+:$PYTHONPATH}" exec python3 -m codex_metrics.commit_message "$1"
