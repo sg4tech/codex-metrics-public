@@ -24,8 +24,12 @@ Choose one option:
 
 **B. Move to config** — add an optional `legacy_supersedes` field to `codex_metrics.json` or a separate `metrics/legacy_migrations.json` file. `domain.py` reads it on load.
 
+## Resolution
+
+Chose **Option A (delete)**. Confirmed that the migration was already applied: goal IDs `2026-03-29-008` and `2026-03-29-007` are absent from `metrics/events.ndjson`. The constant and its two usage lines inside `normalize_legacy_metrics_data` were removed. The function itself was kept — it handles the broader `tasks → goals` schema migration and field normalization, which remain relevant for loading legacy JSON snapshots.
+
 ## Acceptance criteria
 
-- [ ] `LEGACY_GOAL_SUPERSEDES_MAP` is not a module-level constant in `domain.py`
-- [ ] If option B — the config path is documented
-- [ ] `make verify` passes
+- [x] `LEGACY_GOAL_SUPERSEDES_MAP` is not a module-level constant in `domain.py`
+- [x] Option A chosen — no config path needed
+- [x] `make verify` passes (348 tests, ruff, mypy, security scan)
