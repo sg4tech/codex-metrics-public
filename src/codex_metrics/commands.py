@@ -27,7 +27,10 @@ from codex_metrics.observability import (
     record_goal_mutation_observation,
     record_usage_sync_observation,
 )
-from codex_metrics.public_boundary import render_public_boundary_report
+from codex_metrics.public_boundary import (
+    render_public_boundary_report,
+    render_public_boundary_report_json,
+)
 from codex_metrics.reporting import print_summary
 from codex_metrics.retro_timeline import (
     derive_retro_timeline,
@@ -583,7 +586,10 @@ def handle_verify_public_boundary(args: Namespace, cli_module: CommandRuntime) -
         repo_root=Path(args.repo_root).expanduser(),
         rules_path=Path(args.rules_path).expanduser(),
     )
-    print(render_public_boundary_report(report))
+    if getattr(args, "json", False):
+        print(render_public_boundary_report_json(report))
+    else:
+        print(render_public_boundary_report(report))
     return 0 if not report.findings else 1
 
 

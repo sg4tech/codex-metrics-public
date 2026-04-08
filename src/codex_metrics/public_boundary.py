@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import fnmatch
+import json
 import re
 import subprocess
 import tomllib
@@ -97,6 +98,25 @@ def verify_public_boundary(*, repo_root: Path, rules_path: Path) -> PublicBounda
         rules_path=normalized_rules,
         files_scanned=len(candidate_paths),
         findings=tuple(findings),
+    )
+
+
+def render_public_boundary_report_json(report: PublicBoundaryReport) -> str:
+    return json.dumps(
+        {
+            "files_scanned": report.files_scanned,
+            "findings": [
+                {
+                    "kind": f.kind,
+                    "path": f.path,
+                    "line": f.line,
+                    "message": f.message,
+                    "matched_rule": f.matched_rule,
+                }
+                for f in report.findings
+            ],
+        },
+        indent=2,
     )
 
 
