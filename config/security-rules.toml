@@ -1,0 +1,51 @@
+forbidden_paths = [
+]
+
+forbidden_globs = [
+  "logs/**",
+  "**/logs/**",
+]
+
+forbidden_extensions = [
+  ".log",
+  ".trace",
+  ".stderr",
+  ".stdout",
+]
+
+forbidden_literal_markers = [
+  "-----BEGIN PRIVATE KEY-----",
+  "-----BEGIN OPENSSH PRIVATE KEY-----",
+  "-----BEGIN RSA PRIVATE KEY-----",
+]
+
+forbidden_regex_markers = [
+  '(?i)Authorization:\\s*Bearer\\s+[A-Za-z0-9._-]{10,}',
+  '\\bAKIA[0-9A-Z]{16}\\b',
+  '\\bASIA[0-9A-Z]{16}\\b',
+  '\\bgh[pousr]_[A-Za-z0-9_]{20,}\\b',
+  '\\bsk-[A-Za-z0-9]{20,}\\b',
+  '\\bxox[baprs]-[A-Za-z0-9-]{10,}\\b',
+  'https?://[^\\s/:]+:[^\\s/@]+@[^\\s/]+',
+  '/Users/[^/]+/PycharmProjects/',
+]
+
+ignored_paths = [
+  ".git/**",
+  ".mypy_cache/**",
+  ".pytest_cache/**",
+  ".ruff_cache/**",
+  ".venv/**",
+  "build/**",
+  "dist/**",
+  "node_modules/**",
+]
+
+marker_ignored_paths = [
+  "config/security-rules.toml",
+  "docs/product-hypotheses/H-023.md",
+  "docs/product-hypotheses/H-023-public-boundary-verify-spec.md",
+  "tests/test_public_boundary.py",
+  "tests/test_git_hooks.py",
+  "tests/test_security.py",
+]
