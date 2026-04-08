@@ -24,6 +24,7 @@ from codex_metrics.domain import (
     finalize_goal_update,
     next_goal_id,
     parse_iso_datetime,
+    parse_iso_datetime_flexible,
     sync_goal_attempt_entries,
     update_latest_attempt_entry,
     validate_entry_record,
@@ -39,6 +40,12 @@ assert SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
+
+
+def _ts(value: object) -> object:
+    if isinstance(value, str):
+        return parse_iso_datetime_flexible(value, "ts")
+    return value
 
 
 def make_goal_record(**overrides: object) -> object:
@@ -62,6 +69,8 @@ def make_goal_record(**overrides: object) -> object:
         "result_fit": None,
     }
     values.update(overrides)
+    values["started_at"] = _ts(values["started_at"])
+    values["finished_at"] = _ts(values["finished_at"])
     return GoalRecord(**values)
 
 
@@ -93,6 +102,8 @@ def make_effective_goal_record(**overrides: object) -> object:
         "result_fit": None,
     }
     values.update(overrides)
+    values["started_at"] = _ts(values["started_at"])
+    values["finished_at"] = _ts(values["finished_at"])
     return EffectiveGoalRecord(**values)
 
 
@@ -115,6 +126,8 @@ def make_attempt_entry_record(**overrides: object) -> object:
         "agent_name": None,
     }
     values.update(overrides)
+    values["started_at"] = _ts(values["started_at"])
+    values["finished_at"] = _ts(values["finished_at"])
     return AttemptEntryRecord(**values)
 
 
@@ -317,8 +330,8 @@ def test_build_effective_goals_merges_superseded_chain_attempts_and_known_cost()
     assert goal.goal_id == "goal-2"
     assert goal.status == "success"
     assert goal.attempts == 3
-    assert goal.started_at == "2026-03-29T09:00:00+00:00"
-    assert goal.finished_at == "2026-03-29T09:10:00+00:00"
+    assert goal.started_at == parse_iso_datetime("2026-03-29T09:00:00+00:00", "started_at")
+    assert goal.finished_at == parse_iso_datetime("2026-03-29T09:10:00+00:00", "finished_at")
     assert goal.cost_usd_known == 0.25
     assert goal.cost_usd is None
     assert goal.tokens_total_known == 1000

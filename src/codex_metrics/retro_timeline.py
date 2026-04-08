@@ -93,7 +93,8 @@ class RetroTimelineReport:
 
 
 def _goal_timestamp(goal: EffectiveGoalRecord) -> str | None:
-    return goal.finished_at or goal.started_at
+    ts = goal.finished_at or goal.started_at
+    return ts.isoformat() if ts is not None else None
 
 
 def _parse_timestamp(value: str) -> datetime:

@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
 from codex_metrics.domain import GoalRecord, goal_from_dict
+
+
+def _ts_str(value: datetime | None) -> str | None:
+    return value.isoformat() if value is not None else None
 
 AUDIT_CATEGORY_ORDER = (
     "sync_gap",
@@ -55,8 +60,8 @@ def _build_candidate(
         status=goal.status,
         title=goal.title,
         reason=reason,
-        started_at=goal.started_at,
-        finished_at=goal.finished_at,
+        started_at=_ts_str(goal.started_at),
+        finished_at=_ts_str(goal.finished_at),
         has_cost=goal.cost_usd is not None,
         has_tokens=goal.tokens_total is not None,
         suggested_next_action=suggested_next_action,
@@ -121,8 +126,8 @@ def _classify_goal_cost_coverage(
             claude_root,
             codex_logs_path,  # unused for Claude, passed for interface compatibility
             cwd,
-            goal.started_at,
-            goal.finished_at,
+            _ts_str(goal.started_at),
+            _ts_str(goal.finished_at),
             pricing_path,
             None,
             goal.agent_name,
@@ -162,8 +167,8 @@ def _classify_goal_cost_coverage(
         codex_state_path,
         codex_logs_path,
         cwd,
-        goal.started_at,
-        goal.finished_at,
+        _ts_str(goal.started_at),
+        _ts_str(goal.finished_at),
         pricing_path,
         codex_thread_id,
         goal.agent_name,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import TypeVar
 
 ALLOWED_STATUSES = {"in_progress", "success", "fail"}
@@ -26,8 +27,8 @@ class GoalRecord:
     supersedes_goal_id: str | None
     status: str
     attempts: int
-    started_at: str | None
-    finished_at: str | None
+    started_at: datetime | None
+    finished_at: datetime | None
     cost_usd: float | None
     input_tokens: int | None
     cached_input_tokens: int | None
@@ -47,8 +48,8 @@ class AttemptEntryRecord:
     entry_type: str
     inferred: bool
     status: str
-    started_at: str | None
-    finished_at: str | None
+    started_at: datetime | None
+    finished_at: datetime | None
     cost_usd: float | None
     input_tokens: int | None
     cached_input_tokens: int | None
@@ -67,8 +68,8 @@ class EffectiveGoalRecord:
     goal_type: str
     status: str
     attempts: int
-    started_at: str | None
-    finished_at: str | None
+    started_at: datetime | None
+    finished_at: datetime | None
     cost_usd: float | None
     cost_usd_known: float | None
     cost_complete: bool
