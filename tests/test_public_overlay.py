@@ -97,3 +97,16 @@ def test_public_overlay_push_execute_runs_verify_then_push(tmp_path: Path, monke
     assert calls[1][0] == ["git", "subtree", "push", "--prefix=oss", "public", "main"]
     assert calls[0][1] == private_repo_root
     assert calls[1][1] == private_repo_root
+
+
+def test_public_overlay_mirror_includes_security_verify_and_rules() -> None:
+    makefile_text = (Path(__file__).resolve().parents[1] / "oss" / "Makefile").read_text(
+        encoding="utf-8"
+    )
+    rules_text = (Path(__file__).resolve().parents[1] / "oss" / "config" / "security-rules.toml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "security:" in makefile_text
+    assert "verify: lint security typecheck test verify-public-boundary" in makefile_text
+    assert "forbidden_literal_markers" in rules_text

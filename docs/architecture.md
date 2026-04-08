@@ -172,7 +172,7 @@ One test file per module; naming mirrors the source:
 | **pytest** | `pyproject.toml` | `pythonpath = ["src"]` |
 | **coverage** | `pyproject.toml` | Branch coverage, parallel mode, source = `codex_metrics` |
 
-**Makefile targets:** `lint`, `typecheck`, `test`, `verify` (all three in sequence), `coverage`, `package`, public-overlay ops.
+**Makefile targets:** `lint`, `security`, `typecheck`, `test`, `verify` (all four in sequence), `coverage`, `package`, public-overlay ops.
 
 **Git hooks (`.githooks/`):**
 - `commit-msg` — rejects commits not matching `CODEX-NNN:` or `NO-TASK:` prefix

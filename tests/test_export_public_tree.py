@@ -17,6 +17,10 @@ def test_export_public_tree_excludes_docs_by_default(tmp_path: Path) -> None:
         "allowed_roots = [\"README.md\", \"src\"]\n",
         encoding="utf-8",
     )
+    (repo_root / "config" / "security-rules.toml").write_text(
+        "forbidden_paths = []\n",
+        encoding="utf-8",
+    )
     (repo_root / "tests").mkdir()
     (repo_root / "tests" / "test_public_boundary.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
     (repo_root / "docs").mkdir()
@@ -31,13 +35,16 @@ def test_export_public_tree_excludes_docs_by_default(tmp_path: Path) -> None:
     assert "src" in copied
     assert "docs" not in copied
     assert "config/public-boundary-rules.toml" in copied
+    assert "config/security-rules.toml" in copied
     assert "tests/test_public_boundary.py" in copied
     assert (output_dir / "README.md").exists()
     assert (output_dir / "LICENSE").exists()
     assert (output_dir / "src" / "main.py").exists()
     assert (output_dir / "config" / "public-boundary-rules.toml").exists()
+    assert (output_dir / "config" / "security-rules.toml").exists()
     assert (output_dir / "tests" / "test_public_boundary.py").exists()
     makefile_text = (output_dir / "Makefile").read_text(encoding="utf-8")
+    assert "security:" in makefile_text
     assert "verify-public-boundary" in makefile_text
     assert "test:" in makefile_text
     assert (output_dir / ".github" / "workflows" / "ci.yml").exists()

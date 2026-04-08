@@ -22,6 +22,7 @@ DEFAULT_INCLUDED_PATHS = {
     "Makefile",
     "README.md",
     "config/public-boundary-rules.toml",
+    "config/security-rules.toml",
     "pricing",
     "pyproject.toml",
     "src",
@@ -151,16 +152,18 @@ def export_public_tree(*, repo_root: Path, output_dir: Path, include_docs: bool)
         if relative_path == "Makefile":
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_text(
-                ".PHONY: lint typecheck test verify verify-public-boundary\n\n"
+                ".PHONY: lint security typecheck test verify verify-public-boundary\n\n"
                 "lint:\n"
                 "\tpython -m ruff check .\n\n"
+                "security:\n"
+                "\tpython -m codex_metrics security --repo-root . --rules-path config/security-rules.toml\n\n"
                 "typecheck:\n"
                 "\tpython -m mypy src\n\n"
                 "test:\n"
                 "\tpython -m pytest tests/test_public_boundary.py\n\n"
                 "verify-public-boundary:\n"
                 "\tpython -m codex_metrics verify-public-boundary --repo-root . --rules-path config/public-boundary-rules.toml\n\n"
-                "verify: lint typecheck test verify-public-boundary\n",
+                "verify: lint security typecheck test verify-public-boundary\n",
                 encoding="utf-8",
             )
             copied.append(relative_path)

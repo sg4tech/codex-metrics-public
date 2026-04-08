@@ -15,7 +15,7 @@ typecheck:
 test:
 	./.venv/bin/python -m pytest tests/
 
-verify: lint typecheck test
+verify: lint security typecheck test
 
 security:
 	./.venv/bin/python -m codex_metrics security --repo-root . --rules-path config/security-rules.toml

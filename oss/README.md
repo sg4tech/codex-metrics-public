@@ -28,7 +28,7 @@ make verify
 
 ## Common Commands
 
-- `make verify` runs lint, typecheck, tests, and the public boundary check.
+- `make verify` runs lint, security, typecheck, tests, and the public boundary check.
 - `make verify-public-boundary` scans the checkout for private-only content.
 - `make setup-hooks` enables the local pre-commit boundary hook.
 
