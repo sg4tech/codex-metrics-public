@@ -8,6 +8,14 @@ from pathlib import Path
 
 import pytest
 
+from codex_metrics.history_derive import (
+    _fetch_normalized_logs,
+    _fetch_normalized_messages,
+    _fetch_normalized_sessions,
+    _fetch_normalized_threads,
+    _fetch_normalized_usage_events,
+)
+from codex_metrics.history_normalize import _ensure_schema
 from tests.test_history_ingest import create_codex_history_source_root, run_cmd
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
@@ -220,3 +228,228 @@ def test_derive_codex_history_rejects_non_normalized_warehouse(repo: Path) -> No
 
     assert result.returncode == 1
     assert "Warehouse does not contain normalized Codex history; run normalize-codex-history first" in result.stderr
+
+
+def test_fetch_normalized_functions_return_all_typed_fields() -> None:
+    raw = "{}"
+    with sqlite3.connect(":memory:") as conn:
+        conn.row_factory = sqlite3.Row
+        _ensure_schema(conn)
+
+        conn.execute(
+            """
+            INSERT INTO normalized_threads (
+                thread_id, source_path, cwd, model_provider, model, title, archived,
+                session_count, event_count, message_count, log_count,
+                first_seen_at, last_seen_at, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            ("t1", "/src", "/cwd", "openai", "gpt-4o", "My thread", 0, 3, 10, 5, 2, "2026-01-01T00:00:00Z", "2026-01-02T00:00:00Z", raw),
+        )
+        conn.execute(
+            """
+            INSERT INTO normalized_sessions (
+                session_path, thread_id, source_path, session_timestamp, cwd, source,
+                model_provider, cli_version, originator, event_count, message_count,
+                first_event_at, last_event_at, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            ("/sessions/s1.jsonl", "t1", "/src", "2026-01-01T00:00:00Z", "/cwd", "vscode", "openai", "1.2.3", "Codex Desktop", 4, 2, "2026-01-01T00:00:01Z", "2026-01-01T00:00:04Z", raw),
+        )
+        conn.execute(
+            """
+            INSERT INTO normalized_messages (
+                message_id, thread_id, session_path, source_path, event_index, message_index,
+                role, text, timestamp, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            ("m1", "t1", "/sessions/s1.jsonl", "/src", 1, 0, "user", "Hello", "2026-01-01T00:00:01Z", raw),
+        )
+        conn.execute(
+            """
+            INSERT INTO normalized_usage_events (
+                usage_event_id, thread_id, session_path, source_path, event_index, timestamp,
+                input_tokens, cached_input_tokens, output_tokens, reasoning_output_tokens,
+                total_tokens, model, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            ("u1", "t1", "/sessions/s1.jsonl", "/src", 2, "2026-01-01T00:00:02Z", 100, 10, 50, 5, 165, "gpt-4o", raw),
+        )
+        conn.execute(
+            """
+            INSERT INTO normalized_logs (
+                source_path, row_id, thread_id, ts, ts_iso, level, target, body, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            ("/src", 1, "t1", 1735689600, "2026-01-01T00:00:00+00:00", "INFO", "codex::agent", "Starting task", raw),
+        )
+        conn.commit()
+
+        threads = _fetch_normalized_threads(conn)
+        assert len(threads) == 1
+        t = threads[0]
+        assert t["thread_id"] == "t1"
+        assert t["source_path"] == "/src"
+        assert t["cwd"] == "/cwd"
+        assert t["model_provider"] == "openai"
+        assert t["model"] == "gpt-4o"
+        assert t["title"] == "My thread"
+        assert t["archived"] == 0
+        assert t["session_count"] == 3
+        assert t["event_count"] == 10
+        assert t["message_count"] == 5
+        assert t["log_count"] == 2
+        assert t["first_seen_at"] == "2026-01-01T00:00:00Z"
+        assert t["last_seen_at"] == "2026-01-02T00:00:00Z"
+        assert t["raw_json"] == raw
+
+        sessions = _fetch_normalized_sessions(conn)
+        assert len(sessions) == 1
+        s = sessions[0]
+        assert s["session_path"] == "/sessions/s1.jsonl"
+        assert s["thread_id"] == "t1"
+        assert s["source_path"] == "/src"
+        assert s["session_timestamp"] == "2026-01-01T00:00:00Z"
+        assert s["cwd"] == "/cwd"
+        assert s["source"] == "vscode"
+        assert s["model_provider"] == "openai"
+        assert s["cli_version"] == "1.2.3"
+        assert s["originator"] == "Codex Desktop"
+        assert s["event_count"] == 4
+        assert s["message_count"] == 2
+        assert s["first_event_at"] == "2026-01-01T00:00:01Z"
+        assert s["last_event_at"] == "2026-01-01T00:00:04Z"
+        assert s["raw_json"] == raw
+
+        messages = _fetch_normalized_messages(conn)
+        assert len(messages) == 1
+        m = messages[0]
+        assert m["message_id"] == "m1"
+        assert m["thread_id"] == "t1"
+        assert m["session_path"] == "/sessions/s1.jsonl"
+        assert m["source_path"] == "/src"
+        assert m["event_index"] == 1
+        assert m["message_index"] == 0
+        assert m["role"] == "user"
+        assert m["text"] == "Hello"
+        assert m["timestamp"] == "2026-01-01T00:00:01Z"
+        assert m["raw_json"] == raw
+
+        usage_events = _fetch_normalized_usage_events(conn)
+        assert len(usage_events) == 1
+        u = usage_events[0]
+        assert u["usage_event_id"] == "u1"
+        assert u["thread_id"] == "t1"
+        assert u["session_path"] == "/sessions/s1.jsonl"
+        assert u["source_path"] == "/src"
+        assert u["event_index"] == 2
+        assert u["timestamp"] == "2026-01-01T00:00:02Z"
+        assert u["input_tokens"] == 100
+        assert u["cached_input_tokens"] == 10
+        assert u["output_tokens"] == 50
+        assert u["reasoning_output_tokens"] == 5
+        assert u["total_tokens"] == 165
+        assert u["model"] == "gpt-4o"
+        assert u["raw_json"] == raw
+
+        logs = _fetch_normalized_logs(conn)
+        assert len(logs) == 1
+        lg = logs[0]
+        assert lg["source_path"] == "/src"
+        assert lg["row_id"] == 1
+        assert lg["thread_id"] == "t1"
+        assert lg["ts"] == 1735689600
+        assert lg["ts_iso"] == "2026-01-01T00:00:00+00:00"
+        assert lg["level"] == "INFO"
+        assert lg["target"] == "codex::agent"
+        assert lg["body"] == "Starting task"
+        assert lg["raw_json"] == raw
+
+
+def test_fetch_normalized_functions_handle_nullable_fields() -> None:
+    raw = "{}"
+    with sqlite3.connect(":memory:") as conn:
+        conn.row_factory = sqlite3.Row
+        _ensure_schema(conn)
+
+        conn.execute(
+            """
+            INSERT INTO normalized_threads (
+                thread_id, source_path, session_count, event_count, message_count, log_count, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            ("t1", "/src", 0, 0, 0, 0, raw),
+        )
+        conn.execute(
+            """
+            INSERT INTO normalized_sessions (
+                session_path, source_path, event_count, message_count, raw_json
+            ) VALUES (?, ?, ?, ?, ?)
+            """,
+            ("/sessions/s1.jsonl", "/src", 0, 0, raw),
+        )
+        conn.execute(
+            """
+            INSERT INTO normalized_messages (
+                message_id, session_path, source_path, event_index, message_index, role, text, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            ("m1", "/sessions/s1.jsonl", "/src", 0, 0, "user", "Hi", raw),
+        )
+        conn.execute(
+            """
+            INSERT INTO normalized_usage_events (
+                usage_event_id, session_path, source_path, event_index, raw_json
+            ) VALUES (?, ?, ?, ?, ?)
+            """,
+            ("u1", "/sessions/s1.jsonl", "/src", 0, raw),
+        )
+        conn.execute(
+            """
+            INSERT INTO normalized_logs (source_path, row_id, raw_json) VALUES (?, ?, ?)
+            """,
+            ("/src", 1, raw),
+        )
+        conn.commit()
+
+        thread = _fetch_normalized_threads(conn)[0]
+        assert thread["cwd"] is None
+        assert thread["model_provider"] is None
+        assert thread["model"] is None
+        assert thread["title"] is None
+        assert thread["archived"] is None
+        assert thread["first_seen_at"] is None
+        assert thread["last_seen_at"] is None
+
+        session = _fetch_normalized_sessions(conn)[0]
+        assert session["thread_id"] is None
+        assert session["session_timestamp"] is None
+        assert session["cwd"] is None
+        assert session["source"] is None
+        assert session["model_provider"] is None
+        assert session["cli_version"] is None
+        assert session["originator"] is None
+        assert session["first_event_at"] is None
+        assert session["last_event_at"] is None
+
+        message = _fetch_normalized_messages(conn)[0]
+        assert message["thread_id"] is None
+        assert message["timestamp"] is None
+
+        usage = _fetch_normalized_usage_events(conn)[0]
+        assert usage["thread_id"] is None
+        assert usage["timestamp"] is None
+        assert usage["input_tokens"] is None
+        assert usage["cached_input_tokens"] is None
+        assert usage["output_tokens"] is None
+        assert usage["reasoning_output_tokens"] is None
+        assert usage["total_tokens"] is None
+        assert usage["model"] is None
+
+        log = _fetch_normalized_logs(conn)[0]
+        assert log["thread_id"] is None
+        assert log["ts"] is None
+        assert log["ts_iso"] is None
+        assert log["level"] is None
+        assert log["target"] is None
+        assert log["body"] is None

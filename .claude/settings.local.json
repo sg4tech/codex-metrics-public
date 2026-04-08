@@ -71,7 +71,9 @@
       "Skill(commit-commands:commit:*)",
       "Bash(xargs ls:*)",
       "Bash(PYTHONPATH=src python -m codex_metrics --help)",
-      "Bash(/opt/homebrew/bin/python3 -m venv .venv)"
+      "Bash(/opt/homebrew/bin/python3 -m venv .venv)",
+      "Skill(pr-review-toolkit:review-pr)",
+      "Skill(pr-review-toolkit:review-pr:*)"
     ]
   }
 }

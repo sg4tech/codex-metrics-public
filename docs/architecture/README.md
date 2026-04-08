@@ -13,7 +13,7 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 | [ARCH-003](ARCH-003-timestamps-as-datetime.md) | Store timestamps as datetime in dataclasses | medium | medium | done |
 | [ARCH-004](ARCH-004-save-metrics-hidden-pop.md) | Remove hidden transformation from save_metrics | medium | low | obsolete |
 | [ARCH-005](ARCH-005-detect-started-work-location.md) | Move detect_started_work out of cli.py | medium | low | done |
-| [ARCH-006](ARCH-006-pipeline-typed-contracts.md) | Add typed contracts between pipeline stages | medium | medium | open |
+| [ARCH-006](ARCH-006-pipeline-typed-contracts.md) | Add typed contracts between pipeline stages | medium | medium | done |
 | [ARCH-007](ARCH-007-legacy-supersedes-map.md) | Remove LEGACY_GOAL_SUPERSEDES_MAP from domain.py | low | low | done |
 | [ARCH-008](ARCH-008-cli-command-reference.md) | Write CLI command reference | medium | low | done |
 | [ARCH-009](ARCH-009-subprocess-coverage.md) | Automate subprocess coverage without manual env toggle | low | low | open |
@@ -25,5 +25,5 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 3. ~~**ARCH-002**~~ ✓ — domain/ package complete
 4. ~~**ARCH-003**~~ ✓ — timestamps are `datetime` in all dataclasses
 5. ~~**ARCH-007**~~ ✓ — isolated, constant removed
-6. **ARCH-006** — medium priority; requires familiarity with the pipeline
+6. ~~**ARCH-006**~~ ✓ — typed contracts at normalize→derive boundary
 7. **ARCH-009** — low priority; improves dev tooling (subprocess coverage automation)
