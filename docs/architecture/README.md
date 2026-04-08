@@ -12,7 +12,7 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 | [ARCH-002](ARCH-002-domain-split.md) | Split domain.py into layers | high | medium | done |
 | [ARCH-003](ARCH-003-timestamps-as-datetime.md) | Store timestamps as datetime in dataclasses | medium | medium | done |
 | [ARCH-004](ARCH-004-save-metrics-hidden-pop.md) | Remove hidden transformation from save_metrics | medium | low | obsolete |
-| [ARCH-005](ARCH-005-detect-started-work-location.md) | Move detect_started_work out of cli.py | medium | low | open |
+| [ARCH-005](ARCH-005-detect-started-work-location.md) | Move detect_started_work out of cli.py | medium | low | done |
 | [ARCH-006](ARCH-006-pipeline-typed-contracts.md) | Add typed contracts between pipeline stages | medium | medium | open |
 | [ARCH-007](ARCH-007-legacy-supersedes-map.md) | Remove LEGACY_GOAL_SUPERSEDES_MAP from domain.py | low | low | open |
 | [ARCH-008](ARCH-008-cli-command-reference.md) | Write CLI command reference | medium | low | open |
@@ -20,7 +20,7 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 
 ## Recommended order
 
-1. ~~**ARCH-001** and **ARCH-005**~~ **ARCH-001** ✓ — **ARCH-005** is next
+1. ~~**ARCH-001**~~ ✓ ~~**ARCH-005**~~ ✓
 2. ~~**ARCH-004**~~ (obsolete) and **ARCH-007** — isolated, can be picked up at any time
 3. ~~**ARCH-002**~~ ✓ — domain/ package complete
 4. ~~**ARCH-003**~~ ✓ — timestamps are `datetime` in all dataclasses
