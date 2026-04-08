@@ -214,3 +214,23 @@ def render_audit_report(report: AuditReport) -> str:
             lines.append(f"  suggested_result_fit: {candidate.suggested_result_fit}")
 
     return "\n".join(lines)
+
+
+def render_audit_report_json(report: AuditReport) -> str:
+    import json
+    return json.dumps({
+        "candidate_count": len(report.candidates),
+        "candidates": [
+            {
+                "category": c.category,
+                "goal_id": c.goal_id,
+                "goal_type": c.goal_type,
+                "status": c.status,
+                "title": c.title,
+                "reason": c.reason,
+                "suggested_result_fit": c.suggested_result_fit,
+                "related_goal_id": c.related_goal_id,
+            }
+            for c in report.candidates
+        ],
+    })

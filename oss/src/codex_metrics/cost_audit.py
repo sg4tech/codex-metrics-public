@@ -268,3 +268,27 @@ def render_cost_audit_report(report: CostAuditReport) -> str:
             lines.append(f"  suggested_next_action: {candidate.suggested_next_action}")
 
     return "\n".join(lines)
+
+
+def render_cost_audit_report_json(report: CostAuditReport) -> str:
+    import json
+    return json.dumps({
+        "covered_goals": report.covered_goals,
+        "candidate_count": len(report.candidates),
+        "candidates": [
+            {
+                "category": c.category,
+                "goal_id": c.goal_id,
+                "goal_type": c.goal_type,
+                "status": c.status,
+                "title": c.title,
+                "reason": c.reason,
+                "started_at": c.started_at,
+                "finished_at": c.finished_at,
+                "has_cost": c.has_cost,
+                "has_tokens": c.has_tokens,
+                "suggested_next_action": c.suggested_next_action,
+            }
+            for c in report.candidates
+        ],
+    })
