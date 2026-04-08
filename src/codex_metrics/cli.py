@@ -18,6 +18,7 @@ from codex_metrics.bootstrap import bootstrap_project as run_bootstrap_project
 from codex_metrics.completion import render_completion
 from codex_metrics.cost_audit import (
     CostAuditReport,
+    render_cost_audit_report_json,  # noqa: F401 — re-exported as cli_module attribute
 )
 from codex_metrics.domain import (
     ALLOWED_FAILURE_REASONS,
@@ -43,6 +44,7 @@ from codex_metrics.domain import (
     now_utc_iso,
     parse_iso_datetime,
     parse_iso_datetime_flexible,
+    recompute_summary,  # noqa: F401 — re-exported as cli_module attribute
     resolve_linked_task_reference,
     round_usd,
     sync_goal_attempt_entries,
@@ -61,8 +63,19 @@ from codex_metrics.git_state import (
 from codex_metrics.git_state import (
     _normalize_worktree_path as _git_state_normalize_worktree_path,
 )
+from codex_metrics.history_audit import (  # noqa: F401 — re-exported as cli_module attributes
+    audit_history,
+    render_audit_report,
+    render_audit_report_json,
+)
+from codex_metrics.history_compare import (  # noqa: F401 — re-exported as cli_module attributes
+    compare_metrics_to_history,
+    render_history_compare_report,
+    render_history_compare_report_json,
+)
 from codex_metrics.history_derive import (
     DeriveSummary,
+    render_derive_summary_json,  # noqa: F401 — re-exported as cli_module attribute
 )
 from codex_metrics.history_derive import (
     derive_codex_history as run_derive_codex_history,
@@ -70,12 +83,14 @@ from codex_metrics.history_derive import (
 from codex_metrics.history_ingest import (
     IngestSummary,
     default_raw_warehouse_path,
+    render_ingest_summary_json,  # noqa: F401 — re-exported as cli_module attribute
 )
 from codex_metrics.history_ingest import (
     ingest_codex_history as run_ingest_codex_history,
 )
 from codex_metrics.history_normalize import (
     NormalizeSummary,
+    render_normalize_summary_json,  # noqa: F401 — re-exported as cli_module attribute
 )
 from codex_metrics.history_normalize import (
     normalize_codex_history as run_normalize_codex_history,
@@ -89,6 +104,13 @@ from codex_metrics.public_boundary import (
 )
 from codex_metrics.reporting import (
     generate_report_md,
+    print_summary,  # noqa: F401 — re-exported as cli_module attribute
+    render_summary_json,  # noqa: F401 — re-exported as cli_module attribute
+)
+from codex_metrics.retro_timeline import (  # noqa: F401 — re-exported as cli_module attributes
+    derive_retro_timeline,
+    render_retro_timeline_report,
+    render_retro_timeline_report_json,
 )
 from codex_metrics.security import (
     SecurityReport,
@@ -99,6 +121,7 @@ from codex_metrics.security import (
 )
 from codex_metrics.storage import (
     atomic_write_text,
+    metrics_mutation_lock,  # noqa: F401 — re-exported as cli_module attribute
 )
 from codex_metrics.usage_backends import (
     ClaudeUsageBackend,
@@ -962,7 +985,6 @@ def init_files(metrics_path: Path, report_path: Path | None, force: bool = False
             raise ValueError(
                 f"Metrics files already exist: {joined_paths}. Use --force to overwrite."
             )
-    from codex_metrics.domain import recompute_summary
     from codex_metrics.storage import ensure_parent_dir
 
     ensure_parent_dir(metrics_path)
