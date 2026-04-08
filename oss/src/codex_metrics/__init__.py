@@ -11,6 +11,8 @@ try:
     __version__ = _installed_version("codex-metrics")
 except PackageNotFoundError:
     try:
-        from codex_metrics._version import version as __version__  # type: ignore[no-redef]
+        from codex_metrics._version import (
+            version as __version__,  # type: ignore[no-redef,import-untyped]
+        )
     except ImportError:
         __version__ = "unknown"
