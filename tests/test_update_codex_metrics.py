@@ -27,8 +27,6 @@ import codex_metrics.cli as codex_metrics_cli
 from codex_metrics.usage_backends import ClaudeUsageBackend, select_usage_backend
 from codex_metrics.usage_backends import resolve_usage_window as resolve_backend_usage_window
 
-BASE_PACKAGE_VERSION = codex_metrics_pkg._BASE_VERSION
-
 
 def build_cmd(*args: str) -> list[str]:
     script = str(SCRIPT)
@@ -3045,7 +3043,7 @@ def test_script_shim_exposes_cli_version(repo: Path) -> None:
     output = result.stdout.strip()
     assert output.startswith("update_codex_metrics.py ")
     assert re.fullmatch(
-        rf"update_codex_metrics\.py {re.escape(BASE_PACKAGE_VERSION)}(?:\.dev\d+\+g[0-9a-f]+(?:\.dirty)?)?",
+        r"update_codex_metrics\.py \d+\.\d+.*",
         output,
     )
 
@@ -3057,37 +3055,14 @@ def test_module_entrypoint_exposes_cli_version(repo: Path) -> None:
     output = result.stdout.strip()
     assert output.startswith("python -m codex_metrics ")
     assert re.fullmatch(
-        rf"python -m codex_metrics {re.escape(BASE_PACKAGE_VERSION)}(?:\.dev\d+\+g[0-9a-f]+(?:\.dirty)?)?",
+        r"python -m codex_metrics \d+\.\d+.*",
         output,
     )
 
 
-def test_resolve_version_prefers_git_metadata(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    responses = {
-        ("rev-list", "--count", "HEAD"): "123",
-        ("rev-parse", "--short", "HEAD"): "abc1234",
-        ("status", "--porcelain", "--untracked-files=no"): "",
-    }
-
-    monkeypatch.setattr(codex_metrics_pkg, "_find_repo_root", lambda: tmp_path)
-    monkeypatch.setattr(codex_metrics_pkg, "_run_git", lambda repo_root, *args: responses.get(args))
-
-    assert codex_metrics_pkg._resolve_version() == "0.2.1.dev123+gabc1234"
-
-
-def test_resolve_version_falls_back_to_installed_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(codex_metrics_pkg, "_find_repo_root", lambda: None)
-    monkeypatch.setattr(codex_metrics_pkg, "_is_source_layout", lambda: False)
-    monkeypatch.setattr(codex_metrics_pkg, "installed_version", lambda package_name: "0.2.1.dev321+gdef5678")
-
-    assert codex_metrics_pkg._resolve_version() == "0.2.1.dev321+gdef5678"
-
-
-def test_resolve_version_returns_base_version_for_source_layout_without_git(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(codex_metrics_pkg, "_find_repo_root", lambda: None)
-    monkeypatch.setattr(codex_metrics_pkg, "_is_source_layout", lambda: True)
-
-    assert codex_metrics_pkg._resolve_version() == BASE_PACKAGE_VERSION
+def test_version_is_a_non_empty_string() -> None:
+    assert isinstance(codex_metrics_pkg.__version__, str)
+    assert codex_metrics_pkg.__version__
 
 
 def test_high_level_task_commands_cover_start_continue_finish_flow(repo: Path) -> None:

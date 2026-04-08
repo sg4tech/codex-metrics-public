@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=69", "wheel"]
+requires = ["setuptools>=69", "wheel", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -22,8 +22,10 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.setuptools.dynamic]
-version = {attr = "codex_metrics.__version__"}
+[tool.setuptools_scm]
+root = ".."
+write_to = "src/codex_metrics/_version.py"
+fallback_version = "0.0.0.dev0"
 
 [tool.setuptools.package-data]
 codex_metrics = ["data/*.json", "data/*.md"]
