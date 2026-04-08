@@ -69,7 +69,7 @@ The following product truths are already confirmed:
 - the product should help decide whether workflow changes actually work and what should be changed again
 - the public product contract should stay agent-agnostic by default, even when telemetry or runtime adapters are provider-specific underneath
 - the canonical metrics store is the append-only `metrics/events.ndjson` event log, with replayed in-memory state derived at runtime
-- a competitor now makes time-to-public-release strategically important, so public packaging, repository-boundary safety, onboarding, and discoverability are first-order product concerns for the next phase
+- fast time-to-public-release is strategically important, so public packaging, repository-boundary safety, onboarding, and discoverability are first-order product concerns for the next phase
 
 The following product questions are still intentionally open and should be treated as active hypotheses until better evidence exists:
 
