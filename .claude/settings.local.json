@@ -69,7 +69,9 @@
       "Bash(PYTHONPATH=src .venv/bin/mypy src scripts)",
       "Skill(commit-commands:commit)",
       "Skill(commit-commands:commit:*)",
-      "Bash(xargs ls:*)"
+      "Bash(xargs ls:*)",
+      "Bash(PYTHONPATH=src python -m codex_metrics --help)",
+      "Bash(/opt/homebrew/bin/python3 -m venv .venv)"
     ]
   }
 }
