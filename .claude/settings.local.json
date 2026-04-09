@@ -94,7 +94,12 @@
       "WebFetch(domain:packaging.python.org)",
       "WebFetch(domain:python-poetry.org)",
       "Bash(ai-agents-metrics --version)",
-      "Bash(sqlite3 *)"
+      "Bash(sqlite3 *)",
+      "Bash(PYTHONPATH=* metrics_cli.py *)",
+      "Bash(curl -s \"https://www.anthropic.com/pricing\")",
+      "Bash(curl -s \"https://docs.anthropic.com/en/docs/about-claude/models/overview\")",
+      "WebFetch(domain:claude.com)",
+      "WebFetch(domain:platform.anthropic.com)"
     ]
   }
 }
