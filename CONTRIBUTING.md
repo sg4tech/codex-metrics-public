@@ -1,6 +1,6 @@
-# Contributing to codex-metrics
+# Contributing to ai-agents-metrics
 
-Thanks for helping improve `codex-metrics`.
+Thanks for helping improve `ai-agents-metrics`.
 
 ## Before You Start
 

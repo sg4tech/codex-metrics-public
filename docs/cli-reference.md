@@ -260,13 +260,13 @@ ai-agents-metrics init --force --write-report
 
 ### `bootstrap`
 
-Scaffold the full ai-agents-metrics setup into a repository: creates the metrics artifact, `docs/codex-metrics-policy.md`, and a managed ai-agents-metrics block inside the agent instructions file. Safe to rerun on a partial scaffold.
+Scaffold the full ai-agents-metrics setup into a repository: creates the metrics artifact, `docs/ai-agents-metrics-policy.md`, and a managed ai-agents-metrics block inside the agent instructions file. Safe to rerun on a partial scaffold.
 
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--target-dir` | `.` | Repository root to initialize |
 | `--agents-path` | `AGENTS.md` | Instructions file to inject the policy block into |
-| `--policy-path` | `docs/codex-metrics-policy.md` | Policy file destination |
+| `--policy-path` | `docs/ai-agents-metrics-policy.md` | Policy file destination |
 | `--command-path` | `tools/ai-agents-metrics` | Executable wrapper destination |
 | `--force` | off | Replace conflicting scaffold files |
 | `--dry-run` | off | Preview planned changes without writing |
