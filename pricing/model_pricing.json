@@ -2,7 +2,7 @@
   "source_url": "https://platform.openai.com/docs/pricing/",
   "source_checked_at": "2026-03-29",
   "claude_source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
-  "claude_source_checked_at": "2026-04-04",
+  "claude_source_checked_at": "2026-04-09",
   "models": {
     "gpt-5.2": {
       "input_per_million_usd": 1.75,
@@ -91,11 +91,17 @@
       "cache_creation_per_million_usd": 3.75,
       "output_per_million_usd": 15.0
     },
-    "claude-haiku-4-5-20251001": {
+    "claude-haiku-4-5": {
       "input_per_million_usd": 1.0,
       "cached_input_per_million_usd": 0.1,
       "cache_creation_per_million_usd": 1.25,
       "output_per_million_usd": 5.0
+    },
+    "claude-haiku-3-5": {
+      "input_per_million_usd": 0.8,
+      "cached_input_per_million_usd": 0.08,
+      "cache_creation_per_million_usd": 1.0,
+      "output_per_million_usd": 4.0
     }
   }
 }

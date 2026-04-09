@@ -2142,7 +2142,7 @@ def test_unknown_pricing_model_fails(repo: Path) -> None:
     )
 
     assert result.returncode != 0
-    assert "Unknown pricing model" in result.stderr
+    assert "Unknown model" in result.stderr
 
 
 def test_new_task_requires_title(repo: Path) -> None:
