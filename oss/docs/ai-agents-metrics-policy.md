@@ -119,7 +119,7 @@ Do not use an unmarked free-form commit subject for engineering work. The valida
 2. Create a new goal if needed.
 3. Set status to `in_progress`.
 4. Initialize attempts to `0`.
-5. Do this before substantial implementation, documentation, or validation work begins. Do not postpone task start bookkeeping until after meaningful progress already exists.
+5. Do this before substantial implementation, documentation, or validation work begins. Do not postpone task start bookkeeping until after meaningful progress already exists. The first action before writing any code must be opening a goal with `start-task`.
 
 ### On Each Attempt
 
