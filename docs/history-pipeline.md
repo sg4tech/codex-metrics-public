@@ -18,6 +18,8 @@
 
 This pipeline currently reads from **local Codex agent files** (`~/.codex`). It is one way to feed historical data into the metrics system — not the only way, and not a required part of normal metrics tracking.
 
+**Claude Code** cost and token data is supported separately via `sync-usage`, which reads from `~/.claude` telemetry. That is a lightweight cost-backfill adapter, not a transcript pipeline — Claude Code conversation history and retry analysis are not yet ingested by this pipeline.
+
 The product model (goals, attempts, outcomes, cost) is source-agnostic. This pipeline is an adapter layer for one current source. New sources would follow the same ingest → normalize → derive pattern but with different raw tables and source readers.
 
 ---
@@ -25,11 +27,14 @@ The product model (goals, attempts, outcomes, cost) is source-agnostic. This pip
 ## Pipeline overview
 
 ```
-Raw sources (~/.codex)
+Raw sources (~/.codex, Codex sessions)
   ↓  ingest       → raw warehouse tables (SQLite)
   ↓  normalize    → cleaned, stable rows
   ↓  derive       → goal/attempt/timeline marts
   ↓  compare      → diff against metrics ledger (events.ndjson)
+
+Raw sources (~/.claude, Claude Code telemetry) — cost/token only
+  ↓  sync-usage   → goal cost fields in events.ndjson (no transcript)
 ```
 
 | Stage | Module | What it does |
@@ -309,6 +314,8 @@ Project-level aggregate after derivation.
 
 ## Practical Search Workflow
 
+For Codex sessions (full transcript + cost):
+
 1. Ingest local `~/.codex` sources into the raw warehouse.
 2. Normalize raw rows into stable message, usage, and project tables.
 3. Derive higher-level goal, attempt, and timeline marts.
@@ -317,6 +324,11 @@ Project-level aggregate after derivation.
 6. Use `raw_token_usage` or `normalized_usage_events` for cost or token questions.
 7. Use `derived_message_facts` for message-level OLAP analysis or token spend by date.
 8. Use `derived_goals` and `derived_projects` for project-level comparison.
+
+For Claude Code sessions (cost only):
+
+1. Run `sync-usage` to backfill cost and token totals from `~/.claude` telemetry into the NDJSON ledger.
+2. Transcript analysis for Claude Code sessions is not yet available through this pipeline.
 
 ---
 
