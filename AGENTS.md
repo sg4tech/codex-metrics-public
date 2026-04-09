@@ -157,6 +157,7 @@ Local validation reminders:
 - for bootstrap or initializer commands, validate reruns, partial scaffold states, conflicts, and `--dry-run`
 - when running `init` or regeneration smoke checks, prefer temporary metrics/report paths unless the task explicitly targets tracked artifacts
 - validate dependent updater flows sequentially, not in parallel
+- after any `pyproject.toml` change, `make verify` alone is not sufficient — `make build-check` (included in `verify`) validates that `pip install -e .` succeeds with the current setuptools; this catches PEP 639 violations and similar packaging metadata errors that tests cannot catch
 
 ## Retros Rules
 
