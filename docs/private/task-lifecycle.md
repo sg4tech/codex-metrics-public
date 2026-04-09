@@ -6,7 +6,7 @@ This is the working Linear task lifecycle for Codex-assisted engineering in this
 
 Use it as the practical operating model for moving a task from planned work to implementation, review, and completion.
 
-The exact Linear team and status names are defined in `docs/local-linear-setup.md`.
+The exact Linear team and status names are defined in `docs/private/local-linear-setup.md`.
 
 ## Roles
 
@@ -106,7 +106,7 @@ Before closing a conversation thread, work through this checklist. Do not ask th
 - Retrospective: was one needed? if yes, write and commit it to `docs/retros/` now
 - Anything from chat that should be preserved has been saved to files (hypotheses, decisions, policy changes, AGENTS.md rules)
 - Commit and push are done — do them now if not yet
-- If the task included changes to `AGENTS.md`, `docs/task-lifecycle.md`, `docs/ai-agents-metrics-policy.md`, or any other policy/rules file: run `git fetch origin master` first, then verify with `git log origin/master -- <file>`. If not merged, flag it to the user before closing — these files are read from master and changes in a feature branch have no effect.
+- If the task included changes to `AGENTS.md`, `docs/private/task-lifecycle.md`, `docs/ai-agents-metrics-policy.md`, or any other policy/rules file: run `git fetch origin master` first, then verify with `git log origin/master -- <file>`. If not merged, flag it to the user before closing — these files are read from master and changes in a feature branch have no effect.
 
 ## Transition Rules
 
@@ -128,7 +128,7 @@ This is the smallest set of repo behaviors needed to make the workflow automatic
 ### Source Of Truth
 
 - The Linear issue status is the stage.
-- The status names and team configuration live in `docs/local-linear-setup.md`.
+- The status names and team configuration live in `docs/private/local-linear-setup.md`.
 - The current repo task follows that stage.
 - The task does not silently change stage without an explicit handoff.
 
@@ -142,11 +142,11 @@ This is the smallest set of repo behaviors needed to make the workflow automatic
 
 ### Repo Commands That Support The Flow
 
-- `codex-metrics start-task` creates the active task for a new piece of work.
-- `codex-metrics continue-task` resumes the current task when implementation continues.
-- `codex-metrics finish-task --status success` closes the task when the work is accepted.
-- `codex-metrics finish-task --status fail` closes the task when the work should stop instead of continuing.
-- `codex-metrics ensure-active-task` recovers or verifies task bookkeeping before work continues.
+- `ai-agents-metrics start-task` creates the active task for a new piece of work.
+- `ai-agents-metrics continue-task` resumes the current task when implementation continues.
+- `ai-agents-metrics finish-task --status success` closes the task when the work is accepted.
+- `ai-agents-metrics finish-task --status fail` closes the task when the work should stop instead of continuing.
+- `ai-agents-metrics ensure-active-task` recovers or verifies task bookkeeping before work continues.
 
 ### Decision Rule
 
@@ -166,6 +166,6 @@ Do not mark the task complete until review and validation both say the work is f
 
 ## Relationship To Other Docs
 
-- `docs/local-linear-setup.md` describes the repo's current Linear team and workflow configuration.
+- `docs/private/local-linear-setup.md` describes the repo's current Linear team and workflow configuration.
 - `docs/pilots/task-lifecycle-fsm-plan.md` captures the implementation shape for the CLI-side lifecycle enforcement work.
 - `docs/pilots/task-lifecycle-pilot.md` is historical and should not be treated as the active operating model.
