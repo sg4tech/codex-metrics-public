@@ -37,5 +37,5 @@ jobs:
           path: dist/
       - name: Publish to PyPI
         run: |
-          pip install twine
+          pip install "twine>=5" "packaging>=24"
           twine upload dist/*
