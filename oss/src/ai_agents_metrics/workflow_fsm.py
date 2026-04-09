@@ -105,7 +105,7 @@ def decide_workflow_transition(state: WorkflowState, event: WorkflowEvent) -> Wo
             action="block",
             message=(
                 "repository work appears to have started without an active goal; "
-                "run `codex-metrics ensure-active-task` before continuing active work"
+                "run `ai-agents-metrics ensure-active-task` before continuing active work"
             ),
         )
 
@@ -115,7 +115,7 @@ def decide_workflow_transition(state: WorkflowState, event: WorkflowEvent) -> Wo
                 action="warning",
                 message=(
                     "repository work appears to have started without an active goal; "
-                    "run `codex-metrics ensure-active-task` to recover bookkeeping"
+                    "run `ai-agents-metrics ensure-active-task` to recover bookkeeping"
                 ),
             )
         if state == WorkflowState.DETECTION_UNCERTAIN:

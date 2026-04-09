@@ -157,7 +157,7 @@ def build_bootstrap_plan(
         policy_path=path_for_agents(policy_path, agents_path=agents_path),
         command_path=path_for_agents(command_path, agents_path=agents_path),
         metrics_path=path_for_agents(metrics_path, agents_path=agents_path),
-        report_path=path_for_agents(report_path, agents_path=agents_path) if report_path is not None else Path("docs/codex-metrics.md"),
+        report_path=path_for_agents(report_path, agents_path=agents_path) if report_path is not None else Path("docs/ai-agents-metrics.md"),
         instructions_filename=agents_path.name,
     )
 

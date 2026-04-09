@@ -35,9 +35,9 @@ For product-management, framing, and metrics-interpretation work, also read:
 For history/search/reconstruction work, also read:
 
 - `docs/public/history-pipeline.md`
-- `src/codex_metrics/history_ingest.py`
-- `src/codex_metrics/history_normalize.py`
-- `src/codex_metrics/history_derive.py`
+- `src/ai_agents_metrics/history_ingest.py`
+- `src/ai_agents_metrics/history_normalize.py`
+- `src/ai_agents_metrics/history_derive.py`
 
 ## Reference documentation
 

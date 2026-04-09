@@ -140,7 +140,7 @@ def build_agent_recommendations(summary: dict[str, Any], product_quality: Produc
                 category="product_sample",
                 priority="high",
                 diagnosis="No closed product goals exist yet, so quality conclusions are not ready.",
-                next_action="Use codex-metrics on real product goals before drawing workflow conclusions.",
+                next_action="Use ai-agents-metrics on real product goals before drawing workflow conclusions.",
             )
         )
         return recommendations

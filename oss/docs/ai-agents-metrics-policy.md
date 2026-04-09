@@ -1,4 +1,4 @@
-# Codex Metrics Policy
+# AI Agents Metrics Policy
 
 This document defines the mandatory minimum policy for tracking AI-agent-assisted engineering work.
 

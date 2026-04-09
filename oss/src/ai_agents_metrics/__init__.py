@@ -1,4 +1,4 @@
-"""codex-metrics package."""
+"""ai-agents-metrics package."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ __all__ = ["__version__"]
 
 def _resolve_version() -> str:
     try:
-        return _installed_version("codex-metrics")
+        return _installed_version("ai-agents-metrics")
     except PackageNotFoundError:
         pass
     try:

@@ -60,7 +60,7 @@ def test_is_meaningful_worktree_path_returns_true(path_text: str) -> None:
     "path_text",
     [
         "metrics/events.ndjson",
-        "docs/codex-metrics.md",
+        "docs/ai-agents-metrics.md",
     ],
 )
 def test_is_meaningful_worktree_path_returns_false_for_low_signal(path_text: str) -> None:
@@ -121,7 +121,7 @@ def test_detect_started_work_meaningful_changes() -> None:
 
 
 def test_detect_started_work_low_signal_only() -> None:
-    status = " M metrics/events.ndjson\n M docs/codex-metrics.md"
+    status = " M metrics/events.ndjson\n M docs/ai-agents-metrics.md"
     with patch("ai_agents_metrics.git_state._run_git", side_effect=_make_git_mock("/repo", status)):
         report = detect_started_work(Path("/repo"))
 

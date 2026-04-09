@@ -8,7 +8,7 @@ MEANINGFUL_WORKTREE_DIRS = {"src", "tests", "docs", "scripts", "tools"}
 MEANINGFUL_WORKTREE_FILES = {"AGENTS.md", "README.md", "Makefile", "pyproject.toml"}
 LOW_SIGNAL_WORKTREE_PATHS = {
     Path("metrics/events.ndjson"),
-    Path("docs/codex-metrics.md"),
+    Path("docs/ai-agents-metrics.md"),
 }
 
 
