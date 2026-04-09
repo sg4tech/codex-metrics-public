@@ -14,7 +14,7 @@ def main() -> int:
     build_root = repo_root / "build" / "standalone"
     dist_root = repo_root / "dist" / "standalone"
     config_root = build_root / ".pyinstaller"
-    data_dir = repo_root / "src" / "codex_metrics" / "data"
+    data_dir = repo_root / "src" / "ai_agents_metrics" / "data"
     add_data_separator = ";" if os.name == "nt" else ":"
 
     shutil.rmtree(build_root, ignore_errors=True)
@@ -37,12 +37,12 @@ def main() -> int:
         "--specpath",
         str(build_root),
         "--add-data",
-        f"{data_dir}{add_data_separator}codex_metrics/data",
+        f"{data_dir}{add_data_separator}ai_agents_metrics/data",
         "--distpath",
         str(dist_root),
         "--workpath",
         str(build_root),
-        str(repo_root / "src" / "codex_metrics" / "__main__.py"),
+        str(repo_root / "src" / "ai_agents_metrics" / "__main__.py"),
     ]
     env = os.environ.copy()
     env["PYINSTALLER_CONFIG_DIR"] = str(config_root)

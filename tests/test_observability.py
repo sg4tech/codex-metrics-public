@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-import codex_metrics.observability as observability
-from codex_metrics.observability import (
+import ai_agents_metrics.observability as observability
+from ai_agents_metrics.observability import (
     observability_paths,
     record_cli_invocation_observation,
     record_goal_mutation_observation,

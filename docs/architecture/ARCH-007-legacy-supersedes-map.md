@@ -20,9 +20,9 @@ This is project-specific data baked into business logic. `domain.py` is no longe
 
 Choose one option:
 
-**A. Delete** — if this migration has already been applied and the data in `codex_metrics.json` is correct, the map is no longer needed. Remove it along with `normalize_legacy_metrics_data`, or keep the function but have it accept the map as a parameter.
+**A. Delete** — if this migration has already been applied and the data in `ai_agents_metrics.json` is correct, the map is no longer needed. Remove it along with `normalize_legacy_metrics_data`, or keep the function but have it accept the map as a parameter.
 
-**B. Move to config** — add an optional `legacy_supersedes` field to `codex_metrics.json` or a separate `metrics/legacy_migrations.json` file. `domain.py` reads it on load.
+**B. Move to config** — add an optional `legacy_supersedes` field to `ai_agents_metrics.json` or a separate `metrics/legacy_migrations.json` file. `domain.py` reads it on load.
 
 ## Resolution
 

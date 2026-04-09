@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from codex_metrics.domain import now_utc_iso
-from codex_metrics.storage import ensure_parent_dir
+from ai_agents_metrics.domain import now_utc_iso
+from ai_agents_metrics.storage import ensure_parent_dir
 
 RAW_WAREHOUSE_DIRNAME = ".codex-metrics"
 RAW_WAREHOUSE_FILENAME = "codex_raw_history.sqlite"

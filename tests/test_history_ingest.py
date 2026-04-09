@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from codex_metrics.history_ingest import _extract_message_text, _optional_row_value
+from ai_agents_metrics.history_ingest import _extract_message_text, _optional_row_value
 
 
 def _find_paths() -> tuple[Path, Path, Path]:

@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from codex_metrics import commands
-from codex_metrics.cost_audit import (
+from ai_agents_metrics import commands
+from ai_agents_metrics.cost_audit import (
     CostAuditCandidate,
     CostAuditReport,
     render_cost_audit_report,

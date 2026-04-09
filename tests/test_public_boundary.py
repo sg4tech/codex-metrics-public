@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from codex_metrics import commands
-from codex_metrics.public_boundary import (
+from ai_agents_metrics import commands
+from ai_agents_metrics.public_boundary import (
     PublicBoundaryFinding,
     PublicBoundaryReport,
     load_public_boundary_rules,

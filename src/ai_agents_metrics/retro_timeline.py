@@ -8,8 +8,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from codex_metrics.domain import EffectiveGoalRecord, build_effective_goals, goal_from_dict
-from codex_metrics.reporting import format_pct, format_usd
+from ai_agents_metrics.domain import EffectiveGoalRecord, build_effective_goals, goal_from_dict
+from ai_agents_metrics.reporting import format_pct, format_usd
 
 
 @dataclass(frozen=True)

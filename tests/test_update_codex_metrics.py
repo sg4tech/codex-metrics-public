@@ -22,10 +22,10 @@ PRICING = WORKSPACE_ROOT / "pricing" / "model_pricing.json"
 if str(ABS_SRC) not in sys.path:
     sys.path.insert(0, str(ABS_SRC))
 
-import codex_metrics as codex_metrics_pkg
-import codex_metrics.cli as codex_metrics_cli
-from codex_metrics.usage_backends import ClaudeUsageBackend, select_usage_backend
-from codex_metrics.usage_backends import resolve_usage_window as resolve_backend_usage_window
+import ai_agents_metrics as codex_metrics_pkg
+import ai_agents_metrics.cli as codex_metrics_cli
+from ai_agents_metrics.usage_backends import ClaudeUsageBackend, select_usage_backend
+from ai_agents_metrics.usage_backends import resolve_usage_window as resolve_backend_usage_window
 
 
 def build_cmd(*args: str) -> list[str]:
@@ -87,11 +87,11 @@ def run_module_cmd(
             str(WORKSPACE_ROOT / "pyproject.toml"),
             "--parallel-mode",
             "-m",
-            "codex_metrics",
+            "ai_agents_metrics",
             *args,
         ]
     else:
-        cmd = [sys.executable, "-m", "codex_metrics", *args]
+        cmd = [sys.executable, "-m", "ai_agents_metrics", *args]
     if extra_env is not None:
         env.update(extra_env)
     return subprocess.run(
@@ -139,7 +139,7 @@ def read_json(path: Path) -> dict:
 
 def read_metrics(repo: Path) -> dict:
     """Load current metrics state from the event log and add a `tasks` alias."""
-    from codex_metrics.domain import load_metrics as _load_metrics
+    from ai_agents_metrics.domain import load_metrics as _load_metrics
 
     data = _load_metrics(repo / "metrics" / "events.ndjson")
     data["tasks"] = [
@@ -417,7 +417,7 @@ def test_init_creates_files(repo: Path) -> None:
     assert result.returncode == 0, result.stderr
 
     metrics_path = repo / "metrics" / "events.ndjson"
-    report_path = repo / "docs" / "codex-metrics.md"
+    report_path = repo / "docs" / "ai-agents-metrics.md"
 
     assert metrics_path.exists()
     assert not report_path.exists()
@@ -451,7 +451,7 @@ def test_package_module_entrypoint_can_initialize_files(repo: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     assert (repo / "metrics" / "events.ndjson").exists()
-    assert not (repo / "docs" / "codex-metrics.md").exists()
+    assert not (repo / "docs" / "ai-agents-metrics.md").exists()
 
 
 def test_init_can_render_optional_report_when_requested(repo: Path) -> None:
@@ -459,7 +459,7 @@ def test_init_can_render_optional_report_when_requested(repo: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     assert (repo / "metrics" / "events.ndjson").exists()
-    assert (repo / "docs" / "codex-metrics.md").exists()
+    assert (repo / "docs" / "ai-agents-metrics.md").exists()
 
 
 def test_ensure_active_task_creates_recovery_goal_for_meaningful_git_changes(repo: Path) -> None:
@@ -736,7 +736,7 @@ def test_install_self_creates_launcher_in_target_dir(repo: Path) -> None:
     result = run_cmd(repo, "install-self", "--target-dir", str(install_dir))
 
     assert result.returncode == 0, result.stderr
-    installed_path = install_dir / "codex-metrics"
+    installed_path = install_dir / "ai-agents-metrics"
     installed_text = installed_path.read_text(encoding="utf-8")
     assert installed_text.startswith("#!/bin/sh\n")
     assert any(script_path in installed_text for script_path in expected_script_paths)
@@ -749,7 +749,7 @@ def test_install_self_creates_launcher_in_target_dir(repo: Path) -> None:
 def test_install_self_replaces_existing_target(repo: Path) -> None:
     install_dir = repo / "bin"
     install_dir.mkdir(parents=True, exist_ok=True)
-    installed_path = install_dir / "codex-metrics"
+    installed_path = install_dir / "ai-agents-metrics"
     installed_path.write_text("old\n", encoding="utf-8")
     expected_script_paths = {
         str((repo / "scripts" / "update_codex_metrics.py").resolve()),
@@ -770,12 +770,12 @@ def test_module_install_self_creates_module_launcher(repo: Path) -> None:
     result = run_module_cmd(repo, "install-self", "--target-dir", str(install_dir))
 
     assert result.returncode == 0, result.stderr
-    installed_path = install_dir / "codex-metrics"
+    installed_path = install_dir / "ai-agents-metrics"
     installed_text = installed_path.read_text(encoding="utf-8")
     assert installed_text.startswith("#!/bin/sh\n")
     assert sys.executable in installed_text
     assert f"export PYTHONPATH='{ABS_SRC.resolve()}'" in installed_text
-    assert "-m codex_metrics" in installed_text
+    assert "-m ai_agents_metrics" in installed_text
 
 
 def test_install_self_skips_path_warning_when_target_dir_is_already_on_path(repo: Path) -> None:
@@ -827,7 +827,7 @@ def test_install_self_warns_when_active_virtualenv_shadows_global_install(repo: 
     install_dir = repo / "bin"
     fake_venv_bin = repo / "fake-venv" / "bin"
     fake_venv_bin.mkdir(parents=True, exist_ok=True)
-    shadowing_command = fake_venv_bin / "codex-metrics"
+    shadowing_command = fake_venv_bin / "ai-agents-metrics"
     shadowing_command.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
     shadowing_command.chmod(0o755)
 
@@ -846,7 +846,7 @@ def test_install_self_warns_when_active_virtualenv_shadows_global_install(repo: 
     )
 
     assert second_result.returncode == 0, second_result.stderr
-    assert "codex-metrics" in second_result.stdout
+    assert "ai-agents-metrics" in second_result.stdout
     assert "active virtualenv is shadowing the global install" in second_result.stdout
     assert str(shadowing_command) in second_result.stdout
 
@@ -886,10 +886,10 @@ def test_bootstrap_dry_run_reports_actions_without_writing_files(repo: Path) -> 
     assert "Would create instructions file" in result.stdout
     assert "Would create command wrapper" in result.stdout
     assert not (repo / "metrics" / "events.ndjson").exists()
-    assert not (repo / "docs" / "codex-metrics.md").exists()
-    assert not (repo / "docs" / "codex-metrics-policy.md").exists()
+    assert not (repo / "docs" / "ai-agents-metrics.md").exists()
+    assert not (repo / "docs" / "ai-agents-metrics-policy.md").exists()
     assert not (repo / "AGENTS.md").exists()
-    assert not (repo / "tools" / "codex-metrics").exists()
+    assert not (repo / "tools" / "ai-agents-metrics").exists()
 
 
 def test_bootstrap_creates_scaffold_files(repo: Path) -> None:
@@ -902,9 +902,9 @@ def test_bootstrap_creates_scaffold_files(repo: Path) -> None:
     assert "Created instructions file" in result.stdout
 
     metrics_path = repo / "metrics" / "events.ndjson"
-    report_path = repo / "docs" / "codex-metrics.md"
-    policy_path = repo / "docs" / "codex-metrics-policy.md"
-    command_path = repo / "tools" / "codex-metrics"
+    report_path = repo / "docs" / "ai-agents-metrics.md"
+    policy_path = repo / "docs" / "ai-agents-metrics-policy.md"
+    command_path = repo / "tools" / "ai-agents-metrics"
     agents_path = repo / "AGENTS.md"
 
     assert metrics_path.exists()
@@ -926,11 +926,11 @@ def test_bootstrap_creates_scaffold_files(repo: Path) -> None:
     assert "## Recommended Commands" in policy_text
     assert "## Validation Rules" in policy_text
     assert "Metrics bookkeeping is mandatory." in policy_text
-    assert "codex-metrics start-task" in policy_text
-    assert "codex-metrics continue-task" in policy_text
-    assert "codex-metrics finish-task" in policy_text
+    assert "ai-agents-metrics start-task" in policy_text
+    assert "ai-agents-metrics continue-task" in policy_text
+    assert "ai-agents-metrics finish-task" in policy_text
     assert "agent-agnostic" in policy_text
-    assert "If `codex-metrics` is expected but unavailable" in policy_text
+    assert "If `ai-agents-metrics` is expected but unavailable" in policy_text
     assert "Do not invent a manual fallback workflow" in policy_text
     assert "## Reporting Rules" in policy_text
     assert "## Anti-Gaming Rules" in policy_text
@@ -943,17 +943,17 @@ def test_bootstrap_creates_scaffold_files(repo: Path) -> None:
 
     agents_text = agents_path.read_text(encoding="utf-8")
     assert "# AGENTS.md" in agents_text
-    assert "<!-- codex-metrics:start -->" in agents_text
+    assert "<!-- ai-agents-metrics:start -->" in agents_text
     assert "### Read first" in agents_text
     assert "Before starting or continuing any engineering task, always read:" in agents_text
     assert "- `AGENTS.md`" in agents_text
-    assert "docs/codex-metrics-policy.md" in agents_text
-    assert "Use `tools/codex-metrics ...` in this repository." in agents_text
-    assert "If `tools/codex-metrics` is unavailable, stop and report an installation or invocation mismatch" in agents_text
-    assert "The rules in `docs/codex-metrics-policy.md` are mandatory" in agents_text
+    assert "docs/ai-agents-metrics-policy.md" in agents_text
+    assert "Use `tools/ai-agents-metrics ...` in this repository." in agents_text
+    assert "If `tools/ai-agents-metrics` is unavailable, stop and report an installation or invocation mismatch" in agents_text
+    assert "The rules in `docs/ai-agents-metrics-policy.md` are mandatory" in agents_text
     assert "Generated artifacts:" not in agents_text
     assert "Do not edit generated metrics files manually" not in agents_text
-    assert "codex-metrics update" not in agents_text
+    assert "ai-agents-metrics update" not in agents_text
 
 
 def test_bootstrap_can_create_optional_report_when_requested(repo: Path) -> None:
@@ -961,16 +961,16 @@ def test_bootstrap_can_create_optional_report_when_requested(repo: Path) -> None
 
     assert result.returncode == 0, result.stderr
     assert (repo / "metrics" / "events.ndjson").exists()
-    assert (repo / "docs" / "codex-metrics.md").exists()
+    assert (repo / "docs" / "ai-agents-metrics.md").exists()
 
 
 def test_packaged_policy_template_matches_repo_policy() -> None:
-    policy_source = WORKSPACE_ROOT / "docs" / "private" / "codex-metrics-policy.md"
+    policy_source = WORKSPACE_ROOT / "docs" / "private" / "ai-agents-metrics-policy.md"
     if not policy_source.exists():
         pytest.skip("private policy not available in this context")
     repo_policy = policy_source.read_text(encoding="utf-8")
     packaged_policy = (
-        WORKSPACE_ROOT / "src" / "codex_metrics" / "data" / "bootstrap_codex_metrics_policy.md"
+        WORKSPACE_ROOT / "src" / "ai_agents_metrics" / "data" / "bootstrap_codex_metrics_policy.md"
     ).read_text(encoding="utf-8")
 
     assert packaged_policy == repo_policy
@@ -988,13 +988,13 @@ def test_bootstrap_appends_single_managed_block_to_existing_agents(repo: Path) -
 
     agents_text = agents_path.read_text(encoding="utf-8")
     assert "# Existing Rules" in agents_text
-    assert agents_text.count("<!-- codex-metrics:start -->") == 1
-    assert agents_text.count("<!-- codex-metrics:end -->") == 1
-    assert "docs/codex-metrics-policy.md" in agents_text
+    assert agents_text.count("<!-- ai-agents-metrics:start -->") == 1
+    assert agents_text.count("<!-- ai-agents-metrics:end -->") == 1
+    assert "docs/ai-agents-metrics-policy.md" in agents_text
 
 
 def test_bootstrap_refuses_to_overwrite_different_policy_without_force(repo: Path) -> None:
-    policy_path = repo / "docs" / "codex-metrics-policy.md"
+    policy_path = repo / "docs" / "ai-agents-metrics-policy.md"
     policy_path.write_text("# Different Policy\n\nDo not replace me.\n", encoding="utf-8")
 
     result = run_cmd(repo, "bootstrap")
@@ -1004,7 +1004,7 @@ def test_bootstrap_refuses_to_overwrite_different_policy_without_force(repo: Pat
 
 
 def test_bootstrap_force_replaces_existing_policy_file(repo: Path) -> None:
-    policy_path = repo / "docs" / "codex-metrics-policy.md"
+    policy_path = repo / "docs" / "ai-agents-metrics-policy.md"
     policy_path.write_text("# Different Policy\n\nDo not replace me.\n", encoding="utf-8")
 
     result = run_cmd(repo, "bootstrap", "--force")
@@ -1023,8 +1023,8 @@ def test_bootstrap_completes_partial_scaffold_when_metrics_exist(repo: Path) -> 
     assert "Keeping existing metrics file" in result.stdout
     assert "Skipping markdown report generation by default" in result.stdout
     assert (repo / "metrics" / "events.ndjson").exists()
-    assert not (repo / "docs" / "codex-metrics.md").exists()
-    assert (repo / "docs" / "codex-metrics-policy.md").exists()
+    assert not (repo / "docs" / "ai-agents-metrics.md").exists()
+    assert (repo / "docs" / "ai-agents-metrics-policy.md").exists()
     assert (repo / "AGENTS.md").exists()
 
 
@@ -1039,11 +1039,11 @@ def test_bootstrap_completes_partial_scaffold_when_report_exists(repo: Path) -> 
     assert "Created metrics file" in result.stdout
     assert "Skipping markdown report generation by default" in result.stdout
     assert (repo / "metrics" / "events.ndjson").exists()
-    assert (repo / "docs" / "codex-metrics.md").exists()
+    assert (repo / "docs" / "ai-agents-metrics.md").exists()
 
 
 def test_bootstrap_conflicting_policy_is_non_destructive(repo: Path) -> None:
-    policy_path = repo / "docs" / "codex-metrics-policy.md"
+    policy_path = repo / "docs" / "ai-agents-metrics-policy.md"
     policy_path.parent.mkdir(parents=True, exist_ok=True)
     policy_path.write_text("# Different Policy\n\nDo not replace me.\n", encoding="utf-8")
 
@@ -1051,12 +1051,12 @@ def test_bootstrap_conflicting_policy_is_non_destructive(repo: Path) -> None:
 
     assert result.returncode == 1
     assert not (repo / "metrics" / "events.ndjson").exists()
-    assert not (repo / "docs" / "codex-metrics.md").exists()
+    assert not (repo / "docs" / "ai-agents-metrics.md").exists()
     assert not (repo / "AGENTS.md").exists()
 
 
 def test_bootstrap_dry_run_reports_policy_conflict_without_writing(repo: Path) -> None:
-    policy_path = repo / "docs" / "codex-metrics-policy.md"
+    policy_path = repo / "docs" / "ai-agents-metrics-policy.md"
     policy_path.parent.mkdir(parents=True, exist_ok=True)
     policy_path.write_text("# Different Policy\n\nDo not replace me.\n", encoding="utf-8")
 
@@ -1065,7 +1065,7 @@ def test_bootstrap_dry_run_reports_policy_conflict_without_writing(repo: Path) -
     assert result.returncode == 0, result.stderr
     assert "Would refuse to replace existing policy file without --force" in result.stdout
     assert not (repo / "metrics" / "events.ndjson").exists()
-    assert not (repo / "docs" / "codex-metrics.md").exists()
+    assert not (repo / "docs" / "ai-agents-metrics.md").exists()
     assert not (repo / "AGENTS.md").exists()
 
 
@@ -1080,7 +1080,7 @@ def test_bootstrap_custom_paths_render_relative_agents_links(repo: Path) -> None
         "--policy-path",
         "rules/policy.md",
         "--command-path",
-        "bin/codex-metrics",
+        "bin/ai-agents-metrics",
         "--agents-path",
         "guide/AGENTS.md",
     )
@@ -1088,7 +1088,7 @@ def test_bootstrap_custom_paths_render_relative_agents_links(repo: Path) -> None
     assert result.returncode == 0, result.stderr
     agents_text = (repo / "guide" / "AGENTS.md").read_text(encoding="utf-8")
     assert "`../rules/policy.md`" in agents_text
-    assert "`../bin/codex-metrics ...`" in agents_text
+    assert "`../bin/ai-agents-metrics ...`" in agents_text
 
 
 def test_bootstrap_can_target_claude_instructions_file(repo: Path) -> None:
@@ -1098,15 +1098,15 @@ def test_bootstrap_can_target_claude_instructions_file(repo: Path) -> None:
     instructions_text = (repo / "CLAUDE.md").read_text(encoding="utf-8")
     assert "# CLAUDE.md" in instructions_text
     assert "- `CLAUDE.md`" in instructions_text
-    assert "docs/codex-metrics-policy.md" in instructions_text
-    assert "Use `tools/codex-metrics ...` in this repository." in instructions_text
+    assert "docs/ai-agents-metrics-policy.md" in instructions_text
+    assert "Use `tools/ai-agents-metrics ...` in this repository." in instructions_text
 
 
 def test_bootstrap_wrapper_runs_from_repo_root_even_when_invoked_from_other_cwd(repo: Path, tmp_path: Path) -> None:
     result = run_cmd(repo, "bootstrap")
     assert result.returncode == 0, result.stderr
 
-    wrapper_path = repo / "tools" / "codex-metrics"
+    wrapper_path = repo / "tools" / "ai-agents-metrics"
     foreign_cwd = tmp_path / "foreign-cwd"
     foreign_cwd.mkdir(parents=True, exist_ok=True)
 
@@ -1124,7 +1124,7 @@ def test_bootstrap_wrapper_runs_from_repo_root_even_when_invoked_from_other_cwd(
 
 
 def test_script_entrypoint_prints_clean_bootstrap_error(repo: Path) -> None:
-    policy_path = repo / "docs" / "codex-metrics-policy.md"
+    policy_path = repo / "docs" / "ai-agents-metrics-policy.md"
     policy_path.parent.mkdir(parents=True, exist_ok=True)
     policy_path.write_text("# Different Policy\n\nDo not replace me.\n", encoding="utf-8")
 
@@ -1136,7 +1136,7 @@ def test_script_entrypoint_prints_clean_bootstrap_error(repo: Path) -> None:
 
 
 def test_module_entrypoint_prints_clean_bootstrap_error(repo: Path) -> None:
-    policy_path = repo / "docs" / "codex-metrics-policy.md"
+    policy_path = repo / "docs" / "ai-agents-metrics-policy.md"
     policy_path.parent.mkdir(parents=True, exist_ok=True)
     policy_path.write_text("# Different Policy\n\nDo not replace me.\n", encoding="utf-8")
 
@@ -1148,7 +1148,7 @@ def test_module_entrypoint_prints_clean_bootstrap_error(repo: Path) -> None:
 
 
 def test_console_entrypoint_prints_clean_bootstrap_error(repo: Path) -> None:
-    policy_path = repo / "docs" / "codex-metrics-policy.md"
+    policy_path = repo / "docs" / "ai-agents-metrics-policy.md"
     policy_path.parent.mkdir(parents=True, exist_ok=True)
     policy_path.write_text("# Different Policy\n\nDo not replace me.\n", encoding="utf-8")
 
@@ -1162,7 +1162,7 @@ def test_console_entrypoint_prints_clean_bootstrap_error(repo: Path) -> None:
             "-c",
             (
                 "import sys; "
-                "from codex_metrics.cli import console_main; "
+                "from ai_agents_metrics.cli import console_main; "
                 "sys.argv=['codex-metrics', 'bootstrap']; "
                 "raise SystemExit(console_main())"
             ),
@@ -1202,8 +1202,8 @@ def test_completion_bash_outputs_completion_function(repo: Path) -> None:
     result = run_cmd(repo, "completion", "bash")
 
     assert result.returncode == 0, result.stderr
-    assert "_codex_metrics_completion()" in result.stdout
-    assert "complete -F _codex_metrics_completion codex-metrics" in result.stdout
+    assert "_ai_agents_metrics_completion()" in result.stdout
+    assert "complete -F _ai_agents_metrics_completion codex-metrics" in result.stdout
     assert "bootstrap" in result.stdout
     assert "--metrics-path" in result.stdout
 
@@ -1212,7 +1212,7 @@ def test_completion_zsh_outputs_compdef_script(repo: Path) -> None:
     result = run_cmd(repo, "completion", "zsh")
 
     assert result.returncode == 0, result.stderr
-    assert "#compdef codex-metrics" in result.stdout
+    assert "#compdef codex-metrics" in result.stdout  # zsh compdef line kept for alias compat
     assert "_describe 'command' commands" in result.stdout
     assert "completion)" in result.stdout
     assert "--policy-path" in result.stdout
@@ -1852,7 +1852,7 @@ def test_product_goal_can_store_result_fit(repo: Path) -> None:
     task = next(task for task in data["tasks"] if task["task_id"] == "fit-goal")
     assert task["result_fit"] == "exact_fit"
     assert render_report(repo).returncode == 0
-    report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
+    report = (repo / "docs" / "ai-agents-metrics.md").read_text(encoding="utf-8")
     assert "- Result fit: exact_fit" in report
 
 
@@ -1878,7 +1878,7 @@ def test_render_report_includes_model_breakdown(repo: Path) -> None:
     ).returncode == 0
 
     assert render_report(repo).returncode == 0
-    report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
+    report = (repo / "docs" / "ai-agents-metrics.md").read_text(encoding="utf-8")
     assert "## By model" in report
     assert "### gpt-5" in report
     assert "- Model: gpt-5" in report
@@ -1929,7 +1929,7 @@ def test_update_does_not_write_markdown_report_by_default(repo: Path) -> None:
     )
 
     assert result.returncode == 0, result.stderr
-    assert not (repo / "docs" / "codex-metrics.md").exists()
+    assert not (repo / "docs" / "ai-agents-metrics.md").exists()
 
 
 def test_render_report_command_writes_markdown_export_on_demand(repo: Path) -> None:
@@ -1950,7 +1950,7 @@ def test_render_report_command_writes_markdown_export_on_demand(repo: Path) -> N
     result = run_cmd(repo, "render-report")
 
     assert result.returncode == 0, result.stderr
-    report_text = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
+    report_text = (repo / "docs" / "ai-agents-metrics.md").read_text(encoding="utf-8")
     assert "Render goal" in report_text
 
 
@@ -2551,7 +2551,7 @@ def test_task_type_can_be_set_to_retro_and_is_reported_separately(repo: Path) ->
     assert data["summary"]["by_task_type"]["product"]["closed_tasks"] == 0
 
     assert render_report(repo).returncode == 0
-    report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
+    report = (repo / "docs" / "ai-agents-metrics.md").read_text(encoding="utf-8")
     assert "### retro" in report
     assert "- Goal type: retro" in report
 
@@ -2598,7 +2598,7 @@ def test_new_task_can_link_to_closed_previous_task(repo: Path) -> None:
     assert followup_task["supersedes_task_id"] == "original-task"
 
     assert render_report(repo).returncode == 0
-    report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
+    report = (repo / "docs" / "ai-agents-metrics.md").read_text(encoding="utf-8")
     assert "- Supersedes goal: original-task" in report
 
 
@@ -2657,7 +2657,7 @@ def test_superseded_goal_chain_counts_as_one_effective_goal(repo: Path) -> None:
     assert len(data["entries"]) == 2
 
     assert render_report(repo).returncode == 0
-    report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
+    report = (repo / "docs" / "ai-agents-metrics.md").read_text(encoding="utf-8")
     assert "## Entry summary" in report
     assert "- Closed entries: 2" in report
     assert "- Fails: 1" in report
@@ -2899,7 +2899,7 @@ def test_show_reports_known_cost_coverage_when_complete_cost_is_unavailable(repo
     assert "Complete cost coverage is still partial across the full history" in result.stdout
 
     assert render_report(repo).returncode == 0
-    report_text = (repo / "docs" / "codex-metrics.md").read_text()
+    report_text = (repo / "docs" / "ai-agents-metrics.md").read_text()
     assert "## Product quality" in report_text
     assert "## Operational summary" in report_text
     assert "## Agent recommendations" in report_text
@@ -3053,9 +3053,9 @@ def test_module_entrypoint_exposes_cli_version(repo: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     output = result.stdout.strip()
-    assert output.startswith("python -m codex_metrics ")
+    assert output.startswith("python -m ai_agents_metrics ")
     assert re.fullmatch(
-        r"python -m codex_metrics \d+\.\d+.*",
+        r"python -m ai_agents_metrics \d+\.\d+.*",
         output,
     )
 
@@ -3760,8 +3760,8 @@ def test_resolve_goal_usage_updates_detects_claude_via_fallback(
 ) -> None:
     """When Codex SQLite is absent, Claude JSONL with data in the time window is used as fallback.
     This correctly handles mixed-agent repos: the backend that has actual telemetry wins."""
-    import codex_metrics.cli as cli_module
-    from codex_metrics.domain import GoalRecord
+    import ai_agents_metrics.cli as cli_module
+    from ai_agents_metrics.domain import GoalRecord
 
     cwd = tmp_path / "repo"
     cwd.mkdir()
@@ -3824,8 +3824,8 @@ def test_resolve_goal_usage_updates_no_detection_when_no_data_in_window(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """At start-task time (no telemetry yet), neither backend has data → agent_name stays None."""
-    import codex_metrics.cli as cli_module
-    from codex_metrics.domain import GoalRecord
+    import ai_agents_metrics.cli as cli_module
+    from ai_agents_metrics.domain import GoalRecord
 
     cwd = tmp_path / "repo"
     cwd.mkdir()
@@ -3887,8 +3887,8 @@ def test_resolve_goal_usage_updates_does_not_overwrite_stored_agent_name(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """If goal already has agent_name set, it is preserved and not returned as detected."""
-    import codex_metrics.cli as cli_module
-    from codex_metrics.domain import GoalRecord
+    import ai_agents_metrics.cli as cli_module
+    from ai_agents_metrics.domain import GoalRecord
 
     cwd = tmp_path / "repo"
     cwd.mkdir()
@@ -3945,8 +3945,8 @@ def test_resolve_goal_usage_updates_routes_to_claude_backend(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """update on a goal with agent_name=claude picks up tokens from JSONL, not Codex SQLite."""
-    import codex_metrics.cli as cli_module
-    from codex_metrics.domain import GoalRecord
+    import ai_agents_metrics.cli as cli_module
+    from ai_agents_metrics.domain import GoalRecord
 
     cwd = tmp_path / "repo"
     cwd.mkdir()
@@ -4022,7 +4022,7 @@ def test_audit_cost_coverage_reports_sync_gap_for_claude_goal(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Claude goal with JSONL data in window but no stored cost is classified as sync_gap."""
-    import codex_metrics.cli as cli_module
+    import ai_agents_metrics.cli as cli_module
 
     cwd = tmp_path / "repo"
     cwd.mkdir()
@@ -4565,7 +4565,7 @@ def test_report_sorts_tasks_by_started_at_descending(repo: Path) -> None:
     ).returncode == 0
 
     assert render_report(repo).returncode == 0
-    report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
+    report = (repo / "docs" / "ai-agents-metrics.md").read_text(encoding="utf-8")
     newer_index = report.index("### newer")
     older_index = report.index("### older")
 
@@ -4606,7 +4606,7 @@ def test_report_marks_inferred_entries(repo: Path) -> None:
     ).returncode == 0
 
     assert render_report(repo).returncode == 0
-    report = (repo / "docs" / "codex-metrics.md").read_text(encoding="utf-8")
+    report = (repo / "docs" / "ai-agents-metrics.md").read_text(encoding="utf-8")
     assert "- Inferred: yes" in report
     assert "- Inferred: no" in report
 

@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from codex_metrics import commands
-from codex_metrics.history_derive import DeriveSummary, render_derive_summary_json
-from codex_metrics.history_ingest import IngestSummary, render_ingest_summary_json
-from codex_metrics.history_normalize import NormalizeSummary, render_normalize_summary_json
+from ai_agents_metrics import commands
+from ai_agents_metrics.history_derive import DeriveSummary, render_derive_summary_json
+from ai_agents_metrics.history_ingest import IngestSummary, render_ingest_summary_json
+from ai_agents_metrics.history_normalize import NormalizeSummary, render_normalize_summary_json
 
 
 class _FakeRuntime:

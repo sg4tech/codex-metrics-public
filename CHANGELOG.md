@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `codex-metrics` will be recorded here.
+All notable changes to `ai-agents-metrics` will be recorded here.
 
 ## 0.1.0 (2026-04-08)
 

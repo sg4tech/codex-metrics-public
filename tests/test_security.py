@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from codex_metrics import cli
-from codex_metrics.security import (
+from ai_agents_metrics import cli
+from ai_agents_metrics.security import (
     SecurityFinding,
     SecurityReport,
     collect_staged_paths,
@@ -258,7 +258,7 @@ def test_collect_staged_paths_parses_nul_separated_output(monkeypatch, tmp_path:
     def fake_run(*args, **kwargs):
         return type("Result", (), {"stdout": b"README.md\x00src/main.py\x00"})()
 
-    monkeypatch.setattr("codex_metrics.security.subprocess.run", fake_run)
+    monkeypatch.setattr("ai_agents_metrics.security.subprocess.run", fake_run)
 
     paths = collect_staged_paths(tmp_path)
 
@@ -269,7 +269,7 @@ def test_collect_staged_paths_decodes_non_utf8_filenames(monkeypatch, tmp_path: 
     def fake_run(*args, **kwargs):
         return type("Result", (), {"stdout": b"bad-\xff-name.py\x00"})()
 
-    monkeypatch.setattr("codex_metrics.security.subprocess.run", fake_run)
+    monkeypatch.setattr("ai_agents_metrics.security.subprocess.run", fake_run)
 
     paths = collect_staged_paths(tmp_path)
 
@@ -281,7 +281,7 @@ def test_verify_security_requires_readable_git_index(monkeypatch, tmp_path: Path
     def fake_run(*args, **kwargs):
         raise OSError("git unavailable")
 
-    monkeypatch.setattr("codex_metrics.security.subprocess.run", fake_run)
+    monkeypatch.setattr("ai_agents_metrics.security.subprocess.run", fake_run)
     rules_path = tmp_path / "config" / "security-rules.toml"
     _write_rules(rules_path)
 

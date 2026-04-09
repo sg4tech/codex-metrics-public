@@ -12,7 +12,7 @@ Coverage for subprocess-launched CLI invocations requires manually setting `CODE
 CODEX_SUBPROCESS_COVERAGE=1 make test
 ```
 
-When this variable is set, `build_cmd` and `run_module_cmd` in `test_update_codex_metrics.py` switch to `coverage run --parallel-mode`. Without it, subprocess calls produce no coverage data. This is a manual workaround, not a proper solution.
+When this variable is set, `build_cmd` and `run_module_cmd` in `test_update_ai_agents_metrics.py` switch to `coverage run --parallel-mode`. Without it, subprocess calls produce no coverage data. This is a manual workaround, not a proper solution.
 
 ## Desired state
 

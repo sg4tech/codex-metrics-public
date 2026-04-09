@@ -22,7 +22,7 @@ Any change to any of these layers touches the same file.
 Split into submodules:
 
 ```
-src/codex_metrics/domain/
+src/ai_agents_metrics/domain/
     __init__.py        # re-exports the public API (backward compatibility)
     models.py          # dataclasses only
     serde.py           # from_dict / to_dict
@@ -36,7 +36,7 @@ src/codex_metrics/domain/
 
 ## Acceptance criteria
 
-- [x] `from codex_metrics.domain import GoalRecord` continues to work
+- [x] `from ai_agents_metrics.domain import GoalRecord` continues to work
 - [x] All tests pass without changing imports
 - [x] Each submodule imports only what it needs (no cross-module cycles)
 - [x] `make verify` passes

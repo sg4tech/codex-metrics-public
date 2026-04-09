@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from codex_metrics import commands
-from codex_metrics.reporting import render_summary_json
+from ai_agents_metrics import commands
+from ai_agents_metrics.reporting import render_summary_json
 
 
 class _FakeDecision:

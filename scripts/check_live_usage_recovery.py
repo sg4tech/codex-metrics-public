@@ -15,7 +15,7 @@ def _load_cli_module():
     if repo_src_path.exists():
         sys.path.insert(0, str(repo_src_path))
 
-    from codex_metrics import cli
+    from ai_agents_metrics import cli
 
     return cli
 
@@ -98,7 +98,7 @@ def find_live_event(
 
 
 def main() -> int:
-    from codex_metrics.domain import load_metrics
+    from ai_agents_metrics.domain import load_metrics
 
     args = parse_args()
     cwd = Path(args.cwd).resolve()

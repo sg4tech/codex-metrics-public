@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from codex_metrics import commands
-from codex_metrics.history_compare import (
+from ai_agents_metrics import commands
+from ai_agents_metrics.history_compare import (
     HistoryCompareFinding,
     HistoryCompareProjectRow,
     HistoryCompareReport,

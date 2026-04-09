@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from codex_metrics.domain import load_metrics
-from codex_metrics.event_store import append_event, replay_events
+from ai_agents_metrics.domain import load_metrics
+from ai_agents_metrics.event_store import append_event, replay_events
 
 
 def _goal_dict(**overrides: object) -> dict:

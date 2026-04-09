@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from codex_metrics.domain import build_effective_goals, goal_from_dict
-from codex_metrics.history_compare_store import (
+from ai_agents_metrics.domain import build_effective_goals, goal_from_dict
+from ai_agents_metrics.history_compare_store import (
     HistoryCompareProjectRow,
     HistoryCompareScopeRow,
     HistoryCompareWarehouseData,

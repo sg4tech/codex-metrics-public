@@ -14,7 +14,7 @@ def _resolve_version() -> str:
     except PackageNotFoundError:
         pass
     try:
-        from codex_metrics._version import version  # type: ignore[import-untyped]
+        from ai_agents_metrics._version import version
         return version
     except ImportError:
         return "unknown"

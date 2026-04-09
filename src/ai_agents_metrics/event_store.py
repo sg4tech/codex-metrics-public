@@ -59,7 +59,7 @@ def append_event(
         raise ValueError(f"Unknown event type: {event_type!r}. Must be one of {sorted(EVENT_TYPES)}")
 
     if ts is None:
-        from codex_metrics.domain.time_utils import now_utc_iso
+        from ai_agents_metrics.domain.time_utils import now_utc_iso
 
         ts = now_utc_iso()
 

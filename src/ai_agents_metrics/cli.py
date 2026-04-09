@@ -13,14 +13,14 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 
-from codex_metrics import __version__
-from codex_metrics.bootstrap import bootstrap_project as run_bootstrap_project
-from codex_metrics.completion import render_completion
-from codex_metrics.cost_audit import (
+from ai_agents_metrics import __version__
+from ai_agents_metrics.bootstrap import bootstrap_project as run_bootstrap_project
+from ai_agents_metrics.completion import render_completion
+from ai_agents_metrics.cost_audit import (
     CostAuditReport,
     render_cost_audit_report_json,  # noqa: F401 — re-exported as cli_module attribute
 )
-from codex_metrics.domain import (
+from ai_agents_metrics.domain import (
     ALLOWED_FAILURE_REASONS,
     ALLOWED_RESULT_FITS,
     ALLOWED_STATUSES,
@@ -53,86 +53,86 @@ from codex_metrics.domain import (
     validate_goal_supersession_graph,
     validate_non_negative_int,
 )
-from codex_metrics.git_state import (
+from ai_agents_metrics.git_state import (
     StartedWorkReport,
     detect_started_work,
 )
-from codex_metrics.git_state import (
+from ai_agents_metrics.git_state import (
     _is_meaningful_worktree_path as _git_state_is_meaningful_worktree_path,
 )
-from codex_metrics.git_state import (
+from ai_agents_metrics.git_state import (
     _normalize_worktree_path as _git_state_normalize_worktree_path,
 )
-from codex_metrics.history_audit import (  # noqa: F401 — re-exported as cli_module attributes
+from ai_agents_metrics.history_audit import (  # noqa: F401 — re-exported as cli_module attributes
     audit_history,
     render_audit_report,
     render_audit_report_json,
 )
-from codex_metrics.history_compare import (  # noqa: F401 — re-exported as cli_module attributes
+from ai_agents_metrics.history_compare import (  # noqa: F401 — re-exported as cli_module attributes
     compare_metrics_to_history,
     render_history_compare_report,
     render_history_compare_report_json,
 )
-from codex_metrics.history_derive import (
+from ai_agents_metrics.history_derive import (
     DeriveSummary,
     render_derive_summary_json,  # noqa: F401 — re-exported as cli_module attribute
 )
-from codex_metrics.history_derive import (
+from ai_agents_metrics.history_derive import (
     derive_codex_history as run_derive_codex_history,
 )
-from codex_metrics.history_ingest import (
+from ai_agents_metrics.history_ingest import (
     IngestSummary,
     default_raw_warehouse_path,
     render_ingest_summary_json,  # noqa: F401 — re-exported as cli_module attribute
 )
-from codex_metrics.history_ingest import (
+from ai_agents_metrics.history_ingest import (
     ingest_codex_history as run_ingest_codex_history,
 )
-from codex_metrics.history_normalize import (
+from ai_agents_metrics.history_normalize import (
     NormalizeSummary,
     render_normalize_summary_json,  # noqa: F401 — re-exported as cli_module attribute
 )
-from codex_metrics.history_normalize import (
+from ai_agents_metrics.history_normalize import (
     normalize_codex_history as run_normalize_codex_history,
 )
-from codex_metrics.observability import record_cli_invocation_observation
-from codex_metrics.public_boundary import (
+from ai_agents_metrics.observability import record_cli_invocation_observation
+from ai_agents_metrics.public_boundary import (
     PublicBoundaryReport,
 )
-from codex_metrics.public_boundary import (
+from ai_agents_metrics.public_boundary import (
     verify_public_boundary as run_verify_public_boundary,
 )
-from codex_metrics.reporting import (
+from ai_agents_metrics.reporting import (
     generate_report_md,
     print_summary,  # noqa: F401 — re-exported as cli_module attribute
     render_summary_json,  # noqa: F401 — re-exported as cli_module attribute
 )
-from codex_metrics.retro_timeline import (  # noqa: F401 — re-exported as cli_module attributes
+from ai_agents_metrics.retro_timeline import (  # noqa: F401 — re-exported as cli_module attributes
     derive_retro_timeline,
     render_retro_timeline_report,
     render_retro_timeline_report_json,
 )
-from codex_metrics.security import (
+from ai_agents_metrics.security import (
     SecurityReport,
     render_security_report,
 )
-from codex_metrics.security import (
+from ai_agents_metrics.security import (
     verify_security as run_verify_security,
 )
-from codex_metrics.storage import (
+from ai_agents_metrics.storage import (
     atomic_write_text,
     metrics_mutation_lock,  # noqa: F401 — re-exported as cli_module attribute
 )
-from codex_metrics.usage_backends import (
+from ai_agents_metrics.usage_backends import (
     ClaudeUsageBackend,
     UsageBackend,
     UsageWindow,
     select_usage_backend,
 )
-from codex_metrics.usage_backends import (
+from ai_agents_metrics.usage_backends import (
     resolve_usage_window as resolve_backend_usage_window,
 )
-from codex_metrics.workflow_fsm import (
+from ai_agents_metrics.workflow_fsm import (
     WorkflowEvent,
     WorkflowResolution,
     resolve_workflow_transition,
@@ -140,7 +140,7 @@ from codex_metrics.workflow_fsm import (
 
 EVENTS_NDJSON_PATH = Path("metrics/events.ndjson")
 METRICS_JSON_PATH = EVENTS_NDJSON_PATH  # backward-compat alias used by args.metrics_path
-REPORT_MD_PATH = Path("docs/codex-metrics.md")
+REPORT_MD_PATH = Path("docs/ai-agents-metrics.md")
 CODEX_STATE_PATH = Path.home() / ".codex" / "state_5.sqlite"
 CODEX_LOGS_PATH = Path.home() / ".codex" / "logs_1.sqlite"
 CLAUDE_ROOT = Path.home() / ".claude"
@@ -264,7 +264,7 @@ def ensure_active_task(data: dict[str, Any], cwd: Path) -> ActiveTaskResolution:
 
 
 def default_pricing_path() -> Path:
-    return Path(str(resources.files("codex_metrics").joinpath("data/model_pricing.json")))
+    return Path(str(resources.files("ai_agents_metrics").joinpath("data/model_pricing.json")))
 
 
 PRICING_JSON_PATH = default_pricing_path()
@@ -985,7 +985,7 @@ def init_files(metrics_path: Path, report_path: Path | None, force: bool = False
             raise ValueError(
                 f"Metrics files already exist: {joined_paths}. Use --force to overwrite."
             )
-    from codex_metrics.storage import ensure_parent_dir
+    from ai_agents_metrics.storage import ensure_parent_dir
 
     ensure_parent_dir(metrics_path)
     metrics_path.write_text("", encoding="utf-8")
@@ -1350,10 +1350,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     bootstrap_parser = subparsers.add_parser(
         "bootstrap",
-        help="Scaffold codex-metrics into a repository, including an instructions file and policy",
+        help="Scaffold ai-agents-metrics into a repository, including an instructions file and policy",
         description=(
-            "Create the full codex-metrics repository scaffold: metrics artifact, "
-            "docs/codex-metrics-policy.md, and a managed codex-metrics block inside your instructions file. "
+            "Create the full ai-agents-metrics repository scaffold: metrics artifact, "
+            "docs/ai-agents-metrics-policy.md, and a managed ai-agents-metrics block inside your instructions file. "
             "Use --write-report when you also want the optional markdown export."
         ),
     )
@@ -1361,23 +1361,23 @@ def build_parser() -> argparse.ArgumentParser:
     bootstrap_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     bootstrap_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
     bootstrap_parser.add_argument("--write-report", action="store_true", help="Also create or update the optional markdown report")
-    bootstrap_parser.add_argument("--policy-path", default="docs/codex-metrics-policy.md")
-    bootstrap_parser.add_argument("--command-path", default="tools/codex-metrics")
+    bootstrap_parser.add_argument("--policy-path", default="docs/ai-agents-metrics-policy.md")
+    bootstrap_parser.add_argument("--command-path", default="tools/ai-agents-metrics")
     bootstrap_parser.add_argument("--agents-path", "--instructions-path", dest="agents_path", default="AGENTS.md")
     bootstrap_parser.add_argument("--force", action="store_true", help="Replace conflicting scaffold files")
     bootstrap_parser.add_argument("--dry-run", action="store_true", help="Preview planned changes without writing files")
 
     install_self_parser = subparsers.add_parser(
         "install-self",
-        help="Install this executable into ~/bin/codex-metrics",
+        help="Install this executable into ~/bin/ai-agents-metrics",
         description=(
-            "Install the current codex-metrics executable into a stable user-local location. "
-            "On macOS/Linux this defaults to a symlink at ~/bin/codex-metrics."
+            "Install the current ai-agents-metrics executable into a stable user-local location. "
+            "On macOS/Linux this defaults to a symlink at ~/bin/ai-agents-metrics."
         ),
     )
     install_self_parser.add_argument("--target-dir", default=str(Path.home() / "bin"))
     install_self_parser.add_argument("--target-path")
-    install_self_parser.add_argument("--command-name", default="codex-metrics")
+    install_self_parser.add_argument("--command-name", default="ai-agents-metrics")
     install_self_parser.add_argument("--copy", action="store_true", help="Copy the executable instead of creating a symlink")
     install_self_parser.add_argument(
         "--write-shell-profile",
@@ -1389,7 +1389,7 @@ def build_parser() -> argparse.ArgumentParser:
         "completion",
         help="Print shell completion for bash or zsh",
         description=(
-            "Print a shell completion script for codex-metrics. "
+            "Print a shell completion script for ai-agents-metrics. "
             "Use this to enable command and option completion in bash or zsh."
         ),
     )
@@ -1723,7 +1723,7 @@ def build_parser() -> argparse.ArgumentParser:
     render_report_parser = subparsers.add_parser(
         "render-report",
         help="Render the optional markdown report from stored metrics",
-        description="Generate docs/codex-metrics.md on demand from the JSON source of truth.",
+        description="Generate docs/ai-agents-metrics.md on demand from the JSON source of truth.",
     )
     render_report_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     render_report_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
@@ -1861,7 +1861,7 @@ def audit_cost_coverage(
     cwd: Path,
     claude_root: Path = CLAUDE_ROOT,
 ) -> CostAuditReport:
-    from codex_metrics.cost_audit import audit_cost_coverage as build_cost_report
+    from ai_agents_metrics.cost_audit import audit_cost_coverage as build_cost_report
 
     def resolve_cost_audit_usage_window(
         state_path: Path,
@@ -2004,7 +2004,7 @@ def _record_cli_invocation(args: argparse.Namespace) -> None:
 
 
 def main() -> int:
-    from codex_metrics import commands
+    from ai_agents_metrics import commands
 
     parser = build_parser()
     args = parser.parse_args()

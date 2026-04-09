@@ -2,7 +2,7 @@
 
 This document defines the mandatory minimum policy for tracking AI-agent-assisted engineering work.
 
-Use it as the operating contract for repositories that adopt `codex-metrics`.
+Use it as the operating contract for repositories that adopt `ai-agents-metrics`.
 
 ## Purpose
 
@@ -73,7 +73,7 @@ The structured metrics file is the source of truth.
 For this repository:
 
 - source of truth: `metrics/events.ndjson` (append-only event log; tracked in git)
-- optional export: `docs/codex-metrics.md`
+- optional export: `docs/ai-agents-metrics.md`
 
 If they disagree, the event log wins.
 
@@ -138,27 +138,27 @@ Do not use an unmarked free-form commit subject for engineering work. The valida
 Prefer the high-level task workflow commands:
 
 ```bash
-codex-metrics start-task --title "Add CSV import" --task-type product
-codex-metrics continue-task --task-id <goal-id> --notes "Retry after review"
-codex-metrics finish-task --task-id <goal-id> --status success --notes "Validated"
-codex-metrics ensure-active-task
-codex-metrics show
-codex-metrics render-report
-codex-metrics sync-usage
-codex-metrics ingest-codex-history --help
-codex-metrics normalize-codex-history --help
-codex-metrics derive-codex-history --help
-codex-metrics compare-metrics-history
+ai-agents-metrics start-task --title "Add CSV import" --task-type product
+ai-agents-metrics continue-task --task-id <goal-id> --notes "Retry after review"
+ai-agents-metrics finish-task --task-id <goal-id> --status success --notes "Validated"
+ai-agents-metrics ensure-active-task
+ai-agents-metrics show
+ai-agents-metrics render-report
+ai-agents-metrics sync-usage
+ai-agents-metrics ingest-codex-history --help
+ai-agents-metrics normalize-codex-history --help
+ai-agents-metrics derive-codex-history --help
+ai-agents-metrics compare-metrics-history
 ```
 
 The public workflow contract should stay agent-agnostic. Provider-specific detection and telemetry support belong behind internal adapters, not in required public CLI flags.
 
 Automatic local usage sync is implemented for Codex telemetry (SQLite) and Claude Code telemetry (JSONL under `~/.claude/projects/`). Both are detected automatically — no provider-specific flag is required. Additional agents remain in scope for the product and should land through the same universal command surface.
 
-When repository work has already started but no active task exists yet, prefer `codex-metrics ensure-active-task` before continuing with active-work commands.
+When repository work has already started but no active task exists yet, prefer `ai-agents-metrics ensure-active-task` before continuing with active-work commands.
 Closed-goal repair via `finish-task` or a status-closing `update` remains available for history correction, but it should stay narrow and explicit.
 
-If `codex-metrics` is expected but unavailable, treat that as an `environment_issue` or installation mismatch and report it clearly.
+If `ai-agents-metrics` is expected but unavailable, treat that as an `environment_issue` or installation mismatch and report it clearly.
 
 Do not invent a manual fallback workflow and do not edit generated metrics artifacts directly just to keep moving.
 

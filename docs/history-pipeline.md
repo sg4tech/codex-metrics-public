@@ -4,10 +4,10 @@ Use this as the quick map for transcript, usage, and derived-history work.
 
 ## Read Order
 
-1. `src/codex_metrics/history_ingest.py`
-2. `src/codex_metrics/history_normalize.py`
-3. `src/codex_metrics/history_derive.py`
-4. `src/codex_metrics/history_compare.py`
+1. `src/ai_agents_metrics/history_ingest.py`
+2. `src/ai_agents_metrics/history_normalize.py`
+3. `src/ai_agents_metrics/history_derive.py`
+4. `src/ai_agents_metrics/history_compare.py`
 
 ## Raw Sources In `~/.codex`
 
@@ -243,7 +243,7 @@ Project-level aggregate after derivation.
 
 ## Event Store
 
-- `events.sqlite.events`: audit log of `codex-metrics` operations and goal mutations
+- `events.sqlite.events`: audit log of `ai-agents-metrics` operations and goal mutations
 - Use for: bookkeeping, retros, and tracing changes to metrics state
 - Important note: this is not the transcript/history warehouse
 

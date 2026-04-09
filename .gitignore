@@ -24,7 +24,7 @@ venv/
 build/
 dist/
 *.egg-info/
-src/codex_metrics/_version.py
+src/ai_agents_metrics/_version.py
 
 # Local observability state
 .codex-metrics/

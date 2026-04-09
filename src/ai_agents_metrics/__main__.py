@@ -1,6 +1,6 @@
 # ruff: noqa: I001
 
-from codex_metrics.cli import console_main
+from ai_agents_metrics.cli import console_main
 
 
 if __name__ == "__main__":

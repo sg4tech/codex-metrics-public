@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
-from codex_metrics.domain import GoalRecord, goal_from_dict
+from ai_agents_metrics.domain import GoalRecord, goal_from_dict
 
 
 def _ts_str(value: datetime | None) -> str | None:

@@ -4,12 +4,12 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from codex_metrics.domain import (
+from ai_agents_metrics.domain import (
     EffectiveGoalRecord,
     build_effective_goals,
     goal_from_dict,
 )
-from codex_metrics.redaction import redact_text
+from ai_agents_metrics.redaction import redact_text
 
 
 @dataclass(frozen=True)
