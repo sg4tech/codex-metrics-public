@@ -861,6 +861,51 @@ def test_resolve_pricing_model_alias_accepts_current_model_suffixes() -> None:
     assert MODULE.resolve_pricing_model_alias("gpt-5.4-mini", pricing) == "gpt-5-mini"
 
 
+def test_resolve_pricing_model_alias_strips_date_suffix() -> None:
+    pricing = {
+        "claude-sonnet-4-6": {
+            "input_per_million_usd": 3.0,
+            "cached_input_per_million_usd": 0.3,
+            "output_per_million_usd": 15.0,
+        },
+    }
+
+    # Model ID with date suffix should resolve to the date-stripped key
+    assert MODULE.resolve_pricing_model_alias("claude-sonnet-4-6-20251022", pricing) == "claude-sonnet-4-6"
+    # Model ID without date suffix resolves directly
+    assert MODULE.resolve_pricing_model_alias("claude-sonnet-4-6", pricing) == "claude-sonnet-4-6"
+
+
+def test_resolve_pricing_model_alias_unknown_model_returns_none() -> None:
+    pricing = {
+        "claude-sonnet-4-6": {
+            "input_per_million_usd": 3.0,
+            "cached_input_per_million_usd": 0.3,
+            "output_per_million_usd": 15.0,
+        },
+    }
+
+    assert MODULE.resolve_pricing_model_alias("unknown-model-xyz", pricing) is None
+
+
+def test_resolve_pricing_path_returns_workspace_override(tmp_path: Path) -> None:
+    override = tmp_path / "model_pricing.json"
+    override.write_text(
+        json.dumps({"models": {"my-model": {"input_per_million_usd": 1.0, "cached_input_per_million_usd": 0.1, "output_per_million_usd": 5.0}}}),
+        encoding="utf-8",
+    )
+
+    result = MODULE.resolve_pricing_path(tmp_path)
+    assert result == override
+
+
+def test_resolve_pricing_path_falls_back_to_bundled(tmp_path: Path) -> None:
+    # tmp_path has no model_pricing.json
+    result = MODULE.resolve_pricing_path(tmp_path)
+    assert result.name == "model_pricing.json"
+    assert result.exists()
+
+
 def test_resolve_codex_usage_window_returns_none_without_matching_thread(
     tmp_path: Path,
 ) -> None:

@@ -335,36 +335,51 @@ def parse_usage_event(body: str) -> dict[str, Any] | None:
     return parsed
 
 
-_CLAUDE_MODEL_ALIASES: dict[str, str] = {
-    # Haiku 4.5 alias (without date suffix) → full ID with date
-    "claude-haiku-4-5": "claude-haiku-4-5-20251001",
-}
+def resolve_pricing_model_alias(model: str, pricing: dict[str, dict[str, float | None]]) -> str | None:
+    """Resolve a model identifier to its key in the pricing dict, or return None if not found.
 
-
-def resolve_pricing_model_alias(model: str, pricing: dict[str, dict[str, float | None]]) -> str:
+    Normalization steps tried in order:
+    1. Direct lookup.
+    2. Strip trailing date suffix (e.g. claude-sonnet-4-6-20251022 → claude-sonnet-4-6).
+    3. OpenAI Codex version suffix (e.g. gpt-5.4 → gpt-5).
+    """
     if model in pricing:
         return model
 
-    alias_candidates = [model]
-
-    # Claude model aliases (e.g. claude-haiku-4-5 → claude-haiku-4-5-20251001)
-    if model in _CLAUDE_MODEL_ALIASES:
-        alias_candidates.append(_CLAUDE_MODEL_ALIASES[model])
+    # Strip trailing date suffix (YYYYMMDD), e.g. claude-sonnet-4-6-20251022 → claude-sonnet-4-6
+    date_stripped = re.sub(r"-\d{8}$", "", model)
+    if date_stripped != model and date_stripped in pricing:
+        return date_stripped
 
     # OpenAI Codex version suffix alias (e.g. gpt-5.4 → gpt-5)
     if model.endswith(".4"):
-        alias_candidates.append(model.rsplit(".4", maxsplit=1)[0])
-    if model.endswith(".4-mini"):
-        alias_candidates.append(model.rsplit(".4-mini", maxsplit=1)[0] + "-mini")
-
-    for candidate in alias_candidates:
+        candidate = model.rsplit(".4", maxsplit=1)[0]
         if candidate in pricing:
             return candidate
-    raise ValueError(f"Unknown pricing model: {model}")
+    if model.endswith(".4-mini"):
+        candidate = model.rsplit(".4-mini", maxsplit=1)[0] + "-mini"
+        if candidate in pricing:
+            return candidate
+
+    return None
+
+
+def resolve_pricing_path(cwd: Path) -> Path:
+    """Return the effective pricing file path for the given workspace.
+
+    If a model_pricing.json exists in the workspace root, it overrides the
+    bundled default. Otherwise the bundled package file is used.
+    """
+    workspace_override = cwd / "model_pricing.json"
+    if workspace_override.exists():
+        return workspace_override
+    return default_pricing_path()
 
 
 def compute_event_cost_usd(event: dict[str, Any], pricing: dict[str, dict[str, float | None]]) -> float:
     pricing_model = resolve_pricing_model_alias(event["model"], pricing)
+    if pricing_model is None:
+        return 0.0
     model_pricing = pricing[pricing_model]
     cached_rate = model_pricing["cached_input_per_million_usd"]
     if event["cached_input_tokens"] > 0 and cached_rate is None:
@@ -408,6 +423,8 @@ def _compute_claude_event_cost_usd(
         return 0.0
 
     pricing_model = resolve_pricing_model_alias(model, pricing)
+    if pricing_model is None:
+        return 0.0
     model_pricing = pricing[pricing_model]
 
     input_cost = Decimal(str(model_pricing["input_per_million_usd"])) * Decimal(input_tokens) / Decimal(1_000_000)
@@ -955,6 +972,8 @@ def resolve_usage_costs(
 
     pricing = load_pricing(pricing_path)
     pricing_model = resolve_pricing_model_alias(model, pricing)
+    if pricing_model is None:
+        raise ValueError(f"Unknown model: {model!r} — not found in pricing file {pricing_path}")
     model_pricing = pricing[pricing_model]
     cached_rate = model_pricing["cached_input_per_million_usd"]
     if cached_input_tokens_value > 0 and cached_rate is None:
@@ -1416,7 +1435,7 @@ def build_parser() -> argparse.ArgumentParser:
     start_parser.add_argument("--input-tokens", type=int, help="Input tokens for model-based pricing")
     start_parser.add_argument("--cached-input-tokens", type=int, help="Cached input tokens for model-based pricing")
     start_parser.add_argument("--output-tokens", type=int, help="Output tokens for model-based pricing")
-    start_parser.add_argument("--pricing-path", default=str(PRICING_JSON_PATH))
+    start_parser.add_argument("--pricing-path", default=None)
     start_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
     start_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
     start_parser.add_argument("--codex-thread-id")
@@ -1447,7 +1466,7 @@ def build_parser() -> argparse.ArgumentParser:
     continue_parser.add_argument("--input-tokens", type=int, help="Input tokens for model-based pricing")
     continue_parser.add_argument("--cached-input-tokens", type=int, help="Cached input tokens for model-based pricing")
     continue_parser.add_argument("--output-tokens", type=int, help="Output tokens for model-based pricing")
-    continue_parser.add_argument("--pricing-path", default=str(PRICING_JSON_PATH))
+    continue_parser.add_argument("--pricing-path", default=None)
     continue_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
     continue_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
     continue_parser.add_argument("--codex-thread-id")
@@ -1484,7 +1503,7 @@ def build_parser() -> argparse.ArgumentParser:
     finish_parser.add_argument("--input-tokens", type=int, help="Input tokens for model-based pricing")
     finish_parser.add_argument("--cached-input-tokens", type=int, help="Cached input tokens for model-based pricing")
     finish_parser.add_argument("--output-tokens", type=int, help="Output tokens for model-based pricing")
-    finish_parser.add_argument("--pricing-path", default=str(PRICING_JSON_PATH))
+    finish_parser.add_argument("--pricing-path", default=None)
     finish_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
     finish_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
     finish_parser.add_argument("--codex-thread-id")
@@ -1533,7 +1552,7 @@ def build_parser() -> argparse.ArgumentParser:
     update_parser.add_argument("--input-tokens", type=int, help="Input tokens for model-based pricing")
     update_parser.add_argument("--cached-input-tokens", type=int, help="Cached input tokens for model-based pricing")
     update_parser.add_argument("--output-tokens", type=int, help="Output tokens for model-based pricing")
-    update_parser.add_argument("--pricing-path", default=str(PRICING_JSON_PATH))
+    update_parser.add_argument("--pricing-path", default=None)
     update_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
     update_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
     update_parser.add_argument("--codex-thread-id")
@@ -1655,7 +1674,7 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     cost_audit_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
-    cost_audit_parser.add_argument("--pricing-path", default=str(PRICING_JSON_PATH))
+    cost_audit_parser.add_argument("--pricing-path", default=None)
     cost_audit_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
     cost_audit_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
     cost_audit_parser.add_argument("--codex-thread-id")
@@ -1700,7 +1719,7 @@ def build_parser() -> argparse.ArgumentParser:
     sync_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     sync_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
     sync_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
-    sync_parser.add_argument("--pricing-path", default=str(PRICING_JSON_PATH))
+    sync_parser.add_argument("--pricing-path", default=None)
     sync_parser.add_argument("--usage-state-path", "--codex-state-path", dest="usage_state_path", default=str(CODEX_STATE_PATH))
     sync_parser.add_argument("--usage-logs-path", "--codex-logs-path", dest="usage_logs_path", default=str(CODEX_LOGS_PATH))
     sync_parser.add_argument("--usage-thread-id", "--codex-thread-id", dest="usage_thread_id")
@@ -1714,7 +1733,7 @@ def build_parser() -> argparse.ArgumentParser:
     sync_legacy_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     sync_legacy_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
     sync_legacy_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
-    sync_legacy_parser.add_argument("--pricing-path", default=str(PRICING_JSON_PATH))
+    sync_legacy_parser.add_argument("--pricing-path", default=None)
     sync_legacy_parser.add_argument("--usage-state-path", "--codex-state-path", dest="usage_state_path", default=str(CODEX_STATE_PATH))
     sync_legacy_parser.add_argument("--usage-logs-path", "--codex-logs-path", dest="usage_logs_path", default=str(CODEX_LOGS_PATH))
     sync_legacy_parser.add_argument("--usage-thread-id", "--codex-thread-id", dest="usage_thread_id")
