@@ -49,7 +49,7 @@ package-refresh-local: package
 	./.venv/bin/python -m pip install --no-deps --force-reinstall dist/*.whl
 
 package-refresh-global: package-refresh-local package-standalone
-	./dist/standalone/codex-metrics install-self $(INSTALL_SELF_ARGS)
+	./dist/standalone/ai-agents-metrics install-self $(INSTALL_SELF_ARGS)
 
 live-usage-smoke:
 	./.venv/bin/python scripts/check_live_usage_recovery.py
