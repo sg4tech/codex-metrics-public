@@ -1,6 +1,42 @@
 # Data Schema
 
-The primary store is `metrics/events.ndjson` — an append-only NDJSON event log. State is reconstructed in-memory by replaying events; the in-memory structure has the shape documented here. All fields are documented below.
+**What this document is:** The full field reference for the in-memory data model — `GoalRecord`, `AttemptEntryRecord`, and the `summary` block.
+
+**When to read this:**
+- Writing code that reads or writes goal/entry data
+- Debugging an unexpected field value or validation error
+- Understanding what a specific field means
+
+**Related docs:**
+- [data-invariants.md](data-invariants.md) — business rules that must hold for all records
+- [architecture.md](architecture.md) — how storage and replay work
+- [docs/glossary.md](glossary.md) — terminology: goal vs task, entry vs attempt, supersedes chain, etc.
+
+---
+
+## Summary
+
+The primary store is `metrics/events.ndjson` — an append-only NDJSON event log. The in-memory state is reconstructed by replaying events at read time. The three top-level keys are `goals`, `entries`, and `summary`.
+
+- `goals` — list of `GoalRecord` objects (one per tracked task)
+- `entries` — list of `AttemptEntryRecord` objects (one per attempt within a goal)
+- `summary` — aggregated statistics; always computed in-memory, never stored
+
+---
+
+## Core concepts
+
+- **Goal** — the unit of tracked work. One goal per task or retrospective. See `GoalRecord`.
+- **Entry (attempt)** — one implementation pass within a goal. A goal with `attempts=2` has two entries. See `AttemptEntryRecord`.
+- **Event log** — `metrics/events.ndjson`: append-only, one JSON line per CLI command. State is reconstructed at read time via last-write-wins replay.
+
+---
+
+## Source of truth
+
+- `metrics/events.ndjson` is the canonical store. All other representations are derived.
+- The `summary` block is always recomputed in-memory on `load_metrics`. Do not edit it manually.
+- The `tasks` key is a legacy alias for `goals`. It is normalised to `goals` in-memory during replay and never written to `events.ndjson`.
 
 ---
 
@@ -147,7 +183,7 @@ One attempt within a goal. A goal with `attempts=2` has two records in `entries`
 
 ## summary (aggregate)
 
-Recomputed automatically. Do not edit manually.
+Recomputed automatically on every `load_metrics` call. Do not edit manually.
 
 ### Top-level summary fields
 
@@ -190,3 +226,5 @@ Recomputed automatically. Do not edit manually.
 **Tokens:** `tokens_total` may exceed `input + cached + output` — the difference is reasoning/tool tokens not broken down separately. When all four fields are present: `tokens_total >= input + cached + output`.
 
 **Cost:** rounded to 6 decimal places via `round_usd`.
+
+> For the full set of validation rules that apply to these fields, see [data-invariants.md](data-invariants.md).
