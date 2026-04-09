@@ -885,6 +885,7 @@ def ingest_codex_history(
                 logs += imported_rows
                 record_count = imported_rows
             elif source_kind == "claude_session":
+                before_threads = conn.execute("SELECT count(*) FROM raw_threads").fetchone()[0]
                 before_sessions = conn.execute("SELECT count(*) FROM raw_sessions").fetchone()[0]
                 before_events = conn.execute("SELECT count(*) FROM raw_session_events").fetchone()[0]
                 before_messages = conn.execute("SELECT count(*) FROM raw_messages").fetchone()[0]
@@ -904,6 +905,7 @@ def ingest_codex_history(
                     "SELECT coalesce(sum(total_tokens), 0) FROM raw_token_usage WHERE has_breakdown = 1"
                 ).fetchone()[0]
                 session_records = _import_claude_session_file(conn, source_path)
+                after_threads = conn.execute("SELECT count(*) FROM raw_threads").fetchone()[0]
                 after_sessions = conn.execute("SELECT count(*) FROM raw_sessions").fetchone()[0]
                 after_events = conn.execute("SELECT count(*) FROM raw_session_events").fetchone()[0]
                 after_messages = conn.execute("SELECT count(*) FROM raw_messages").fetchone()[0]
@@ -922,6 +924,7 @@ def ingest_codex_history(
                 after_total_tokens = conn.execute(
                     "SELECT coalesce(sum(total_tokens), 0) FROM raw_token_usage WHERE has_breakdown = 1"
                 ).fetchone()[0]
+                threads += after_threads - before_threads
                 sessions += after_sessions - before_sessions
                 session_events += after_events - before_events
                 messages += after_messages - before_messages
