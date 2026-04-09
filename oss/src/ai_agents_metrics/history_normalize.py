@@ -415,7 +415,7 @@ def normalize_codex_history(*, warehouse_path: Path) -> NormalizeSummary:
             raw_logs = _fetch_raw_logs(conn)
         except sqlite3.OperationalError as exc:
             raise ValueError(
-                "Warehouse does not contain raw Codex history; run ingest-codex-history first"
+                "Warehouse does not contain raw agent history; run history-ingest first"
             ) from exc
 
         session_count_by_thread: dict[str, int] = {}

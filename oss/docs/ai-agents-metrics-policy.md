@@ -120,6 +120,7 @@ Do not use an unmarked free-form commit subject for engineering work. The valida
 3. Set status to `in_progress`.
 4. Initialize attempts to `0`.
 5. Do this before substantial implementation, documentation, or validation work begins. Do not postpone task start bookkeeping until after meaningful progress already exists. The first action before writing any code must be opening a goal with `start-task`.
+6. Any change to `src/` or `tests/` is a hard gate: an open goal must exist before those files are modified. This applies regardless of how the task originated — explicit instruction, conversational question, or observation. The trigger does not matter; the file change does.
 
 ### On Each Attempt
 
@@ -147,10 +148,10 @@ ai-agents-metrics ensure-active-task
 ai-agents-metrics show
 ai-agents-metrics render-report
 ai-agents-metrics sync-usage
-ai-agents-metrics ingest-codex-history --help
-ai-agents-metrics normalize-codex-history --help
-ai-agents-metrics derive-codex-history --help
-ai-agents-metrics compare-metrics-history
+ai-agents-metrics history-ingest --help
+ai-agents-metrics history-normalize --help
+ai-agents-metrics history-derive --help
+ai-agents-metrics history-compare
 ```
 
 The public workflow contract should stay agent-agnostic. Provider-specific detection and telemetry support belong behind internal adapters, not in required public CLI flags.

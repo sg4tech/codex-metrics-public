@@ -55,6 +55,7 @@ The following docs exist for reference — consult them as needed, not on every 
 ## Core working style
 
 - For engineering work, treat Linear as the source of truth for intake and traceability: create or update the relevant Linear issue before writing code, capture the requirements and acceptance criteria there, and work only through that issue.
+- Any change to `src/` or `tests/` requires an open metrics goal and a Linear issue. This is a hard gate — not a guideline. It does not matter how the task started (explicit instruction, conversational question, observation). If files in those directories are about to change, intake must happen first.
 - For Linear-driven engineering work, use `docs/private/task-lifecycle.md` as the working workflow guide and `docs/private/local-linear-setup.md` as the repo-specific team/status reference.
 - Standalone retrospective work is explicitly exempt from the Linear-first intake rule. Log the retrospective in `docs/private/retros/`, track it as `goal_type=retro`, and do not create a Linear issue unless the user explicitly asks to connect it to delivery work.
 - Commit subjects for engineering work must match `CODEX-123: summary`; when a change is intentionally not tied to a Linear issue, use the explicit `NO-TASK: summary` prefix instead. Retrospective-only commits must use `NO-TASK: summary`.

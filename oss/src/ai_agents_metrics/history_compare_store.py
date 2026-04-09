@@ -59,7 +59,7 @@ def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
 def _session_usage_table_name(conn: sqlite3.Connection) -> str:
     if _table_exists(conn, "derived_session_usage"):
         return "derived_session_usage"
-    raise ValueError("Warehouse does not contain derived Codex history; run derive-codex-history first")
+    raise ValueError("Warehouse does not contain derived agent history; run history-derive first")
 
 
 def _warehouse_scope_row(conn: sqlite3.Connection, *, cwd: str | None = None) -> HistoryCompareScopeRow:
@@ -188,7 +188,7 @@ def load_history_compare_warehouse_data(*, warehouse_path: Path, cwd: Path) -> H
             _session_usage_table_name(conn)
         except sqlite3.OperationalError as exc:
             raise ValueError(
-                "Warehouse does not contain derived Codex history; run derive-codex-history first"
+                "Warehouse does not contain derived agent history; run history-derive first"
             ) from exc
 
         global_scope = _warehouse_scope_row(conn)
