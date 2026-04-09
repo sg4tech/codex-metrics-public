@@ -64,6 +64,7 @@ class NormalizedUsageEventRow(TypedDict):
     event_index: int
     timestamp: str | None
     input_tokens: int | None
+    cache_creation_input_tokens: int | None
     cached_input_tokens: int | None
     output_tokens: int | None
     reasoning_output_tokens: int | None
@@ -206,6 +207,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
             event_index INTEGER NOT NULL,
             timestamp TEXT,
             input_tokens INTEGER,
+            cache_creation_input_tokens INTEGER,
             cached_input_tokens INTEGER,
             output_tokens INTEGER,
             reasoning_output_tokens INTEGER,
@@ -253,6 +255,9 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE INDEX IF NOT EXISTS idx_normalized_usage_thread_id ON normalized_usage_events(thread_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_normalized_logs_thread_id ON normalized_logs(thread_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_normalized_projects_cwd ON normalized_projects(project_cwd)")
+    existing_norm_usage_columns = {row[1] for row in conn.execute("PRAGMA table_info(normalized_usage_events)").fetchall()}
+    if "cache_creation_input_tokens" not in existing_norm_usage_columns:
+        conn.execute("ALTER TABLE normalized_usage_events ADD COLUMN cache_creation_input_tokens INTEGER")
 
 
 def _clear_normalized_tables(conn: sqlite3.Connection) -> None:
@@ -312,8 +317,9 @@ def _fetch_raw_token_usage(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute(
         """
         SELECT token_event_id, session_path, source_path, thread_id, event_index,
-               timestamp, has_breakdown, input_tokens, cached_input_tokens,
-               output_tokens, reasoning_output_tokens, total_tokens, model, raw_json
+               timestamp, has_breakdown, input_tokens, cache_creation_input_tokens,
+               cached_input_tokens, output_tokens, reasoning_output_tokens, total_tokens,
+               model, raw_json
         FROM raw_token_usage
         ORDER BY thread_id, session_path, event_index
         """
@@ -351,6 +357,7 @@ def _usage_event_from_row(row: sqlite3.Row) -> dict[str, Any] | None:
         "event_index": row["event_index"],
         "timestamp": _normalize_timestamp(payload.get("timestamp")),
         "input_tokens": last_token_usage.get("input_tokens"),
+        "cache_creation_input_tokens": None,
         "cached_input_tokens": last_token_usage.get("cached_input_tokens"),
         "output_tokens": last_token_usage.get("output_tokens"),
         "reasoning_output_tokens": last_token_usage.get("reasoning_output_tokens"),
@@ -372,6 +379,7 @@ def _usage_event_from_token_row(row: sqlite3.Row) -> dict[str, Any] | None:
         "event_index": row["event_index"],
         "timestamp": _normalize_timestamp(row["timestamp"]),
         "input_tokens": row["input_tokens"],
+        "cache_creation_input_tokens": row["cache_creation_input_tokens"],
         "cached_input_tokens": row["cached_input_tokens"],
         "output_tokens": row["output_tokens"],
         "reasoning_output_tokens": row["reasoning_output_tokens"],
@@ -546,9 +554,9 @@ def normalize_codex_history(*, warehouse_path: Path) -> NormalizeSummary:
                 """
                 INSERT INTO normalized_usage_events (
                     usage_event_id, thread_id, session_path, source_path, event_index, timestamp,
-                    input_tokens, cached_input_tokens, output_tokens, reasoning_output_tokens,
-                    total_tokens, model, raw_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    input_tokens, cache_creation_input_tokens, cached_input_tokens,
+                    output_tokens, reasoning_output_tokens, total_tokens, model, raw_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     usage_event_id,
@@ -558,6 +566,7 @@ def normalize_codex_history(*, warehouse_path: Path) -> NormalizeSummary:
                     usage_event["event_index"],
                     usage_event["timestamp"],
                     usage_event["input_tokens"],
+                    usage_event["cache_creation_input_tokens"],
                     usage_event["cached_input_tokens"],
                     usage_event["output_tokens"],
                     usage_event["reasoning_output_tokens"],

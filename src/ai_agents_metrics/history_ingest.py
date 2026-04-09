@@ -152,6 +152,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
             timestamp TEXT,
             has_breakdown INTEGER NOT NULL,
             input_tokens INTEGER,
+            cache_creation_input_tokens INTEGER,
             cached_input_tokens INTEGER,
             output_tokens INTEGER,
             reasoning_output_tokens INTEGER,
@@ -182,6 +183,9 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE INDEX IF NOT EXISTS idx_raw_messages_source_path ON raw_messages(source_path)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_raw_token_usage_source_path ON raw_token_usage(source_path)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_raw_logs_thread_id ON raw_logs(thread_id)")
+    existing_raw_token_usage_columns = {row[1] for row in conn.execute("PRAGMA table_info(raw_token_usage)").fetchall()}
+    if "cache_creation_input_tokens" not in existing_raw_token_usage_columns:
+        conn.execute("ALTER TABLE raw_token_usage ADD COLUMN cache_creation_input_tokens INTEGER")
 
 
 def _delete_source_rows(conn: sqlite3.Connection, source_path: str, source_kind: str) -> None:
@@ -643,8 +647,9 @@ def _extract_claude_token_usage(
         "timestamp": timestamp,
         "has_breakdown": 1,
         "input_tokens": input_tokens,
-        # cache_read maps to cached_input_tokens (read-from-cache portion)
-        # cache_creation is stored only in raw_json (billed at higher rate, tracked separately)
+        # cache_creation: writing new cache entries (billed at ~1.25× normal input rate)
+        "cache_creation_input_tokens": cache_creation,
+        # cache_read: reading existing cache entries (billed at ~0.1× normal input rate)
         "cached_input_tokens": cache_read,
         "output_tokens": output_tokens,
         "reasoning_output_tokens": None,
@@ -701,6 +706,10 @@ def _import_claude_session_file(conn: sqlite3.Connection, source_path: Path) -> 
 
     thread_id = session_id
 
+    # INSERT OR IGNORE: subagent files share sessionId with the parent, so the
+    # parent's raw_threads row is preserved unchanged when the subagent is imported.
+    # The raw_threads.source_path is owned by whichever file is imported first;
+    # in practice _iter_claude_source_files yields root files before subagents.
     conn.execute(
         """
         INSERT OR IGNORE INTO raw_threads (
@@ -773,15 +782,17 @@ def _import_claude_session_file(conn: sqlite3.Connection, source_path: Path) -> 
                 """
                 INSERT INTO raw_token_usage (
                     token_event_id, session_path, source_path, thread_id, event_index,
-                    timestamp, has_breakdown, input_tokens, cached_input_tokens,
-                    output_tokens, reasoning_output_tokens, total_tokens, model, raw_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    timestamp, has_breakdown, input_tokens, cache_creation_input_tokens,
+                    cached_input_tokens, output_tokens, reasoning_output_tokens,
+                    total_tokens, model, raw_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     token_usage["token_event_id"], token_usage["session_path"],
                     token_usage["source_path"], token_usage["thread_id"],
                     token_usage["event_index"], token_usage["timestamp"],
                     token_usage["has_breakdown"], token_usage["input_tokens"],
+                    token_usage["cache_creation_input_tokens"],
                     token_usage["cached_input_tokens"], token_usage["output_tokens"],
                     token_usage["reasoning_output_tokens"], token_usage["total_tokens"],
                     token_usage["model"], token_usage["raw_json"],
