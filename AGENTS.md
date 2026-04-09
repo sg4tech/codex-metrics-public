@@ -87,7 +87,7 @@ Do not edit metrics files manually when the updater script can regenerate them.
 
 Use:
 
-`./tools/codex-metrics ...`
+`./tools/ai-agents-metrics ...`
 
 Tracked files:
 - `metrics/events.ndjson` — append-only event log; the source of truth; tracked in git
@@ -142,7 +142,7 @@ Minimum validation commands:
 
 ```bash
 python -m pytest tests/public/test_update_codex_metrics.py
-./tools/codex-metrics show
+./tools/ai-agents-metrics show
 ```
 
 Prefer the repository's canonical local validation entrypoint when available:
@@ -191,9 +191,9 @@ Before starting or continuing any engineering task, always read:
 - `AGENTS.md`
 - `docs/codex-metrics-policy.md`
 
-Use `tools/codex-metrics ...` in this repository.
+Use `tools/ai-agents-metrics ...` in this repository.
 
-If `tools/codex-metrics` is unavailable, stop and report an installation or invocation mismatch before proceeding.
+If `tools/ai-agents-metrics` is unavailable, stop and report an installation or invocation mismatch before proceeding.
 
 The rules in `docs/codex-metrics-policy.md` are mandatory and are part of this repository's operating instructions.
 

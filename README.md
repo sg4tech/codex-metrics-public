@@ -258,14 +258,14 @@ codex-metrics --help
 Preferred install from source:
 
 ```bash
-pipx install /Users/viktor/PycharmProjects/codex-metrics
+pipx install /path/to/codex-metrics
 ```
 
 Fallback install:
 
 ```bash
 # macOS / Linux
-python3 -m pip install /Users/viktor/PycharmProjects/codex-metrics
+python3 -m pip install /path/to/codex-metrics
 
 # Windows
 py -m pip install C:\path\to\codex-metrics
@@ -288,7 +288,7 @@ This creates or updates:
 
 - `metrics/codex_metrics.json`
 - `docs/codex-metrics-policy.md`
-- `tools/codex-metrics` repo-local wrapper
+- `tools/ai-agents-metrics` repo-local wrapper
 - `AGENTS.md` with a managed `codex-metrics` block
 
 If you also want the optional markdown export during bootstrap:
@@ -306,9 +306,9 @@ If the target repo already has a conflicting `docs/codex-metrics-policy.md` and 
 First-task flow after bootstrap:
 
 ```bash
-./tools/codex-metrics start-task --title "My first task" --task-type product
-./tools/codex-metrics show
-./tools/codex-metrics finish-task --task-id <goal-id> --status success --notes "Done"
+./tools/ai-agents-metrics start-task --title "My first task" --task-type product
+./tools/ai-agents-metrics show
+./tools/ai-agents-metrics finish-task --task-id <goal-id> --status success --notes "Done"
 ```
 
 ## Update In Another Repository
@@ -319,10 +319,10 @@ Update from a local checkout:
 
 ```bash
 # preferred
-pipx install --force /Users/viktor/PycharmProjects/codex-metrics
+pipx install --force /path/to/codex-metrics
 
 # macOS / Linux fallback
-python3 -m pip install --upgrade /Users/viktor/PycharmProjects/codex-metrics
+python3 -m pip install --upgrade /path/to/codex-metrics
 
 # Windows fallback
 py -m pip install --upgrade C:\path\to\codex-metrics
