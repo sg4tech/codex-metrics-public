@@ -8,7 +8,8 @@ dynamic = ["version"]
 description = "CLI for tracking AI agent task metrics: token cost, retry pressure, and outcome quality."
 readme = "README.md"
 requires-python = ">=3.11"
-license = "Apache-2.0"
+license = {text = "Apache-2.0"}
+classifiers = ["License :: OSI Approved :: Apache Software License"]
 dependencies = []
 
 [project.optional-dependencies]
