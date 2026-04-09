@@ -93,7 +93,8 @@
       "Bash(unzip -p /tmp/test-build-ai3/*.whl '*/METADATA')",
       "WebFetch(domain:packaging.python.org)",
       "WebFetch(domain:python-poetry.org)",
-      "Bash(ai-agents-metrics --version)"
+      "Bash(ai-agents-metrics --version)",
+      "Bash(sqlite3 *)"
     ]
   }
 }
