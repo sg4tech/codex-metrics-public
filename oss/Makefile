@@ -8,6 +8,7 @@ init:
 	.venv/bin/pip install -U pip setuptools wheel
 	.venv/bin/pip install -e ".[dev]" || .venv/bin/pip install -e .
 	@$(MAKE) remind-task
+	@$(MAKE) public-overlay-pull
 
 check-init:
 	@test -d .venv || $(MAKE) init
