@@ -9,6 +9,32 @@ description = "CLI for tracking AI agent task metrics: token cost, retry pressur
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
+keywords = [
+    "ai-agents",
+    "llm",
+    "metrics",
+    "token-cost",
+    "cost-tracking",
+    "claude-code",
+    "codex",
+    "observability",
+    "developer-productivity",
+    "retry-pressure",
+    "agent-metrics",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development",
+    "Topic :: System :: Monitoring",
+    "Typing :: Typed",
+]
 dependencies = []
 
 [project.optional-dependencies]
