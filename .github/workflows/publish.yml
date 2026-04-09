@@ -35,4 +35,7 @@ jobs:
         with:
           name: dist
           path: dist/
-      - uses: pypa/gh-action-pypa-publish@v1.12.4
+      - name: Publish to PyPI
+        run: |
+          pip install twine
+          twine upload dist/*
