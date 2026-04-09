@@ -11,7 +11,8 @@ from ai_agents_metrics.domain import now_utc_iso
 from ai_agents_metrics.redaction import redact_text, redact_value
 from ai_agents_metrics.storage import ensure_parent_dir
 
-OBSERVABILITY_DIRNAME = ".codex-metrics"
+OBSERVABILITY_DIRNAME = ".ai-agents-metrics"
+_OBSERVABILITY_DIRNAME_LEGACY = ".codex-metrics"
 EVENT_STORE_FILENAME = "events.sqlite"
 EVENT_DEBUG_LOG_FILENAME = "events.debug.log"
 
@@ -23,7 +24,8 @@ class ObservabilityPaths:
 
 
 def observability_paths(metrics_path: Path) -> ObservabilityPaths:
-    observability_dir = metrics_path.parent / OBSERVABILITY_DIRNAME
+    legacy_dir = metrics_path.parent / _OBSERVABILITY_DIRNAME_LEGACY
+    observability_dir = legacy_dir if legacy_dir.exists() else metrics_path.parent / OBSERVABILITY_DIRNAME
     return ObservabilityPaths(
         event_store_path=observability_dir / EVENT_STORE_FILENAME,
         debug_log_path=observability_dir / EVENT_DEBUG_LOG_FILENAME,

@@ -304,7 +304,7 @@ def create_codex_history_source_root(root: Path) -> Path:
 
 def test_ingest_codex_history_builds_raw_warehouse(repo: Path) -> None:
     source_root = create_codex_history_source_root(repo)
-    warehouse_path = repo / "metrics" / ".codex-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
 
     result = run_cmd(
         repo,
@@ -386,7 +386,7 @@ def test_ingest_codex_history_tracks_token_count_coverage(repo: Path) -> None:
         + "\n",
         encoding="utf-8",
     )
-    warehouse_path = repo / "metrics" / ".codex-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
 
     result = run_cmd(
         repo,
@@ -411,7 +411,7 @@ def test_ingest_codex_history_tracks_token_count_coverage(repo: Path) -> None:
 
 def test_ingest_codex_history_is_idempotent_on_rerun(repo: Path) -> None:
     source_root = create_codex_history_source_root(repo)
-    warehouse_path = repo / "metrics" / ".codex-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
 
     first = run_cmd(
         repo,
@@ -444,7 +444,7 @@ def test_ingest_codex_history_is_idempotent_on_rerun(repo: Path) -> None:
 
 
 def test_ingest_codex_history_rejects_missing_source_root(repo: Path) -> None:
-    warehouse_path = repo / "metrics" / ".codex-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
     missing_root = repo / "does-not-exist"
 
     result = run_cmd(
@@ -464,7 +464,7 @@ def test_ingest_codex_history_handles_partial_source_root_without_state_or_logs(
     source_root = create_codex_history_source_root(repo)
     (source_root / "state_5.sqlite").unlink()
     (source_root / "logs_1.sqlite").unlink()
-    warehouse_path = repo / "metrics" / ".codex-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
 
     result = run_cmd(
         repo,
@@ -508,7 +508,7 @@ def test_ingest_codex_history_rejects_malformed_sqlite_sources(repo: Path) -> No
     with sqlite3.connect(source_root / "state_5.sqlite") as conn:
         conn.execute("DROP TABLE threads")
         conn.commit()
-    warehouse_path = repo / "metrics" / ".codex-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
 
     result = run_cmd(
         repo,

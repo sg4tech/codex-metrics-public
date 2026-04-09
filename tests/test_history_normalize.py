@@ -36,7 +36,7 @@ def repo(tmp_path: Path) -> Path:
 
 def test_normalize_codex_history_builds_analysis_tables(repo: Path) -> None:
     source_root = create_codex_history_source_root(repo)
-    warehouse_path = repo / "metrics" / ".codex-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
 
     ingest_result = run_cmd(
         repo,
@@ -95,7 +95,7 @@ def test_normalize_codex_history_builds_analysis_tables(repo: Path) -> None:
 
 def test_normalize_codex_history_is_idempotent_on_rerun(repo: Path) -> None:
     source_root = create_codex_history_source_root(repo)
-    warehouse_path = repo / "metrics" / ".codex-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
 
     assert (
         run_cmd(
@@ -128,7 +128,7 @@ def test_normalize_codex_history_is_idempotent_on_rerun(repo: Path) -> None:
 
 def test_normalize_codex_history_handles_missing_event_timestamps(repo: Path) -> None:
     source_root = create_codex_history_source_root(repo)
-    warehouse_path = repo / "metrics" / ".codex-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
 
     assert (
         run_cmd(
@@ -170,7 +170,7 @@ def test_normalize_codex_history_handles_missing_event_timestamps(repo: Path) ->
 
 def test_normalize_codex_history_handles_blank_timestamp_strings(repo: Path) -> None:
     source_root = create_codex_history_source_root(repo)
-    warehouse_path = repo / "metrics" / ".codex-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
 
     assert (
         run_cmd(
@@ -209,7 +209,7 @@ def test_normalize_codex_history_handles_blank_timestamp_strings(repo: Path) -> 
 
 
 def test_normalize_codex_history_rejects_missing_warehouse(repo: Path) -> None:
-    warehouse_path = repo / "metrics" / ".codex-metrics" / "missing.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "missing.sqlite"
 
     result = run_cmd(
         repo,
@@ -223,7 +223,7 @@ def test_normalize_codex_history_rejects_missing_warehouse(repo: Path) -> None:
 
 
 def test_normalize_codex_history_rejects_non_ingested_warehouse(repo: Path) -> None:
-    warehouse_path = repo / "metrics" / ".codex-metrics" / "empty.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "empty.sqlite"
     warehouse_path.parent.mkdir(parents=True, exist_ok=True)
     sqlite3.connect(warehouse_path).close()
 

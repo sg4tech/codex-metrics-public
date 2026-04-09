@@ -494,8 +494,8 @@ def test_start_task_records_structured_event_and_debug_log(repo: Path) -> None:
     result = run_cmd(repo, "start-task", "--title", "Observed task", "--task-type", "meta")
 
     assert result.returncode == 0, result.stderr
-    events_db = repo / "metrics" / ".codex-metrics" / "events.sqlite"
-    debug_log = repo / "metrics" / ".codex-metrics" / "events.debug.log"
+    events_db = repo / "metrics" / ".ai-agents-metrics" / "events.sqlite"
+    debug_log = repo / "metrics" / ".ai-agents-metrics" / "events.debug.log"
     assert events_db.exists()
     assert debug_log.exists()
 
@@ -532,8 +532,8 @@ def test_show_records_cli_invocation_event(repo: Path) -> None:
     result = run_cmd(repo, "show")
 
     assert result.returncode == 0, result.stderr
-    events_db = repo / "metrics" / ".codex-metrics" / "events.sqlite"
-    debug_log = repo / "metrics" / ".codex-metrics" / "events.debug.log"
+    events_db = repo / "metrics" / ".ai-agents-metrics" / "events.sqlite"
+    debug_log = repo / "metrics" / ".ai-agents-metrics" / "events.debug.log"
 
     with sqlite3.connect(events_db) as conn:
         conn.row_factory = sqlite3.Row

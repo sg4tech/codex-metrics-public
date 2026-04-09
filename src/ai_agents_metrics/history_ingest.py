@@ -10,7 +10,8 @@ from typing import Any
 from ai_agents_metrics.domain import now_utc_iso
 from ai_agents_metrics.storage import ensure_parent_dir
 
-RAW_WAREHOUSE_DIRNAME = ".codex-metrics"
+RAW_WAREHOUSE_DIRNAME = ".ai-agents-metrics"
+_RAW_WAREHOUSE_DIRNAME_LEGACY = ".codex-metrics"
 RAW_WAREHOUSE_FILENAME = "codex_raw_history.sqlite"
 
 
@@ -37,7 +38,9 @@ class IngestSummary:
 
 
 def default_raw_warehouse_path(metrics_path: Path) -> Path:
-    return metrics_path.parent / RAW_WAREHOUSE_DIRNAME / RAW_WAREHOUSE_FILENAME
+    legacy_dir = metrics_path.parent / _RAW_WAREHOUSE_DIRNAME_LEGACY
+    warehouse_dir = legacy_dir if legacy_dir.exists() else metrics_path.parent / RAW_WAREHOUSE_DIRNAME
+    return warehouse_dir / RAW_WAREHOUSE_FILENAME
 
 
 def _file_sha256(path: Path) -> str:
