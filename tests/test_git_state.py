@@ -10,7 +10,7 @@ SRC = Path(__file__).resolve().parents[1] / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from codex_metrics.git_state import (  # noqa: E402
+from ai_agents_metrics.git_state import (  # noqa: E402
     _is_meaningful_worktree_path,
     _normalize_worktree_path,
     detect_started_work,
@@ -41,7 +41,7 @@ def test_normalize_worktree_path_resolves_rename() -> None:
 @pytest.mark.parametrize(
     "path_text",
     [
-        "src/codex_metrics/cli.py",
+        "src/ai_agents_metrics/cli.py",
         "tests/test_foo.py",
         "docs/architecture/README.md",
         "scripts/run.sh",
@@ -94,7 +94,7 @@ def _make_git_mock(rev_parse_result: str | None, status_result: str | None):
 
 
 def test_detect_started_work_git_unavailable() -> None:
-    with patch("codex_metrics.git_state._run_git", side_effect=_make_git_mock(None, None)):
+    with patch("ai_agents_metrics.git_state._run_git", side_effect=_make_git_mock(None, None)):
         report = detect_started_work(Path("/some/repo"))
 
     assert report.git_available is False
@@ -102,7 +102,7 @@ def test_detect_started_work_git_unavailable() -> None:
 
 
 def test_detect_started_work_clean_tree() -> None:
-    with patch("codex_metrics.git_state._run_git", side_effect=_make_git_mock("/repo", "")):
+    with patch("ai_agents_metrics.git_state._run_git", side_effect=_make_git_mock("/repo", "")):
         report = detect_started_work(Path("/repo"))
 
     assert report.git_available is True
@@ -111,18 +111,18 @@ def test_detect_started_work_clean_tree() -> None:
 
 
 def test_detect_started_work_meaningful_changes() -> None:
-    status = " M src/codex_metrics/cli.py\n M tests/test_foo.py"
-    with patch("codex_metrics.git_state._run_git", side_effect=_make_git_mock("/repo", status)):
+    status = " M src/ai_agents_metrics/cli.py\n M tests/test_foo.py"
+    with patch("ai_agents_metrics.git_state._run_git", side_effect=_make_git_mock("/repo", status)):
         report = detect_started_work(Path("/repo"))
 
     assert report.git_available is True
     assert report.started_work_detected is True
-    assert "src/codex_metrics/cli.py" in report.changed_paths
+    assert "src/ai_agents_metrics/cli.py" in report.changed_paths
 
 
 def test_detect_started_work_low_signal_only() -> None:
     status = " M metrics/events.ndjson\n M docs/codex-metrics.md"
-    with patch("codex_metrics.git_state._run_git", side_effect=_make_git_mock("/repo", status)):
+    with patch("ai_agents_metrics.git_state._run_git", side_effect=_make_git_mock("/repo", status)):
         report = detect_started_work(Path("/repo"))
 
     assert report.git_available is True
@@ -131,17 +131,17 @@ def test_detect_started_work_low_signal_only() -> None:
 
 
 def test_detect_started_work_mixed_changes() -> None:
-    status = " M metrics/events.ndjson\n M src/codex_metrics/domain.py"
-    with patch("codex_metrics.git_state._run_git", side_effect=_make_git_mock("/repo", status)):
+    status = " M metrics/events.ndjson\n M src/ai_agents_metrics/domain.py"
+    with patch("ai_agents_metrics.git_state._run_git", side_effect=_make_git_mock("/repo", status)):
         report = detect_started_work(Path("/repo"))
 
     assert report.started_work_detected is True
-    assert "src/codex_metrics/domain.py" in report.changed_paths
+    assert "src/ai_agents_metrics/domain.py" in report.changed_paths
 
 
 def test_detect_started_work_rename_parsed_correctly() -> None:
     status = "R  old.py -> src/new.py"
-    with patch("codex_metrics.git_state._run_git", side_effect=_make_git_mock("/repo", status)):
+    with patch("ai_agents_metrics.git_state._run_git", side_effect=_make_git_mock("/repo", status)):
         report = detect_started_work(Path("/repo"))
 
     assert report.started_work_detected is True
@@ -150,7 +150,7 @@ def test_detect_started_work_rename_parsed_correctly() -> None:
 
 def test_detect_started_work_status_unavailable_after_rev_parse() -> None:
     """rev-parse succeeds but git status returns None → git_available=False."""
-    with patch("codex_metrics.git_state._run_git", side_effect=_make_git_mock("/repo", None)):
+    with patch("ai_agents_metrics.git_state._run_git", side_effect=_make_git_mock("/repo", None)):
         report = detect_started_work(Path("/repo"))
 
     assert report.git_available is False
@@ -167,6 +167,6 @@ def test_detect_started_work_importable_without_cli() -> None:
     """Verify git_state can be imported and used without importing cli."""
     import importlib
 
-    git_state = importlib.import_module("codex_metrics.git_state")
+    git_state = importlib.import_module("ai_agents_metrics.git_state")
     assert hasattr(git_state, "detect_started_work")
     assert hasattr(git_state, "StartedWorkReport")

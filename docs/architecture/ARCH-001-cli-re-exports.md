@@ -21,7 +21,7 @@ Tests and scripts that import from `cli` pull the entire CLI layer as a dependen
 
 ## Desired state
 
-- External code imports directly: `from codex_metrics.domain import GoalRecord`
+- External code imports directly: `from ai_agents_metrics.domain import GoalRecord`
 - `cli.py` contains only: argparse definitions, command handler functions, `console_main`
 - If backward compatibility is needed, keep the shim with explicit `# deprecated re-export` comments — not silently
 

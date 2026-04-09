@@ -1,6 +1,6 @@
 # Glossary
 
-This glossary is for future agents working on codex-metrics. It uses the repository's current semantics, even where the code still carries legacy task-oriented names.
+This glossary is for future agents working on ai-agents-metrics. It uses the repository's current semantics, even where the code still carries legacy task-oriented names.
 
 ### active goal
 
@@ -80,7 +80,7 @@ A legacy synonym for `goal` that persists in CLI names, parser flags, policy lan
 
 ### warehouse
 
-The intermediate SQLite cache used by the history pipeline, living under `.codex-metrics/` and holding raw, normalized, and derived tables for transcript analysis rather than the primary JSON metrics store.
+The intermediate SQLite cache used by the history pipeline, living under `.ai-agents-metrics/` and holding raw, normalized, and derived tables for transcript analysis rather than the primary JSON metrics store.
 
 ### WorkflowEvent
 

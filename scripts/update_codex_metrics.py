@@ -9,7 +9,7 @@ def _load_cli_module():
     if repo_src_path.exists():
         sys.path.insert(0, str(repo_src_path))
 
-    from codex_metrics import cli
+    from ai_agents_metrics import cli
 
     return cli
 

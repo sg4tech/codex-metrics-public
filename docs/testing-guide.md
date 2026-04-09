@@ -16,7 +16,7 @@ python -m pytest tests/test_workflow_fsm.py -v   # single file
 
 Configuration in `pyproject.toml`:
 - `pythonpath = ["src"]` — package path is pre-configured; no need to set `PYTHONPATH=src` manually
-- Coverage: branch mode, parallel, source = `codex_metrics`
+- Coverage: branch mode, parallel, source = `ai_agents_metrics`
 
 ---
 
@@ -24,7 +24,7 @@ Configuration in `pyproject.toml`:
 
 | Test file | Covers |
 |-----------|--------|
-| `test_update_codex_metrics.py` | CLI end-to-end via subprocess |
+| `test_update_ai_agents_metrics.py` | CLI end-to-end via subprocess |
 | `test_update_codex_metrics_domain.py` | Domain logic (unit) |
 | `test_workflow_fsm.py` | State machine transitions |
 | `test_history_{ingest,normalize,derive,compare,audit}.py` | Pipeline stages |
@@ -52,7 +52,7 @@ The former `unlock_tmp_path_immutability` autouse fixture was removed when the O
 For domain logic, FSM, reporting, and other pure modules.
 
 ```python
-from codex_metrics.workflow_fsm import classify_workflow_state, WorkflowState
+from ai_agents_metrics.workflow_fsm import classify_workflow_state, WorkflowState
 
 def test_active_goal_detected() -> None:
     state = classify_workflow_state(
@@ -78,14 +78,14 @@ def test_something(input: str, expected: bool) -> None:
 
 For CLI commands. Use `tmp_path` as an isolated repo root.
 
-Helper functions defined in `test_update_codex_metrics.py` (reused across test files):
+Helper functions defined in `test_update_ai_agents_metrics.py` (reused across test files):
 
 ```python
 # Run via legacy script
 def run_cmd(tmp_path: Path, *args: str, extra_env=None) -> subprocess.CompletedProcess[str]:
     ...
 
-# Run via python -m codex_metrics (primary path)
+# Run via python -m ai_agents_metrics (primary path)
 def run_module_cmd(tmp_path: Path, *args: str, extra_env=None) -> subprocess.CompletedProcess[str]:
     ...
 ```
@@ -93,7 +93,7 @@ def run_module_cmd(tmp_path: Path, *args: str, extra_env=None) -> subprocess.Com
 End-to-end test pattern:
 
 ```python
-from codex_metrics.domain import load_metrics
+from ai_agents_metrics.domain import load_metrics
 
 def read_metrics(repo: Path) -> dict:
     return load_metrics(repo / "metrics" / "events.ndjson")
@@ -157,7 +157,7 @@ The same pattern exists for `make_goal_record`, `make_effective_goal_record`, an
 
 Tests for `history_ingest` / `history_normalize` / `history_derive` require creating SQLite databases with the correct schema.
 
-`create_codex_usage_sources(repo, ...)` in `test_update_codex_metrics.py` creates:
+`create_codex_usage_sources(repo, ...)` in `test_update_ai_agents_metrics.py` creates:
 - `codex_state.sqlite` with a `threads` table
 - `codex_logs.sqlite` with a `logs` table
 

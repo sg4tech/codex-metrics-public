@@ -1,12 +1,12 @@
 """
 Public API of the domain package.
 
-All names that were previously importable from ``codex_metrics.domain`` (the
+All names that were previously importable from ``ai_agents_metrics.domain`` (the
 old monolithic module) are re-exported here so that existing imports continue
 to work without modification.
 """
 
-from codex_metrics.domain.aggregation import (
+from ai_agents_metrics.domain.aggregation import (
     aggregate_chain_costs,
     aggregate_chain_model,
     aggregate_chain_timestamps,
@@ -49,8 +49,8 @@ from codex_metrics.domain.aggregation import (
     trim_excess_attempt_entries,
     update_latest_attempt_entry,
 )
-from codex_metrics.domain.ids import next_entry_id, next_goal_id
-from codex_metrics.domain.models import (
+from ai_agents_metrics.domain.ids import next_entry_id, next_goal_id
+from ai_agents_metrics.domain.models import (
     ALLOWED_FAILURE_REASONS,
     ALLOWED_RESULT_FITS,
     ALLOWED_STATUSES,
@@ -60,14 +60,14 @@ from codex_metrics.domain.models import (
     GoalRecord,
     StatusRecordT,
 )
-from codex_metrics.domain.serde import (
+from ai_agents_metrics.domain.serde import (
     effective_goal_to_dict,
     entry_from_dict,
     entry_to_dict,
     goal_from_dict,
     goal_to_dict,
 )
-from codex_metrics.domain.time_utils import (
+from ai_agents_metrics.domain.time_utils import (
     choose_earliest_timestamp,
     choose_latest_timestamp,
     now_utc_datetime,
@@ -75,7 +75,7 @@ from codex_metrics.domain.time_utils import (
     parse_iso_datetime,
     parse_iso_datetime_flexible,
 )
-from codex_metrics.domain.validation import (
+from ai_agents_metrics.domain.validation import (
     build_goal_chain,
     validate_agent_name,
     validate_entry_business_rules,

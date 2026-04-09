@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from codex_metrics import domain, reporting
+from ai_agents_metrics import domain, reporting
 
 
 def _base_metrics() -> dict[str, object]:

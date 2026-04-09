@@ -6,10 +6,10 @@ from importlib import resources
 from pathlib import Path
 from typing import Protocol
 
-from codex_metrics.storage import atomic_write_text, ensure_parent_dir
+from ai_agents_metrics.storage import atomic_write_text, ensure_parent_dir
 
-START_MARKER = "<!-- codex-metrics:start -->"
-END_MARKER = "<!-- codex-metrics:end -->"
+START_MARKER = "<!-- ai-agents-metrics:start -->"
+END_MARKER = "<!-- ai-agents-metrics:end -->"
 
 
 @dataclass(frozen=True)
@@ -45,7 +45,7 @@ class BootstrapPlan:
 
 
 def load_policy_template() -> str:
-    return resources.files("codex_metrics").joinpath("data/bootstrap_codex_metrics_policy.md").read_text(
+    return resources.files("ai_agents_metrics").joinpath("data/bootstrap_codex_metrics_policy.md").read_text(
         encoding="utf-8"
     )
 

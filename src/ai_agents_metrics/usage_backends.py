@@ -184,7 +184,7 @@ class ClaudeUsageBackend:
         thread_id: str | None = None,
         # thread_id is unused for Claude; lookup is by cwd directory, not thread row.
     ) -> UsageWindow:
-        from codex_metrics import cli as cli_module
+        from ai_agents_metrics import cli as cli_module
 
         cost_usd, total_tokens, input_tokens, cached_input_tokens, output_tokens, model_name = cli_module.resolve_claude_usage_window(
             claude_root=state_path,
@@ -218,7 +218,7 @@ class CodexUsageBackend:
         pricing_path: Path,
         thread_id: str | None = None,
     ) -> UsageWindow:
-        from codex_metrics import cli as cli_module
+        from ai_agents_metrics import cli as cli_module
 
         cost_usd, total_tokens, input_tokens, cached_input_tokens, output_tokens, model_name = cli_module.resolve_codex_usage_window(
             state_path=state_path,

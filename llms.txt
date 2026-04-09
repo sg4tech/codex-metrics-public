@@ -1,13 +1,13 @@
-# codex-metrics
+# ai-agents-metrics
 
 > CLI tool for tracking AI-agent task metrics: goals, attempt history, token cost, retry pressure, and outcome quality. Stores everything in a local append-only NDJSON event log. Designed for agent-first analysis — the primary consumer of metrics is an AI agent that produces synthesized conclusions for a human sponsor.
 
-`codex-metrics` answers three questions for any AI-assisted engineering workflow:
+`ai-agents-metrics` answers three questions for any AI-assisted engineering workflow:
 - Did this approach produce the right outcome?
 - How many tries did it take?
 - What did it cost in tokens and USD?
 
-Repository: https://github.com/sg4tech/codex-metrics-public
+Repository: https://github.com/sg4tech/ai-agents-metrics
 
 ## Core concepts
 
@@ -24,19 +24,19 @@ Repository: https://github.com/sg4tech/codex-metrics-public
 
 ```bash
 # Bootstrap a new project
-codex-metrics bootstrap
+ai-agents-metrics bootstrap
 
 # Start tracking a goal
-codex-metrics start-task --title "Add typed pipeline contracts" --task-type product
+ai-agents-metrics start-task --title "Add typed pipeline contracts" --task-type product
 
 # Record another attempt on the active goal
-codex-metrics continue-task --task-id 2026-04-08-001 --failure-reason validation_failed
+ai-agents-metrics continue-task --task-id 2026-04-08-001 --failure-reason validation_failed
 
 # Close the goal
-codex-metrics finish-task --task-id 2026-04-08-001 --outcome success --result-fit exact_fit
+ai-agents-metrics finish-task --task-id 2026-04-08-001 --outcome success --result-fit exact_fit
 
 # Show current metrics summary
-codex-metrics show
+ai-agents-metrics show
 
 # Legacy aliases (also supported)
 codex-metrics open "implement login endpoint"
@@ -50,16 +50,16 @@ Cost flags available on `start-task`, `continue-task`, `finish-task`:
 
 ## Key files
 
-- [README.md](https://github.com/sg4tech/codex-metrics-public/blob/main/README.md): Install, quickstart, public boundary
-- [docs/codex-metrics-policy.md](https://github.com/sg4tech/codex-metrics-public/blob/main/docs/codex-metrics-policy.md): Mandatory workflow rules for agents using this tool
-- [docs/glossary.md](https://github.com/sg4tech/codex-metrics-public/blob/main/docs/glossary.md): Full terminology — goal vs task, entry vs attempt, supersedes chain, WorkflowState, etc.
-- [docs/data-schema.md](https://github.com/sg4tech/codex-metrics-public/blob/main/docs/data-schema.md): Full field reference for GoalRecord, AttemptEntryRecord, and the summary block
-- [docs/data-invariants.md](https://github.com/sg4tech/codex-metrics-public/blob/main/docs/data-invariants.md): Business rules enforced by validation logic
-- [docs/cli-reference.md](https://github.com/sg4tech/codex-metrics-public/blob/main/docs/cli-reference.md): All commands, flags, and examples
-- [docs/architecture.md](https://github.com/sg4tech/codex-metrics-public/blob/main/docs/architecture.md): Module layout, pipeline stages, storage, entry points
-- [docs/history-pipeline.md](https://github.com/sg4tech/codex-metrics-public/blob/main/docs/history-pipeline.md): How the four-stage history reconstruction pipeline works
-- [docs/decisions.md](https://github.com/sg4tech/codex-metrics-public/blob/main/docs/decisions.md): Why key architectural choices were made
-- [CONTRIBUTING.md](https://github.com/sg4tech/codex-metrics-public/blob/main/CONTRIBUTING.md): How to contribute
+- [README.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/README.md): Install, quickstart, public boundary
+- [docs/codex-metrics-policy.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/codex-metrics-policy.md): Mandatory workflow rules for agents using this tool
+- [docs/glossary.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/glossary.md): Full terminology — goal vs task, entry vs attempt, supersedes chain, WorkflowState, etc.
+- [docs/data-schema.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/data-schema.md): Full field reference for GoalRecord, AttemptEntryRecord, and the summary block
+- [docs/data-invariants.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/data-invariants.md): Business rules enforced by validation logic
+- [docs/cli-reference.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/cli-reference.md): All commands, flags, and examples
+- [docs/architecture.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/architecture.md): Module layout, pipeline stages, storage, entry points
+- [docs/history-pipeline.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/history-pipeline.md): How the four-stage history reconstruction pipeline works
+- [docs/decisions.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/decisions.md): Why key architectural choices were made
+- [CONTRIBUTING.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/CONTRIBUTING.md): How to contribute
 
 ## Data model summary
 
@@ -92,7 +92,7 @@ AttemptEntryRecord
 
 ## Metrics output
 
-`codex-metrics show` returns a structured summary including:
+`ai-agents-metrics show` returns a structured summary including:
 - total goals opened, closed, succeeded, failed
 - success rate, attempts per closed goal, result_fit distribution
 - known total cost (USD) and total tokens

@@ -26,10 +26,10 @@ test:
 verify: check-init lint security typecheck test
 
 security:
-	./.venv/bin/python -m codex_metrics security --repo-root . --rules-path config/security-rules.toml
+	./.venv/bin/python -m ai_agents_metrics security --repo-root . --rules-path config/security-rules.toml
 
 verify-public-boundary:
-	./.venv/bin/python -m codex_metrics verify-public-boundary --repo-root . --rules-path config/public-boundary-rules.toml
+	./.venv/bin/python -m ai_agents_metrics verify-public-boundary --repo-root . --rules-path config/public-boundary-rules.toml
 
 setup-hooks:
 	git config core.hooksPath .githooks
@@ -38,7 +38,7 @@ dev-refresh-local:
 	./.venv/bin/python -m pip install --no-deps --no-build-isolation -e .
 
 package:
-	rm -rf build dist src/codex_metrics.egg-info
+	rm -rf build dist src/ai_agents_metrics.egg-info
 	./.venv/bin/python -m build --no-isolation
 
 package-standalone:
@@ -61,7 +61,7 @@ public-overlay-bootstrap:
 	./.venv/bin/python scripts/public_overlay.py --private-repo-root . bootstrap --public-repo git@github.com:sg4tech/codex-metrics-public.git
 
 public-overlay-verify:
-	./.venv/bin/python -m codex_metrics verify-public-boundary --repo-root . --rules-path config/public-boundary-rules.toml
+	./.venv/bin/python -m ai_agents_metrics verify-public-boundary --repo-root . --rules-path config/public-boundary-rules.toml
 
 public-overlay-pull:
 	./.venv/bin/python scripts/public_overlay.py --private-repo-root . pull --execute

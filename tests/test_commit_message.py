@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from codex_metrics.commit_message import (
+from ai_agents_metrics.commit_message import (
     validate_commit_message_file,
     validate_commit_message_text,
     validate_commit_subject,
@@ -42,7 +42,7 @@ def test_validate_commit_subject_accepts_no_task_subject_for_retro_only_commit()
 def test_validate_commit_subject_allows_linear_subject_when_retro_is_mixed_with_other_work() -> None:
     result = validate_commit_subject(
         "CODEX-123: ship fix with retro",
-        staged_paths=["docs/retros/2026-04-03-example.md", "src/codex_metrics/commit_message.py"],
+        staged_paths=["docs/retros/2026-04-03-example.md", "src/ai_agents_metrics/commit_message.py"],
     )
     assert result.allowed is True
     assert result.reason is None

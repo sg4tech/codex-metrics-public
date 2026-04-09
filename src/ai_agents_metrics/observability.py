@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from codex_metrics.domain import now_utc_iso
-from codex_metrics.redaction import redact_text, redact_value
-from codex_metrics.storage import ensure_parent_dir
+from ai_agents_metrics.domain import now_utc_iso
+from ai_agents_metrics.redaction import redact_text, redact_value
+from ai_agents_metrics.storage import ensure_parent_dir
 
 OBSERVABILITY_DIRNAME = ".codex-metrics"
 EVENT_STORE_FILENAME = "events.sqlite"

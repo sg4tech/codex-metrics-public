@@ -90,7 +90,7 @@ def validate_commit_message_file(path: Path, repo_root: Path | None = None) -> C
 def main(argv: list[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
     if len(args) != 1:
-        print("usage: python -m codex_metrics.commit_message <commit-message-file>", file=sys.stderr)
+        print("usage: python -m ai_agents_metrics.commit_message <commit-message-file>", file=sys.stderr)
         return 2
 
     result = validate_commit_message_file(Path(args[0]))

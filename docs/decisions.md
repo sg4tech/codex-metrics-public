@@ -20,7 +20,7 @@ Format: decision title, context, reasoning, known trade-offs. Add new entries as
 
 **Trade-offs:** read-time replay adds a small cost on every `load_metrics` call (acceptable for hundreds of goals). The `tasks` / `goals` legacy alias is normalised in-memory during replay, not persisted.
 
-**Supersedes:** the earlier decision to use `metrics/codex_metrics.json` as a mutable JSON file (removed from git tracking; added to `.gitignore`).
+**Supersedes:** the earlier decision to use `metrics/ai_agents_metrics.json` as a mutable JSON file (removed from git tracking; added to `.gitignore`).
 
 ---
 
@@ -40,13 +40,13 @@ Format: decision title, context, reasoning, known trade-offs. Add new entries as
 
 **Context:** Codex agent stores session history in `~/.codex/state_5.sqlite` and `~/.codex/logs_1.sqlite`. The tool needs to derive goal history from this raw data.
 
-**Decision:** a three-stage pipeline (ingest → normalize → derive) with an intermediate SQLite warehouse at `.codex-metrics/codex_raw_history.sqlite`, separate from the primary JSON store.
+**Decision:** a three-stage pipeline (ingest → normalize → derive) with an intermediate SQLite warehouse at `.ai-agents-metrics/codex_raw_history.sqlite`, separate from the primary JSON store.
 
 **Reasoning:**
 - Raw source data is large and noisy; normalisation and derivation are expensive
 - The warehouse acts as a cache — the pipeline can be re-run without re-reading the source
 - Each stage has a single responsibility and can be tested independently
-- Derived results can be compared against `codex_metrics.json` without mutating it
+- Derived results can be compared against `ai_agents_metrics.json` without mutating it
 
 **Trade-offs:** inter-stage contracts exist only as SQLite column names, not Python types (tracked in ARCH-006).
 

@@ -1,10 +1,10 @@
-# codex-metrics — track AI agent token cost and retry pressure
+# ai-agents-metrics — track AI agent token cost and retry pressure
 
 [![CI](https://github.com/sg4tech/codex-metrics-public/actions/workflows/ci.yml/badge.svg)](https://github.com/sg4tech/codex-metrics-public/actions/workflows/ci.yml)
 
 **Measure the real cost and effectiveness of AI-assisted engineering work.**
 
-`codex-metrics` is a local CLI tool that records goals, attempts, token spend, and retry patterns for every AI coding session — so you can see which workflows are productive and which are burning tokens on rework.
+`ai-agents-metrics` is a local CLI tool that records goals, attempts, token spend, and retry patterns for every AI coding session — so you can see which workflows are productive and which are burning tokens on rework.
 
 ## Why
 
@@ -16,7 +16,7 @@ AI coding agents (Claude Code, Codex, and similar) generate real costs and vary 
 - *"Did this workflow change actually improve anything?"*
 - *"Which model is more cost-effective for my work?"*
 
-`codex-metrics` gives you a lightweight, local ledger to answer all of these from real data.
+`ai-agents-metrics` gives you a lightweight, local ledger to answer all of these from real data.
 
 ## When to use this
 
@@ -37,7 +37,7 @@ AI coding agents (Claude Code, Codex, and similar) generate real costs and vary 
 ## Example output
 
 ```
-$ codex-metrics show
+$ ai-agents-metrics show
 
 Codex Metrics Summary
 
@@ -86,31 +86,31 @@ make package-standalone
 Bootstrap a project:
 
 ```bash
-codex-metrics bootstrap
+ai-agents-metrics bootstrap
 ```
 
 Start tracking a goal:
 
 ```bash
-codex-metrics start-task --title "implement login endpoint" --task-type product
+ai-agents-metrics start-task --title "implement login endpoint" --task-type product
 ```
 
 Record another attempt if the agent needed a correction:
 
 ```bash
-codex-metrics continue-task --task-id 2026-04-08-001 --failure-reason wrong_scope
+ai-agents-metrics continue-task --task-id 2026-04-08-001 --failure-reason wrong_scope
 ```
 
 Close it when done:
 
 ```bash
-codex-metrics finish-task --task-id 2026-04-08-001 --outcome success --result-fit exact_fit
+ai-agents-metrics finish-task --task-id 2026-04-08-001 --outcome success --result-fit exact_fit
 ```
 
 Show current metrics:
 
 ```bash
-codex-metrics show
+ai-agents-metrics show
 ```
 
 ## Verify Your Install

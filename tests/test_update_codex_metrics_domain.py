@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from codex_metrics.domain import (
+from ai_agents_metrics.domain import (
     AttemptEntryRecord,
     EffectiveGoalRecord,
     GoalRecord,
@@ -31,7 +31,7 @@ from codex_metrics.domain import (
     validate_goal_record,
     validate_metrics_data,
 )
-from codex_metrics.reporting import build_operator_review
+from ai_agents_metrics.reporting import build_operator_review
 
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "update_codex_metrics.py"
 SPEC = importlib.util.spec_from_file_location("update_codex_metrics_module", SCRIPT_PATH)

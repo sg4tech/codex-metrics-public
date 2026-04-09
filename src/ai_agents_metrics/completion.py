@@ -46,7 +46,7 @@ def render_bash_completion(parser: argparse.ArgumentParser) -> str:
     completion_shells = _shell_choices_for_completion(subparsers_action.choices["completion"])
 
     lines = [
-        "_codex_metrics_completion() {",
+        "_ai_agents_metrics_completion() {",
         "  local cur cmd",
         "  cur=\"${COMP_WORDS[COMP_CWORD]}\"",
         "  cmd=\"${COMP_WORDS[1]}\"",
@@ -80,7 +80,8 @@ def render_bash_completion(parser: argparse.ArgumentParser) -> str:
             "  COMPREPLY=()",
             "}",
             "",
-            "complete -F _codex_metrics_completion codex-metrics",
+            "complete -F _ai_agents_metrics_completion ai-agents-metrics",
+            "complete -F _ai_agents_metrics_completion codex-metrics",
             "",
         ]
     )

@@ -123,7 +123,7 @@ def _verify_public_boundary(*, private_repo_root: Path, prefix: str) -> None:
         [
             str(private_repo_root / ".venv" / "bin" / "python"),
             "-m",
-            "codex_metrics",
+            "ai_agents_metrics",
             "verify-public-boundary",
             "--repo-root",
             str(private_repo_root / prefix),

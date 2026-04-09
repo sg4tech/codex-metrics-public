@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from codex_metrics.history_normalize import (
+from ai_agents_metrics.history_normalize import (
     NormalizedLogRow,
     NormalizedMessageRow,
     NormalizedSessionRow,

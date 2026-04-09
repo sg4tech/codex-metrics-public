@@ -1,4 +1,4 @@
-# codex-metrics: Code Architecture
+# ai-agents-metrics: Code Architecture
 
 CLI tool for tracking AI agent task metrics — goals, attempt history, token usage, and cost — stored in an append-only NDJSON event log.
 
@@ -7,11 +7,11 @@ CLI tool for tracking AI agent task metrics — goals, attempt history, token us
 ## Directory Layout
 
 ```
-codex-metrics/
-├── src/codex_metrics/   # Main Python package
+ai-agents-metrics/
+├── src/ai_agents_metrics/   # Main Python package
 ├── tests/               # Pytest test suite
 ├── scripts/             # Automation and utility scripts
-├── tools/               # CLI wrapper (tools/codex-metrics)
+├── tools/               # CLI wrapper (tools/ai-agents-metrics)
 ├── config/              # Public boundary rules (TOML)
 ├── metrics/             # Generated output: events.ndjson + lockfile
 ├── pricing/             # Token pricing data
@@ -21,14 +21,14 @@ codex-metrics/
 
 ---
 
-## Package: `src/codex_metrics/`
+## Package: `src/ai_agents_metrics/`
 
 ### Entry Points
 
 | File | Role |
 |------|------|
 | `__init__.py` | Version resolution: git-derived (`commit_count.sha`) with fallback to package metadata |
-| `__main__.py` | Enables `python -m codex_metrics` dispatch |
+| `__main__.py` | Enables `python -m ai_agents_metrics` dispatch |
 | `cli.py` | Main CLI — argparse, all subcommands, `console_main` entrypoint |
 
 ### Core Domain
@@ -46,7 +46,7 @@ Four sequential modules that reconstruct goal history from raw Codex agent state
 
 ```
 Codex state/logs (SQLite)
-  ↓  history_ingest.py       → .codex-metrics/codex_raw_history.sqlite
+  ↓  history_ingest.py       → .ai-agents-metrics/codex_raw_history.sqlite
   ↓  history_normalize.py    → cleaned warehouse rows
   ↓  history_derive.py       → GoalRecord + AttemptEntryRecord objects
   ↓  history_compare.py      → diff against replayed metrics state
@@ -70,7 +70,7 @@ Codex state/logs (SQLite)
 | `git_hooks.py` | Implements commit-msg validation and pre-push security scanning logic |
 | `commit_message.py` | Validates commit subject format (`CODEX-123:` / `NO-TASK:`) |
 | `public_boundary.py` | Verifies files against TOML-configured inclusion/exclusion rules |
-| `observability.py` | Appends mutation events to `.codex-metrics/events.sqlite` and a debug log |
+| `observability.py` | Appends mutation events to `.ai-agents-metrics/events.sqlite` and a debug log |
 | `bootstrap.py` | Project initialisation — scaffold, preflight checks, safe reruns |
 | `completion.py` | Shell tab-completion helpers |
 
@@ -102,19 +102,19 @@ Transitions produce a `WorkflowDecision(action, message)`. Commands call `classi
 - Summary is always computed in-memory from the replayed state; it is never persisted
 - Mutations serialised via fcntl lockfile (`metrics/events.ndjson.lock`)
 
-**History warehouse:** `.codex-metrics/codex_raw_history.sqlite`
+**History warehouse:** `.ai-agents-metrics/codex_raw_history.sqlite`
 - Intermediate cache populated by `history_ingest.py`
 - Consumed by normalize → derive steps; not the source of truth
 
-**Event log:** `.codex-metrics/events.sqlite` + `events.debug.log`
+**Event log:** `.ai-agents-metrics/events.sqlite` + `events.debug.log`
 - Append-only mutation audit trail written by `observability.py`
 
 ---
 
 ## CLI Entry Points
 
-**Installed command:** `codex-metrics` → `codex_metrics.cli:console_main`
-**Repo wrapper:** `tools/codex-metrics` — thin shell script, no pip install required
+**Installed command:** `ai-agents-metrics` → `ai_agents_metrics.cli:console_main`
+**Repo wrapper:** `tools/ai-agents-metrics` — thin shell script, no pip install required
 
 Key command groups:
 
@@ -133,7 +133,7 @@ Key command groups:
 
 | Script | Purpose |
 |--------|---------|
-| `update_codex_metrics.py` | Legacy compatibility shim |
+| `update_ai_agents_metrics.py` | Legacy compatibility shim |
 | `public_overlay.py` | Bidirectional sync between private repo and `oss/` public mirror |
 | `build_standalone.py` | Builds self-contained binary distribution |
 | `check_live_usage_recovery.py` | Smoke test for live usage data recovery |
@@ -146,7 +146,7 @@ One test file per module; naming mirrors the source:
 
 | Test file | Covers |
 |-----------|--------|
-| `test_update_codex_metrics.py` | Full CLI workflow integration |
+| `test_update_ai_agents_metrics.py` | Full CLI workflow integration |
 | `test_update_codex_metrics_domain.py` | Domain model logic |
 | `test_workflow_fsm.py` | State machine transitions |
 | `test_history_{ingest,normalize,derive,compare,audit}.py` | Pipeline stages |
@@ -166,9 +166,9 @@ One test file per module; naming mirrors the source:
 | Tool | Config | Settings |
 |------|--------|----------|
 | **ruff** | `pyproject.toml` | Rules: F (pyflakes) + I (isort); target Python 3.14; line length 100 |
-| **mypy** | `pyproject.toml` | Strict: `check_untyped_defs`, `disallow_incomplete_defs`, `no_implicit_optional`; covers `src/` + `scripts/update_codex_metrics.py` |
+| **mypy** | `pyproject.toml` | Strict: `check_untyped_defs`, `disallow_incomplete_defs`, `no_implicit_optional`; covers `src/` + `scripts/update_ai_agents_metrics.py` |
 | **pytest** | `pyproject.toml` | `pythonpath = ["src"]` |
-| **coverage** | `pyproject.toml` | Branch coverage, parallel mode, source = `codex_metrics` |
+| **coverage** | `pyproject.toml` | Branch coverage, parallel mode, source = `ai_agents_metrics` |
 
 **Makefile targets:** `lint`, `security`, `typecheck`, `test`, `verify` (all four in sequence), `coverage`, `package`, public-overlay ops.
 

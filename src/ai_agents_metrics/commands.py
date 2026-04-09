@@ -8,42 +8,42 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Any, Protocol
 
-from codex_metrics.cost_audit import (
+from ai_agents_metrics.cost_audit import (
     CostAuditReport,
     render_cost_audit_report,
 )
-from codex_metrics.domain import (
+from ai_agents_metrics.domain import (
     get_goal_entries,
     get_task,
     load_metrics,
     recompute_summary,
     sync_goal_attempt_entries,
 )
-from codex_metrics.event_store import append_event
-from codex_metrics.history_audit import (
+from ai_agents_metrics.event_store import append_event
+from ai_agents_metrics.history_audit import (
     AuditReport,
 )
-from codex_metrics.history_compare import (
+from ai_agents_metrics.history_compare import (
     HistoryCompareReport,
 )
-from codex_metrics.history_derive import DeriveSummary
-from codex_metrics.history_ingest import IngestSummary
-from codex_metrics.history_normalize import NormalizeSummary
-from codex_metrics.observability import (
+from ai_agents_metrics.history_derive import DeriveSummary
+from ai_agents_metrics.history_ingest import IngestSummary
+from ai_agents_metrics.history_normalize import NormalizeSummary
+from ai_agents_metrics.observability import (
     record_goal_merge_observation,
     record_goal_mutation_observation,
     record_usage_sync_observation,
 )
-from codex_metrics.public_boundary import (
+from ai_agents_metrics.public_boundary import (
     render_public_boundary_report,
     render_public_boundary_report_json,
 )
-from codex_metrics.reporting import print_summary
-from codex_metrics.retro_timeline import (
+from ai_agents_metrics.reporting import print_summary
+from ai_agents_metrics.retro_timeline import (
     RetroTimelineReport,
 )
-from codex_metrics.storage import metrics_mutation_lock
-from codex_metrics.workflow_fsm import (
+from ai_agents_metrics.storage import metrics_mutation_lock
+from ai_agents_metrics.workflow_fsm import (
     WorkflowEvent,
 )
 
@@ -279,7 +279,7 @@ def _write_source_module_launcher(target_path: Path, *, python_executable: Path,
         "else\n"
         f"  export PYTHONPATH='{source_root}'\n"
         "fi\n"
-        f"exec '{python_executable}' -m codex_metrics \"$@\"\n"
+        f"exec '{python_executable}' -m ai_agents_metrics \"$@\"\n"
     )
     target_path.write_text(launcher, encoding="utf-8")
     target_path.chmod(target_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -302,7 +302,7 @@ def _render_source_module_launcher(*, python_executable: Path, source_root: Path
         "else\n"
         f"  export PYTHONPATH='{source_root}'\n"
         "fi\n"
-        f"exec '{python_executable}' -m codex_metrics \"$@\"\n"
+        f"exec '{python_executable}' -m ai_agents_metrics \"$@\"\n"
     )
 
 
@@ -388,7 +388,7 @@ def handle_install_self(args: Namespace, _cli_module: CommandRuntime) -> int:
             print(f"Warning: {target_path.parent.expanduser()} is not on PATH.")
             print(f"Add this line to {profile_name}:")
             print(export_line)
-        print("Then reopen your shell before running `codex-metrics` by command name.")
+        print("Then reopen your shell before running `ai-agents-metrics` by command name.")
     shadowing_path = _detect_shadowing_command(command_name=args.command_name, target_path=target_path)
     if shadowing_path is not None:
         print(

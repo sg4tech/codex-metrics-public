@@ -9,7 +9,7 @@ Working product and metrics hypotheses that are not yet fully confirmed belong i
 
 ## Product
 
-`codex-metrics` is an internal local agent-facing analysis tool for managing the effectiveness and economics of AI-agent-assisted engineering work.
+`ai-agents-metrics` is an internal local agent-facing analysis tool for managing the effectiveness and economics of AI-agent-assisted engineering work.
 
 It is not a general analytics platform and not a public SaaS product.
 

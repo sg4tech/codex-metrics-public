@@ -5,21 +5,26 @@ from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import Any
 
-from codex_metrics.domain.ids import next_entry_id
-from codex_metrics.domain.models import (
+from ai_agents_metrics.domain.ids import next_entry_id
+from ai_agents_metrics.domain.models import (
     ALLOWED_TASK_TYPES,
     AttemptEntryRecord,
     EffectiveGoalRecord,
     GoalRecord,
     StatusRecordT,
 )
-from codex_metrics.domain.serde import entry_from_dict, entry_to_dict, goal_from_dict, goal_to_dict
-from codex_metrics.domain.time_utils import (
+from ai_agents_metrics.domain.serde import (
+    entry_from_dict,
+    entry_to_dict,
+    goal_from_dict,
+    goal_to_dict,
+)
+from ai_agents_metrics.domain.time_utils import (
     now_utc_datetime,
     now_utc_iso,
     parse_iso_datetime_flexible,
 )
-from codex_metrics.domain.validation import (
+from ai_agents_metrics.domain.validation import (
     build_goal_chain,
     validate_agent_name,
     validate_entry_record,
@@ -514,7 +519,7 @@ def normalize_legacy_metrics_data(data: dict[str, Any]) -> None:
 
 
 def load_metrics(path: Path) -> dict[str, Any]:
-    from codex_metrics.event_store import replay_events
+    from ai_agents_metrics.event_store import replay_events
 
     goals_list, entries_list = replay_events(path)
     data: dict[str, Any] = {

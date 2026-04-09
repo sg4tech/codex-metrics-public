@@ -12,7 +12,7 @@ Business logic for determining "has work been started in the repository" lives i
 # cli.py lines 259-325
 MEANINGFUL_WORKTREE_DIRS = {"src", "tests", "docs", "scripts", "tools"}
 MEANINGFUL_WORKTREE_FILES = {"AGENTS.md", "README.md", "Makefile", "pyproject.toml"}
-LOW_SIGNAL_WORKTREE_PATHS = {Path("metrics/codex_metrics.json"), ...}
+LOW_SIGNAL_WORKTREE_PATHS = {Path("metrics/ai_agents_metrics.json"), ...}
 
 def detect_started_work(cwd: Path) -> StartedWorkReport: ...
 def _is_meaningful_worktree_path(path_text: str) -> bool: ...
