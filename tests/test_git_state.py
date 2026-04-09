@@ -45,7 +45,7 @@ def test_normalize_worktree_path_resolves_rename() -> None:
         "tests/test_foo.py",
         "docs/architecture/README.md",
         "scripts/run.sh",
-        "tools/codex-metrics",
+        "tools/ai-agents-metrics",
         "AGENTS.md",
         "README.md",
         "Makefile",
