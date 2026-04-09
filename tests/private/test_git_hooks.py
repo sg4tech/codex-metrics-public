@@ -195,7 +195,7 @@ def _write_python_wrapper(path: Path, marker_path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         "#!/bin/sh\n"
-        f"printf '%s\\n' \"$@\" > {marker_path.as_posix()!r}\n"
+        f"printf '%s\\n' \"$@\" >> {marker_path.as_posix()!r}\n"
         "exit 0\n",
         encoding="utf-8",
     )
