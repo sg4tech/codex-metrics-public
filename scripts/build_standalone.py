@@ -31,7 +31,7 @@ def main() -> int:
         "--clean",
         "--onefile",
         "--name",
-        "codex-metrics",
+        "ai-agents-metrics",
         "--paths",
         str(repo_root / "src"),
         "--specpath",
