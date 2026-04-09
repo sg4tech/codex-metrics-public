@@ -1,8 +1,41 @@
-# CLI Command Reference
+# CLI Reference
+
+`ai-agents-metrics` is a local CLI for tracking goals, attempts, outcomes, and token cost across AI-assisted engineering sessions. You start a goal, record each attempt as work progresses, close it when done, and inspect the results.
 
 All commands are invoked via `ai-agents-metrics <command> [flags]`.
 
-Common flags shared by most commands (defaults apply to this repository):
+---
+
+## Naming note
+
+Command names and flags use `task` (`start-task`, `--task-id`, `--task-type`, etc.). This is intentional — `task` is the CLI-level term for the unit of work being tracked. Treat it as equivalent to "goal" when reading other documentation.
+
+---
+
+## Typical workflow
+
+```bash
+# One-time setup: scaffold metrics into a repository
+ai-agents-metrics bootstrap --target-dir /path/to/repo
+
+# Start tracking a goal
+ai-agents-metrics start-task --title "Add typed pipeline contracts" --task-type product
+
+# Record another attempt if the first one failed or was corrected
+ai-agents-metrics continue-task --task-id 2026-04-08-001 --failure-reason validation_failed
+
+# Close the goal
+ai-agents-metrics finish-task --task-id 2026-04-08-001 --status success --result-fit exact_fit
+
+# Inspect current metrics
+ai-agents-metrics show
+```
+
+---
+
+## Common flags
+
+Most commands accept these flags. Defaults are set for the current repository.
 
 | Flag | Default | Meaning |
 |------|---------|---------|
@@ -12,9 +45,9 @@ Common flags shared by most commands (defaults apply to this repository):
 
 ---
 
-## Task lifecycle
+## Core commands
 
-The primary workflow for tracking AI-assisted engineering work. Use these three commands for all normal task bookkeeping.
+The primary workflow for tracking AI-assisted engineering work.
 
 ### `start-task`
 
@@ -44,7 +77,7 @@ Record another implementation pass for an existing in-progress goal.
 |------|----------|-------------|
 | `--task-id` | yes | Existing goal identifier |
 | `--notes` | no | Note for the new attempt |
-| `--failure-reason` | no | Failure reason for this new pass if it was unsuccessful |
+| `--failure-reason` | no | Failure reason for this pass if it was unsuccessful |
 | `--started-at` | no | Explicit ISO8601 timestamp for the new pass |
 | `--cost-usd-add` | no | Cost for this pass |
 
@@ -61,7 +94,7 @@ Close an existing goal as success or fail.
 | `--task-id` | yes | Existing goal identifier |
 | `--status` | yes | `success` or `fail` |
 | `--failure-reason` | no | Required when `--status fail` |
-| `--result-fit` | no | Operator quality judgement for product goals: `exact_fit`, `partial_fit`, `miss` |
+| `--result-fit` | no | Quality judgement for product goals: `exact_fit`, `partial_fit`, `miss` |
 | `--notes` | no | Final note |
 | `--finished-at` | no | Explicit ISO8601 finish timestamp |
 | `--cost-usd-add` | no | Cost for the final pass |
@@ -73,45 +106,13 @@ ai-agents-metrics finish-task --task-id 2026-04-08-001 --status fail --failure-r
 
 ---
 
-## Metrics mutation
-
-Low-level commands for direct record manipulation and history repair.
-
-### `update`
-
-Create a new goal or update an existing one. More flexible than the lifecycle commands; primarily useful for history replay and one-off corrections.
-
-Key flags: `--task-id`, `--title`, `--task-type`, `--status`, `--attempts-delta`, `--attempts`, `--cost-usd-add`, `--cost-usd`, `--tokens-add`, `--tokens`, `--failure-reason`, `--result-fit`, `--notes`, `--started-at`, `--finished-at`, `--continuation-of`, `--supersedes-task-id`.
-
-```bash
-# New goal
-ai-agents-metrics update --title "Improve CLI help" --task-type product --attempts-delta 1
-# Update existing
-ai-agents-metrics update --task-id 2026-03-29-010 --status success --notes "Validated"
-```
-
-### `merge-tasks`
-
-Recombine a mistakenly split goal into one kept goal. Transfers attempt history from the dropped goal.
-
-| Flag | Required | Description |
-|------|----------|-------------|
-| `--keep-task-id` | yes | Goal that should remain after the merge |
-| `--drop-task-id` | yes | Goal that should be merged in and removed |
-
-```bash
-ai-agents-metrics merge-tasks --keep-task-id 2026-04-01-001 --drop-task-id 2026-04-01-002
-```
-
----
-
 ## Inspection
 
 Read-only commands for querying and reviewing stored metrics.
 
 ### `show`
 
-Print the current summary, cost coverage, and operator review. The primary command for a quick status check.
+Print the current summary, cost coverage, and operator review. Use this for a quick status check.
 
 ```bash
 ai-agents-metrics show
@@ -140,7 +141,7 @@ ai-agents-metrics audit-cost-coverage
 
 ### `compare-metrics-history`
 
-Compare the structured metrics ledger against reconstructed Codex session history in the SQLite warehouse. Useful for catching gaps between recorded goals and actual agent sessions.
+Compare the structured metrics ledger against reconstructed agent session history in the SQLite warehouse. Useful for catching gaps between recorded goals and actual agent sessions.
 
 | Flag | Default | Description |
 |------|---------|-------------|
@@ -161,9 +162,133 @@ ai-agents-metrics render-report
 
 ---
 
+## Setup
+
+Commands for bootstrapping metrics into a repository and managing the local installation.
+
+### `bootstrap`
+
+Scaffold the full ai-agents-metrics setup into a repository: creates the metrics artifact, `docs/ai-agents-metrics-policy.md`, and a managed policy block inside the agent instructions file. Safe to rerun on a partial scaffold.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--target-dir` | `.` | Repository root to initialize |
+| `--agents-path` | `AGENTS.md` | Instructions file to inject the policy block into |
+| `--policy-path` | `docs/ai-agents-metrics-policy.md` | Policy file destination |
+| `--command-path` | `tools/ai-agents-metrics` | Executable wrapper destination |
+| `--force` | off | Replace conflicting scaffold files |
+| `--dry-run` | off | Preview planned changes without writing |
+
+```bash
+ai-agents-metrics bootstrap --target-dir /path/to/repo --dry-run
+ai-agents-metrics bootstrap --target-dir /path/to/repo
+```
+
+### `init`
+
+Create the metrics NDJSON event log. Use this to initialize storage in a repository that already has other scaffold files in place.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--force` | off | Overwrite existing metrics files |
+| `--write-report` | off | Also render the markdown export |
+
+```bash
+ai-agents-metrics init
+ai-agents-metrics init --force --write-report
+```
+
+### `install-self`
+
+Install the current ai-agents-metrics executable into a stable user-local location (default: `~/bin/ai-agents-metrics` symlink).
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--target-dir` | `~/bin` | Installation directory |
+| `--copy` | off | Copy instead of symlink |
+| `--write-shell-profile` | off | Append target dir to shell profile if not on PATH |
+
+```bash
+ai-agents-metrics install-self
+ai-agents-metrics install-self --copy
+```
+
+### `completion`
+
+Print a shell completion script for `bash` or `zsh`.
+
+```bash
+ai-agents-metrics completion zsh >> ~/.zshrc
+ai-agents-metrics completion bash >> ~/.bashrc
+```
+
+### `ensure-active-task`
+
+Inspect the current git working tree for meaningful repository work and ensure that active task bookkeeping exists. If work has started without an active goal, creates a recovery draft.
+
+```bash
+ai-agents-metrics ensure-active-task
+```
+
+---
+
+## Record repair
+
+Low-level commands for direct record manipulation and history correction. Use these for one-off fixes and history replay, not normal tracking.
+
+### `update`
+
+Create a new goal or update an existing one. More flexible than the lifecycle commands; primarily useful for history replay and corrections.
+
+Key flags: `--task-id`, `--title`, `--task-type`, `--status`, `--attempts-delta`, `--attempts`, `--cost-usd-add`, `--cost-usd`, `--tokens-add`, `--tokens`, `--failure-reason`, `--result-fit`, `--notes`, `--started-at`, `--finished-at`, `--continuation-of`, `--supersedes-task-id`.
+
+```bash
+# New goal
+ai-agents-metrics update --title "Improve CLI help" --task-type product --attempts-delta 1
+# Update existing
+ai-agents-metrics update --task-id 2026-03-29-010 --status success --notes "Validated"
+```
+
+### `merge-tasks`
+
+Recombine a mistakenly split goal into one kept goal. Transfers attempt history from the dropped goal.
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--keep-task-id` | yes | Goal that should remain after the merge |
+| `--drop-task-id` | yes | Goal that should be merged in and removed |
+
+```bash
+ai-agents-metrics merge-tasks --keep-task-id 2026-04-01-001 --drop-task-id 2026-04-01-002
+```
+
+---
+
+## Cost sync
+
+### `sync-usage`
+
+Backfill known cost and token totals from local agent telemetry into existing in-progress goal records. Reads agent state and log files to recover usage data without requiring manual input.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--pricing-path` | `config/pricing.json` | Pricing model definitions |
+| `--usage-state-path` | agent state path | Local agent state file |
+| `--usage-logs-path` | agent logs path | Local agent log directory |
+| `--usage-thread-id` | none | Specific thread to backfill from |
+| `--claude-root` | `~/.claude` | Claude agent root directory |
+
+```bash
+ai-agents-metrics sync-usage
+```
+
+> **Note:** `sync-codex-usage` is a deprecated alias for `sync-usage`.
+
+---
+
 ## History pipeline
 
-Sequential pipeline for ingesting and analyzing raw Codex agent session history. Run in order: ingest → normalize → derive.
+Sequential pipeline for ingesting and analyzing raw agent session history. Run in order: ingest → normalize → derive.
 
 ### `ingest-codex-history`
 
@@ -218,95 +343,7 @@ ai-agents-metrics derive-retro-timeline
 
 ---
 
-## Sync
-
-### `sync-usage`
-
-Backfill known cost and token totals from local agent telemetry into existing in-progress goal records. Reads agent state and log files to recover usage data without requiring manual input.
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--pricing-path` | `config/pricing.json` | Pricing model definitions |
-| `--usage-state-path` | agent state path | Local agent state file |
-| `--usage-logs-path` | agent logs path | Local agent log directory |
-| `--usage-thread-id` | none | Specific thread to backfill from |
-| `--claude-root` | `~/.claude` | Claude agent root directory |
-
-```bash
-ai-agents-metrics sync-usage
-```
-
-> **Note:** `sync-codex-usage` is a deprecated alias for `sync-usage`.
-
----
-
-## Tooling
-
-Setup, installation, and safety commands.
-
-### `init`
-
-Create the metrics NDJSON event log. Use this to initialize the storage artifact in a repository that already has other scaffold files in place.
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--force` | off | Overwrite existing metrics files |
-| `--write-report` | off | Also render the markdown export |
-
-```bash
-ai-agents-metrics init
-ai-agents-metrics init --force --write-report
-```
-
-### `bootstrap`
-
-Scaffold the full ai-agents-metrics setup into a repository: creates the metrics artifact, `docs/ai-agents-metrics-policy.md`, and a managed ai-agents-metrics block inside the agent instructions file. Safe to rerun on a partial scaffold.
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--target-dir` | `.` | Repository root to initialize |
-| `--agents-path` | `AGENTS.md` | Instructions file to inject the policy block into |
-| `--policy-path` | `docs/ai-agents-metrics-policy.md` | Policy file destination |
-| `--command-path` | `tools/ai-agents-metrics` | Executable wrapper destination |
-| `--force` | off | Replace conflicting scaffold files |
-| `--dry-run` | off | Preview planned changes without writing |
-
-```bash
-ai-agents-metrics bootstrap --target-dir /path/to/repo --dry-run
-ai-agents-metrics bootstrap --target-dir /path/to/repo
-```
-
-### `install-self`
-
-Install the current ai-agents-metrics executable into a stable user-local location (default: `~/bin/ai-agents-metrics` symlink).
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--target-dir` | `~/bin` | Installation directory |
-| `--copy` | off | Copy instead of symlink |
-| `--write-shell-profile` | off | Append target dir to shell profile if not on PATH |
-
-```bash
-ai-agents-metrics install-self
-ai-agents-metrics install-self --copy
-```
-
-### `completion`
-
-Print a shell completion script for `bash` or `zsh`.
-
-```bash
-ai-agents-metrics completion zsh >> ~/.zshrc
-ai-agents-metrics completion bash >> ~/.bashrc
-```
-
-### `ensure-active-task`
-
-Inspect the current git working tree for meaningful repository work and ensure that active task bookkeeping exists. If work has started without an active goal, creates a recovery draft.
-
-```bash
-ai-agents-metrics ensure-active-task
-```
+## Security
 
 ### `verify-public-boundary`
 
