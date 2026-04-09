@@ -25,7 +25,7 @@ Configuration in `pyproject.toml`:
 | Test file | Covers |
 |-----------|--------|
 | `test_update_ai_agents_metrics.py` | CLI end-to-end via subprocess |
-| `test_update_codex_metrics_domain.py` | Domain logic (unit) |
+| `test_metrics_domain.py` | Domain logic (unit) |
 | `test_workflow_fsm.py` | State machine transitions |
 | `test_history_{ingest,normalize,derive,compare,audit}.py` | Pipeline stages |
 | `test_storage_roundtrip.py` | Event log I/O and replay |
@@ -117,7 +117,7 @@ def test_start_and_finish(tmp_path: Path) -> None:
 
 ## Object factories
 
-`test_update_codex_metrics_domain.py` defines factory functions with defaults and `**overrides`. They live locally in that file, not in `conftest.py`. Copy the pattern when needed:
+`test_metrics_domain.py` defines factory functions with defaults and `**overrides`. They live locally in that file, not in `conftest.py`. Copy the pattern when needed:
 
 ```python
 def make_goal_dict(**overrides: object) -> dict[str, object]:

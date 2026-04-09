@@ -147,7 +147,7 @@ One test file per module; naming mirrors the source:
 | Test file | Covers |
 |-----------|--------|
 | `test_update_ai_agents_metrics.py` | Full CLI workflow integration |
-| `test_update_codex_metrics_domain.py` | Domain model logic |
+| `test_metrics_domain.py` | Domain model logic |
 | `test_workflow_fsm.py` | State machine transitions |
 | `test_history_{ingest,normalize,derive,compare,audit}.py` | Pipeline stages |
 | `test_storage_roundtrip.py` | Event log I/O and replay |

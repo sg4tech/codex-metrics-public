@@ -21,7 +21,7 @@ def _load_cli_module():
 
 
 CLI = _load_cli_module()
-SCRIPT_PATH = Path(__file__).resolve().parent / "update_codex_metrics.py"
+SCRIPT_PATH = Path(__file__).resolve().parent / "metrics_cli.py"
 DEFAULT_STATE_PATH = Path.home() / ".codex" / "state_5.sqlite"
 DEFAULT_LOGS_PATH = Path.home() / ".codex" / "logs_1.sqlite"
 

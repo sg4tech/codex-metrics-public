@@ -27,7 +27,7 @@ def _find_paths() -> tuple[Path, Path, Path]:
 
 
 _REPO_ROOT, _SCRIPTS_DIR, _SRC_DIR = _find_paths()
-ABS_SCRIPT = _SCRIPTS_DIR / "update_codex_metrics.py"
+ABS_SCRIPT = _SCRIPTS_DIR / "metrics_cli.py"
 ABS_SRC = _SRC_DIR
 
 
@@ -75,7 +75,7 @@ def repo(tmp_path: Path) -> Path:
     (tmp_path / "metrics").mkdir(parents=True, exist_ok=True)
     (tmp_path / "pricing").mkdir(parents=True, exist_ok=True)
 
-    script_target = tmp_path / "scripts" / "update_codex_metrics.py"
+    script_target = tmp_path / "scripts" / "metrics_cli.py"
     script_target.write_text(ABS_SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
     shutil.copytree(ABS_SRC, tmp_path / "src")
 

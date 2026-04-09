@@ -52,7 +52,7 @@ no_implicit_optional = true
 disallow_incomplete_defs = true
 files = [
   "src/ai_agents_metrics",
-  "scripts/update_codex_metrics.py",
+  "scripts/metrics_cli.py",
 ]
 exclude = [
   "^\\.venv/",

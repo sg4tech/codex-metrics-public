@@ -33,8 +33,8 @@ from ai_agents_metrics.domain import (
 )
 from ai_agents_metrics.reporting import build_operator_review
 
-SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "update_codex_metrics.py"
-SPEC = importlib.util.spec_from_file_location("update_codex_metrics_module", SCRIPT_PATH)
+SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "metrics_cli.py"
+SPEC = importlib.util.spec_from_file_location("metrics_cli_module", SCRIPT_PATH)
 assert SPEC is not None
 assert SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
