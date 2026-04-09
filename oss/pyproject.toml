@@ -19,6 +19,7 @@ codex-metrics = "ai_agents_metrics.cli:console_main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+license-files = []
 
 [tool.setuptools.packages.find]
 where = ["src"]
