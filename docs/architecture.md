@@ -165,7 +165,7 @@ Key command groups:
 | Task lifecycle | `start-task`, `continue-task`, `finish-task` |
 | Metrics mutation | `update`, `create`, `merge-tasks` |
 | Inspection | `show`, `show-goal`, `render-report` |
-| History | `ingest-history`, `normalize-history`, `derive-history`, `compare-history`, `audit-history` |
+| History | `history-ingest`, `history-normalize`, `history-derive`, `history-compare`, `history-audit` |
 | Sync | `sync-usage` |
 | Tooling | `init`, `verify-public-boundary`, `render-completion`, `export` |
 

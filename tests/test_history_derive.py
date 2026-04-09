@@ -93,7 +93,7 @@ def test_derive_codex_history_builds_analysis_marts(repo: Path) -> None:
     assert (
         run_cmd(
             repo,
-            "ingest-codex-history",
+            "history-ingest",
             "--source-root",
             str(source_root),
             "--warehouse-path",
@@ -101,9 +101,9 @@ def test_derive_codex_history_builds_analysis_marts(repo: Path) -> None:
         ).returncode
         == 0
     )
-    assert run_cmd(repo, "normalize-codex-history", "--warehouse-path", str(warehouse_path)).returncode == 0
+    assert run_cmd(repo, "history-normalize", "--warehouse-path", str(warehouse_path)).returncode == 0
 
-    result = run_cmd(repo, "derive-codex-history", "--warehouse-path", str(warehouse_path))
+    result = run_cmd(repo, "history-derive", "--warehouse-path", str(warehouse_path))
 
     assert result.returncode == 0, result.stderr
     assert "Derived Codex history in" in result.stdout
@@ -186,7 +186,7 @@ def test_derive_codex_history_is_idempotent_on_rerun(repo: Path) -> None:
     assert (
         run_cmd(
             repo,
-            "ingest-codex-history",
+            "history-ingest",
             "--source-root",
             str(source_root),
             "--warehouse-path",
@@ -194,10 +194,10 @@ def test_derive_codex_history_is_idempotent_on_rerun(repo: Path) -> None:
         ).returncode
         == 0
     )
-    assert run_cmd(repo, "normalize-codex-history", "--warehouse-path", str(warehouse_path)).returncode == 0
+    assert run_cmd(repo, "history-normalize", "--warehouse-path", str(warehouse_path)).returncode == 0
 
-    first = run_cmd(repo, "derive-codex-history", "--warehouse-path", str(warehouse_path))
-    second = run_cmd(repo, "derive-codex-history", "--warehouse-path", str(warehouse_path))
+    first = run_cmd(repo, "history-derive", "--warehouse-path", str(warehouse_path))
+    second = run_cmd(repo, "history-derive", "--warehouse-path", str(warehouse_path))
 
     assert first.returncode == 0, first.stderr
     assert second.returncode == 0, second.stderr
@@ -217,7 +217,7 @@ def test_derive_codex_history_is_idempotent_on_rerun(repo: Path) -> None:
 def test_derive_codex_history_rejects_missing_normalized_warehouse(repo: Path) -> None:
     warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "missing.sqlite"
 
-    result = run_cmd(repo, "derive-codex-history", "--warehouse-path", str(warehouse_path))
+    result = run_cmd(repo, "history-derive", "--warehouse-path", str(warehouse_path))
 
     assert result.returncode == 1
     assert f"Warehouse does not exist: {warehouse_path}" in result.stderr
@@ -228,10 +228,10 @@ def test_derive_codex_history_rejects_non_normalized_warehouse(repo: Path) -> No
     warehouse_path.parent.mkdir(parents=True, exist_ok=True)
     sqlite3.connect(warehouse_path).close()
 
-    result = run_cmd(repo, "derive-codex-history", "--warehouse-path", str(warehouse_path))
+    result = run_cmd(repo, "history-derive", "--warehouse-path", str(warehouse_path))
 
     assert result.returncode == 1
-    assert "Warehouse does not contain normalized Codex history; run normalize-codex-history first" in result.stderr
+    assert "Warehouse does not contain normalized Codex history; run history-normalize first" in result.stderr
 
 
 def test_fetch_normalized_functions_return_all_typed_fields() -> None:
@@ -467,7 +467,7 @@ def test_derive_claude_history_populates_cache_creation_tokens(repo: Path) -> No
     assert (
         run_cmd(
             repo,
-            "ingest-codex-history",
+            "history-ingest",
             "--source",
             "claude",
             "--source-root",
@@ -477,8 +477,8 @@ def test_derive_claude_history_populates_cache_creation_tokens(repo: Path) -> No
         ).returncode
         == 0
     )
-    assert run_cmd(repo, "normalize-codex-history", "--warehouse-path", str(warehouse_path)).returncode == 0
-    result = run_cmd(repo, "derive-codex-history", "--warehouse-path", str(warehouse_path))
+    assert run_cmd(repo, "history-normalize", "--warehouse-path", str(warehouse_path)).returncode == 0
+    result = run_cmd(repo, "history-derive", "--warehouse-path", str(warehouse_path))
     assert result.returncode == 0, result.stderr
 
     with sqlite3.connect(warehouse_path) as conn:

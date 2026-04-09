@@ -1,4 +1,4 @@
-.PHONY: init check-init lint typecheck test verify build-check security verify-public-boundary setup-hooks dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke public-overlay-status public-overlay-bootstrap public-overlay-verify public-overlay-push public-overlay-pull
+.PHONY: init check-init remind-task lint typecheck test verify build-check security verify-public-boundary setup-hooks dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke public-overlay-status public-overlay-bootstrap public-overlay-verify public-overlay-push public-overlay-pull
 
 PYTHON3 ?= python3
 
@@ -7,26 +7,30 @@ init:
 	$(PYTHON3) -m venv .venv
 	.venv/bin/pip install -U pip setuptools wheel
 	.venv/bin/pip install -e ".[dev]" || .venv/bin/pip install -e .
-	@echo ""
-	@echo "reminder: before starting engineering work, run: ./tools/ai-agents-metrics start-task --title '...' --task-type meta"
-	@echo ""
+	@$(MAKE) remind-task
+	@$(MAKE) public-overlay-pull || true
 
 check-init:
 	@test -d .venv || $(MAKE) init
 
-lint:
+remind-task:
+	@echo ""
+	@echo "reminder: before starting engineering work, run: ./tools/ai-agents-metrics start-task --title '...' --task-type <product|meta|retro>"
+	@echo ""
+
+lint: remind-task
 	./.venv/bin/ruff check .
 
-typecheck:
+typecheck: remind-task
 	./.venv/bin/mypy src scripts
 
-test:
+test: remind-task
 	./.venv/bin/python -m pytest tests/
 
 build-check:
 	./.venv/bin/pip install --no-deps -e . -q
 
-verify: check-init lint security typecheck test build-check
+verify: check-init remind-task lint security typecheck test build-check
 
 security:
 	./.venv/bin/python -m ai_agents_metrics security --repo-root . --rules-path config/security-rules.toml

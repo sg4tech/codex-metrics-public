@@ -118,12 +118,12 @@ Print the current summary, cost coverage, and operator review. Use this for a qu
 ai-agents-metrics show
 ```
 
-### `audit-history`
+### `history-audit`
 
 Analyze stored goal history and print audit candidates: likely misses, partial-fit recoveries, stale in-progress goals, and low-cost-coverage product goals.
 
 ```bash
-ai-agents-metrics audit-history
+ai-agents-metrics history-audit
 ```
 
 ### `audit-cost-coverage`
@@ -139,7 +139,7 @@ Inspect closed product goals and explain why cost coverage is missing, partial, 
 ai-agents-metrics audit-cost-coverage
 ```
 
-### `compare-metrics-history`
+### `history-compare`
 
 Compare the structured metrics ledger against reconstructed agent session history in the SQLite warehouse. Useful for catching gaps between recorded goals and actual agent sessions.
 
@@ -149,7 +149,7 @@ Compare the structured metrics ledger against reconstructed agent session histor
 | `--cwd` | current directory | Repository root to filter by |
 
 ```bash
-ai-agents-metrics compare-metrics-history
+ai-agents-metrics history-compare
 ```
 
 ### `render-report`
@@ -290,20 +290,26 @@ ai-agents-metrics sync-usage
 
 Sequential pipeline for ingesting and analyzing raw agent session history. Run in order: ingest → normalize → derive.
 
-### `ingest-codex-history`
+Supports two agent sources via `--source`:
+- `codex` (default): reads from `~/.codex`
+- `claude`: reads from `~/.claude/projects/` (Claude Code full transcript + tokens)
 
-Read thread metadata, session transcripts, telemetry events, and logs from a local Codex history directory into a raw SQLite warehouse.
+### `history-ingest`
+
+Read thread metadata, session transcripts, telemetry events, and logs from a local agent history directory into a raw SQLite warehouse.
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--source-root` | `~/.codex` | Local Codex history root |
+| `--source` | `codex` | Agent source: `codex` or `claude` |
+| `--source-root` | `~/.codex` / `~/.claude` | Override agent history root |
 | `--warehouse-path` | `.ai-agents-metrics/warehouse.db` | Output SQLite warehouse |
 
 ```bash
-ai-agents-metrics ingest-codex-history
+ai-agents-metrics history-ingest
+ai-agents-metrics history-ingest --source claude
 ```
 
-### `normalize-codex-history`
+### `history-normalize`
 
 Read the raw warehouse and build normalized summary tables for downstream analysis.
 
@@ -312,10 +318,10 @@ Read the raw warehouse and build normalized summary tables for downstream analys
 | `--warehouse-path` | `.ai-agents-metrics/warehouse.db` | Warehouse with raw data |
 
 ```bash
-ai-agents-metrics normalize-codex-history
+ai-agents-metrics history-normalize
 ```
 
-### `derive-codex-history`
+### `history-derive`
 
 Read the normalized warehouse and build reusable analysis marts: goals, attempts, timelines, retry chains, and session usage.
 
@@ -324,7 +330,7 @@ Read the normalized warehouse and build reusable analysis marts: goals, attempts
 | `--warehouse-path` | `.ai-agents-metrics/warehouse.db` | Warehouse with normalized data |
 
 ```bash
-ai-agents-metrics derive-codex-history
+ai-agents-metrics history-derive
 ```
 
 ### `derive-retro-timeline`

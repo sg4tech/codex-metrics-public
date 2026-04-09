@@ -2985,7 +2985,7 @@ def test_help_includes_goal_language_and_examples(repo: Path) -> None:
     assert "ensure-active-task" in result.stdout
     assert "Print current summary and operator review" in result.stdout
     assert "Examples:" in result.stdout
-    assert "audit-history" in result.stdout
+    assert "history-audit" in result.stdout
     assert "audit-cost-coverage" in result.stdout
     assert "start-task --title \"Add CSV import\" --task-type product" in result.stdout
     assert "--supersedes-task-id" in update_help.stdout
@@ -3184,7 +3184,7 @@ def test_audit_history_command_reports_suspicious_goals(repo: Path) -> None:
         "success",
     ).returncode == 0
 
-    result = run_cmd(repo, "audit-history")
+    result = run_cmd(repo, "history-audit")
 
     assert result.returncode == 0, result.stderr
     assert "Audit candidates" in result.stdout
@@ -3198,7 +3198,7 @@ def test_audit_history_command_reports_suspicious_goals(repo: Path) -> None:
 def test_package_module_supports_audit_history(repo: Path) -> None:
     assert run_cmd(repo, "init").returncode == 0
 
-    result = run_module_cmd(repo, "audit-history")
+    result = run_module_cmd(repo, "history-audit")
 
     assert result.returncode == 0, result.stderr
     assert "Audit candidates" in result.stdout

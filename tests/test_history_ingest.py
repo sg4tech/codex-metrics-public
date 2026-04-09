@@ -314,7 +314,7 @@ def test_ingest_codex_history_builds_raw_warehouse(repo: Path) -> None:
 
     result = run_cmd(
         repo,
-        "ingest-codex-history",
+        "history-ingest",
         "--source-root",
         str(source_root),
         "--warehouse-path",
@@ -396,7 +396,7 @@ def test_ingest_codex_history_tracks_token_count_coverage(repo: Path) -> None:
 
     result = run_cmd(
         repo,
-        "ingest-codex-history",
+        "history-ingest",
         "--source-root",
         str(source_root),
         "--warehouse-path",
@@ -421,7 +421,7 @@ def test_ingest_codex_history_is_idempotent_on_rerun(repo: Path) -> None:
 
     first = run_cmd(
         repo,
-        "ingest-codex-history",
+        "history-ingest",
         "--source-root",
         str(source_root),
         "--warehouse-path",
@@ -429,7 +429,7 @@ def test_ingest_codex_history_is_idempotent_on_rerun(repo: Path) -> None:
     )
     second = run_cmd(
         repo,
-        "ingest-codex-history",
+        "history-ingest",
         "--source-root",
         str(source_root),
         "--warehouse-path",
@@ -455,7 +455,7 @@ def test_ingest_codex_history_rejects_missing_source_root(repo: Path) -> None:
 
     result = run_cmd(
         repo,
-        "ingest-codex-history",
+        "history-ingest",
         "--source-root",
         str(missing_root),
         "--warehouse-path",
@@ -474,7 +474,7 @@ def test_ingest_codex_history_handles_partial_source_root_without_state_or_logs(
 
     result = run_cmd(
         repo,
-        "ingest-codex-history",
+        "history-ingest",
         "--source-root",
         str(source_root),
         "--warehouse-path",
@@ -518,7 +518,7 @@ def test_ingest_codex_history_rejects_malformed_sqlite_sources(repo: Path) -> No
 
     result = run_cmd(
         repo,
-        "ingest-codex-history",
+        "history-ingest",
         "--source-root",
         str(source_root),
         "--warehouse-path",
@@ -763,7 +763,7 @@ def test_ingest_claude_history_builds_raw_warehouse(repo: Path) -> None:
 
     result = run_cmd(
         repo,
-        "ingest-codex-history",
+        "history-ingest",
         "--source",
         "claude",
         "--source-root",
@@ -808,7 +808,7 @@ def test_ingest_claude_history_subagent_groups_under_same_thread_cli(repo: Path)
 
     result = run_cmd(
         repo,
-        "ingest-codex-history",
+        "history-ingest",
         "--source", "claude",
         "--source-root", str(claude_root),
         "--warehouse-path", str(warehouse_path),
@@ -831,14 +831,14 @@ def test_ingest_claude_history_is_idempotent_on_rerun(repo: Path) -> None:
 
     first = run_cmd(
         repo,
-        "ingest-codex-history",
+        "history-ingest",
         "--source", "claude",
         "--source-root", str(claude_root),
         "--warehouse-path", str(warehouse_path),
     )
     second = run_cmd(
         repo,
-        "ingest-codex-history",
+        "history-ingest",
         "--source", "claude",
         "--source-root", str(claude_root),
         "--warehouse-path", str(warehouse_path),
