@@ -16,11 +16,16 @@
 
 ## Scope and limitations
 
-This pipeline currently reads from **local Codex agent files** (`~/.codex`). It is one way to feed historical data into the metrics system — not the only way, and not a required part of normal metrics tracking.
+This pipeline supports two agent sources:
 
-**Claude Code** cost and token data is supported separately via `sync-usage`, which reads from `~/.claude` telemetry. That is a lightweight cost-backfill adapter, not a transcript pipeline — Claude Code conversation history and retry analysis are not yet ingested by this pipeline.
+- **Codex** (`--source codex`, default): reads from `~/.codex` — full transcript, token usage, and thread metadata.
+- **Claude Code** (`--source claude`): reads from `~/.claude/projects/` — full transcript and token usage from session JSONL files, including subagent sessions.
 
-The product model (goals, attempts, outcomes, cost) is source-agnostic. This pipeline is an adapter layer for one current source. New sources would follow the same ingest → normalize → derive pattern but with different raw tables and source readers.
+Both sources feed the same ingest → normalize → derive pipeline and produce the same warehouse table shapes. Neither is required for normal metrics tracking — they are optional adapters for reconstructing historical data.
+
+`sync-usage` is a separate lightweight cost-backfill adapter (reads `~/.claude` telemetry) and is not part of this transcript pipeline.
+
+The product model (goals, attempts, outcomes, cost) is source-agnostic. New sources would follow the same pattern but with different raw tables and source readers.
 
 ---
 
@@ -33,7 +38,13 @@ Raw sources (~/.codex, Codex sessions)
   ↓  derive       → goal/attempt/timeline marts
   ↓  compare      → diff against metrics ledger (events.ndjson)
 
-Raw sources (~/.claude, Claude Code telemetry) — cost/token only
+Raw sources (~/.claude/projects, Claude Code sessions)
+  ↓  ingest       → raw warehouse tables (SQLite)
+  ↓  normalize    → cleaned, stable rows
+  ↓  derive       → goal/attempt/timeline marts
+  ↓  compare      → diff against metrics ledger (events.ndjson)
+
+Raw sources (~/.claude, Claude Code telemetry) — cost/token only (lightweight backfill)
   ↓  sync-usage   → goal cost fields in events.ndjson (no transcript)
 ```
 
@@ -48,9 +59,9 @@ Run in order: ingest → normalize → derive → compare.
 
 ---
 
-## Raw Sources (`~/.codex`)
+## Raw Sources
 
-The current adapter reads four source files:
+### Codex (`~/.codex`)
 
 | Source | Content |
 |--------|---------|
@@ -58,6 +69,15 @@ The current adapter reads four source files:
 | `sessions/**/rollout-*.jsonl` | Full event stream per session: messages, token counts, task events |
 | `archived_sessions/*.jsonl` | Same format as active sessions, post-archival |
 | `logs_1.sqlite` | Runtime log side-channel: task boundaries, debug traces, model hints |
+
+### Claude Code (`~/.claude/projects/`)
+
+| Source | Content |
+|--------|---------|
+| `<encoded-cwd>/*.jsonl` | Full session JSONL: messages, token usage, metadata |
+| `<encoded-cwd>/subagents/agent-*.jsonl` | Subagent session files (same format, share `sessionId` with parent) |
+
+Thread identity is derived from `sessionId` in the session events. Thread metadata (model, cwd, version) is extracted from the session file itself — there is no separate state DB for Claude Code. Subagent files share the parent's `sessionId`, so the parent's `raw_threads` row is preserved when subagents are imported.
 
 ---
 
@@ -314,9 +334,11 @@ Project-level aggregate after derivation.
 
 ## Practical Search Workflow
 
-For Codex sessions (full transcript + cost):
+For Codex or Claude Code sessions (full transcript + cost):
 
-1. Ingest local `~/.codex` sources into the raw warehouse.
+1. Ingest sources into the raw warehouse:
+   - Codex: `history-ingest --source codex` (reads `~/.codex`)
+   - Claude Code: `history-ingest --source claude` (reads `~/.claude/projects/`)
 2. Normalize raw rows into stable message, usage, and project tables.
 3. Derive higher-level goal, attempt, and timeline marts.
 4. Search `raw_messages` or `normalized_messages` for transcript text.
@@ -325,10 +347,10 @@ For Codex sessions (full transcript + cost):
 7. Use `derived_message_facts` for message-level OLAP analysis or token spend by date.
 8. Use `derived_goals` and `derived_projects` for project-level comparison.
 
-For Claude Code sessions (cost only):
+For cost-only backfill (Claude Code, lightweight):
 
 1. Run `sync-usage` to backfill cost and token totals from `~/.claude` telemetry into the NDJSON ledger.
-2. Transcript analysis for Claude Code sessions is not yet available through this pipeline.
+2. This does not ingest transcripts — use `--source claude` above for full conversation history.
 
 ---
 

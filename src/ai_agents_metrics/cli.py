@@ -1320,9 +1320,9 @@ def build_parser() -> argparse.ArgumentParser:
             "  %(prog)s update --task-id 2026-03-29-001 --status success --notes \"Validated\"\n"
             "  %(prog)s update --task-id 2026-03-29-002 --title \"Retry CSV import\" --task-type product --supersedes-task-id 2026-03-29-001 --status success\n"
             "  %(prog)s ensure-active-task\n"
-            "  %(prog)s ingest-codex-history --source-root ~/.codex\n"
-            "  %(prog)s normalize-codex-history\n"
-            "  %(prog)s derive-codex-history\n"
+            "  %(prog)s history-ingest --source-root ~/.codex\n"
+            "  %(prog)s history-normalize\n"
+            "  %(prog)s history-derive\n"
             "  %(prog)s audit-cost-coverage\n"
             "  %(prog)s sync-usage\n"
         ),
@@ -1559,7 +1559,7 @@ def build_parser() -> argparse.ArgumentParser:
     show_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
 
     audit_parser = subparsers.add_parser(
-        "audit-history",
+        "history-audit",
         help="Flag suspicious history patterns for manual review",
         description=(
             "Analyze stored goal history and print audit candidates such as likely misses, "
@@ -1569,10 +1569,10 @@ def build_parser() -> argparse.ArgumentParser:
     audit_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
 
     compare_parser = subparsers.add_parser(
-        "compare-metrics-history",
-        help="Compare the structured metrics ledger against reconstructed Codex history",
+        "history-compare",
+        help="Compare the structured metrics ledger against reconstructed agent history",
         description=(
-            "Read the metrics source of truth and a derived Codex history warehouse, then print an "
+            "Read the metrics source of truth and a derived agent history warehouse, then print an "
             "aggregate comparison for the current repository cwd."
         ),
     )
@@ -1581,7 +1581,7 @@ def build_parser() -> argparse.ArgumentParser:
     compare_parser.add_argument("--cwd", default=str(Path.cwd()))
 
     ingest_parser = subparsers.add_parser(
-        "ingest-codex-history",
+        "history-ingest",
         help="Ingest local agent history into a raw SQLite warehouse",
         description=(
             "Read thread metadata, session transcripts, telemetry events, and logs from a local "
@@ -1607,10 +1607,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     normalize_parser = subparsers.add_parser(
-        "normalize-codex-history",
-        help="Normalize raw Codex history into analysis-friendly tables",
+        "history-normalize",
+        help="Normalize raw agent history into analysis-friendly tables",
         description=(
-            "Read the raw warehouse populated by ingest-codex-history and build normalized summary tables "
+            "Read the raw warehouse populated by history-ingest and build normalized summary tables "
             "for downstream analysis."
         ),
     )
@@ -1621,17 +1621,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     derive_parser = subparsers.add_parser(
-        "derive-codex-history",
-        help="Derive analysis marts from normalized Codex history",
+        "history-derive",
+        help="Derive analysis marts from normalized agent history",
         description=(
-            "Read the normalized warehouse populated by normalize-codex-history and build reusable "
+            "Read the normalized warehouse populated by history-normalize and build reusable "
             "analysis marts for goals, attempts, timelines, retry chains, and session usage."
         ),
     )
     derive_parser.add_argument(
         "--warehouse-path",
         default=str(RAW_WAREHOUSE_PATH),
-        help="SQLite warehouse path that already contains normalized Codex history",
+        help="SQLite warehouse path that already contains normalized agent history",
     )
 
     retro_timeline_parser = subparsers.add_parser(
@@ -2046,19 +2046,19 @@ def main() -> int:
     if args.command == "finish-task":
         return commands.handle_finish_task(args, sys.modules[__name__])
 
-    if args.command == "audit-history":
+    if args.command == "history-audit":
         return commands.handle_audit_history(args, sys.modules[__name__])
 
-    if args.command == "compare-metrics-history":
+    if args.command == "history-compare":
         return commands.handle_compare_metrics_to_history(args, sys.modules[__name__])
 
-    if args.command == "ingest-codex-history":
+    if args.command == "history-ingest":
         return commands.handle_ingest_codex_history(args, sys.modules[__name__])
 
-    if args.command == "normalize-codex-history":
+    if args.command == "history-normalize":
         return commands.handle_normalize_codex_history(args, sys.modules[__name__])
 
-    if args.command == "derive-codex-history":
+    if args.command == "history-derive":
         return commands.handle_derive_codex_history(args, sys.modules[__name__])
 
     if args.command == "derive-retro-timeline":

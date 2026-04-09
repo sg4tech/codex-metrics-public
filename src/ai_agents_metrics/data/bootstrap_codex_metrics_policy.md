@@ -145,10 +145,10 @@ ai-agents-metrics ensure-active-task
 ai-agents-metrics show
 ai-agents-metrics render-report
 ai-agents-metrics sync-usage
-ai-agents-metrics ingest-codex-history --help
-ai-agents-metrics normalize-codex-history --help
-ai-agents-metrics derive-codex-history --help
-ai-agents-metrics compare-metrics-history
+ai-agents-metrics history-ingest --help
+ai-agents-metrics history-normalize --help
+ai-agents-metrics history-derive --help
+ai-agents-metrics history-compare
 ```
 
 The public workflow contract should stay agent-agnostic. Provider-specific detection and telemetry support belong behind internal adapters, not in required public CLI flags.

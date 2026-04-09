@@ -177,7 +177,7 @@ def _load_retro_events_from_messages(conn: sqlite3.Connection, *, cwd: Path) -> 
         ).fetchall()
     except sqlite3.OperationalError as exc:
         raise ValueError(
-            "Warehouse does not contain main.normalized_messages; run normalize-codex-history first"
+            "Warehouse does not contain main.normalized_messages; run history-normalize first"
         ) from exc
 
     events_by_path: dict[str, RetroTimelineEvent] = {}
