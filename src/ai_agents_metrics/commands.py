@@ -135,6 +135,7 @@ class CommandRuntime(Protocol):
     def render_retro_timeline_report(self, report: RetroTimelineReport) -> str: ...
     def render_retro_timeline_report_json(self, report: RetroTimelineReport) -> str: ...
     def render_cost_audit_report_json(self, report: CostAuditReport) -> str: ...
+    def resolve_pricing_path(self, cwd: Path) -> Path: ...
     def merge_tasks(self, data: dict[str, Any], keep_task_id: str, drop_task_id: str) -> dict[str, Any]: ...
     def upsert_task(
         self,
@@ -636,7 +637,7 @@ def handle_derive_retro_timeline(args: Namespace, cli_module: CommandRuntime) ->
 
 def handle_audit_cost_coverage(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
-    pricing_path = Path(args.pricing_path)
+    pricing_path = Path(args.pricing_path) if args.pricing_path else cli_module.resolve_pricing_path(Path.cwd())
     codex_state_path = Path(args.codex_state_path)
     codex_logs_path = Path(args.codex_logs_path)
     claude_root = Path(args.claude_root) if getattr(args, "claude_root", None) is not None else Path.home() / ".claude"
@@ -676,7 +677,7 @@ def handle_sync_codex_usage(args: Namespace, cli_module: CommandRuntime) -> int:
 def handle_sync_usage(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
     report_path = Path(args.report_path) if getattr(args, "write_report", False) else None
-    pricing_path = Path(args.pricing_path)
+    pricing_path = Path(args.pricing_path) if args.pricing_path else cli_module.resolve_pricing_path(Path.cwd())
     usage_state_path = Path(args.usage_state_path)
     usage_logs_path = Path(args.usage_logs_path)
     claude_root = Path(args.claude_root) if getattr(args, "claude_root", None) is not None else Path.home() / ".claude"
@@ -757,7 +758,7 @@ def handle_merge_tasks(args: Namespace, cli_module: CommandRuntime) -> int:
 def handle_update(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
     report_path = Path(args.report_path) if getattr(args, "write_report", False) else None
-    pricing_path = Path(args.pricing_path)
+    pricing_path = Path(args.pricing_path) if args.pricing_path else cli_module.resolve_pricing_path(Path.cwd())
     codex_state_path = Path(args.codex_state_path)
     codex_logs_path = Path(args.codex_logs_path)
     claude_root = Path(args.claude_root) if getattr(args, "claude_root", None) is not None else Path.home() / ".claude"
