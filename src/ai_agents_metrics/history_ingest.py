@@ -590,20 +590,6 @@ def _iter_claude_source_files(claude_root: Path, cwd_filter: str | None = None) 
     return files
 
 
-def _resolve_claude_thread_id(session_id: str) -> str:
-    """Resolve the thread_id for a Claude Code session.
-
-    Thread identity for Claude Code is not yet implemented. Each session file
-    uses sessionId as its own thread_id (one file = one thread). When grouping
-    logic is added (e.g. parentUuid chain walk, temporal proximity), this
-    function will be the right place to implement it.
-    """
-    raise NotImplementedError(
-        "Claude Code thread identity grouping is not implemented. "
-        "Cannot group multiple sessions into a shared thread. "
-        "Discuss separately before implementing."
-    )
-
 
 def _extract_claude_message_text(content: Any) -> list[str]:
     """Extract text segments from a Claude Code message content array."""
@@ -671,9 +657,10 @@ def _extract_claude_token_usage(
 def _import_claude_session_file(conn: sqlite3.Connection, source_path: Path) -> int:
     """Import a Claude Code session JSONL file into the raw warehouse.
 
-    Thread identity: session_id is used directly as thread_id (one file = one
-    thread). Proper grouping of multiple sessions into one thread is not yet
-    implemented — see _resolve_claude_thread_id.
+    Thread identity: sessionId from events is used directly as thread_id.
+    Each top-level .jsonl file is a separate conversation (thread). Subagent
+    files (subagents/agent-*.jsonl) share the parent sessionId and are grouped
+    into the same thread via INSERT OR IGNORE on raw_threads.
     """
     conn.execute("DELETE FROM raw_threads WHERE source_path = ?", (str(source_path),))
     conn.execute("DELETE FROM raw_sessions WHERE source_path = ?", (str(source_path),))
@@ -712,7 +699,6 @@ def _import_claude_session_file(conn: sqlite3.Connection, source_path: Path) -> 
     if session_id is None:
         session_id = source_path.stem
 
-    # One file = one thread (thread identity not yet implemented)
     thread_id = session_id
 
     conn.execute(
