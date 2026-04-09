@@ -1,6 +1,7 @@
 # ai-agents-metrics — track AI agent token cost and retry pressure
 
-[![CI](https://github.com/sg4tech/codex-metrics-public/actions/workflows/ci.yml/badge.svg)](https://github.com/sg4tech/codex-metrics-public/actions/workflows/ci.yml)
+[![CI](https://github.com/sg4tech/ai-agents-metrics/actions/workflows/ci.yml/badge.svg)](https://github.com/sg4tech/ai-agents-metrics/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/ai-agents-metrics)](https://pypi.org/project/ai-agents-metrics/)
 
 **Measure the real cost and effectiveness of AI-assisted engineering work.**
 

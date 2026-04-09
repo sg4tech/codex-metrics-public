@@ -25,7 +25,7 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools_scm]
-root = ".."
+search_parent_directories = true
 write_to = "src/ai_agents_metrics/_version.py"
 fallback_version = "0.0.0.dev0"
 
