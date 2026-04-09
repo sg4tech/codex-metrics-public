@@ -14,7 +14,7 @@ A `docs/cli-reference.md` file with a table of commands grouped by purpose:
 - Task lifecycle (`start-task`, `continue-task`, `finish-task`)
 - Metrics mutation (`update`, `create`, `merge-tasks`)
 - Inspection (`show`, `show-goal`, `render-report`)
-- History pipeline (`ingest-history`, `normalize-history`, `derive-history`, `compare-history`, `audit-history`)
+- History pipeline (`history-ingest`, `history-normalize`, `history-derive`, `history-compare`, `history-audit`)
 - Sync (`sync-usage`)
 - Tooling (`init`, `verify-public-boundary`, `export`, `render-completion`)
 

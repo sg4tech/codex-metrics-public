@@ -41,6 +41,8 @@ Apply this policy when an AI agent materially contributes to an engineering outc
 - `retro` for retrospective analysis and writeups
 - `meta` for bookkeeping, policy, audits, tooling governance, and support work
 
+To choose between `product` and `meta`: ask whether the change expands what a user of the tool can do. If yes, use `product`. If the work is internal overhead — tracking, auditing, policy updates, or fixing bookkeeping — use `meta`. Examples: new CLI command or ingest adapter → `product`; updating this policy doc or fixing a metrics tracking bug → `meta`.
+
 Always set `goal_type` explicitly for new goals.
 
 If a new goal intentionally continues or supersedes a prior closed goal, record that link explicitly.
@@ -117,7 +119,8 @@ Do not use an unmarked free-form commit subject for engineering work. The valida
 2. Create a new goal if needed.
 3. Set status to `in_progress`.
 4. Initialize attempts to `0`.
-5. Do this before substantial implementation, documentation, or validation work begins. Do not postpone task start bookkeeping until after meaningful progress already exists.
+5. Do this before substantial implementation, documentation, or validation work begins. Do not postpone task start bookkeeping until after meaningful progress already exists. The first action before writing any code must be opening a goal with `start-task`.
+6. Any change to `src/` or `tests/` is a hard gate: an open goal must exist before those files are modified. This applies regardless of how the task originated — explicit instruction, conversational question, or observation. The trigger does not matter; the file change does.
 
 ### On Each Attempt
 
@@ -145,10 +148,10 @@ ai-agents-metrics ensure-active-task
 ai-agents-metrics show
 ai-agents-metrics render-report
 ai-agents-metrics sync-usage
-ai-agents-metrics ingest-codex-history --help
-ai-agents-metrics normalize-codex-history --help
-ai-agents-metrics derive-codex-history --help
-ai-agents-metrics compare-metrics-history
+ai-agents-metrics history-ingest --help
+ai-agents-metrics history-normalize --help
+ai-agents-metrics history-derive --help
+ai-agents-metrics history-compare
 ```
 
 The public workflow contract should stay agent-agnostic. Provider-specific detection and telemetry support belong behind internal adapters, not in required public CLI flags.

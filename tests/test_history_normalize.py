@@ -40,7 +40,7 @@ def test_normalize_codex_history_builds_analysis_tables(repo: Path) -> None:
 
     ingest_result = run_cmd(
         repo,
-        "ingest-codex-history",
+        "history-ingest",
         "--source-root",
         str(source_root),
         "--warehouse-path",
@@ -50,7 +50,7 @@ def test_normalize_codex_history_builds_analysis_tables(repo: Path) -> None:
 
     normalize_result = run_cmd(
         repo,
-        "normalize-codex-history",
+        "history-normalize",
         "--warehouse-path",
         str(warehouse_path),
     )
@@ -105,7 +105,7 @@ def test_normalize_codex_history_is_idempotent_on_rerun(repo: Path) -> None:
     assert (
         run_cmd(
             repo,
-            "ingest-codex-history",
+            "history-ingest",
             "--source-root",
             str(source_root),
             "--warehouse-path",
@@ -114,8 +114,8 @@ def test_normalize_codex_history_is_idempotent_on_rerun(repo: Path) -> None:
         == 0
     )
 
-    first = run_cmd(repo, "normalize-codex-history", "--warehouse-path", str(warehouse_path))
-    second = run_cmd(repo, "normalize-codex-history", "--warehouse-path", str(warehouse_path))
+    first = run_cmd(repo, "history-normalize", "--warehouse-path", str(warehouse_path))
+    second = run_cmd(repo, "history-normalize", "--warehouse-path", str(warehouse_path))
 
     assert first.returncode == 0, first.stderr
     assert second.returncode == 0, second.stderr
@@ -138,7 +138,7 @@ def test_normalize_codex_history_handles_missing_event_timestamps(repo: Path) ->
     assert (
         run_cmd(
             repo,
-            "ingest-codex-history",
+            "history-ingest",
             "--source-root",
             str(source_root),
             "--warehouse-path",
@@ -154,7 +154,7 @@ def test_normalize_codex_history_handles_missing_event_timestamps(repo: Path) ->
         )
         conn.commit()
 
-    result = run_cmd(repo, "normalize-codex-history", "--warehouse-path", str(warehouse_path))
+    result = run_cmd(repo, "history-normalize", "--warehouse-path", str(warehouse_path))
 
     assert result.returncode == 0, result.stderr
 
@@ -180,7 +180,7 @@ def test_normalize_codex_history_handles_blank_timestamp_strings(repo: Path) -> 
     assert (
         run_cmd(
             repo,
-            "ingest-codex-history",
+            "history-ingest",
             "--source-root",
             str(source_root),
             "--warehouse-path",
@@ -194,7 +194,7 @@ def test_normalize_codex_history_handles_blank_timestamp_strings(repo: Path) -> 
         conn.execute("UPDATE raw_session_events SET timestamp = '' WHERE session_path LIKE ?", ("%rollout-2.jsonl",))
         conn.commit()
 
-    result = run_cmd(repo, "normalize-codex-history", "--warehouse-path", str(warehouse_path))
+    result = run_cmd(repo, "history-normalize", "--warehouse-path", str(warehouse_path))
 
     assert result.returncode == 0, result.stderr
 
@@ -218,7 +218,7 @@ def test_normalize_codex_history_rejects_missing_warehouse(repo: Path) -> None:
 
     result = run_cmd(
         repo,
-        "normalize-codex-history",
+        "history-normalize",
         "--warehouse-path",
         str(warehouse_path),
     )
@@ -234,13 +234,13 @@ def test_normalize_codex_history_rejects_non_ingested_warehouse(repo: Path) -> N
 
     result = run_cmd(
         repo,
-        "normalize-codex-history",
+        "history-normalize",
         "--warehouse-path",
         str(warehouse_path),
     )
 
     assert result.returncode == 1
-    assert "Warehouse does not contain raw Codex history; run ingest-codex-history first" in result.stderr
+    assert "Warehouse does not contain raw agent history; run history-ingest first" in result.stderr
 
 
 def test_normalize_helpers_handle_missing_timestamps_and_malformed_usage_rows() -> None:

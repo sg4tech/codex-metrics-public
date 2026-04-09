@@ -219,7 +219,7 @@ ai-agents-metrics show
 Audit goal history for likely misses, stale in-progress goals, and low cost coverage:
 
 ```bash
-ai-agents-metrics audit-history
+ai-agents-metrics history-audit
 ```
 
 Explain missing cost coverage and check whether it is recoverable from local agent logs:
@@ -251,15 +251,21 @@ ai-agents-metrics sync-usage
 Reconstruct session history from local agent transcripts. Run the three pipeline stages in order:
 
 ```bash
-ai-agents-metrics ingest-codex-history
-ai-agents-metrics normalize-codex-history
-ai-agents-metrics derive-codex-history
+ai-agents-metrics history-ingest
+ai-agents-metrics history-normalize
+ai-agents-metrics history-derive
+```
+
+For Claude Code sessions, add `--source claude`:
+
+```bash
+ai-agents-metrics history-ingest --source claude
 ```
 
 Compare the structured event log against reconstructed history to find gaps:
 
 ```bash
-ai-agents-metrics compare-metrics-history
+ai-agents-metrics history-compare
 ```
 
 Analyze before/after product metrics around each retrospective event:
