@@ -34,12 +34,12 @@ This file turns the `public / private / rewrite` boundary into an explicit worki
 
 | Path | Classification | Notes |
 | --- | --- | --- |
-| `docs/codex-metrics-policy.md` | `rewrite` | likely split into public workflow contract and private operating policy |
+| `docs/ai-agents-metrics-policy.md` | `rewrite` | likely split into public workflow contract and private operating policy |
 | `docs/history-pipeline.md` | `rewrite` | technically useful, but should be reviewed for internal framing and local-path leakage |
-| `docs/local-linear-setup.md` | `private` | repository-local workflow configuration |
+| `docs/private/local-linear-setup.md` | `private` | repository-local workflow configuration |
 | `docs/product-framing.md` | `rewrite` | may have public value, but currently reflects internal framing |
 | `docs/product-hypotheses.md` | `rewrite` | some hypotheses may become public roadmap, but not all should be published unchanged |
-| `docs/task-lifecycle.md` | `rewrite` | internal workflow details should be separated from any public contribution lifecycle |
+| `docs/private/task-lifecycle.md` | `rewrite` | internal workflow details should be separated from any public contribution lifecycle |
 | `docs/TODO.md` | `private` | internal working backlog |
 | `docs/audits/` | `private` | internal analysis, including third-party project reviews and snapshots |
 | `docs/experiments/` | `rewrite` | potentially reusable, but should be reviewed case by case |
@@ -72,7 +72,7 @@ These should be excluded from the first public repository without further debate
 - `docs/audits/`
 - `docs/notes/`
 - `docs/pilots/`
-- `docs/local-linear-setup.md`
+- `docs/private/local-linear-setup.md`
 - `docs/TODO.md`
 - `metrics/`
 
@@ -81,12 +81,12 @@ These should be excluded from the first public repository without further debate
 These should not block the first public split, but they should not be published verbatim:
 
 - `AGENTS.md`
-- `docs/codex-metrics-policy.md`
+- `docs/ai-agents-metrics-policy.md`
 - `docs/history-pipeline.md`
 - `docs/product-framing.md`
 - `docs/product-hypotheses.md`
 - `docs/product-hypotheses/`
-- `docs/task-lifecycle.md`
+- `docs/private/task-lifecycle.md`
 - `docs/experiments/`
 - `.githooks/`
 

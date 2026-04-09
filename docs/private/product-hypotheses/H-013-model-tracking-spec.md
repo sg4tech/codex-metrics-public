@@ -5,7 +5,7 @@
 - Draft date: `2026-04-02`
 - Owner: `product / metrics`
 - Intended audience: `development team`
-- Related hypothesis: [H-013](/Users/viktor/PycharmProjects/codex-metrics/docs/product-hypotheses/H-013.md)
+- Related hypothesis: [H-013](/Users/viktor/PycharmProjects/codex-metrics/docs/private/product-hypotheses/archive/H-013.md)
 
 ## Problem
 

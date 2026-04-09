@@ -3,7 +3,7 @@
 ## Status
 
 - Draft date: `2026-04-06`
-- Related hypothesis: [H-030](../product-hypotheses/H-030.md)
+- Related hypothesis: [H-030](../product-hypotheses/archive/H-030.md)
 - Branch: `feature/event-sourcing-storage` (to be created)
 - PR strategy: one big PR
 - Linear: no issue yet (no CLI access at time of writing; create manually before starting)
