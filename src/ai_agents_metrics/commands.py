@@ -87,7 +87,7 @@ class CommandRuntime(Protocol):
     def ensure_active_task(self, data: dict[str, Any], cwd: Path) -> Any: ...
     def get_active_goals(self, data: dict[str, Any]) -> list[dict[str, Any]]: ...
     def resolve_workflow_resolution(self, data: dict[str, Any], cwd: Path, event: WorkflowEvent) -> Any: ...
-    def ingest_codex_history(self, source_root: Path, warehouse_path: Path) -> Any: ...
+    def ingest_codex_history(self, source_root: Path, warehouse_path: Path, source: str = ...) -> Any: ...
     def normalize_codex_history(self, warehouse_path: Path) -> Any: ...
     def derive_codex_history(self, warehouse_path: Path) -> Any: ...
     def verify_public_boundary(self, *, repo_root: Path, rules_path: Path) -> Any: ...
@@ -538,11 +538,22 @@ def handle_compare_metrics_to_history(args: Namespace, cli_module: CommandRuntim
     return 0
 
 
+_CLAUDE_DEFAULT_ROOT = Path.home() / ".claude"
+_CODEX_DEFAULT_ROOT = Path.home() / ".codex"
+
+
 def handle_ingest_codex_history(args: Namespace, cli_module: CommandRuntime) -> int:
-    source_root = Path(args.source_root).expanduser()
+    source: str = getattr(args, "source", "codex")
+    source_root_arg: str | None = getattr(args, "source_root", None)
+    if source_root_arg is not None:
+        source_root = Path(source_root_arg).expanduser()
+    elif source == "claude":
+        source_root = _CLAUDE_DEFAULT_ROOT
+    else:
+        source_root = _CODEX_DEFAULT_ROOT
     warehouse_path = Path(args.warehouse_path).expanduser()
     with cli_module.metrics_mutation_lock(warehouse_path):
-        summary = cli_module.ingest_codex_history(source_root, warehouse_path)
+        summary = cli_module.ingest_codex_history(source_root, warehouse_path, source)
     if getattr(args, "json", False):
         print(cli_module.render_ingest_summary_json(summary))
     else:

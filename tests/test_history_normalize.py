@@ -83,10 +83,15 @@ def test_normalize_codex_history_builds_analysis_tables(repo: Path) -> None:
         assert session["last_event_at"] == "2026-04-02T10:00:03.000Z"
 
         usage = conn.execute(
-            "SELECT input_tokens, cached_input_tokens, output_tokens, reasoning_output_tokens, total_tokens FROM normalized_usage_events WHERE thread_id = ?",
+            """
+            SELECT input_tokens, cache_creation_input_tokens, cached_input_tokens,
+                   output_tokens, reasoning_output_tokens, total_tokens
+            FROM normalized_usage_events WHERE thread_id = ?
+            """,
             ("thread-1",),
         ).fetchone()
         assert usage["input_tokens"] == 100
+        assert usage["cache_creation_input_tokens"] is None  # Codex sessions have no cache_creation
         assert usage["cached_input_tokens"] == 10
         assert usage["output_tokens"] == 50
         assert usage["reasoning_output_tokens"] == 5

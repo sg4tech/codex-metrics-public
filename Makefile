@@ -1,4 +1,4 @@
-.PHONY: init check-init lint typecheck test verify security verify-public-boundary setup-hooks dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke public-overlay-status public-overlay-bootstrap public-overlay-verify public-overlay-push public-overlay-pull
+.PHONY: init check-init lint typecheck test verify build-check security verify-public-boundary setup-hooks dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke public-overlay-status public-overlay-bootstrap public-overlay-verify public-overlay-push public-overlay-pull
 
 PYTHON3 ?= python3
 
@@ -23,7 +23,10 @@ typecheck:
 test:
 	./.venv/bin/python -m pytest tests/
 
-verify: check-init lint security typecheck test
+build-check:
+	./.venv/bin/pip install --no-deps -e . -q
+
+verify: check-init lint security typecheck test build-check
 
 security:
 	./.venv/bin/python -m ai_agents_metrics security --repo-root . --rules-path config/security-rules.toml

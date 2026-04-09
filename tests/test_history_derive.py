@@ -7,7 +7,11 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from test_history_ingest import create_codex_history_source_root, run_cmd
+from test_history_ingest import (
+    create_claude_history_source_root,
+    create_codex_history_source_root,
+    run_cmd,
+)
 
 from ai_agents_metrics.history_derive import (
     _fetch_normalized_logs,
@@ -269,11 +273,11 @@ def test_fetch_normalized_functions_return_all_typed_fields() -> None:
             """
             INSERT INTO normalized_usage_events (
                 usage_event_id, thread_id, session_path, source_path, event_index, timestamp,
-                input_tokens, cached_input_tokens, output_tokens, reasoning_output_tokens,
-                total_tokens, model, raw_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                input_tokens, cache_creation_input_tokens, cached_input_tokens,
+                output_tokens, reasoning_output_tokens, total_tokens, model, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            ("u1", "t1", "/sessions/s1.jsonl", "/src", 2, "2026-01-01T00:00:02Z", 100, 10, 50, 5, 165, "gpt-4o", raw),
+            ("u1", "t1", "/sessions/s1.jsonl", "/src", 2, "2026-01-01T00:00:02Z", 100, None, 10, 50, 5, 165, "gpt-4o", raw),
         )
         conn.execute(
             """
@@ -345,6 +349,7 @@ def test_fetch_normalized_functions_return_all_typed_fields() -> None:
         assert u["event_index"] == 2
         assert u["timestamp"] == "2026-01-01T00:00:02Z"
         assert u["input_tokens"] == 100
+        assert u["cache_creation_input_tokens"] is None  # Codex fixture has no cache_creation
         assert u["cached_input_tokens"] == 10
         assert u["output_tokens"] == 50
         assert u["reasoning_output_tokens"] == 5
@@ -453,3 +458,34 @@ def test_fetch_normalized_functions_handle_nullable_fields() -> None:
         assert log["level"] is None
         assert log["target"] is None
         assert log["body"] is None
+
+
+def test_derive_claude_history_populates_cache_creation_tokens(repo: Path) -> None:
+    claude_root = create_claude_history_source_root(repo)
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
+
+    assert (
+        run_cmd(
+            repo,
+            "ingest-codex-history",
+            "--source",
+            "claude",
+            "--source-root",
+            str(claude_root),
+            "--warehouse-path",
+            str(warehouse_path),
+        ).returncode
+        == 0
+    )
+    assert run_cmd(repo, "normalize-codex-history", "--warehouse-path", str(warehouse_path)).returncode == 0
+    result = run_cmd(repo, "derive-codex-history", "--warehouse-path", str(warehouse_path))
+    assert result.returncode == 0, result.stderr
+
+    with sqlite3.connect(warehouse_path) as conn:
+        conn.row_factory = sqlite3.Row
+        usage = conn.execute("SELECT * FROM derived_session_usage").fetchone()
+        assert usage["cache_creation_input_tokens"] == 10
+        assert usage["input_tokens"] == 100
+        assert usage["cached_input_tokens"] == 200
+        assert usage["output_tokens"] == 50
+        assert usage["total_tokens"] == 360
