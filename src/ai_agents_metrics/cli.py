@@ -175,8 +175,8 @@ class ActiveTaskResolution:
     started_work_report: StartedWorkReport | None = None
 
 
-def ingest_codex_history(source_root: Path, warehouse_path: Path) -> IngestSummary:
-    return run_ingest_codex_history(source_root=source_root, warehouse_path=warehouse_path)
+def ingest_codex_history(source_root: Path, warehouse_path: Path, source: str = "codex") -> IngestSummary:
+    return run_ingest_codex_history(source_root=source_root, warehouse_path=warehouse_path, source=source)
 
 
 def normalize_codex_history(warehouse_path: Path) -> NormalizeSummary:
@@ -1582,13 +1582,24 @@ def build_parser() -> argparse.ArgumentParser:
 
     ingest_parser = subparsers.add_parser(
         "ingest-codex-history",
-        help="Ingest local ~/.codex history into a raw SQLite warehouse",
+        help="Ingest local agent history into a raw SQLite warehouse",
         description=(
             "Read thread metadata, session transcripts, telemetry events, and logs from a local "
-            "Codex history directory into a raw warehouse for later derivation."
+            "agent history directory into a raw warehouse for later derivation. "
+            "Supports Codex (default, ~/.codex) and Claude Code (~/.claude)."
         ),
     )
-    ingest_parser.add_argument("--source-root", default=str(Path.home() / ".codex"), help="Local Codex history root to read")
+    ingest_parser.add_argument(
+        "--source",
+        choices=["codex", "claude"],
+        default="codex",
+        help="Agent source to ingest: 'codex' (default, reads ~/.codex) or 'claude' (reads ~/.claude)",
+    )
+    ingest_parser.add_argument(
+        "--source-root",
+        default=None,
+        help="Override the agent history root directory (default: ~/.codex for codex, ~/.claude for claude)",
+    )
     ingest_parser.add_argument(
         "--warehouse-path",
         default=str(RAW_WAREHOUSE_PATH),
