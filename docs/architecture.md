@@ -1,6 +1,48 @@
-# ai-agents-metrics: Code Architecture
+# Architecture
 
-CLI tool for tracking AI agent task metrics — goals, attempt history, token usage, and cost — stored in an append-only NDJSON event log.
+**What this document is:** A technical map of the codebase — modules, data flow, storage, and integrations.
+
+**When to read this:**
+- Getting started as a contributor
+- Looking for where a specific feature lives
+- Debugging a data or CLI issue and not sure which layer to look at
+
+**Related docs:**
+- [decisions.md](decisions.md) — why key architectural choices were made
+- [testing-guide.md](testing-guide.md) — how to test each layer
+- [data-schema.md](data-schema.md) — what the stored data looks like
+
+---
+
+## Summary
+
+`ai-agents-metrics` is a CLI tool that appends events to a local NDJSON log. State is reconstructed at read time by replaying events in order. There is no database server, no background process, and no network dependency.
+
+Data flow:
+
+```
+CLI (cli.py)
+  ↓  parses args, validates workflow state via workflow_fsm.py
+Domain (domain/)
+  ↓  validates records, serialises/deserialises, computes aggregates
+Storage (storage.py)
+  ↓  atomic append to metrics/events.ndjson via fcntl lock
+Reporting (reporting.py)
+  ↓  computes in-memory summary, generates markdown
+History pipeline (history_*.py)
+  ↓  optional: reconstructs past goals from raw agent transcripts
+```
+
+---
+
+## How to read this
+
+- **New contributor** → Directory Layout → Entry Points → Data and Storage
+- **Working on CLI commands** → Entry Points → Workflow State Machine
+- **Working on domain validation or aggregation** → Core Domain
+- **Working on storage or event replay** → Data and Storage
+- **Working on history reconstruction** → History Pipeline
+- **Working on hooks, security, or public boundary** → Integrations
 
 ---
 
@@ -133,7 +175,7 @@ Key command groups:
 
 | Script | Purpose |
 |--------|---------|
-| `update_ai_agents_metrics.py` | Legacy compatibility shim |
+| `metrics_cli.py` | CLI entry point shim for local development |
 | `public_overlay.py` | Bidirectional sync between private repo and `oss/` public mirror |
 | `build_standalone.py` | Builds self-contained binary distribution |
 | `check_live_usage_recovery.py` | Smoke test for live usage data recovery |
@@ -146,7 +188,7 @@ One test file per module; naming mirrors the source:
 
 | Test file | Covers |
 |-----------|--------|
-| `test_update_ai_agents_metrics.py` | Full CLI workflow integration |
+| `test_metrics_cli.py` | Full CLI workflow integration |
 | `test_metrics_domain.py` | Domain model logic |
 | `test_workflow_fsm.py` | State machine transitions |
 | `test_history_{ingest,normalize,derive,compare,audit}.py` | Pipeline stages |
@@ -166,7 +208,7 @@ One test file per module; naming mirrors the source:
 | Tool | Config | Settings |
 |------|--------|----------|
 | **ruff** | `pyproject.toml` | Rules: F (pyflakes) + I (isort); target Python 3.14; line length 100 |
-| **mypy** | `pyproject.toml` | Strict: `check_untyped_defs`, `disallow_incomplete_defs`, `no_implicit_optional`; covers `src/` + `scripts/update_ai_agents_metrics.py` |
+| **mypy** | `pyproject.toml` | Strict: `check_untyped_defs`, `disallow_incomplete_defs`, `no_implicit_optional`; covers `src/` + `scripts/metrics_cli.py` |
 | **pytest** | `pyproject.toml` | `pythonpath = ["src"]` |
 | **coverage** | `pyproject.toml` | Branch coverage, parallel mode, source = `ai_agents_metrics` |
 

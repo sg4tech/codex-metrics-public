@@ -2,23 +2,33 @@
 
 [![CI](https://github.com/sg4tech/ai-agents-metrics/actions/workflows/ci.yml/badge.svg)](https://github.com/sg4tech/ai-agents-metrics/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/ai-agents-metrics)](https://pypi.org/project/ai-agents-metrics/)
+[![License](https://img.shields.io/pypi/l/ai-agents-metrics)](https://github.com/sg4tech/ai-agents-metrics/blob/main/LICENSE)
+[![Python](https://img.shields.io/pypi/pyversions/ai-agents-metrics)](https://pypi.org/project/ai-agents-metrics/)
 
-**Track the real cost and effectiveness of AI-assisted engineering work.**
+**Measure whether AI-assisted development is working.**
 
-`ai-agents-metrics` is a local CLI tool that records goals, attempts, token spend, and retry patterns for every AI coding session. It gives AI agents the structured data they need to analyze workflow changes and answer whether quality, speed, and cost improved — so the human receives grounded conclusions rather than raw numbers.
+AI is writing more of your code. You still don't know:
+- How many attempts each task actually takes
+- Where the process breaks down and why
+- Whether your workflow is getting faster or generating more rework
+
+`ai-agents-metrics` tracks goals, attempts, outcomes, and token cost for every AI coding session — structured data to reason about your workflow, not just your model.
 
 ---
 
-## Why
+## Why this exists
 
-AI coding agents (Claude Code, Codex, and similar) vary widely in effectiveness and generate real costs. Without structured tracking:
+AI coding tools optimize for code generation. That is not the same as optimizing the development system around AI.
 
-- Token spend per task is invisible
-- Retries and correction passes disappear from history
-- Workflow changes cannot be compared before and after
-- AI cost accumulates without a way to tell whether it is producing value
+A coding agent can succeed at the individual task while the overall workflow degrades — more attempts per goal, more correction passes, more cost per shipped unit.
 
-`ai-agents-metrics` gives you a lightweight, local ledger to answer all of these from real data.
+This project tracks the signals that matter at the workflow level:
+- how many attempts goals require,
+- where retries and failures cluster,
+- whether outcomes are matching the requested result,
+- whether cost is trending in the right direction.
+
+It is not a benchmark, an eval framework, or a model comparison tool. It is a local ledger for real engineering work done with AI.
 
 ---
 

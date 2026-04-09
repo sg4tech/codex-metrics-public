@@ -1,13 +1,28 @@
 # Testing Guide
 
-How tests are structured, what `conftest.py` provides, and how to write new tests in this project.
+**What this document is:** How tests are structured, what helpers are available, and how to write new tests correctly.
+
+**When to read this:**
+- Writing a new test or adding coverage to an existing module
+- Debugging a test failure and not sure why it is behaving unexpectedly
+- Setting up a new worktree or environment and need to run tests
+
+**Related docs:**
+- [architecture.md](architecture.md) — what each module does and where it lives
+- [data-schema.md](data-schema.md) — shape of the data used in test fixtures
 
 ---
 
-## Running tests
+## Summary
+
+Tests are split into two styles: unit tests (direct import) and end-to-end tests (subprocess). The canonical entry point for all checks is `make verify`. Every mutating command should have three test buckets: happy path, invalid-state rejection, and summary consistency.
+
+---
+
+## Quick start
 
 ```bash
-make verify          # lint + typecheck + tests (canonical entry point)
+make verify          # lint + typecheck + tests (run this before every commit)
 make test            # pytest only
 make lint            # ruff only
 make typecheck       # mypy only
@@ -20,11 +35,30 @@ Configuration in `pyproject.toml`:
 
 ---
 
+## Common workflows
+
+**Before a commit:**
+```bash
+make verify
+```
+
+**Debugging a single test:**
+```bash
+python -m pytest tests/test_metrics_cli.py::test_name -v -s
+```
+
+**Running with subprocess coverage enabled:**
+```bash
+CODEX_SUBPROCESS_COVERAGE=1 make test
+```
+
+---
+
 ## Structure: one file per module
 
 | Test file | Covers |
 |-----------|--------|
-| `test_update_ai_agents_metrics.py` | CLI end-to-end via subprocess |
+| `test_metrics_cli.py` | CLI end-to-end via subprocess |
 | `test_metrics_domain.py` | Domain logic (unit) |
 | `test_workflow_fsm.py` | State machine transitions |
 | `test_history_{ingest,normalize,derive,compare,audit}.py` | Pipeline stages |
@@ -78,7 +112,7 @@ def test_something(input: str, expected: bool) -> None:
 
 For CLI commands. Use `tmp_path` as an isolated repo root.
 
-Helper functions defined in `test_update_ai_agents_metrics.py` (reused across test files):
+Helper functions defined in `test_metrics_cli.py` (reused across test files):
 
 ```python
 # Run via legacy script
@@ -157,7 +191,7 @@ The same pattern exists for `make_goal_record`, `make_effective_goal_record`, an
 
 Tests for `history_ingest` / `history_normalize` / `history_derive` require creating SQLite databases with the correct schema.
 
-`create_codex_usage_sources(repo, ...)` in `test_update_ai_agents_metrics.py` creates:
+`create_codex_usage_sources(repo, ...)` in `test_metrics_cli.py` creates:
 - `codex_state.sqlite` with a `threads` table
 - `codex_logs.sqlite` with a `logs` table
 
