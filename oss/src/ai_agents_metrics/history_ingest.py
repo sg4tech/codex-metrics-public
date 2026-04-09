@@ -187,11 +187,13 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
 def _delete_source_rows(conn: sqlite3.Connection, source_path: str, source_kind: str) -> None:
     if source_kind == "thread_state_db":
         conn.execute("DELETE FROM raw_threads WHERE source_path = ?", (source_path,))
-    elif source_kind == "session_rollout":
+    elif source_kind in ("session_rollout", "claude_session"):
         conn.execute("DELETE FROM raw_sessions WHERE source_path = ?", (source_path,))
         conn.execute("DELETE FROM raw_session_events WHERE source_path = ?", (source_path,))
         conn.execute("DELETE FROM raw_messages WHERE source_path = ?", (source_path,))
         conn.execute("DELETE FROM raw_token_usage WHERE source_path = ?", (source_path,))
+        if source_kind == "claude_session":
+            conn.execute("DELETE FROM raw_threads WHERE source_path = ?", (source_path,))
     elif source_kind == "usage_log_db":
         conn.execute("DELETE FROM raw_logs WHERE source_path = ?", (source_path,))
     conn.execute("DELETE FROM source_manifest WHERE source_path = ?", (source_path,))
@@ -556,7 +558,295 @@ def _iter_source_files(source_root: Path) -> list[tuple[Path, str]]:
     return files
 
 
-def ingest_codex_history(*, source_root: Path, warehouse_path: Path) -> IngestSummary:
+# ---------------------------------------------------------------------------
+# Claude Code adapter
+# ---------------------------------------------------------------------------
+
+def _encode_claude_cwd(cwd: str) -> str:
+    """Encode a filesystem path to the Claude project directory name format."""
+    return cwd.replace("/", "-")
+
+
+def _iter_claude_source_files(claude_root: Path, cwd_filter: str | None = None) -> list[tuple[Path, str]]:
+    """Iterate Claude Code session JSONL files from ~/.claude/projects/.
+
+    Args:
+        claude_root: Path to the Claude root directory (e.g. ``~/.claude``).
+        cwd_filter: If given, only scan the project directory whose encoded name
+            matches this cwd (i.e. ``_encode_claude_cwd(cwd_filter)``).
+    """
+    files: list[tuple[Path, str]] = []
+    projects_dir = claude_root / "projects"
+    if not projects_dir.exists():
+        return files
+    encoded_filter = _encode_claude_cwd(cwd_filter) if cwd_filter is not None else None
+    for project_dir in sorted(d for d in projects_dir.iterdir() if d.is_dir()):
+        if encoded_filter is not None and project_dir.name != encoded_filter:
+            continue
+        for path in sorted(project_dir.glob("*.jsonl")):
+            files.append((path, "claude_session"))
+        for path in sorted(project_dir.rglob("subagents/agent-*.jsonl")):
+            files.append((path, "claude_session"))
+    return files
+
+
+def _resolve_claude_thread_id(session_id: str) -> str:
+    """Resolve the thread_id for a Claude Code session.
+
+    Thread identity for Claude Code is not yet implemented. Each session file
+    uses sessionId as its own thread_id (one file = one thread). When grouping
+    logic is added (e.g. parentUuid chain walk, temporal proximity), this
+    function will be the right place to implement it.
+    """
+    raise NotImplementedError(
+        "Claude Code thread identity grouping is not implemented. "
+        "Cannot group multiple sessions into a shared thread. "
+        "Discuss separately before implementing."
+    )
+
+
+def _extract_claude_message_text(content: Any) -> list[str]:
+    """Extract text segments from a Claude Code message content array."""
+    texts: list[str] = []
+    if not isinstance(content, list):
+        return texts
+    for item in content:
+        if isinstance(item, dict) and item.get("type") == "text":
+            text = item.get("text")
+            if isinstance(text, str) and text.strip():
+                texts.append(text)
+    return texts
+
+
+def _extract_claude_token_usage(
+    event: dict[str, Any],
+    *,
+    event_id: str,
+    source_path: str,
+    thread_id: str | None,
+    event_index: int,
+) -> dict[str, Any] | None:
+    """Extract token usage from a Claude Code assistant event."""
+    if event.get("type") != "assistant":
+        return None
+    message = event.get("message")
+    if not isinstance(message, dict):
+        return None
+    usage = message.get("usage")
+    if not isinstance(usage, dict):
+        return None
+
+    input_tokens = int(usage.get("input_tokens") or 0)
+    cache_creation = int(usage.get("cache_creation_input_tokens") or 0)
+    cache_read = int(usage.get("cache_read_input_tokens") or 0)
+    output_tokens = int(usage.get("output_tokens") or 0)
+    total = input_tokens + cache_creation + cache_read + output_tokens
+
+    if total == 0:
+        return None
+
+    timestamp = event.get("timestamp") if isinstance(event.get("timestamp"), str) else None
+    model = message.get("model")
+
+    return {
+        "token_event_id": event_id,
+        "session_path": source_path,
+        "source_path": source_path,
+        "thread_id": thread_id,
+        "event_index": event_index,
+        "timestamp": timestamp,
+        "has_breakdown": 1,
+        "input_tokens": input_tokens,
+        # cache_read maps to cached_input_tokens (read-from-cache portion)
+        # cache_creation is stored only in raw_json (billed at higher rate, tracked separately)
+        "cached_input_tokens": cache_read,
+        "output_tokens": output_tokens,
+        "reasoning_output_tokens": None,
+        "total_tokens": total,
+        "model": model,
+        "raw_json": _json_text(event),
+    }
+
+
+def _import_claude_session_file(conn: sqlite3.Connection, source_path: Path) -> int:
+    """Import a Claude Code session JSONL file into the raw warehouse.
+
+    Thread identity: session_id is used directly as thread_id (one file = one
+    thread). Proper grouping of multiple sessions into one thread is not yet
+    implemented — see _resolve_claude_thread_id.
+    """
+    conn.execute("DELETE FROM raw_threads WHERE source_path = ?", (str(source_path),))
+    conn.execute("DELETE FROM raw_sessions WHERE source_path = ?", (str(source_path),))
+    conn.execute("DELETE FROM raw_session_events WHERE source_path = ?", (str(source_path),))
+    conn.execute("DELETE FROM raw_messages WHERE source_path = ?", (str(source_path),))
+    conn.execute("DELETE FROM raw_token_usage WHERE source_path = ?", (str(source_path),))
+
+    with source_path.open("r", encoding="utf-8") as handle:
+        lines = handle.readlines()
+
+    session_id: str | None = None
+    cwd: str | None = None
+    version: str | None = None
+    first_timestamp: str | None = None
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if session_id is None:
+            session_id = event.get("sessionId")
+        if cwd is None:
+            cwd = event.get("cwd")
+        if version is None:
+            version = event.get("version")
+        ts = event.get("timestamp")
+        if isinstance(ts, str) and first_timestamp is None:
+            first_timestamp = ts
+        if session_id and cwd:
+            break
+
+    if session_id is None:
+        session_id = source_path.stem
+
+    # One file = one thread (thread identity not yet implemented)
+    thread_id = session_id
+
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO raw_threads (
+            thread_id, source_path, updated_at, created_at, model_provider,
+            model, cwd, title, first_user_message, archived, rollout_path, raw_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            thread_id, str(source_path), None, first_timestamp, "anthropic",
+            None, cwd, None, None, 0, str(source_path),
+            _json_text({"session_id": session_id, "cwd": cwd}),
+        ),
+    )
+
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO raw_sessions (
+            session_path, source_path, thread_id, session_timestamp,
+            cwd, source, model_provider, cli_version, originator, raw_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            str(source_path), str(source_path), thread_id, first_timestamp,
+            cwd, "claude", "anthropic", version, "claude-code",
+            _json_text({"session_id": session_id, "cwd": cwd, "version": version}),
+        ),
+    )
+
+    imported = 0
+    for event_index, line in enumerate(lines):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+
+        event_type = str(event.get("type") or "")
+        timestamp = event.get("timestamp") if isinstance(event.get("timestamp"), str) else None
+        role = event_type if event_type in ("user", "assistant") else None
+
+        event_id = hashlib.sha256(
+            f"{source_path}:{event_index}:{line}".encode("utf-8")
+        ).hexdigest()
+
+        conn.execute(
+            """
+            INSERT INTO raw_session_events (
+                event_id, session_path, source_path, thread_id, event_index,
+                event_type, timestamp, payload_type, role, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                event_id, str(source_path), str(source_path), thread_id, event_index,
+                event_type, timestamp, None, role, _json_text(event),
+            ),
+        )
+        imported += 1
+
+        token_usage = _extract_claude_token_usage(
+            event,
+            event_id=event_id,
+            source_path=str(source_path),
+            thread_id=thread_id,
+            event_index=event_index,
+        )
+        if token_usage is not None:
+            conn.execute(
+                """
+                INSERT INTO raw_token_usage (
+                    token_event_id, session_path, source_path, thread_id, event_index,
+                    timestamp, has_breakdown, input_tokens, cached_input_tokens,
+                    output_tokens, reasoning_output_tokens, total_tokens, model, raw_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    token_usage["token_event_id"], token_usage["session_path"],
+                    token_usage["source_path"], token_usage["thread_id"],
+                    token_usage["event_index"], token_usage["timestamp"],
+                    token_usage["has_breakdown"], token_usage["input_tokens"],
+                    token_usage["cached_input_tokens"], token_usage["output_tokens"],
+                    token_usage["reasoning_output_tokens"], token_usage["total_tokens"],
+                    token_usage["model"], token_usage["raw_json"],
+                ),
+            )
+
+        if event_type in ("user", "assistant"):
+            message = event.get("message", {})
+            content = message.get("content", []) if isinstance(message, dict) else []
+            texts = _extract_claude_message_text(content)
+            for message_index, text in enumerate(texts):
+                message_id = hashlib.sha256(
+                    f"{source_path}:{event_index}:{message_index}:{event_type}:{text}".encode("utf-8")
+                ).hexdigest()
+                conn.execute(
+                    """
+                    INSERT INTO raw_messages (
+                        message_id, session_path, source_path, thread_id, event_index,
+                        message_index, role, text, raw_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        message_id, str(source_path), str(source_path), thread_id,
+                        event_index, message_index, event_type, text,
+                        _json_text(message),
+                    ),
+                )
+
+    return imported
+
+
+def ingest_codex_history(
+    *,
+    source_root: Path,
+    warehouse_path: Path,
+    source: str = "codex",
+) -> IngestSummary:
+    """Ingest agent history into the raw warehouse.
+
+    Args:
+        source_root: Root directory to read from. For ``"codex"`` this is
+            ``~/.codex``; for ``"claude"`` this is ``~/.claude``.
+        warehouse_path: SQLite warehouse path.
+        source: Agent source — ``"codex"`` (default) or ``"claude"``.
+
+    Raises:
+        ValueError: If ``source`` is not a recognised value or ``source_root``
+            does not exist.
+    """
+    if source not in ("codex", "claude"):
+        raise ValueError(f"Unknown source {source!r}; expected 'codex' or 'claude'")
     if not source_root.exists():
         raise ValueError(f"Source root does not exist: {source_root}")
     ensure_parent_dir(warehouse_path)
@@ -578,10 +868,16 @@ def ingest_codex_history(*, source_root: Path, warehouse_path: Path) -> IngestSu
     messages = 0
     logs = 0
 
+    source_files = (
+        _iter_claude_source_files(source_root)
+        if source == "claude"
+        else _iter_source_files(source_root)
+    )
+
     with sqlite3.connect(warehouse_path) as conn:
         conn.row_factory = sqlite3.Row
         _ensure_schema(conn)
-        for source_path, source_kind in _iter_source_files(source_root):
+        for source_path, source_kind in source_files:
             scanned_files += 1
             content_hash = _file_sha256(source_path)
             stat_result = source_path.stat()
@@ -602,6 +898,53 @@ def ingest_codex_history(*, source_root: Path, warehouse_path: Path) -> IngestSu
                 imported_rows = _import_logs_db(conn, source_path)
                 logs += imported_rows
                 record_count = imported_rows
+            elif source_kind == "claude_session":
+                before_sessions = conn.execute("SELECT count(*) FROM raw_sessions").fetchone()[0]
+                before_events = conn.execute("SELECT count(*) FROM raw_session_events").fetchone()[0]
+                before_messages = conn.execute("SELECT count(*) FROM raw_messages").fetchone()[0]
+                before_token_usage_events = conn.execute(
+                    "SELECT count(*) FROM raw_token_usage WHERE has_breakdown = 1"
+                ).fetchone()[0]
+                before_input_tokens = conn.execute(
+                    "SELECT coalesce(sum(input_tokens), 0) FROM raw_token_usage WHERE has_breakdown = 1"
+                ).fetchone()[0]
+                before_cached_input_tokens = conn.execute(
+                    "SELECT coalesce(sum(cached_input_tokens), 0) FROM raw_token_usage WHERE has_breakdown = 1"
+                ).fetchone()[0]
+                before_output_tokens = conn.execute(
+                    "SELECT coalesce(sum(output_tokens), 0) FROM raw_token_usage WHERE has_breakdown = 1"
+                ).fetchone()[0]
+                before_total_tokens = conn.execute(
+                    "SELECT coalesce(sum(total_tokens), 0) FROM raw_token_usage WHERE has_breakdown = 1"
+                ).fetchone()[0]
+                session_records = _import_claude_session_file(conn, source_path)
+                after_sessions = conn.execute("SELECT count(*) FROM raw_sessions").fetchone()[0]
+                after_events = conn.execute("SELECT count(*) FROM raw_session_events").fetchone()[0]
+                after_messages = conn.execute("SELECT count(*) FROM raw_messages").fetchone()[0]
+                after_token_usage_events = conn.execute(
+                    "SELECT count(*) FROM raw_token_usage WHERE has_breakdown = 1"
+                ).fetchone()[0]
+                after_input_tokens = conn.execute(
+                    "SELECT coalesce(sum(input_tokens), 0) FROM raw_token_usage WHERE has_breakdown = 1"
+                ).fetchone()[0]
+                after_cached_input_tokens = conn.execute(
+                    "SELECT coalesce(sum(cached_input_tokens), 0) FROM raw_token_usage WHERE has_breakdown = 1"
+                ).fetchone()[0]
+                after_output_tokens = conn.execute(
+                    "SELECT coalesce(sum(output_tokens), 0) FROM raw_token_usage WHERE has_breakdown = 1"
+                ).fetchone()[0]
+                after_total_tokens = conn.execute(
+                    "SELECT coalesce(sum(total_tokens), 0) FROM raw_token_usage WHERE has_breakdown = 1"
+                ).fetchone()[0]
+                sessions += after_sessions - before_sessions
+                session_events += after_events - before_events
+                messages += after_messages - before_messages
+                token_usage_events += after_token_usage_events - before_token_usage_events
+                input_tokens += after_input_tokens - before_input_tokens
+                cached_input_tokens += after_cached_input_tokens - before_cached_input_tokens
+                output_tokens += after_output_tokens - before_output_tokens
+                total_tokens += after_total_tokens - before_total_tokens
+                record_count = session_records
             else:
                 before_sessions = conn.execute("SELECT count(*) FROM raw_sessions").fetchone()[0]
                 before_events = conn.execute("SELECT count(*) FROM raw_session_events").fetchone()[0]

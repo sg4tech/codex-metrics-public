@@ -28,7 +28,7 @@ class _FakeRuntime:
     def metrics_mutation_lock(self, metrics_path: Path):
         return nullcontext()
 
-    def ingest_codex_history(self, source_root: Path, warehouse_path: Path) -> IngestSummary:
+    def ingest_codex_history(self, source_root: Path, warehouse_path: Path, source: str = "codex") -> IngestSummary:
         assert source_root == Path("/source")
         assert warehouse_path == Path("/warehouse.sqlite")
         return self.ingest_summary
