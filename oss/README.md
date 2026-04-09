@@ -69,6 +69,24 @@ AI coding agents (Claude Code, Codex, and similar) vary widely in effectiveness 
 
 ---
 
+## Quick Start
+
+```bash
+pip install ai-agents-metrics
+
+# Bootstrap tracking into a repository
+ai-agents-metrics bootstrap --target-dir /path/to/repo
+
+# Start a goal, do the work, close it
+ai-agents-metrics start-task --title "add login endpoint" --task-type product
+ai-agents-metrics finish-task --task-id 2026-04-09-001 --status success --result-fit exact_fit
+
+# See what it cost and how many tries it took
+ai-agents-metrics show
+```
+
+---
+
 ## Example Output
 
 ```

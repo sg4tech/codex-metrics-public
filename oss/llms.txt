@@ -33,14 +33,10 @@ ai-agents-metrics start-task --title "Add typed pipeline contracts" --task-type 
 ai-agents-metrics continue-task --task-id 2026-04-08-001 --failure-reason validation_failed
 
 # Close the goal
-ai-agents-metrics finish-task --task-id 2026-04-08-001 --outcome success --result-fit exact_fit
+ai-agents-metrics finish-task --task-id 2026-04-08-001 --status success --result-fit exact_fit
 
 # Show current metrics summary
 ai-agents-metrics show
-
-# Legacy aliases (also supported)
-codex-metrics open "implement login endpoint"
-codex-metrics close --outcome fit
 ```
 
 Cost flags available on `start-task`, `continue-task`, `finish-task`:
@@ -51,7 +47,7 @@ Cost flags available on `start-task`, `continue-task`, `finish-task`:
 ## Key files
 
 - [README.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/README.md): Install, quickstart, public boundary
-- [docs/codex-metrics-policy.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/codex-metrics-policy.md): Mandatory workflow rules for agents using this tool
+- [docs/ai-agents-metrics-policy.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/ai-agents-metrics-policy.md): Mandatory workflow rules for agents using this tool
 - [docs/glossary.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/glossary.md): Full terminology — goal vs task, entry vs attempt, supersedes chain, WorkflowState, etc.
 - [docs/data-schema.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/data-schema.md): Full field reference for GoalRecord, AttemptEntryRecord, and the summary block
 - [docs/data-invariants.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/data-invariants.md): Business rules enforced by validation logic
@@ -102,9 +98,9 @@ AttemptEntryRecord
 ## Install
 
 ```bash
+pip install ai-agents-metrics
+# or from source:
 pip install -e .
-# or
-make package-standalone && ./dist/standalone/codex-metrics install-self
 ```
 
 Requires Python ≥ 3.11. No external runtime dependencies.
