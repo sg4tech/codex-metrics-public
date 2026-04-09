@@ -11,7 +11,13 @@ from pathlib import Path
 
 import pytest
 
-from ai_agents_metrics.history_ingest import _extract_message_text, _optional_row_value
+from ai_agents_metrics.history_ingest import (
+    _encode_claude_cwd,
+    _extract_claude_token_usage,
+    _extract_message_text,
+    _import_claude_session_file,
+    _optional_row_value,
+)
 
 
 def _find_paths() -> tuple[Path, Path, Path]:
@@ -536,3 +542,269 @@ def test_ingest_helpers_handle_sparse_rows_and_message_content() -> None:
             {"type": "other", "text": "skip me"},
         ]
     ) == ["hello", "world"]
+
+
+# ---------------------------------------------------------------------------
+# Claude Code adapter helpers
+# ---------------------------------------------------------------------------
+
+def _make_claude_session_jsonl(
+    *,
+    session_id: str,
+    cwd: str,
+    version: str = "2.1.0",
+    messages: list[dict] | None = None,
+) -> str:
+    """Build a minimal Claude Code session JSONL string for tests."""
+    lines: list[str] = []
+    user_uuid = "uuid-user-1"
+    assistant_uuid = "uuid-asst-1"
+
+    lines.append(json.dumps({
+        "type": "user",
+        "uuid": user_uuid,
+        "parentUuid": None,
+        "sessionId": session_id,
+        "timestamp": "2026-04-01T10:00:00.000Z",
+        "cwd": cwd,
+        "version": version,
+        "message": {
+            "role": "user",
+            "content": [{"type": "text", "text": "hello from test"}],
+        },
+    }))
+    if messages is None:
+        messages = [
+            {
+                "type": "assistant",
+                "uuid": assistant_uuid,
+                "parentUuid": user_uuid,
+                "sessionId": session_id,
+                "timestamp": "2026-04-01T10:00:01.000Z",
+                "message": {
+                    "role": "assistant",
+                    "model": "claude-sonnet-4-6",
+                    "content": [{"type": "text", "text": "hi there"}],
+                    "usage": {
+                        "input_tokens": 100,
+                        "output_tokens": 50,
+                        "cache_read_input_tokens": 200,
+                        "cache_creation_input_tokens": 10,
+                    },
+                },
+            }
+        ]
+    for msg in messages:
+        lines.append(json.dumps(msg))
+    return "\n".join(lines) + "\n"
+
+
+def create_claude_history_source_root(root: Path, *, cwd: str | None = None) -> Path:
+    """Create a minimal ~/.claude layout for testing."""
+    claude_root = root / "claude-source"
+    project_cwd = cwd or str(root / "myproject")
+    encoded = project_cwd.replace("/", "-")
+    project_dir = claude_root / "projects" / encoded
+    project_dir.mkdir(parents=True, exist_ok=True)
+
+    session_id = "aaaa0000-0000-0000-0000-000000000001"
+    (project_dir / f"{session_id}.jsonl").write_text(
+        _make_claude_session_jsonl(session_id=session_id, cwd=project_cwd),
+        encoding="utf-8",
+    )
+    return claude_root
+
+
+def test_encode_claude_cwd() -> None:
+    assert _encode_claude_cwd("/Users/viktor/myproject") == "-Users-viktor-myproject"
+    assert _encode_claude_cwd("/a/b/c") == "-a-b-c"
+    assert _encode_claude_cwd("relative") == "relative"
+
+
+def test_extract_claude_token_usage_happy_path() -> None:
+    event = {
+        "type": "assistant",
+        "timestamp": "2026-04-01T10:00:01.000Z",
+        "message": {
+            "model": "claude-sonnet-4-6",
+            "usage": {
+                "input_tokens": 100,
+                "output_tokens": 50,
+                "cache_read_input_tokens": 200,
+                "cache_creation_input_tokens": 10,
+            },
+        },
+    }
+    result = _extract_claude_token_usage(
+        event, event_id="eid-1", source_path="test.jsonl", thread_id="thread-1", event_index=0
+    )
+    assert result is not None
+    assert result["input_tokens"] == 100
+    assert result["output_tokens"] == 50
+    assert result["cached_input_tokens"] == 200  # cache_read maps here
+    assert result["total_tokens"] == 360  # 100 + 10 + 200 + 50
+    assert result["model"] == "claude-sonnet-4-6"
+    assert result["has_breakdown"] == 1
+
+
+def test_extract_claude_token_usage_non_assistant_returns_none() -> None:
+    event = {"type": "user", "message": {"usage": {"input_tokens": 10}}}
+    assert _extract_claude_token_usage(
+        event, event_id="e", source_path="f", thread_id="t", event_index=0
+    ) is None
+
+
+def test_extract_claude_token_usage_zero_total_returns_none() -> None:
+    event = {
+        "type": "assistant",
+        "message": {"usage": {"input_tokens": 0, "output_tokens": 0}},
+    }
+    assert _extract_claude_token_usage(
+        event, event_id="e", source_path="f", thread_id="t", event_index=0
+    ) is None
+
+
+def test_import_claude_session_file_populates_warehouse(tmp_path: Path) -> None:
+    import sqlite3 as _sqlite3
+
+    from ai_agents_metrics.history_ingest import _ensure_schema
+
+    warehouse = tmp_path / "warehouse.sqlite"
+    session_id = "bbbb0000-0000-0000-0000-000000000001"
+    cwd = str(tmp_path / "proj")
+    session_file = tmp_path / f"{session_id}.jsonl"
+    session_file.write_text(
+        _make_claude_session_jsonl(session_id=session_id, cwd=cwd),
+        encoding="utf-8",
+    )
+
+    with _sqlite3.connect(warehouse) as conn:
+        conn.row_factory = _sqlite3.Row
+        _ensure_schema(conn)
+        _import_claude_session_file(conn, session_file)
+
+        thread = conn.execute(
+            "SELECT thread_id, model_provider, cwd FROM raw_threads WHERE thread_id = ?",
+            (session_id,),
+        ).fetchone()
+        assert thread is not None
+        assert thread["model_provider"] == "anthropic"
+        assert thread["cwd"] == cwd
+
+        assert conn.execute("SELECT count(*) FROM raw_sessions").fetchone()[0] == 1
+        assert conn.execute("SELECT count(*) FROM raw_messages").fetchone()[0] == 2  # user + assistant
+        usage = conn.execute("SELECT * FROM raw_token_usage").fetchone()
+        assert usage is not None
+        assert usage["input_tokens"] == 100
+        assert usage["cached_input_tokens"] == 200
+        assert usage["output_tokens"] == 50
+        assert usage["total_tokens"] == 360
+
+
+def test_import_claude_subagent_groups_under_same_thread(tmp_path: Path) -> None:
+    import sqlite3 as _sqlite3
+
+    from ai_agents_metrics.history_ingest import _ensure_schema
+
+    warehouse = tmp_path / "warehouse.sqlite"
+    session_id = "cccc0000-0000-0000-0000-000000000001"
+    cwd = str(tmp_path / "proj")
+
+    # Parent session
+    parent_file = tmp_path / f"{session_id}.jsonl"
+    parent_file.write_text(
+        _make_claude_session_jsonl(session_id=session_id, cwd=cwd),
+        encoding="utf-8",
+    )
+    # Subagent file shares the same sessionId
+    subagent_dir = tmp_path / session_id / "subagents"
+    subagent_dir.mkdir(parents=True)
+    subagent_file = subagent_dir / "agent-acompact-abc123.jsonl"
+    subagent_file.write_text(
+        _make_claude_session_jsonl(session_id=session_id, cwd=cwd),
+        encoding="utf-8",
+    )
+
+    with _sqlite3.connect(warehouse) as conn:
+        conn.row_factory = _sqlite3.Row
+        _ensure_schema(conn)
+        _import_claude_session_file(conn, parent_file)
+        _import_claude_session_file(conn, subagent_file)
+
+        # Only one thread row (INSERT OR IGNORE on shared sessionId)
+        assert conn.execute("SELECT count(*) FROM raw_threads").fetchone()[0] == 1
+        # Two session rows (one per file)
+        assert conn.execute("SELECT count(*) FROM raw_sessions").fetchone()[0] == 2
+        # Both sessions share the same thread_id
+        thread_ids = [
+            r[0]
+            for r in conn.execute("SELECT DISTINCT thread_id FROM raw_sessions").fetchall()
+        ]
+        assert thread_ids == [session_id]
+
+
+def test_ingest_claude_history_builds_raw_warehouse(repo: Path) -> None:
+    claude_root = create_claude_history_source_root(repo)
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
+
+    result = run_cmd(
+        repo,
+        "ingest-codex-history",
+        "--source",
+        "claude",
+        "--source-root",
+        str(claude_root),
+        "--warehouse-path",
+        str(warehouse_path),
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "Ingested Codex history into" in result.stdout
+    assert "Imported files: 1" in result.stdout
+    assert "Threads: 1" in result.stdout
+    assert "Sessions: 1" in result.stdout
+    assert "Messages: 2" in result.stdout
+    assert "Token usage events: 1" in result.stdout
+    assert "Input tokens: 100" in result.stdout
+    assert "Cached input tokens: 200" in result.stdout
+    assert "Output tokens: 50" in result.stdout
+    assert "Total tokens: 360" in result.stdout
+
+    with sqlite3.connect(warehouse_path) as conn:
+        conn.row_factory = sqlite3.Row
+        assert conn.execute("SELECT count(*) FROM raw_threads").fetchone()[0] == 1
+        assert conn.execute("SELECT count(*) FROM raw_sessions").fetchone()[0] == 1
+        assert conn.execute("SELECT count(*) FROM raw_messages").fetchone()[0] == 2
+        assert conn.execute("SELECT count(*) FROM raw_token_usage").fetchone()[0] == 1
+
+        thread = conn.execute("SELECT * FROM raw_threads").fetchone()
+        assert thread["model_provider"] == "anthropic"
+
+
+def test_ingest_claude_history_is_idempotent_on_rerun(repo: Path) -> None:
+    claude_root = create_claude_history_source_root(repo)
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
+
+    first = run_cmd(
+        repo,
+        "ingest-codex-history",
+        "--source", "claude",
+        "--source-root", str(claude_root),
+        "--warehouse-path", str(warehouse_path),
+    )
+    second = run_cmd(
+        repo,
+        "ingest-codex-history",
+        "--source", "claude",
+        "--source-root", str(claude_root),
+        "--warehouse-path", str(warehouse_path),
+    )
+
+    assert first.returncode == 0, first.stderr
+    assert second.returncode == 0, second.stderr
+    assert "Skipped files: 1" in second.stdout
+
+    with sqlite3.connect(warehouse_path) as conn:
+        assert conn.execute("SELECT count(*) FROM raw_threads").fetchone()[0] == 1
+        assert conn.execute("SELECT count(*) FROM raw_sessions").fetchone()[0] == 1
+        assert conn.execute("SELECT count(*) FROM raw_messages").fetchone()[0] == 2
