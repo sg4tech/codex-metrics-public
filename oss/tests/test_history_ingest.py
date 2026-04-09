@@ -599,7 +599,12 @@ def _make_claude_session_jsonl(
     return "\n".join(lines) + "\n"
 
 
-def create_claude_history_source_root(root: Path, *, cwd: str | None = None) -> Path:
+def create_claude_history_source_root(
+    root: Path,
+    *,
+    cwd: str | None = None,
+    with_subagent: bool = False,
+) -> Path:
     """Create a minimal ~/.claude layout for testing."""
     claude_root = root / "claude-source"
     project_cwd = cwd or str(root / "myproject")
@@ -612,6 +617,13 @@ def create_claude_history_source_root(root: Path, *, cwd: str | None = None) -> 
         _make_claude_session_jsonl(session_id=session_id, cwd=project_cwd),
         encoding="utf-8",
     )
+    if with_subagent:
+        subagent_dir = project_dir / session_id / "subagents"
+        subagent_dir.mkdir(parents=True)
+        (subagent_dir / "agent-acompact-abc123.jsonl").write_text(
+            _make_claude_session_jsonl(session_id=session_id, cwd=project_cwd),
+            encoding="utf-8",
+        )
     return claude_root
 
 
@@ -640,8 +652,9 @@ def test_extract_claude_token_usage_happy_path() -> None:
     )
     assert result is not None
     assert result["input_tokens"] == 100
-    assert result["output_tokens"] == 50
+    assert result["cache_creation_input_tokens"] == 10
     assert result["cached_input_tokens"] == 200  # cache_read maps here
+    assert result["output_tokens"] == 50
     assert result["total_tokens"] == 360  # 100 + 10 + 200 + 50
     assert result["model"] == "claude-sonnet-4-6"
     assert result["has_breakdown"] == 1
@@ -696,6 +709,7 @@ def test_import_claude_session_file_populates_warehouse(tmp_path: Path) -> None:
         usage = conn.execute("SELECT * FROM raw_token_usage").fetchone()
         assert usage is not None
         assert usage["input_tokens"] == 100
+        assert usage["cache_creation_input_tokens"] == 10
         assert usage["cached_input_tokens"] == 200
         assert usage["output_tokens"] == 50
         assert usage["total_tokens"] == 360
@@ -779,6 +793,36 @@ def test_ingest_claude_history_builds_raw_warehouse(repo: Path) -> None:
 
         thread = conn.execute("SELECT * FROM raw_threads").fetchone()
         assert thread["model_provider"] == "anthropic"
+
+        usage = conn.execute("SELECT * FROM raw_token_usage").fetchone()
+        assert usage["input_tokens"] == 100
+        assert usage["cache_creation_input_tokens"] == 10
+        assert usage["cached_input_tokens"] == 200
+        assert usage["output_tokens"] == 50
+        assert usage["total_tokens"] == 360
+
+
+def test_ingest_claude_history_subagent_groups_under_same_thread_cli(repo: Path) -> None:
+    claude_root = create_claude_history_source_root(repo, with_subagent=True)
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
+
+    result = run_cmd(
+        repo,
+        "ingest-codex-history",
+        "--source", "claude",
+        "--source-root", str(claude_root),
+        "--warehouse-path", str(warehouse_path),
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "Imported files: 2" in result.stdout
+    # Parent creates 1 thread; subagent shares sessionId → INSERT OR IGNORE → still 1 thread
+    assert "Threads: 1" in result.stdout
+    assert "Sessions: 2" in result.stdout
+
+    with sqlite3.connect(warehouse_path) as conn:
+        assert conn.execute("SELECT count(*) FROM raw_threads").fetchone()[0] == 1
+        assert conn.execute("SELECT count(*) FROM raw_sessions").fetchone()[0] == 2
 
 
 def test_ingest_claude_history_is_idempotent_on_rerun(repo: Path) -> None:

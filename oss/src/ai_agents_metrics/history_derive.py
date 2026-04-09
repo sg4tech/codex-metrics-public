@@ -214,6 +214,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
             attempt_index INTEGER NOT NULL,
             usage_event_count INTEGER NOT NULL,
             input_tokens INTEGER,
+            cache_creation_input_tokens INTEGER,
             cached_input_tokens INTEGER,
             output_tokens INTEGER,
             reasoning_output_tokens INTEGER,
@@ -236,6 +237,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
             log_count INTEGER NOT NULL,
             timeline_event_count INTEGER NOT NULL,
             input_tokens INTEGER,
+            cache_creation_input_tokens INTEGER,
             cached_input_tokens INTEGER,
             output_tokens INTEGER,
             total_tokens INTEGER,
@@ -255,6 +257,10 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_retry_chains_thread_id ON derived_retry_chains(thread_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_session_usage_thread_id ON derived_session_usage(thread_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_projects_cwd ON derived_projects(project_cwd)")
+    for table in ("derived_session_usage", "derived_projects"):
+        existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+        if "cache_creation_input_tokens" not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN cache_creation_input_tokens INTEGER")
 
 
 def _clear_derived_tables(conn: sqlite3.Connection) -> None:
@@ -359,8 +365,8 @@ def _fetch_normalized_usage_events(conn: sqlite3.Connection) -> list[NormalizedU
     rows = conn.execute(
         """
         SELECT usage_event_id, thread_id, session_path, source_path, event_index, timestamp,
-               input_tokens, cached_input_tokens, output_tokens, reasoning_output_tokens,
-               total_tokens, model, raw_json
+               input_tokens, cache_creation_input_tokens, cached_input_tokens,
+               output_tokens, reasoning_output_tokens, total_tokens, model, raw_json
         FROM normalized_usage_events
         ORDER BY thread_id, session_path, event_index, usage_event_id
         """
@@ -374,6 +380,7 @@ def _fetch_normalized_usage_events(conn: sqlite3.Connection) -> list[NormalizedU
             event_index=row["event_index"],
             timestamp=row["timestamp"],
             input_tokens=row["input_tokens"],
+            cache_creation_input_tokens=row["cache_creation_input_tokens"],
             cached_input_tokens=row["cached_input_tokens"],
             output_tokens=row["output_tokens"],
             reasoning_output_tokens=row["reasoning_output_tokens"],
@@ -507,6 +514,7 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                     "log_count": 0,
                     "timeline_event_count": 0,
                     "input_tokens": 0,
+                    "cache_creation_input_tokens": 0,
                     "cached_input_tokens": 0,
                     "output_tokens": 0,
                     "total_tokens": 0,
@@ -768,6 +776,7 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                 attempt_id = _derived_attempt_id(thread_id, session_path)
                 usage_rows = usage_events_by_session.get(session_path, [])
                 usage_input_tokens = _sum_known_int([row["input_tokens"] for row in usage_rows])
+                usage_cache_creation_input_tokens = _sum_known_int([row["cache_creation_input_tokens"] for row in usage_rows])
                 usage_cached_input_tokens = _sum_known_int([row["cached_input_tokens"] for row in usage_rows])
                 usage_output_tokens = _sum_known_int([row["output_tokens"] for row in usage_rows])
                 usage_reasoning_output_tokens = _sum_known_int([row["reasoning_output_tokens"] for row in usage_rows])
@@ -775,6 +784,7 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                 if project_cwd is not None:
                     stats = get_project_stats(project_cwd)
                     stats["input_tokens"] += usage_input_tokens or 0
+                    stats["cache_creation_input_tokens"] += usage_cache_creation_input_tokens or 0
                     stats["cached_input_tokens"] += usage_cached_input_tokens or 0
                     stats["output_tokens"] += usage_output_tokens or 0
                     stats["total_tokens"] += usage_total_tokens or 0
@@ -812,9 +822,10 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                     """
                     INSERT INTO derived_session_usage (
                         session_usage_id, thread_id, source_path, session_path, attempt_index,
-                        usage_event_count, input_tokens, cached_input_tokens, output_tokens,
-                        reasoning_output_tokens, total_tokens, first_usage_at, last_usage_at, raw_json
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        usage_event_count, input_tokens, cache_creation_input_tokens,
+                        cached_input_tokens, output_tokens, reasoning_output_tokens,
+                        total_tokens, first_usage_at, last_usage_at, raw_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         session_usage_id,
@@ -824,6 +835,7 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                         attempt_index,
                         len(usage_rows),
                         usage_input_tokens,
+                        usage_cache_creation_input_tokens,
                         usage_cached_input_tokens,
                         usage_output_tokens,
                         usage_reasoning_output_tokens,
@@ -837,6 +849,7 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                                 "attempt_index": attempt_index,
                                 "usage_event_count": len(usage_rows),
                                 "input_tokens": usage_input_tokens,
+                                "cache_creation_input_tokens": usage_cache_creation_input_tokens,
                                 "cached_input_tokens": usage_cached_input_tokens,
                                 "output_tokens": usage_output_tokens,
                                 "reasoning_output_tokens": usage_reasoning_output_tokens,
@@ -919,9 +932,9 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                 INSERT INTO derived_projects (
                     project_cwd, thread_count, attempt_count, retry_thread_count, message_count,
                     usage_event_count, log_count, timeline_event_count, input_tokens,
-                    cached_input_tokens, output_tokens, total_tokens, first_seen_at,
-                    last_seen_at, raw_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    cache_creation_input_tokens, cached_input_tokens, output_tokens,
+                    total_tokens, first_seen_at, last_seen_at, raw_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     project_cwd,
@@ -933,6 +946,7 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                     stats["log_count"],
                     stats["timeline_event_count"],
                     stats["input_tokens"] or None,
+                    stats["cache_creation_input_tokens"] or None,
                     stats["cached_input_tokens"] or None,
                     stats["output_tokens"] or None,
                     stats["total_tokens"] or None,
@@ -949,6 +963,7 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                             "log_count": stats["log_count"],
                             "timeline_event_count": stats["timeline_event_count"],
                             "input_tokens": stats["input_tokens"],
+                            "cache_creation_input_tokens": stats["cache_creation_input_tokens"],
                             "cached_input_tokens": stats["cached_input_tokens"],
                             "output_tokens": stats["output_tokens"],
                             "total_tokens": stats["total_tokens"],
