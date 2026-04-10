@@ -35,10 +35,13 @@ class _FakeRuntime:
         assert cwd == Path.cwd()
         return _FakeResolution()
 
-    def print_summary(self, data: dict[str, object]) -> None:
+    def read_history_signals(self, warehouse_path: object, project_cwd: object, data: object) -> None:
+        return None
+
+    def print_summary(self, data: dict[str, object], history_signals: object = None) -> None:
         raise AssertionError("print_summary should not be called in JSON mode")
 
-    def render_summary_json(self, data: dict[str, object]) -> str:
+    def render_summary_json(self, data: dict[str, object], history_signals: object = None) -> str:
         return render_summary_json(data)
 
 
@@ -256,9 +259,79 @@ def test_handle_show_prints_json(capsys: pytest.CaptureFixture[str]) -> None:
     }
     runtime = _FakeRuntime(data)
 
-    exit_code = commands.handle_show(Namespace(metrics_path="/metrics.json", json=True), runtime)
+    exit_code = commands.handle_show(Namespace(metrics_path="/metrics.json", json=True, warehouse_path=""), runtime)
 
     assert exit_code == 0
     captured = capsys.readouterr()
     payload = json.loads(captured.out[captured.out.index("{"):])
     assert payload["product_quality"]["closed_product_goals"] == 1
+
+
+def test_render_summary_json_history_signals_present() -> None:
+    from ai_agents_metrics.history_compare import HistorySignals
+    from ai_agents_metrics.reporting import render_summary_json
+
+    data = {
+        "summary": {
+            "closed_tasks": 0, "successes": 0, "fails": 0, "total_attempts": 0,
+            "total_cost_usd": None, "total_input_tokens": None,
+            "total_cached_input_tokens": None, "total_output_tokens": None,
+            "total_tokens": 0, "success_rate": None, "attempts_per_closed_task": None,
+            "known_cost_successes": 0, "known_token_successes": 0,
+            "known_token_breakdown_successes": 0, "complete_cost_successes": 0,
+            "complete_token_successes": 0, "complete_token_breakdown_successes": 0,
+            "model_summary_goals": 0, "model_complete_goals": 0, "mixed_model_goals": 0,
+            "known_cost_per_success_usd": None, "known_cost_per_success_tokens": None,
+            "complete_cost_per_covered_success_usd": None, "complete_cost_per_covered_success_tokens": None,
+            "by_goal_type": {"product": {"closed_tasks": 0}, "retro": {"closed_tasks": 0}, "meta": {"closed_tasks": 0}},
+            "entries": {"closed_entries": 0, "successes": 0, "fails": 0, "success_rate": None,
+                        "total_cost_usd": None, "total_input_tokens": None,
+                        "total_cached_input_tokens": None, "total_output_tokens": None,
+                        "total_tokens": 0, "failure_reasons": {}},
+            "by_model": {},
+        },
+        "goals": [],
+        "entries": [],
+    }
+
+    signals = HistorySignals(
+        project_threads=72, retry_threads=21, retry_rate=0.29,
+        ledger_goal_alignments=8, ledger_goals_total=14,
+    )
+    payload = json.loads(render_summary_json(data, signals))
+    hs = payload["history_signals"]
+    assert hs is not None
+    assert hs["project_threads"] == 72
+    assert hs["retry_threads"] == 21
+    assert abs(hs["retry_rate"] - 0.29) < 0.001
+    assert hs["ledger_goal_alignments"] == 8
+    assert hs["ledger_goals_total"] == 14
+
+
+def test_render_summary_json_history_signals_absent() -> None:
+    from ai_agents_metrics.reporting import render_summary_json
+
+    data = {
+        "summary": {
+            "closed_tasks": 0, "successes": 0, "fails": 0, "total_attempts": 0,
+            "total_cost_usd": None, "total_input_tokens": None,
+            "total_cached_input_tokens": None, "total_output_tokens": None,
+            "total_tokens": 0, "success_rate": None, "attempts_per_closed_task": None,
+            "known_cost_successes": 0, "known_token_successes": 0,
+            "known_token_breakdown_successes": 0, "complete_cost_successes": 0,
+            "complete_token_successes": 0, "complete_token_breakdown_successes": 0,
+            "model_summary_goals": 0, "model_complete_goals": 0, "mixed_model_goals": 0,
+            "known_cost_per_success_usd": None, "known_cost_per_success_tokens": None,
+            "complete_cost_per_covered_success_usd": None, "complete_cost_per_covered_success_tokens": None,
+            "by_goal_type": {"product": {"closed_tasks": 0}, "retro": {"closed_tasks": 0}, "meta": {"closed_tasks": 0}},
+            "entries": {"closed_entries": 0, "successes": 0, "fails": 0, "success_rate": None,
+                        "total_cost_usd": None, "total_input_tokens": None,
+                        "total_cached_input_tokens": None, "total_output_tokens": None,
+                        "total_tokens": 0, "failure_reasons": {}},
+            "by_model": {},
+        },
+        "goals": [],
+        "entries": [],
+    }
+    payload = json.loads(render_summary_json(data, None))
+    assert payload["history_signals"] is None

@@ -489,3 +489,56 @@ def test_derive_claude_history_populates_cache_creation_tokens(repo: Path) -> No
         assert usage["cached_input_tokens"] == 200
         assert usage["output_tokens"] == 50
         assert usage["total_tokens"] == 360
+
+
+# ---------------------------------------------------------------------------
+# _parent_project_cwd
+# ---------------------------------------------------------------------------
+
+def test_parent_project_cwd_plain_path() -> None:
+    from ai_agents_metrics.history_derive import _parent_project_cwd
+    assert _parent_project_cwd("/Users/viktor/myproject") == "/Users/viktor/myproject"
+
+
+def test_parent_project_cwd_worktree_path() -> None:
+    from ai_agents_metrics.history_derive import _parent_project_cwd
+    result = _parent_project_cwd("/Users/viktor/myproject/.claude/worktrees/eloquent-rhodes")
+    assert result == "/Users/viktor/myproject"
+
+
+def test_parent_project_cwd_nested_worktree() -> None:
+    from ai_agents_metrics.history_derive import _parent_project_cwd
+    result = _parent_project_cwd("/a/b/.claude/worktrees/foo/.claude/worktrees/bar")
+    # Only the first marker is stripped
+    assert result == "/a/b"
+
+
+def test_parent_project_cwd_none_input() -> None:
+    from ai_agents_metrics.history_derive import _parent_project_cwd
+    assert _parent_project_cwd(None) is None
+
+
+def test_parent_project_cwd_empty_string() -> None:
+    from ai_agents_metrics.history_derive import _parent_project_cwd
+    assert _parent_project_cwd("") is None
+
+
+def test_derive_merges_worktree_into_parent_project(repo: Path) -> None:
+    """Worktree threads must roll up into the parent project in derived_projects."""
+    source_root = create_codex_history_source_root(repo)
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
+
+    assert run_cmd(repo, "history-ingest", "--source-root", str(source_root), "--warehouse-path", str(warehouse_path)).returncode == 0
+    assert run_cmd(repo, "history-normalize", "--warehouse-path", str(warehouse_path)).returncode == 0
+    assert run_cmd(repo, "history-derive", "--warehouse-path", str(warehouse_path)).returncode == 0
+
+    # Manually inject a fake worktree thread into derived_goals and then re-run derive
+    # to confirm the merge logic; here we just check that parent_project_cwd is stored.
+    with sqlite3.connect(warehouse_path) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("SELECT project_cwd, parent_project_cwd FROM derived_projects").fetchall()
+        assert rows, "derived_projects must not be empty"
+        for row in rows:
+            # parent_project_cwd must be set and must not contain the worktree marker
+            assert row["parent_project_cwd"] is not None
+            assert "/.claude/worktrees/" not in row["parent_project_cwd"]

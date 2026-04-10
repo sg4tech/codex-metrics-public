@@ -168,3 +168,124 @@ def test_handle_compare_metrics_to_history_prints_json(capsys: pytest.CaptureFix
     payload = json.loads(captured.out)
     assert payload["ledger"]["goal_count"] == 1
 
+
+
+# ---------------------------------------------------------------------------
+# read_history_signals
+# ---------------------------------------------------------------------------
+
+from ai_agents_metrics.history_compare import read_history_signals  # noqa: E402
+
+
+def test_read_history_signals_absent_warehouse(tmp_path: Path) -> None:
+    signals = read_history_signals(tmp_path / "missing.sqlite", tmp_path, {"goals": []})
+    assert signals is None
+
+
+def _make_warehouse_with_project(tmp_path_str: str, project_cwd: str, *, threads: int, retry_threads: int) -> Path:
+    """Create a minimal warehouse with a single derived_projects row."""
+    import sqlite3
+
+    warehouse = Path(tmp_path_str) / "warehouse.sqlite"
+    with sqlite3.connect(warehouse) as conn:
+        conn.execute(
+            """
+            CREATE TABLE derived_goals (
+                thread_id TEXT PRIMARY KEY,
+                cwd TEXT,
+                retry_count INTEGER NOT NULL DEFAULT 0,
+                message_count INTEGER NOT NULL DEFAULT 0,
+                attempt_count INTEGER NOT NULL DEFAULT 1,
+                session_count INTEGER NOT NULL DEFAULT 1,
+                first_seen_at TEXT,
+                last_seen_at TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE derived_projects (
+                project_cwd TEXT PRIMARY KEY,
+                parent_project_cwd TEXT,
+                thread_count INTEGER NOT NULL,
+                retry_thread_count INTEGER NOT NULL,
+                attempt_count INTEGER NOT NULL DEFAULT 0,
+                message_count INTEGER NOT NULL DEFAULT 0,
+                usage_event_count INTEGER NOT NULL DEFAULT 0,
+                log_count INTEGER NOT NULL DEFAULT 0,
+                timeline_event_count INTEGER NOT NULL DEFAULT 0,
+                total_tokens INTEGER,
+                raw_json TEXT NOT NULL DEFAULT '{}'
+            )
+            """
+        )
+        conn.execute(
+            "INSERT INTO derived_projects (project_cwd, parent_project_cwd, thread_count, retry_thread_count) VALUES (?,?,?,?)",
+            (project_cwd, project_cwd, threads, retry_threads),
+        )
+        conn.commit()
+    return warehouse
+
+
+def test_read_history_signals_returns_project_stats(tmp_path: Path) -> None:
+    cwd = tmp_path / "myproject"
+    warehouse = _make_warehouse_with_project(str(tmp_path), str(cwd), threads=10, retry_threads=3)
+    signals = read_history_signals(warehouse, cwd, {"goals": []})
+    assert signals is not None
+    assert signals.project_threads == 10
+    assert signals.retry_threads == 3
+    assert abs(signals.retry_rate - 0.3) < 0.001
+
+
+def test_read_history_signals_worktree_merges_into_parent(tmp_path: Path) -> None:
+    """Worktree row with parent_project_cwd set must be included in the parent's count."""
+    import sqlite3
+
+    cwd = tmp_path / "myproject"
+    warehouse = tmp_path / "w.sqlite"
+    with sqlite3.connect(warehouse) as conn:
+        conn.execute(
+            """
+            CREATE TABLE derived_goals (thread_id TEXT PRIMARY KEY, cwd TEXT,
+                retry_count INTEGER NOT NULL DEFAULT 0, message_count INTEGER NOT NULL DEFAULT 0,
+                attempt_count INTEGER NOT NULL DEFAULT 1, session_count INTEGER NOT NULL DEFAULT 1,
+                first_seen_at TEXT, last_seen_at TEXT)
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE derived_projects (
+                project_cwd TEXT PRIMARY KEY, parent_project_cwd TEXT,
+                thread_count INTEGER NOT NULL, retry_thread_count INTEGER NOT NULL,
+                attempt_count INTEGER NOT NULL DEFAULT 0, message_count INTEGER NOT NULL DEFAULT 0,
+                usage_event_count INTEGER NOT NULL DEFAULT 0, log_count INTEGER NOT NULL DEFAULT 0,
+                timeline_event_count INTEGER NOT NULL DEFAULT 0, total_tokens INTEGER,
+                raw_json TEXT NOT NULL DEFAULT '{}')
+            """
+        )
+        # Main project row
+        conn.execute(
+            "INSERT INTO derived_projects VALUES (?,?,?,?,0,0,0,0,0,NULL,'{}')",
+            (str(cwd), str(cwd), 5, 1),
+        )
+        # Worktree row pointing to same parent
+        worktree_cwd = str(cwd) + "/.claude/worktrees/foo"
+        conn.execute(
+            "INSERT INTO derived_projects VALUES (?,?,?,?,0,0,0,0,0,NULL,'{}')",
+            (worktree_cwd, str(cwd), 3, 2),
+        )
+        conn.commit()
+
+    signals = read_history_signals(warehouse, cwd, {"goals": []})
+    assert signals is not None
+    assert signals.project_threads == 8   # 5 + 3 merged
+    assert signals.retry_threads == 3     # 1 + 2 merged
+
+
+def test_read_history_signals_zero_threads_returns_zero_rate(tmp_path: Path) -> None:
+    cwd = tmp_path / "empty"
+    warehouse = _make_warehouse_with_project(str(tmp_path), "/other/project", threads=5, retry_threads=2)
+    signals = read_history_signals(warehouse, cwd, {"goals": []})
+    assert signals is not None
+    assert signals.project_threads == 0
+    assert signals.retry_rate == 0.0

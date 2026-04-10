@@ -51,6 +51,24 @@ def _normalize_project_cwd(value: Any) -> str | None:
     return cleaned if cleaned else None
 
 
+def _parent_project_cwd(value: Any) -> str | None:
+    """Return the parent project cwd, collapsing Claude Code worktree paths into their root.
+
+    Worktrees created by Claude Code live under ``<project>/.claude/worktrees/<name>``.
+    Any thread whose cwd matches that pattern is attributed to ``<project>`` instead,
+    so worktree activity is merged into the parent project when aggregating stats.
+    """
+    raw = _normalize_project_cwd(value)
+    if raw is None:
+        return None
+    marker = "/.claude/worktrees/"
+    idx = raw.find(marker)
+    if idx == -1:
+        return raw
+    parent = raw[:idx]
+    return parent if parent else raw
+
+
 def _pick_earliest_timestamp(current: str | None, candidate: str | None) -> str | None:
     current_value = _normalize_timestamp(current)
     candidate_value = _normalize_timestamp(candidate)
@@ -229,6 +247,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         """
         CREATE TABLE IF NOT EXISTS derived_projects (
             project_cwd TEXT PRIMARY KEY,
+            parent_project_cwd TEXT,
             thread_count INTEGER NOT NULL,
             attempt_count INTEGER NOT NULL,
             retry_thread_count INTEGER NOT NULL,
@@ -261,6 +280,9 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
         if "cache_creation_input_tokens" not in existing:
             conn.execute(f"ALTER TABLE {table} ADD COLUMN cache_creation_input_tokens INTEGER")
+    existing_projects = {row[1] for row in conn.execute("PRAGMA table_info(derived_projects)").fetchall()}
+    if "parent_project_cwd" not in existing_projects:
+        conn.execute("ALTER TABLE derived_projects ADD COLUMN parent_project_cwd TEXT")
 
 
 def _clear_derived_tables(conn: sqlite3.Connection) -> None:
@@ -572,7 +594,7 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
 
         for thread_row in normalized_threads:
             thread_id = thread_row["thread_id"]
-            project_cwd = _normalize_project_cwd(thread_row["cwd"])
+            project_cwd = _parent_project_cwd(thread_row["cwd"])
             if project_cwd is not None:
                 stats = get_project_stats(project_cwd)
                 stats["thread_count"] += 1
@@ -927,16 +949,21 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
             retry_chains += 1
 
         for project_cwd, stats in project_stats.items():
+            # project_cwd here is already the collapsed parent path (worktree suffix stripped by
+            # _parent_project_cwd at aggregation time), so parent_project_cwd == project_cwd for
+            # every row.  The column exists so that read_history_signals and history_compare_store
+            # can query by parent_project_cwd without needing a LIKE workaround on derived_projects.
             conn.execute(
                 """
                 INSERT INTO derived_projects (
-                    project_cwd, thread_count, attempt_count, retry_thread_count, message_count,
-                    usage_event_count, log_count, timeline_event_count, input_tokens,
+                    project_cwd, parent_project_cwd, thread_count, attempt_count, retry_thread_count,
+                    message_count, usage_event_count, log_count, timeline_event_count, input_tokens,
                     cache_creation_input_tokens, cached_input_tokens, output_tokens,
                     total_tokens, first_seen_at, last_seen_at, raw_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    project_cwd,
                     project_cwd,
                     stats["thread_count"],
                     stats["attempt_count"],
@@ -955,6 +982,7 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                     json.dumps(
                         {
                             "project_cwd": project_cwd,
+                            "parent_project_cwd": project_cwd,
                             "thread_count": stats["thread_count"],
                             "attempt_count": stats["attempt_count"],
                             "retry_thread_count": stats["retry_thread_count"],
