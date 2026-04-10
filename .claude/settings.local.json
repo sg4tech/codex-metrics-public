@@ -99,7 +99,8 @@
       "Bash(curl -s \"https://www.anthropic.com/pricing\")",
       "Bash(curl -s \"https://docs.anthropic.com/en/docs/about-claude/models/overview\")",
       "WebFetch(domain:claude.com)",
-      "WebFetch(domain:platform.anthropic.com)"
+      "WebFetch(domain:platform.anthropic.com)",
+      "Bash(PYTHONPATH=oss/src oss/.venv/bin/python -m pytest *)"
     ]
   }
 }
