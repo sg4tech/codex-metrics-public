@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ai_agents_metrics.domain import (
     EffectiveGoalRecord,
@@ -10,6 +10,9 @@ from ai_agents_metrics.domain import (
     goal_from_dict,
 )
 from ai_agents_metrics.redaction import redact_text
+
+if TYPE_CHECKING:
+    from ai_agents_metrics.history_compare import HistorySignals
 
 
 @dataclass(frozen=True)
@@ -572,7 +575,7 @@ def generate_report_md(data: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def print_summary(data: dict[str, Any]) -> None:
+def print_summary(data: dict[str, Any], history_signals: HistorySignals | None = None) -> None:
     summary = data["summary"]
     product_quality = build_product_quality_summary(data)
     recommendations = build_agent_recommendations(summary, product_quality)
@@ -660,9 +663,15 @@ def print_summary(data: dict[str, Any]) -> None:
         print("Entry failure reasons:")
         for reason, count in summary["entries"]["failure_reasons"].items():
             print(f"- {reason}: {count}")
+    if history_signals is not None:
+        print("History signals (warehouse):")
+        retry_pct = f"{history_signals.retry_rate:.0%}"
+        print(f"  Project threads: {history_signals.project_threads}  (worktrees merged)")
+        print(f"  Threads with retry pressure: {history_signals.retry_threads} / {history_signals.project_threads} ({retry_pct})")
+        print(f"  Per-goal alignment: {history_signals.ledger_goal_alignments} / {history_signals.ledger_goals_total} ledger goals matched to history window")
 
 
-def render_summary_json(data: dict[str, Any]) -> str:
+def render_summary_json(data: dict[str, Any], history_signals: HistorySignals | None = None) -> str:
     product_quality = build_product_quality_summary(data)
     recommendations = build_agent_recommendations(data["summary"], product_quality)
     return json.dumps({
@@ -696,4 +705,11 @@ def render_summary_json(data: dict[str, Any]) -> str:
         "summary": data["summary"],
         "goals": data["goals"],
         "entries": data["entries"],
+        "history_signals": {
+            "project_threads": history_signals.project_threads,
+            "retry_threads": history_signals.retry_threads,
+            "retry_rate": history_signals.retry_rate,
+            "ledger_goal_alignments": history_signals.ledger_goal_alignments,
+            "ledger_goals_total": history_signals.ledger_goals_total,
+        } if history_signals is not None else None,
     })

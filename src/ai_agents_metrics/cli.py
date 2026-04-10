@@ -69,7 +69,9 @@ from ai_agents_metrics.history_audit import (  # noqa: F401 — re-exported as c
     render_audit_report_json,
 )
 from ai_agents_metrics.history_compare import (  # noqa: F401 — re-exported as cli_module attributes
+    HistorySignals,
     compare_metrics_to_history,
+    read_history_signals,
     render_history_compare_report,
     render_history_compare_report_json,
 )
@@ -1576,6 +1578,12 @@ def build_parser() -> argparse.ArgumentParser:
         description="Print the current summary, cost coverage, and operator review.",
     )
     show_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
+    show_parser.add_argument(
+        "--warehouse-path",
+        default=str(RAW_WAREHOUSE_PATH),
+        help="Path to the history warehouse SQLite file (default: auto-detected from metrics path)",
+    )
+    show_parser.add_argument("--json", action="store_true", help="Output summary as JSON")
 
     audit_parser = subparsers.add_parser(
         "history-audit",

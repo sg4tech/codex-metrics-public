@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,111 @@ from ai_agents_metrics.history_compare_store import (
     HistoryCompareWarehouseData,
     load_history_compare_warehouse_data,
 )
+
+
+@dataclass(frozen=True)
+class HistorySignals:
+    """History-derived retry and coverage signals for a project, read from the warehouse."""
+
+    project_threads: int
+    retry_threads: int
+    retry_rate: float
+    ledger_goal_alignments: int
+    ledger_goals_total: int
+
+
+def read_history_signals(
+    warehouse_path: Path,
+    project_cwd: Path,
+    data: dict[str, Any],
+) -> HistorySignals | None:
+    """Read history-derived retry signals for the current project from the warehouse.
+
+    Returns ``None`` when the warehouse does not exist or does not contain derived data,
+    so callers can degrade gracefully to ledger-only display.
+
+    Project-level stats are read from ``derived_projects`` filtered by ``parent_project_cwd``
+    (which collapses Claude Code worktrees into the parent project).  Per-goal alignment
+    counts how many closed ledger goals with known ``started_at``/``finished_at`` timestamps
+    have at least one matching history thread in their time window.
+    """
+    if not warehouse_path.exists():
+        return None
+
+    cwd_str = str(project_cwd.resolve())
+    worktree_prefix = cwd_str + "/.claude/worktrees/%"
+
+    try:
+        with sqlite3.connect(warehouse_path) as conn:
+            conn.row_factory = sqlite3.Row
+            # Confirm derived data is present
+            try:
+                conn.execute("SELECT 1 FROM derived_goals LIMIT 1").fetchone()
+            except sqlite3.OperationalError:
+                return None
+
+            # Project-level: sum across all rows whose parent_project_cwd matches.
+            # Falls back to project_cwd match for older warehouses without the column.
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(derived_projects)").fetchall()}
+            if "parent_project_cwd" in columns:
+                row = conn.execute(
+                    """
+                    SELECT
+                        coalesce(sum(thread_count), 0)       AS thread_count,
+                        coalesce(sum(retry_thread_count), 0) AS retry_thread_count
+                    FROM derived_projects
+                    WHERE parent_project_cwd = ?
+                    """,
+                    (cwd_str,),
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    """
+                    SELECT
+                        coalesce(sum(thread_count), 0)       AS thread_count,
+                        coalesce(sum(retry_thread_count), 0) AS retry_thread_count
+                    FROM derived_projects
+                    WHERE project_cwd = ?
+                    """,
+                    (cwd_str,),
+                ).fetchone()
+
+            project_threads = int(row["thread_count"])
+            retry_threads = int(row["retry_thread_count"])
+            retry_rate = (retry_threads / project_threads) if project_threads > 0 else 0.0
+
+            # Per-goal alignment: count ledger goals that have a matching history thread
+            # in their started_at..finished_at window.
+            goal_records = [goal_from_dict(g) for g in data.get("goals", [])]
+            effective_goals = build_effective_goals(goal_records)
+            closed_goals = [g for g in effective_goals if g.status in {"success", "fail"}]
+            alignable = [g for g in closed_goals if g.started_at and g.finished_at]
+
+            aligned_count = 0
+            for goal in alignable:
+                matched = conn.execute(
+                    """
+                    SELECT 1 FROM derived_goals
+                    WHERE (cwd = ? OR cwd LIKE ?)
+                      AND first_seen_at <= ?
+                      AND last_seen_at  >= ?
+                    LIMIT 1
+                    """,
+                    (cwd_str, worktree_prefix, goal.finished_at, goal.started_at),
+                ).fetchone()
+                if matched:
+                    aligned_count += 1
+
+    except sqlite3.DatabaseError:
+        return None
+
+    return HistorySignals(
+        project_threads=project_threads,
+        retry_threads=retry_threads,
+        retry_rate=retry_rate,
+        ledger_goal_alignments=aligned_count,
+        ledger_goals_total=len(closed_goals),
+    )
 
 
 @dataclass(frozen=True)

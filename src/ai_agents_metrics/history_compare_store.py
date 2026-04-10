@@ -66,8 +66,10 @@ def _warehouse_scope_row(conn: sqlite3.Connection, *, cwd: str | None = None) ->
     where_clause = ""
     params: tuple[Any, ...] = ()
     if cwd is not None:
-        where_clause = "WHERE cwd = ?"
-        params = (cwd,)
+        # Match both the exact project cwd and any Claude Code worktree paths rooted there.
+        # Worktrees live under <project>/.claude/worktrees/<name>, so a LIKE suffix catches them.
+        where_clause = "WHERE (cwd = ? OR cwd LIKE ?)"
+        params = (cwd, cwd + "/.claude/worktrees/%")
     session_usage_table = _session_usage_table_name(conn)
 
     thread_count = int(conn.execute(f"SELECT count(*) FROM derived_goals {where_clause}", params).fetchone()[0])
@@ -113,13 +115,23 @@ def _warehouse_scope_row(conn: sqlite3.Connection, *, cwd: str | None = None) ->
         params,
     )
     if _table_exists(conn, "derived_projects"):
+        projects_columns = {row[1] for row in conn.execute("PRAGMA table_info(derived_projects)").fetchall()}
+        has_parent_col = "parent_project_cwd" in projects_columns
         if cwd is not None:
-            project_count = int(
-                conn.execute(
-                    "SELECT count(*) FROM derived_projects WHERE project_cwd = ?",
-                    (cwd,),
-                ).fetchone()[0]
-            )
+            if has_parent_col:
+                project_count = int(
+                    conn.execute(
+                        "SELECT count(*) FROM derived_projects WHERE parent_project_cwd = ?",
+                        (cwd,),
+                    ).fetchone()[0]
+                )
+            else:
+                project_count = int(
+                    conn.execute(
+                        "SELECT count(*) FROM derived_projects WHERE project_cwd = ?",
+                        (cwd,),
+                    ).fetchone()[0]
+                )
         else:
             project_count = int(conn.execute("SELECT count(*) FROM derived_projects").fetchone()[0])
     else:

@@ -25,6 +25,7 @@ from ai_agents_metrics.history_audit import (
 )
 from ai_agents_metrics.history_compare import (
     HistoryCompareReport,
+    HistorySignals,
 )
 from ai_agents_metrics.history_derive import DeriveSummary
 from ai_agents_metrics.history_ingest import IngestSummary
@@ -104,8 +105,9 @@ class CommandRuntime(Protocol):
     ) -> CostAuditReport: ...
     def load_metrics(self, path: Path) -> dict[str, Any]: ...
     def recompute_summary(self, data: dict[str, Any]) -> None: ...
-    def print_summary(self, data: dict[str, Any]) -> None: ...
-    def render_summary_json(self, data: dict[str, Any]) -> str: ...
+    def print_summary(self, data: dict[str, Any], history_signals: HistorySignals | None = ...) -> None: ...
+    def render_summary_json(self, data: dict[str, Any], history_signals: HistorySignals | None = ...) -> str: ...
+    def read_history_signals(self, warehouse_path: Path, project_cwd: Path, data: dict[str, Any]) -> HistorySignals | None: ...
     def audit_history(self, data: dict[str, Any]) -> AuditReport: ...
     def render_audit_report(self, report: AuditReport) -> str: ...
     def render_audit_report_json(self, report: AuditReport) -> str: ...
@@ -462,8 +464,13 @@ def handle_bootstrap(args: Namespace, cli_module: CommandRuntime) -> int:
 
 def handle_show(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
+    _warehouse_raw = getattr(args, "warehouse_path", "")
+    # Guard against the empty-string case: Path("").expanduser() resolves to Path(".")
+    # which always exists and causes an unintended SQLite connect attempt.
+    warehouse_path = Path(_warehouse_raw).expanduser() if _warehouse_raw else Path("")
     data = cli_module.load_metrics(metrics_path)
     cli_module.recompute_summary(data)
+    history_signals = cli_module.read_history_signals(warehouse_path, Path.cwd(), data)
     warning = None
     resolution = cli_module.resolve_workflow_resolution(data, Path.cwd(), WorkflowEvent.SHOW)
     if resolution.decision.action == "warning":
@@ -471,9 +478,9 @@ def handle_show(args: Namespace, cli_module: CommandRuntime) -> int:
     if warning is not None:
         print(warning)
     if getattr(args, "json", False):
-        print(cli_module.render_summary_json(data))
+        print(cli_module.render_summary_json(data, history_signals))
     else:
-        cli_module.print_summary(data)
+        cli_module.print_summary(data, history_signals)
     return 0
 
 
