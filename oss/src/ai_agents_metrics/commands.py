@@ -464,7 +464,10 @@ def handle_bootstrap(args: Namespace, cli_module: CommandRuntime) -> int:
 
 def handle_show(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
-    warehouse_path = Path(getattr(args, "warehouse_path", "")).expanduser()
+    _warehouse_raw = getattr(args, "warehouse_path", "")
+    # Guard against the empty-string case: Path("").expanduser() resolves to Path(".")
+    # which always exists and causes an unintended SQLite connect attempt.
+    warehouse_path = Path(_warehouse_raw).expanduser() if _warehouse_raw else Path("")
     data = cli_module.load_metrics(metrics_path)
     cli_module.recompute_summary(data)
     history_signals = cli_module.read_history_signals(warehouse_path, Path.cwd(), data)

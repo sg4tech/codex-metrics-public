@@ -949,6 +949,10 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
             retry_chains += 1
 
         for project_cwd, stats in project_stats.items():
+            # project_cwd here is already the collapsed parent path (worktree suffix stripped by
+            # _parent_project_cwd at aggregation time), so parent_project_cwd == project_cwd for
+            # every row.  The column exists so that read_history_signals and history_compare_store
+            # can query by parent_project_cwd without needing a LIKE workaround on derived_projects.
             conn.execute(
                 """
                 INSERT INTO derived_projects (

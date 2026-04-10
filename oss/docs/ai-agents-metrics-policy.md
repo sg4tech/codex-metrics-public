@@ -187,6 +187,34 @@ At minimum:
 - Product, retro, and meta work must remain distinguishable.
 - Inferred failed attempts may preserve history shape, but they must not pollute diagnostic failure-reason reporting.
 
+### `show` command and history signals
+
+`ai-agents-metrics show` prints the current ledger summary.  Pass `--json` to get a machine-readable JSON object.
+
+When a history warehouse is available (auto-detected by default; override with `--warehouse-path`), `show --json` includes a top-level `history_signals` key:
+
+```json
+{
+  "history_signals": {
+    "project_threads": 72,
+    "retry_threads": 21,
+    "retry_rate": 0.29,
+    "ledger_goal_alignments": 8,
+    "ledger_goals_total": 14
+  }
+}
+```
+
+When no warehouse is available or the warehouse has not been derived yet, `history_signals` is `null`.  Consumers must handle both cases.
+
+- `project_threads` — total history threads attributed to this project (worktrees merged into parent).
+- `retry_threads` — threads that had more than one session (direct proxy for retry pressure).
+- `retry_rate` — `retry_threads / project_threads`; the primary history-derived efficiency signal.
+- `ledger_goal_alignments` — how many closed ledger goals with timestamps have at least one matching history thread in their time window.
+- `ledger_goals_total` — denominator for the alignment ratio.
+
+Use `retry_rate` from `history_signals` as the authoritative retry-pressure signal.  The ledger's own `attempts_per_closed_task` field is a weaker proxy because retries at the conversation level are often not captured in structured attempt records.
+
 ## Anti-Gaming Rules
 
 - Do not split one coherent goal into many tiny goals to inflate success rate.
