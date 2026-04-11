@@ -39,13 +39,13 @@ complexity: check-init
 arch-check: check-init
 	PYTHONPATH=src .venv/bin/lint-imports
 
-verify: check-init remind-task lint security typecheck test build-check complexity arch-check
+verify: check-init remind-task lint security bandit typecheck test build-check complexity arch-check
 
 security:
 	./.venv/bin/python -m ai_agents_metrics security --repo-root . --rules-path config/security-rules.toml
 
 bandit: remind-task
-	./.venv/bin/bandit -r src scripts -q --skip B404,B607,B603,B105
+	./.venv/bin/bandit -r src scripts -q --skip B404,B607,B603
 
 verify-public-boundary:
 	./.venv/bin/python -m ai_agents_metrics verify-public-boundary --repo-root . --rules-path config/public-boundary-rules.toml

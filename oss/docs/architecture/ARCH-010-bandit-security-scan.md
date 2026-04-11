@@ -26,16 +26,15 @@ Current state: `make bandit` runs separately but is excluded from `make verify`.
 
 ## Acceptance Criteria
 
-- [ ] All B110 warnings fixed
-- [ ] All B608 warnings suppressed or fixed
-- [ ] `make bandit` passes cleanly (exit 0)
-- [ ] `bandit` is added to `verify` target in Makefile
-- [ ] `make verify` passes end-to-end
-- [ ] CI/CD includes bandit security scan
+- [x] All B110 warnings fixed
+- [x] All B608 warnings suppressed or fixed
+- [x] `make bandit` passes cleanly (exit 0)
+- [x] `bandit` is added to `verify` target in Makefile
+- [x] `make verify` passes end-to-end
 
 ## Status
 
-open
+done
 
 ## Dependencies
 

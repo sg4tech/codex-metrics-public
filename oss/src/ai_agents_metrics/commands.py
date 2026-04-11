@@ -1012,7 +1012,7 @@ def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:
         from ai_agents_metrics.cli import PRICING_JSON_PATH, load_pricing
         pricing = load_pricing(PRICING_JSON_PATH)
     except Exception:
-        pass
+        pricing = None
 
     chart_data = aggregate_report_data(
         goals, days,
