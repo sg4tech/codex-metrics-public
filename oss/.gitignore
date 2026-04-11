@@ -29,6 +29,7 @@ src/ai_agents_metrics/_version.py
 # Local observability state
 .codex-metrics/
 metrics/.codex-metrics/
+metrics/.ai-agents-metrics/
 
 # Generated HTML reports (human-facing, not tracked)
 reports/
