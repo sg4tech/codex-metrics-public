@@ -1,8 +1,9 @@
 ---
 id: H-038
 title: Warehouse-first reporting may recover full project history and make the ndjson ledger a thin classification overlay
-status: active
+status: confirmed
 created: 2026-04-11
+confirmed: 2026-04-11
 ---
 
 ## Hypothesis
@@ -56,9 +57,19 @@ Chart assignments:
 | 2 | Should warehouse and ndjson totals be reconciled, or is warehouse always preferred when present? Prefer warehouse — it's the authoritative signal. |
 | 3 | Should the summary card (`total_cost_usd`) also switch to warehouse? Yes — ndjson costs are less reliable. |
 
+## Implementation (2026-04-11)
+
+Implemented as described. Key decisions made during implementation:
+
+- Charts 3 and 4 moved to the **Session History** section; Charts 1 and 4 remain in the **Goals Ledger** section. The report now has explicit section headers showing the data source badge, date range, and goal count for each section.
+- `_apply_token_pricing()` extracted in `_report_aggregation.py` to deduplicate the pricing logic that existed in both the warehouse path and the ndjson fallback path.
+- Sessions with unknown model pricing (e.g. old gpt-5.4 sessions) contribute $0 to the cost chart rather than raw token counts — prevents garbage values on a USD-denominated axis.
+- `html_report.py` split into four modules (`_report_buckets`, `_report_aggregation`, `_report_template`, `html_report` facade) as part of the same task.
+- Open decision #3 (summary card) resolved: `total_cost_usd` in the summary strip now reflects warehouse data when available.
+
 ## Confidence
 
-High — the data is demonstrably there (`derived_session_usage` has full token breakdown per thread back to 2026-03-29). The only blocker is wiring the query and aggregation into the report pipeline. No schema changes needed.
+Confirmed — implemented and shipped. Charts 3 and 4 now cover the full warehouse history from 2026-03-31.
 
 ## Relationship to other hypotheses
 

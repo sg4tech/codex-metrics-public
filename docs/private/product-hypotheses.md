@@ -75,4 +75,4 @@ Ideas:
 | `H-034` | `planned` | `docs/private/product-hypotheses/ideas/H-034-model-pricing-json.md` | A model_pricing.json may be required before cost-per-task estimates become reliable |
 | `H-036` | `idea` | `docs/private/product-hypotheses/ideas/H-036-zero-manual-tracking.md` | Fully automatic session-based tracking may replace manual start/finish entirely |
 | `H-037` | `deferred` | `docs/private/product-hypotheses/ideas/H-037-goal-type-taxonomy.md` | Expanding goal_type from 3 to 5 types may improve analytical signal but ROI is negative at current scale |
-| `H-038` | `active` | `docs/private/product-hypotheses/ideas/H-038-warehouse-first-reporting.md` | Warehouse-first reporting may recover full project history and make the ndjson ledger a thin classification overlay |
+| `H-038` | `confirmed` | `docs/private/product-hypotheses/ideas/H-038-warehouse-first-reporting.md` | Warehouse-first reporting may recover full project history and make the ndjson ledger a thin classification overlay |

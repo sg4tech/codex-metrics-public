@@ -103,6 +103,10 @@ Codex state/logs (SQLite)
 | `reporting.py` | Markdown generation, product quality summaries, agent recommendations |
 | `cost_audit.py` | Audits missing/incomplete token and cost data; categorises issues |
 | `retro_timeline.py` | Derives a retrospective work timeline from goal records |
+| `html_report.py` | Public facade for the HTML report: re-exports `aggregate_report_data` and `render_html_report` |
+| `_report_aggregation.py` | Transforms ndjson goals + warehouse rows into chart-ready series; `_apply_token_pricing` applies model-aware pricing |
+| `_report_buckets.py` | Pure date/time-bucket helpers (parse, bucket key, make buckets) |
+| `_report_template.py` | Self-contained HTML/CSS/JS template string; no Python logic |
 
 ### Integrations
 
@@ -147,6 +151,7 @@ Transitions produce a `WorkflowDecision(action, message)`. Commands call `classi
 **History warehouse:** `.ai-agents-metrics/codex_raw_history.sqlite`
 - Intermediate cache populated by `history_ingest.py`
 - Consumed by normalize → derive steps; not the source of truth
+- Also read directly by `render-html` for token/cost and retry data (warehouse-first reporting, H-038): covers full session history, while the ndjson ledger only covers manually-tracked goals
 
 **Event log:** `.ai-agents-metrics/events.sqlite` + `events.debug.log`
 - Append-only mutation audit trail written by `observability.py`
@@ -164,7 +169,7 @@ Key command groups:
 |-------|----------|
 | Task lifecycle | `start-task`, `continue-task`, `finish-task` |
 | Metrics mutation | `update`, `create`, `merge-tasks` |
-| Inspection | `show`, `show-goal`, `render-report` |
+| Inspection | `show`, `show-goal`, `render-report`, `render-html` |
 | History | `history-ingest`, `history-normalize`, `history-derive`, `history-compare`, `history-audit` |
 | Sync | `sync-usage` |
 | Tooling | `init`, `verify-public-boundary`, `render-completion`, `export` |

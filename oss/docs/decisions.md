@@ -85,6 +85,37 @@ New entries should follow the format below. Add entries as decisions are made or
 
 ---
 
+## HTML report uses warehouse as primary source for token and retry data
+
+**Context:** `render-html` initially read all four charts from the ndjson ledger. The ledger starts at the first manually-tracked goal (2026-04-07); the warehouse covers all sessions from the first ingest (2026-03-31). Three of four charts showed only ~4 days of history, while full project history was available in the warehouse.
+
+**Decision:** Charts 2 (Retry Pressure) and 3 (Token Cost) are warehouse-first: they query `derived_goals` JOIN `derived_session_usage` for per-thread token counts and retry counts. The ledger remains the sole source for Charts 1 and 4, which require `goal_type` and `cost_usd` — fields only present in manually-tracked goals.
+
+**Trade-offs:**
+- When the warehouse is absent, charts 2 and 3 fall back to ledger data (same pattern already used before this change).
+- Sessions with unknown model pricing contribute $0 to the cost chart rather than corrupting it with raw token counts.
+- Chart 1 (goal type breakdown) still only covers ledger history until auto-classification (H-036) is implemented.
+
+**Why this works:** The warehouse has full token breakdown per thread back to first ingest with no migration needed. The inconsistency between ledger and warehouse date ranges is surfaced as an explicit UX feature via section headers ("Goals Ledger" vs "Session History") rather than hidden.
+
+---
+
+## html_report.py split into four focused modules
+
+**Context:** `html_report.py` grew to 1084 lines as the HTML template, aggregation logic, date helpers, and public API accumulated in one file. Diffs and code review were impractical; the ~730-line template string dominated the file.
+
+**Decision:** The file is split into:
+- `_report_buckets.py` — pure date/bucket helpers (no I/O, no side effects)
+- `_report_aggregation.py` — all aggregation logic; `_apply_token_pricing` extracted to eliminate duplication between the warehouse and ledger token paths
+- `_report_template.py` — the HTML/CSS/JS template string (inert data, no Python logic)
+- `html_report.py` — thin 37-line facade; public API (`aggregate_report_data`, `render_html_report`) unchanged
+
+**Trade-offs:** Three new private modules with underscore-prefixed names. Tests import from the sub-modules directly.
+
+**Why this works:** Each module has exactly one reason to change. The public import surface is preserved; `commands.py` and any downstream code importing from `html_report` requires no changes.
+
+---
+
 ## cli.py as a re-export facade
 
 **Context:** Early in the project, external scripts and tests imported symbols directly from `cli.py` before the module structure was stable.
