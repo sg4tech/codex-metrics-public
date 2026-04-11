@@ -74,6 +74,7 @@ It is not a benchmark, an eval framework, or a model comparison tool. It is a lo
 | Standalone binary packaging | Available |
 | Repository bootstrap (`bootstrap` command) | Available |
 | Optional markdown report export | Available |
+| Interactive HTML report with trend charts | Available |
 | Hosted multi-user dashboards | Not planned |
 | Centralized team analytics | Not planned |
 
@@ -233,6 +234,15 @@ Regenerate the optional markdown report:
 ```bash
 ai-agents-metrics render-report
 ```
+
+Generate a self-contained interactive HTML report with four trend charts (goal types, retry pressure, token cost, cost per success):
+
+```bash
+ai-agents-metrics render-html
+ai-agents-metrics render-html --output report.html --days 30
+```
+
+The report reads token and retry data from the local warehouse when available (full history) and falls back to the event log. The output file has no external dependencies — open it in any browser.
 
 ---
 

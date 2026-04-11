@@ -143,6 +143,7 @@ from ai_agents_metrics.workflow_fsm import (
 EVENTS_NDJSON_PATH = Path("metrics/events.ndjson")
 METRICS_JSON_PATH = EVENTS_NDJSON_PATH  # backward-compat alias used by args.metrics_path
 REPORT_MD_PATH = Path("docs/ai-agents-metrics.md")
+REPORT_HTML_PATH = Path("reports/report.html")
 CODEX_STATE_PATH = Path.home() / ".codex" / "state_5.sqlite"
 CODEX_LOGS_PATH = Path.home() / ".codex" / "logs_1.sqlite"
 CLAUDE_ROOT = Path.home() / ".claude"
@@ -1766,6 +1767,25 @@ def build_parser() -> argparse.ArgumentParser:
     render_report_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
     render_report_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
 
+    render_html_parser = subparsers.add_parser(
+        "render-html",
+        help="Render a self-contained HTML report with trend charts",
+        description="Generate a static HTML file with four trend charts for human review.",
+    )
+    render_html_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
+    render_html_parser.add_argument(
+        "--output",
+        default=str(REPORT_HTML_PATH),
+        help="Output path for the HTML file (default: reports/report.html)",
+    )
+    render_html_parser.add_argument(
+        "--days",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Limit the time window to the last N days",
+    )
+
     return parser
 
 
@@ -2119,6 +2139,9 @@ def main() -> int:
 
     if args.command == "render-report":
         return commands.handle_render_report(args, sys.modules[__name__])
+
+    if args.command == "render-html":
+        return commands.handle_render_html(args, sys.modules[__name__])
 
     if args.command == "update":
         return commands.handle_update(args, sys.modules[__name__])
