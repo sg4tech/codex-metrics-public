@@ -943,6 +943,7 @@ def handle_render_report(args: Namespace, cli_module: CommandRuntime) -> int:
 
 
 def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:
+    import sqlite3
     from datetime import datetime, timezone
 
     from ai_agents_metrics.html_report import aggregate_report_data, render_html_report
@@ -954,11 +955,77 @@ def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:
     data = load_metrics(metrics_path)
     goals: list[dict] = data.get("goals", [])
 
-    chart_data = aggregate_report_data(goals, days)
+    # Load retry and token data from warehouse when available.
+    warehouse_retry: dict[str, dict[str, int]] | None = None
+    warehouse_tokens: list[tuple[str, str | None, int, int, int]] | None = None
+    _warehouse_arg = getattr(args, "warehouse_path", "") or ""
+    warehouse_path = Path(_warehouse_arg) if _warehouse_arg else None
+    if warehouse_path is None or not warehouse_path.is_file():
+        # Fall back to the default warehouse location beside the metrics file.
+        warehouse_path = metrics_path.parent / ".codex-metrics" / "codex_raw_history.sqlite"
+    if warehouse_path.is_file():
+        try:
+            cwd = str(Path.cwd())
+            with sqlite3.connect(warehouse_path) as conn:
+                retry_rows = conn.execute(
+                    "SELECT last_seen_at, retry_count FROM derived_goals "
+                    "WHERE cwd = ? AND last_seen_at IS NOT NULL",
+                    (cwd,),
+                ).fetchall()
+                token_rows = conn.execute(
+                    "SELECT dg.last_seen_at, "
+                    "  COALESCE(dg.model, ("
+                    "    SELECT json_extract(nue.raw_json, '$.message.model') "
+                    "    FROM normalized_usage_events nue "
+                    "    WHERE nue.thread_id = dg.thread_id "
+                    "      AND json_extract(nue.raw_json, '$.message.model') IS NOT NULL "
+                    "    LIMIT 1"
+                    "  )) as model, "
+                    "  COALESCE(SUM(dsu.input_tokens), 0), "
+                    "  COALESCE(SUM(dsu.cached_input_tokens), 0), "
+                    "  COALESCE(SUM(dsu.output_tokens), 0) "
+                    "FROM derived_goals dg "
+                    "LEFT JOIN derived_session_usage dsu ON dsu.thread_id = dg.thread_id "
+                    "WHERE dg.cwd = ? AND dg.last_seen_at IS NOT NULL "
+                    "GROUP BY dg.thread_id",
+                    (cwd,),
+                ).fetchall()
+            by_day: dict[str, dict[str, int]] = {}
+            for last_seen_at, retry_count in retry_rows:
+                day = last_seen_at[:10]
+                if day not in by_day:
+                    by_day[day] = {"threads": 0, "retry_threads": 0}
+                by_day[day]["threads"] += 1
+                if retry_count and retry_count > 0:
+                    by_day[day]["retry_threads"] += 1
+            warehouse_retry = by_day
+            warehouse_tokens = [
+                (last_seen_at, model, inp, cac, out)
+                for last_seen_at, model, inp, cac, out in token_rows
+            ]
+        except (sqlite3.Error, OSError):
+            pass  # warehouse unavailable or schema mismatch — fall back to ledger
+
+    # Load model pricing for token-cost breakdown in chart 3.
+    pricing: dict[str, dict[str, float | None]] | None = None
+    try:
+        from ai_agents_metrics.cli import PRICING_JSON_PATH, load_pricing
+        pricing = load_pricing(PRICING_JSON_PATH)
+    except Exception:
+        pass
+
+    chart_data = aggregate_report_data(
+        goals, days,
+        warehouse_retry=warehouse_retry,
+        warehouse_tokens=warehouse_tokens,
+        pricing=pricing,
+    )
     generated_at = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     html = render_html_report(chart_data, generated_at)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")
-    print(f"Rendered HTML report: {output_path}")
+    retry_src = "warehouse" if warehouse_retry is not None else "ledger"
+    token_src = "warehouse" if warehouse_tokens is not None else "ledger"
+    print(f"Rendered HTML report: {output_path} (retry: {retry_src}, tokens: {token_src})")
     return 0

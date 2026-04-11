@@ -1,4 +1,4 @@
-.PHONY: init check-init remind-task lint typecheck test verify build-check security verify-public-boundary setup-hooks dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke public-overlay-status public-overlay-bootstrap public-overlay-verify public-overlay-push public-overlay-pull
+.PHONY: init check-init remind-task lint typecheck test verify build-check security bandit verify-public-boundary setup-hooks dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke public-overlay-status public-overlay-bootstrap public-overlay-verify public-overlay-push public-overlay-pull
 
 PYTHON3 ?= python3
 
@@ -34,6 +34,9 @@ verify: check-init remind-task lint security typecheck test build-check
 
 security:
 	./.venv/bin/python -m ai_agents_metrics security --repo-root . --rules-path config/security-rules.toml
+
+bandit: remind-task
+	./.venv/bin/bandit -r src scripts -q --skip B404,B607,B603,B105
 
 verify-public-boundary:
 	./.venv/bin/python -m ai_agents_metrics verify-public-boundary --repo-root . --rules-path config/public-boundary-rules.toml
