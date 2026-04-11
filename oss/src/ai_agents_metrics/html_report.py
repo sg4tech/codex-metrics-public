@@ -434,6 +434,7 @@ function drawCombo(id, labels, barValues, lineValues, barColor, lineColor) {
   const { ctx, w, h } = setupCanvas(id);
   const allVals = [...barValues, ...lineValues.filter(v => v !== null)];
   if (!labels.length || allVals.every(v => !v)) { drawEmpty(ctx, w, h); return; }
+  const noRetries = barValues.every(v => !v);
 
   const ML = 48, MR = 48, MT = 12, MB = 68;
   const cw = w - ML - MR, ch = h - MT - MB;
@@ -511,6 +512,22 @@ function drawCombo(id, labels, barValues, lineValues, barColor, lineColor) {
   }
 
   drawXLabels(ctx, labels, ML, MT, cw, ch, step);
+
+  if (noRetries) {
+    const msg = 'No retries — all goals completed on first attempt';
+    ctx.font = '11px system-ui';
+    const msgW = ctx.measureText(msg).width;
+    const px = ML + cw / 2 - msgW / 2 - 8;
+    const py = MT + 10;
+    ctx.fillStyle = '#f0fdf4';
+    ctx.beginPath();
+    ctx.roundRect(px, py, msgW + 16, 22, 4);
+    ctx.fill();
+    ctx.fillStyle = '#16a34a';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(msg, px + 8, py + 11);
+  }
 }
 
 // ── chart 3: stacked bar ─────────────────────────────────────────────────────
