@@ -1,8 +1,11 @@
 include oss/Makefile
 
-# Override: delegate to oss/ where pyproject.toml lives
+# Override: delegate to oss/ where pyproject.toml lives, then mirror into root .venv
+# so that root-level make targets (arch-check, build-check, complexity) have the tools.
 init:
 	cd oss && $(MAKE) init
+	@test -d .venv || python3 -m venv .venv
+	./.venv/bin/pip install -q -e "oss/[dev]"
 	@echo ""
 	@echo "AGENTS: all engineering work must be done inside oss/ — do not run make targets or CLI from the private root"
 	@echo ""
