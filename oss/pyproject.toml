@@ -1,0 +1,103 @@
+[build-system]
+requires = ["setuptools>=69", "wheel", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-agents-metrics"
+dynamic = ["version"]
+description = "CLI for tracking AI agent task metrics: token cost, retry pressure, and outcome quality."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+keywords = [
+    "ai-agents",
+    "llm",
+    "metrics",
+    "token-cost",
+    "cost-tracking",
+    "claude-code",
+    "codex",
+    "observability",
+    "developer-productivity",
+    "retry-pressure",
+    "agent-metrics",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development",
+    "Topic :: System :: Monitoring",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["ruff", "mypy", "pytest", "coverage[toml]", "setuptools>=82", "build", "bandit"]
+
+[project.scripts]
+ai-agents-metrics = "ai_agents_metrics.cli:console_main"
+codex-metrics = "ai_agents_metrics.cli:console_main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools_scm]
+search_parent_directories = true
+write_to = "src/ai_agents_metrics/_version.py"
+fallback_version = "0.0.0.dev0"
+
+[tool.setuptools.package-data]
+ai_agents_metrics = ["data/*.json", "data/*.md"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+  "F",
+  "I",
+]
+
+[tool.mypy]
+python_version = "3.14"
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+no_implicit_optional = true
+disallow_incomplete_defs = true
+files = [
+  "src/ai_agents_metrics",
+  "scripts/metrics_cli.py",
+]
+exclude = [
+  "^\\.venv/",
+]
+
+[[tool.mypy.overrides]]
+module = "ai_agents_metrics._version"
+ignore_missing_imports = true
+
+[tool.coverage.run]
+branch = true
+parallel = true
+source = [
+  "ai_agents_metrics",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+
+[tool.codex_tests]
+scripts = "scripts"
+src = "src"

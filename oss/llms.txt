@@ -1,0 +1,114 @@
+# ai-agents-metrics
+
+> CLI tool for tracking AI-agent task metrics: goals, attempt history, token cost, retry pressure, and outcome quality. Stores everything in a local append-only NDJSON event log. Designed for agent-first analysis — the primary consumer of metrics is an AI agent that produces synthesized conclusions for a human sponsor.
+
+`ai-agents-metrics` answers three questions for any AI-assisted engineering workflow:
+- Did this approach produce the right outcome?
+- How many tries did it take?
+- What did it cost in tokens and USD?
+
+Repository: https://github.com/sg4tech/ai-agents-metrics
+
+## Core concepts
+
+- **Goal** — the unit of work being tracked (one engineering task, retro, or meta item). Stored as a `GoalRecord`.
+- **Attempt / Entry** — one implementation pass within a goal. Multiple attempts happen when the agent retries or the human corrects course. Stored as an `AttemptEntryRecord`.
+- **Event log** — `metrics/events.ndjson`: append-only NDJSON, one JSON line per CLI command. State is reconstructed at read time by replaying all events in order. This is the canonical store.
+- **goal_type** — `product` for delivery work, `retro` for retrospective writeups, `meta` for bookkeeping and tooling.
+- **result_fit** — product-only quality label: `exact_fit`, `partial_fit`, or `miss`. Separate from `status` (success/fail).
+- **Supersedes chain** — when a goal replaces a prior closed goal, `supersedes_goal_id` links them. The chain aggregates cost and tokens across all linked goals into an `EffectiveGoalRecord`.
+- **Retry pressure** — how many attempts a goal required; the primary signal that a workflow or prompt approach is inefficient.
+- **History pipeline** — optional four-stage pipeline (`ingest → normalize → derive → compare`) that reconstructs past goal/attempt history from raw Codex agent SQLite state.
+
+## CLI quick reference
+
+```bash
+# Bootstrap a new project
+ai-agents-metrics bootstrap
+
+# Start tracking a goal
+ai-agents-metrics start-task --title "Add typed pipeline contracts" --task-type product
+
+# Record another attempt on the active goal
+ai-agents-metrics continue-task --task-id 2026-04-08-001 --failure-reason validation_failed
+
+# Close the goal
+ai-agents-metrics finish-task --task-id 2026-04-08-001 --status success --result-fit exact_fit
+
+# Show current metrics summary
+ai-agents-metrics show
+```
+
+Cost flags available on `start-task`, `continue-task`, `finish-task`:
+- `--cost-usd-add` — explicit USD amount
+- `--model`, `--input-tokens`, `--output-tokens` — token-based cost (looked up from pricing table)
+- `--cached-input-tokens` — cached-input token count for cost calculation
+
+## Key files
+
+- [README.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/README.md): Install, quickstart, public boundary
+- [docs/ai-agents-metrics-policy.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/ai-agents-metrics-policy.md): Mandatory workflow rules for agents using this tool
+- [docs/glossary.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/glossary.md): Full terminology — goal vs task, entry vs attempt, supersedes chain, WorkflowState, etc.
+- [docs/data-schema.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/data-schema.md): Full field reference for GoalRecord, AttemptEntryRecord, and the summary block
+- [docs/data-invariants.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/data-invariants.md): Business rules enforced by validation logic
+- [docs/cli-reference.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/cli-reference.md): All commands, flags, and examples
+- [docs/architecture.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/architecture.md): Module layout, pipeline stages, storage, entry points
+- [docs/history-pipeline.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/history-pipeline.md): How the four-stage history reconstruction pipeline works
+- [docs/decisions.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/docs/decisions.md): Why key architectural choices were made
+- [CONTRIBUTING.md](https://github.com/sg4tech/ai-agents-metrics/blob/main/CONTRIBUTING.md): How to contribute
+
+## Data model summary
+
+```
+GoalRecord
+  goal_id          str           e.g. "2026-04-08-001"
+  title            str
+  status           str           "in_progress" | "success" | "fail"
+  goal_type        str           "product" | "meta" | "retro"
+  result_fit       str | null    "exact_fit" | "partial_fit" | "miss"
+  supersedes_goal_id str | null  links to prior goal in chain
+  cost_usd         float | null
+  total_tokens     int | null
+  model            str | null
+  entries          list[AttemptEntryRecord]
+
+AttemptEntryRecord
+  entry_id         str
+  goal_id          str
+  attempt_number   int
+  status           str           "in_progress" | "success" | "fail"
+  failure_reason   str | null
+  cost_usd         float | null
+  input_tokens     int | null
+  output_tokens    int | null
+  cached_input_tokens int | null
+  model            str | null
+  inferred         bool          true if synthesized by history pipeline
+```
+
+## Metrics output
+
+`ai-agents-metrics show` returns a structured summary including:
+- total goals opened, closed, succeeded, failed
+- success rate, attempts per closed goal, result_fit distribution
+- known total cost (USD) and total tokens
+- per-goal-type and per-model breakdowns
+- list of active goals with current attempt count
+
+## Install
+
+```bash
+pip install ai-agents-metrics
+# or from source:
+pip install -e .
+```
+
+Requires Python ≥ 3.11. No external runtime dependencies.
+
+## Verification
+
+```bash
+make verify
+```
+
+Runs lint (ruff), security scan (bandit), typecheck (mypy), tests (pytest), and public boundary check.
