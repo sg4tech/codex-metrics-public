@@ -21,8 +21,7 @@ jobs:
       - name: Install tooling and project
         run: |
           ./.venv/bin/python -m pip install --upgrade pip
-          ./.venv/bin/python -m pip install build coverage mypy pytest ruff setuptools wheel
-          ./.venv/bin/python -m pip install -e .
+          ./.venv/bin/python -m pip install -e "oss/[dev]"
 
       - name: Verify
         run: make verify

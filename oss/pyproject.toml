@@ -37,7 +37,7 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["ruff", "mypy", "pytest", "coverage[toml]", "setuptools>=82", "build", "bandit"]
+dev = ["ruff", "mypy", "pytest", "coverage[toml]", "setuptools>=82", "build", "bandit", "radon", "import-linter"]
 
 [project.scripts]
 ai-agents-metrics = "ai_agents_metrics.cli:console_main"
@@ -101,3 +101,44 @@ skip_covered = false
 [tool.codex_tests]
 scripts = "scripts"
 src = "src"
+
+[tool.importlinter]
+root_packages = ["ai_agents_metrics"]
+
+[[tool.importlinter.contracts]]
+name = "Domain layer must not import from CLI or orchestration"
+type = "forbidden"
+source_modules = ["ai_agents_metrics.domain"]
+forbidden_modules = [
+    "ai_agents_metrics.cli",
+    "ai_agents_metrics.commands",
+    "ai_agents_metrics.storage",
+    "ai_agents_metrics.reporting",
+    "ai_agents_metrics.workflow_fsm",
+    "ai_agents_metrics.history_ingest",
+    "ai_agents_metrics.history_normalize",
+    "ai_agents_metrics.history_derive",
+    "ai_agents_metrics.history_compare",
+    "ai_agents_metrics.history_audit",
+]
+
+[[tool.importlinter.contracts]]
+name = "Storage module must not import from domain or above"
+type = "forbidden"
+source_modules = ["ai_agents_metrics.storage"]
+forbidden_modules = [
+    "ai_agents_metrics.domain",
+    "ai_agents_metrics.cli",
+    "ai_agents_metrics.commands",
+    "ai_agents_metrics.reporting",
+]
+
+[[tool.importlinter.contracts]]
+name = "History pipeline follows ingest -> normalize -> derive -> compare order"
+type = "layers"
+layers = [
+    "ai_agents_metrics.history_compare : ai_agents_metrics.history_audit",
+    "ai_agents_metrics.history_derive",
+    "ai_agents_metrics.history_normalize",
+    "ai_agents_metrics.history_ingest",
+]
