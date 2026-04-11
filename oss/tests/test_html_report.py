@@ -4,6 +4,8 @@ from __future__ import annotations
 from datetime import datetime
 
 from ai_agents_metrics.html_report import (
+    _aggregate_warehouse_retry,
+    _aggregate_warehouse_tokens,
     _bucket_key,
     _make_buckets,
     _monday_of,
@@ -107,7 +109,9 @@ def test_bucket_key_weekly():
 def test_empty_goals_returns_empty_data():
     result = aggregate_report_data([], days=None)
     assert result["buckets"] == []
-    assert result["chart1"] == []
+    assert result["chart1_product"] == []
+    assert result["chart1_meta"] == []
+    assert result["chart1_retro"] == []
     assert result["chart4_buckets"] == []
 
 
@@ -124,17 +128,29 @@ def test_goals_without_finished_at_excluded():
 
 
 def test_single_success_daily():
-    goals = [_goal(status="success", finished_at="2026-01-15T10:00:00+00:00")]
+    goals = [_goal(status="success", finished_at="2026-01-15T10:00:00+00:00", goal_type="product")]
     result = aggregate_report_data(goals, days=None)
     assert "2026-01-15" in result["buckets"]
     idx = result["buckets"].index("2026-01-15")
-    assert result["chart1"][idx] == 1
+    # product goal → chart1_product
+    assert result["chart1_product"][idx] == 1
+    assert result["chart1_meta"][idx] == 0
+    assert result["chart1_retro"][idx] == 0
+
+
+def test_single_success_meta():
+    goals = [_goal(status="success", finished_at="2026-01-15T10:00:00+00:00", goal_type="meta")]
+    result = aggregate_report_data(goals, days=None)
+    idx = result["buckets"].index("2026-01-15")
+    assert result["chart1_product"][idx] == 0
+    assert result["chart1_meta"][idx] == 1
 
 
 def test_fail_not_counted_in_chart1():
     goals = [_goal(status="fail", finished_at="2026-01-15T10:00:00+00:00")]
     result = aggregate_report_data(goals, days=None)
-    assert result["chart1"][0] == 0
+    assert result["chart1_product"][0] == 0
+    assert result["chart1_meta"][0] == 0
 
 
 def test_retry_pressure_chart2():
@@ -241,7 +257,181 @@ def test_days_filter():
     ]
     result = aggregate_report_data(goals, days=10)
     # Only the recent goal should be included
-    assert sum(result["chart1"]) == 1
+    total_successes = sum(result["chart1_product"]) + sum(result["chart1_meta"]) + sum(result["chart1_retro"])
+    assert total_successes == 1
+
+
+# ── warehouse retry aggregation ──────────────────────────────────────────────
+
+
+def test_aggregate_warehouse_retry_daily():
+    buckets = ["2026-04-08", "2026-04-09", "2026-04-10"]
+    wr = {
+        "2026-04-08": {"threads": 5, "retry_threads": 0},
+        "2026-04-09": {"threads": 6, "retry_threads": 3},
+        "2026-04-10": {"threads": 3, "retry_threads": 0},
+    }
+    bars, lines = _aggregate_warehouse_retry(wr, buckets, "day")
+    assert bars == [0, 3, 0]
+    assert lines[0] == 0.0
+    assert lines[1] == 50.0
+    assert lines[2] == 0.0
+
+
+def test_aggregate_warehouse_retry_zero_threads_returns_none():
+    buckets = ["2026-04-08"]
+    wr = {}  # no data for this day
+    bars, lines = _aggregate_warehouse_retry(wr, buckets, "day")
+    assert bars == [0]
+    assert lines == [None]
+
+
+def test_aggregate_warehouse_retry_weekly():
+    # Week of 2026-01-12 (Monday); Wed 14 and Thu 15 both fall into it
+    buckets = ["2026-01-12"]
+    wr = {
+        "2026-01-14": {"threads": 4, "retry_threads": 2},
+        "2026-01-15": {"threads": 2, "retry_threads": 1},
+    }
+    bars, lines = _aggregate_warehouse_retry(wr, buckets, "week")
+    assert bars == [3]          # 2 + 1
+    assert lines == [50.0]      # 3 / 6 * 100
+
+
+def test_aggregate_warehouse_retry_skips_bad_dates():
+    buckets = ["2026-04-08"]
+    wr = {"not-a-date": {"threads": 5, "retry_threads": 2}}
+    bars, lines = _aggregate_warehouse_retry(wr, buckets, "day")
+    assert bars == [0]
+    assert lines == [None]
+
+
+def test_aggregate_report_data_warehouse_retry_overrides_ledger():
+    # All goals have attempts=1 (ledger says 0 retries),
+    # but warehouse data says there were retries.
+    goals = [
+        _goal(status="success", finished_at="2026-01-15T10:00:00+00:00", attempts=1),
+        _goal(status="fail",    finished_at="2026-01-15T12:00:00+00:00", attempts=1),
+    ]
+    wr = {"2026-01-15": {"threads": 4, "retry_threads": 2}}
+    result = aggregate_report_data(goals, days=None, warehouse_retry=wr)
+    assert result["chart2_source"] == "warehouse"
+    idx = result["buckets"].index("2026-01-15")
+    assert result["chart2_bar"][idx] == 2
+    assert result["chart2_line"][idx] == 50.0
+
+
+def test_aggregate_report_data_ledger_source_when_no_warehouse():
+    goals = [_goal(status="success", finished_at="2026-01-15T10:00:00+00:00", attempts=3)]
+    result = aggregate_report_data(goals, days=None)
+    assert result["chart2_source"] == "ledger"
+    idx = result["buckets"].index("2026-01-15")
+    assert result["chart2_bar"][idx] == 1  # 1 goal with attempts > 1
+
+
+def test_summary_fields_populated():
+    goals = [
+        _goal(status="success", finished_at="2026-01-15T10:00:00+00:00", cost_usd=5.0),
+        _goal(status="fail",    finished_at="2026-01-16T10:00:00+00:00"),
+    ]
+    result = aggregate_report_data(goals, days=None)
+    s = result["summary"]
+    assert s["total_closed"] == 2
+    assert s["success_count"] == 1
+    assert s["success_rate_pct"] == 50.0
+    assert s["avg_cost_usd"] == 5.0
+    assert s["date_from"] == "2026-01-15"
+    assert s["date_to"] == "2026-01-16"
+
+
+def test_empty_data_has_chart2_source():
+    from ai_agents_metrics.html_report import _empty_data
+    data = _empty_data()
+    assert data["chart2_source"] == "ledger"
+
+
+def test_empty_data_has_chart3_source():
+    from ai_agents_metrics.html_report import _empty_data
+    data = _empty_data()
+    assert data["chart3_source"] == "ledger"
+
+
+# ── _aggregate_warehouse_tokens ───────────────────────────────────────────────
+
+
+def test_aggregate_warehouse_tokens_daily_no_pricing():
+    buckets = ["2026-03-31", "2026-04-01", "2026-04-02"]
+    rows = [
+        ("2026-03-31T10:00:00.000Z", "gpt-5.4", 1000, 500, 200),
+        ("2026-04-01T12:00:00.000Z", "gpt-5.4", 2000, 0, 400),
+    ]
+    inp, cac, out = _aggregate_warehouse_tokens(rows, buckets, "day", None)
+    assert inp == [1000, 2000, 0]
+    assert cac == [500, 0, 0]
+    assert out == [200, 400, 0]
+
+
+def test_aggregate_warehouse_tokens_daily_with_pricing():
+    buckets = ["2026-04-01"]
+    rows = [("2026-04-01T10:00:00.000Z", "claude-sonnet-4-6", 1_000_000, 0, 1_000_000)]
+    pricing = {"claude-sonnet-4-6": {"input_per_million_usd": 3.0, "cached_input_per_million_usd": 0.3, "output_per_million_usd": 15.0}}
+    inp, cac, out = _aggregate_warehouse_tokens(rows, buckets, "day", pricing)
+    assert inp == [3.0]
+    assert cac == [0.0]
+    assert out == [15.0]
+
+
+def test_aggregate_warehouse_tokens_skips_out_of_range():
+    buckets = ["2026-04-01"]
+    rows = [("2026-03-15T10:00:00.000Z", None, 9999, 0, 0)]  # outside bucket range
+    inp, cac, out = _aggregate_warehouse_tokens(rows, buckets, "day", None)
+    assert inp == [0]
+
+
+def test_aggregate_warehouse_tokens_skips_bad_timestamps():
+    buckets = ["2026-04-01"]
+    rows = [("not-a-date", None, 500, 0, 100)]
+    inp, cac, out = _aggregate_warehouse_tokens(rows, buckets, "day", None)
+    assert inp == [0]
+
+
+# ── aggregate_report_data with warehouse_tokens ───────────────────────────────
+
+
+def test_aggregate_report_data_warehouse_tokens_overrides_ledger():
+    """Warehouse token rows replace ndjson token values for chart 3."""
+    goals = [_goal(input_tokens=9999, cached_input_tokens=9999, output_tokens=9999)]
+    wt = [("2026-01-15T10:00:00.000Z", None, 100, 50, 30)]
+    data = aggregate_report_data(goals, None, warehouse_tokens=wt)
+    assert data["chart3_source"] == "warehouse"
+    assert data["chart3_input"] == [100]
+    assert data["chart3_cached"] == [50]
+    assert data["chart3_output"] == [30]
+
+
+def test_aggregate_report_data_ledger_source_when_no_warehouse_tokens():
+    goals = [_goal(input_tokens=100, cached_input_tokens=50, output_tokens=30)]
+    data = aggregate_report_data(goals, None, warehouse_tokens=None)
+    assert data["chart3_source"] == "ledger"
+
+
+def test_aggregate_report_data_warehouse_tokens_extends_date_range():
+    """Warehouse threads from before ndjson goals extend bucket coverage."""
+    # ndjson goal on 2026-04-07, warehouse thread on 2026-04-01
+    goals = [_goal(finished_at="2026-04-07T10:00:00+00:00")]
+    wt = [("2026-04-01T10:00:00.000Z", None, 500, 0, 100)]
+    data = aggregate_report_data(goals, None, warehouse_tokens=wt)
+    assert data["summary"]["date_from"] == "2026-04-01"
+    assert data["summary"]["date_to"] == "2026-04-07"
+    assert len(data["buckets"]) == 7  # daily, Apr 1–7
+
+
+def test_aggregate_report_data_warehouse_tokens_only_no_goals():
+    """If ndjson has no goals but warehouse has threads, chart 3 still renders."""
+    wt = [("2026-04-01T10:00:00.000Z", None, 300, 100, 50)]
+    data = aggregate_report_data([], None, warehouse_tokens=wt)
+    assert data["chart3_source"] == "warehouse"
+    assert data["chart3_input"] == [300]
 
 
 # ── render smoke test ─────────────────────────────────────────────────────────
@@ -263,7 +453,7 @@ def test_render_html_embeds_chart_data():
     data = aggregate_report_data(goals, days=None)
     html = render_html_report(data, "2026-01-15 10:00 UTC")
     # Chart data should be embedded as JSON
-    assert '"chart1"' in html
+    assert '"chart1_product"' in html
     assert '"buckets"' in html
     assert "2026-01-15" in html
 
