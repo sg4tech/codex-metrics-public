@@ -1614,14 +1614,20 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             "Read thread metadata, session transcripts, telemetry events, and logs from a local "
             "agent history directory into a raw warehouse for later derivation. "
-            "Supports Codex (default, ~/.codex) and Claude Code (~/.claude)."
+            "Supports Codex (~/.codex) and Claude Code (~/.claude)."
         ),
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     ingest_parser.add_argument(
         "--source",
         choices=["codex", "claude", "all"],
         default=None,
-        help="Agent source to ingest: 'all' (default when no --source-root), 'codex' (~/.codex), or 'claude' (~/.claude)",
+        help=(
+            "Agent source to ingest (default: all):\n"
+            "  codex   — reads ~/.codex only\n"
+            "  claude  — reads ~/.claude only\n"
+            "  all     — reads both ~/.codex and ~/.claude"
+        ),
     )
     ingest_parser.add_argument(
         "--source-root",
@@ -1670,12 +1676,18 @@ def build_parser() -> argparse.ArgumentParser:
             "history-derive. Use this for the initial setup or to refresh the warehouse after new "
             "agent sessions. Equivalent to running the three stages separately."
         ),
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     history_update_parser.add_argument(
         "--source",
         choices=["codex", "claude", "all"],
         default=None,
-        help="Agent source to ingest: 'all' (default when no --source-root), 'codex' (~/.codex), or 'claude' (~/.claude)",
+        help=(
+            "Agent source to ingest (default: all):\n"
+            "  codex   — reads ~/.codex only\n"
+            "  claude  — reads ~/.claude only\n"
+            "  all     — reads both ~/.codex and ~/.claude"
+        ),
     )
     history_update_parser.add_argument(
         "--source-root",
