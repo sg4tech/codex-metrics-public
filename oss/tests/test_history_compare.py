@@ -1,13 +1,40 @@
 from __future__ import annotations
 
 import json
+import shutil
 import sqlite3
+import subprocess
 from argparse import Namespace
 from pathlib import Path
 
 import pytest
+from test_history_ingest import run_cmd
 
 from ai_agents_metrics import commands
+
+WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
+ABS_SCRIPT = WORKSPACE_ROOT / "scripts" / "metrics_cli.py"
+ABS_SRC = WORKSPACE_ROOT / "src"
+
+
+@pytest.fixture
+def repo(tmp_path: Path) -> Path:
+    (tmp_path / "scripts").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "metrics").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "pricing").mkdir(parents=True, exist_ok=True)
+
+    (tmp_path / "scripts" / "metrics_cli.py").write_text(
+        ABS_SCRIPT.read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    shutil.copytree(ABS_SRC, tmp_path / "src")
+
+    subprocess.run(["git", "init"], cwd=tmp_path, text=True, capture_output=True, check=True)
+    subprocess.run(["git", "config", "user.email", "codex@example.com"], cwd=tmp_path, text=True, capture_output=True, check=True)
+    subprocess.run(["git", "config", "user.name", "Codex"], cwd=tmp_path, text=True, capture_output=True, check=True)
+    subprocess.run(["git", "add", "."], cwd=tmp_path, text=True, capture_output=True, check=True)
+    subprocess.run(["git", "commit", "-m", "baseline"], cwd=tmp_path, text=True, capture_output=True, check=True)
+    return tmp_path
 from ai_agents_metrics.history_compare import (
     HistoryCompareFinding,
     HistoryCompareProjectRow,
@@ -169,6 +196,21 @@ def test_handle_compare_metrics_to_history_prints_json(capsys: pytest.CaptureFix
     payload = json.loads(captured.out)
     assert payload["ledger"]["goal_count"] == 1
 
+
+
+# ---------------------------------------------------------------------------
+# history-compare CLI — missing warehouse
+# ---------------------------------------------------------------------------
+
+
+def test_history_compare_rejects_missing_warehouse(repo: Path) -> None:
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "missing.sqlite"
+
+    result = run_cmd(repo, "history-compare", "--warehouse-path", str(warehouse_path))
+
+    assert result.returncode == 1
+    assert f"Warehouse does not exist: {warehouse_path}" in result.stderr
+    assert "history-update" in result.stderr
 
 
 # ---------------------------------------------------------------------------
