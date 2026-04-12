@@ -4,6 +4,22 @@ All notable changes to `ai-agents-metrics` will be recorded here.
 
 ## Unreleased
 
+## 0.1.4 (2026-04-12)
+
+### Fixed
+
+- `show --json` warning now routes to stderr, preventing JSON parse failures in non-git directories (CODEX-62)
+- `completion zsh` header corrected from `codex-metrics` to `ai-agents-metrics` — zsh completion now registers under the correct binary name (CODEX-63)
+- `history-compare`, `history-normalize`, `history-derive` now include an actionable hint when the warehouse is missing: `Run 'ai-agents-metrics history-update' first.` (CODEX-64)
+
+## 0.1.3 (2026-04-12)
+
+### Fixed
+
+- `show` now falls back to all-project warehouse data when run outside a tracked project directory — Quick Start no longer silently shows zeros
+- Warehouse file renamed from `codex_raw_history.sqlite` to `warehouse.db` — matches the path documented in README
+- README install section updated: `pipx install` is now the primary recommendation; `pip install` is documented for use inside a virtualenv
+
 ## 0.1.2 (2026-04-12)
 
 ### New
