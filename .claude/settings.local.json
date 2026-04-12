@@ -1,16 +1,5 @@
 {
   "permissions": {
-    "deny": [
-      "Bash(gh pr merge*)",
-      "Bash(gh api *)",
-      "Bash(chflags*)",
-      "Bash(chattr*)",
-      "Bash(git push --force*)",
-      "Bash(git push -f *)",
-      "Bash(git push * --force*)",
-      "Bash(git push *-f *)",
-      "Bash(git reset --hard*)"
-    ],
     "allow": [
       "Bash(git push origin *)",
       "Bash(git fetch *)",
@@ -152,7 +141,20 @@
       "Bash(.venv/bin/bandit -r src scripts -q --skip B404,B607,B603)",
       "Bash(.venv/bin/bandit -r src scripts --skip B404,B607,B603,B105)",
       "Bash(.venv/bin/bandit src/ai_agents_metrics/history_compare_store.py -q --skip B404,B607,B603)",
-      "Bash(PYTHONPATH=src .venv/bin/pytest tests/test_metrics_cli.py::test_module_entrypoint_exposes_cli_version -xvs)"
+      "Bash(PYTHONPATH=src .venv/bin/pytest *)",
+      "Bash(mkdir -p /tmp/*)",
+      "Read(//tmp/**)"
+    ],
+    "deny": [
+      "Bash(gh pr merge*)",
+      "Bash(gh api *)",
+      "Bash(chflags*)",
+      "Bash(chattr*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push * --force*)",
+      "Bash(git push *-f *)",
+      "Bash(git reset --hard*)"
     ]
   }
 }
