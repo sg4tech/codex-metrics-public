@@ -476,7 +476,10 @@ def handle_show(args: Namespace, cli_module: CommandRuntime) -> int:
     if resolution.decision.action == "warning":
         warning = f"Warning: {resolution.decision.message}."
     if warning is not None:
-        print(warning)
+        if getattr(args, "json", False):
+            print(warning, file=sys.stderr)
+        else:
+            print(warning)
     if getattr(args, "json", False):
         print(cli_module.render_summary_json(data, history_signals))
     else:
