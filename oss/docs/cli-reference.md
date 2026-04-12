@@ -1,6 +1,6 @@
 # CLI Reference
 
-`ai-agents-metrics` is a local CLI for tracking goals, attempts, outcomes, and token cost across AI-assisted engineering sessions. You start a goal, record each attempt as work progresses, close it when done, and inspect the results.
+`ai-agents-metrics` is a local CLI for analyzing your AI agent work history, tracking spending, and optimizing how you work. The primary flow reads your existing conversation history files — no manual setup required to get value.
 
 All commands are invoked via `ai-agents-metrics <command> [flags]`.
 
@@ -14,20 +14,39 @@ Command names and flags use `task` (`start-task`, `--task-id`, `--task-type`, et
 
 ## Typical workflow
 
+### Primary flow — history extraction (no prior setup required)
+
 ```bash
-# One-time setup: scaffold metrics into a repository
+# Ingest your agent session history into a local warehouse
+ai-agents-metrics history-ingest                   # Codex (~/.codex)
+ai-agents-metrics history-ingest --source claude   # Claude Code (~/.claude)
+
+# Build normalized and derived analysis layers
+ai-agents-metrics history-normalize
+ai-agents-metrics history-derive
+
+# Inspect: retry pressure, token cost, session timeline
+ai-agents-metrics show
+```
+
+### Opt-in enhancement — manual goal tracking
+
+For explicit goal boundaries, outcome judgements (`result-fit`), and classified failure reasons:
+
+```bash
+# One-time setup: scaffold the ledger into a repository
 ai-agents-metrics bootstrap --target-dir /path/to/repo
 
-# Start tracking a goal
+# Open a goal before starting work
 ai-agents-metrics start-task --title "Add typed pipeline contracts" --task-type product
 
-# Record another attempt if the first one failed or was corrected
+# Record another pass if needed
 ai-agents-metrics continue-task --task-id 2026-04-08-001 --failure-reason validation_failed
 
 # Close the goal
 ai-agents-metrics finish-task --task-id 2026-04-08-001 --status success --result-fit exact_fit
 
-# Inspect current metrics
+# show combines ledger + history warehouse into a unified view
 ai-agents-metrics show
 ```
 

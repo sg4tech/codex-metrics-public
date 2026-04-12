@@ -71,6 +71,8 @@ The following docs exist for reference — consult them as needed, not on every 
 - Re-evaluate logged hypotheses after new evidence, audits, cross-project comparison, or process changes; update the relevant hypothesis file instead of silently replacing the old view.
 - For this product, treat AI agents as the primary consumers of metrics analysis and the human user as the receiver of final synthesized conclusions.
 - Do not optimize product framing around a human manually reading raw metrics first when the intended workflow is agent-first analysis and human-facing final output.
+- The primary product value is history extraction: point the tool at existing agent history files (`~/.codex`, `~/.claude`) and get insights with no manual setup. Manual tracking (`start-task` / `finish-task`) is an opt-in enhancement layer for explicit goal boundaries and outcome judgements — not a prerequisite for getting value.
+- When designing or changing CLI commands, onboarding flows, or bootstrap behavior, orient toward "first run works from history files" as the default success path. Manual instrumentation is a second step.
 - Treat agent-agnostic behavior as the default product and API constraint.
 - When changing the CLI, bootstrap flow, metrics schema, or reporting contract, prefer one universal agent-facing API over provider-specific user-visible parameters or workflows.
 - Keep provider-specific logic behind internal detection or adapter layers unless the user explicitly asks for a provider-specific public surface.

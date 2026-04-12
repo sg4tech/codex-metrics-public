@@ -1,6 +1,6 @@
 # History Pipeline
 
-**What this document is:** How `ai-agents-metrics` reconstructs past goal and attempt history from raw AI agent session data. This is an implementation-specific ingestion layer — it describes the current adapters, not the product model.
+**What this document is:** How `ai-agents-metrics` extracts metrics from raw AI agent session data. The history pipeline is the primary analysis layer — it reads existing conversation history files and produces retry pressure, token cost, and session timelines without any manual instrumentation. This document describes the current adapters and the pipeline stages.
 
 **When to read this:**
 - Working on history ingestion or transcript analysis
@@ -21,7 +21,7 @@ This pipeline supports two agent sources:
 - **Codex** (`--source codex`, default): reads from `~/.codex` — full transcript, token usage, and thread metadata.
 - **Claude Code** (`--source claude`): reads from `~/.claude/projects/` — full transcript and token usage from session JSONL files, including subagent sessions.
 
-Both sources feed the same ingest → normalize → derive pipeline and produce the same warehouse table shapes. Neither is required for normal metrics tracking — they are optional adapters for reconstructing historical data.
+Both sources feed the same ingest → normalize → derive pipeline and produce the same warehouse table shapes. The history pipeline is the primary product flow — run it to get retry pressure, token cost, and session timelines from existing history files with no prior setup. The NDJSON ledger (`events.ndjson`) is a complementary opt-in layer for explicit goal boundaries and outcome judgements.
 
 `sync-usage` is a separate lightweight cost-backfill adapter (reads `~/.claude` telemetry) and is not part of this transcript pipeline.
 

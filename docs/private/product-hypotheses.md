@@ -30,7 +30,7 @@ Active:
 | `H-003` | `active` | `docs/product-hypotheses/H-003.md` | Raw total cost is a guardrail metric, not the primary north star |
 | `H-004` | `active` | `docs/product-hypotheses/H-004.md` | Lead-mediated task flow may improve outcome fit by reducing adjacent work |
 | `H-005` | `active` | `docs/product-hypotheses/H-005.md` | Early PM discovery likely reduces expensive rework more than late technical polishing |
-| `H-008` | `active` | `docs/product-hypotheses/H-008.md` | Historical conversation analysis may be a better metrics input than live manual tracking |
+| `H-008` | `validated` | `docs/product-hypotheses/H-008.md` | History-first is the primary product flow; manual tracking is opt-in |
 | `H-009` | `active` | `docs/product-hypotheses/H-009.md` | Separate input, output, and cached-input token tracking may unlock more useful cost optimization than total-token tracking alone |
 | `H-010` | `active` | `docs/product-hypotheses/H-010.md` | Agent-agnostic tracking may create more product leverage than staying Codex-only |
 | `H-011` | `active` | `docs/product-hypotheses/H-011.md` | A new chat entering an active repository should recover or enforce the active task before mutating work continues |
