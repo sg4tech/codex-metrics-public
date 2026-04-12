@@ -443,7 +443,7 @@ def test_package_module_entrypoint_runs(repo: Path) -> None:
     result = run_module_cmd(repo, "--help")
 
     assert result.returncode == 0, result.stderr
-    assert "Track goal, attempt, failure, and cost metrics" in result.stdout
+    assert "Analyze your AI agent work history" in result.stdout
 
 
 def test_package_module_entrypoint_can_initialize_files(repo: Path) -> None:
@@ -917,15 +917,16 @@ def test_bootstrap_creates_scaffold_files(repo: Path) -> None:
     assert data["tasks"] == []
 
     policy_text = policy_path.read_text(encoding="utf-8")
-    assert "Codex Metrics Policy" in policy_text
+    assert "AI Agents Metrics Policy" in policy_text
     assert "AI-agent-assisted engineering work" in policy_text
+    assert "## Two-Tier Model" in policy_text
     assert "## Purpose" in policy_text
     assert "## Scope" in policy_text
     assert "## Core Model" in policy_text
     assert "## Required Workflow" in policy_text
     assert "## Recommended Commands" in policy_text
     assert "## Validation Rules" in policy_text
-    assert "Metrics bookkeeping is mandatory." in policy_text
+    assert "history-update" in policy_text
     assert "ai-agents-metrics start-task" in policy_text
     assert "ai-agents-metrics continue-task" in policy_text
     assert "ai-agents-metrics finish-task" in policy_text
@@ -1011,7 +1012,7 @@ def test_bootstrap_force_replaces_existing_policy_file(repo: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     policy_text = policy_path.read_text(encoding="utf-8")
-    assert "Codex Metrics Policy" in policy_text
+    assert "AI Agents Metrics Policy" in policy_text
 
 
 def test_bootstrap_completes_partial_scaffold_when_metrics_exist(repo: Path) -> None:
@@ -2977,7 +2978,7 @@ def test_help_includes_goal_language_and_examples(repo: Path) -> None:
     assert continue_help.returncode == 0, continue_help.stderr
     assert finish_help.returncode == 0, finish_help.stderr
     assert ensure_help.returncode == 0, ensure_help.stderr
-    assert "Track goal, attempt, failure, and cost metrics" in result.stdout
+    assert "Analyze your AI agent work history" in result.stdout
     assert "Create or update a goal record" in result.stdout
     assert "start-task" in result.stdout
     assert "continue-task" in result.stdout
