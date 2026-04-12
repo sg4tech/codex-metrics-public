@@ -1,3 +1,4 @@
+PRIVATE_OVERRIDE := 1
 include oss/Makefile
 
 # Override: delegate to oss/ where pyproject.toml lives, then mirror into root .venv

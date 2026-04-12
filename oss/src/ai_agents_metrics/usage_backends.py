@@ -152,17 +152,8 @@ def find_thread_id(
             ).fetchone()
         else:
             placeholders = ",".join("?" for _ in provider_names)
-            row = conn.execute(
-                f"""
-                SELECT id
-                FROM threads
-                WHERE cwd = ?
-                  AND model_provider IN ({placeholders})
-                ORDER BY updated_at DESC
-                LIMIT 1
-                """,  # nosec B608 — placeholders is "?,?,?" built from len(provider_names); all values bound via params
-                (str(cwd), *provider_names),
-            ).fetchone()
+            _sql = "SELECT id FROM threads WHERE cwd = ? AND model_provider IN (" + placeholders + ") ORDER BY updated_at DESC LIMIT 1"  # nosec B608
+            row = conn.execute(_sql, (str(cwd), *provider_names)).fetchone()
     return None if row is None else str(row["id"])
 
 

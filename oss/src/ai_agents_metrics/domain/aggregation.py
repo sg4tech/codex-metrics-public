@@ -60,11 +60,11 @@ def empty_summary_block(include_by_task_type: bool = False) -> dict[str, Any]:
         "success_rate": None,
         "attempts_per_closed_task": None,
         "known_cost_successes": 0,
-        "known_token_successes": 0,  # nosec B105 — counter, not a password
-        "known_token_breakdown_successes": 0,  # nosec B105
+        "known_token_successes": 0,
+        "known_token_breakdown_successes": 0,
         "complete_cost_successes": 0,
-        "complete_token_successes": 0,  # nosec B105
-        "complete_token_breakdown_successes": 0,  # nosec B105
+        "complete_token_successes": 0,
+        "complete_token_breakdown_successes": 0,
         "model_summary_goals": 0,
         "model_complete_goals": 0,
         "mixed_model_goals": 0,

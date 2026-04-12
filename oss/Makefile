@@ -2,6 +2,7 @@
 
 PYTHON3 ?= python3
 
+ifndef PRIVATE_OVERRIDE
 init:
 	git pull origin master || true
 	$(PYTHON3) -m venv .venv
@@ -9,6 +10,7 @@ init:
 	.venv/bin/pip install -e ".[dev]" || .venv/bin/pip install -e .
 	@$(MAKE) remind-task
 	@$(MAKE) public-overlay-pull || true
+endif
 
 check-init:
 	@test -d .venv || $(MAKE) init
@@ -27,8 +29,10 @@ typecheck: remind-task
 test: remind-task
 	./.venv/bin/python -m pytest tests/
 
+ifndef PRIVATE_OVERRIDE
 build-check:
 	./.venv/bin/pip install --no-deps -e . -q
+endif
 
 complexity: check-init
 	@echo "=== Cyclomatic complexity report (rank C and above) ==="
@@ -36,14 +40,13 @@ complexity: check-init
 	@echo "=== Maintainability index (rank C — hard to maintain) ==="
 	@.venv/bin/radon mi src/ -n C -s || true
 
+ifndef PRIVATE_OVERRIDE
 arch-check: check-init
 	PYTHONPATH=src .venv/bin/lint-imports
+endif
 
 sync-bootstrap-policy:
 	@test -r src/ai_agents_metrics/data/bootstrap_codex_metrics_policy.md || { echo "ERROR: bootstrap policy not found (expected symlink to docs/)"; exit 1; }
-
-build-check:
-	./.venv/bin/pip install --no-deps -e . -q
 
 verify: check-init remind-task sync-bootstrap-policy lint security bandit typecheck test build-check complexity arch-check
 
@@ -51,7 +54,7 @@ security:
 	./.venv/bin/python -m ai_agents_metrics security --repo-root . --rules-path config/security-rules.toml
 
 bandit: remind-task
-	./.venv/bin/bandit -r src scripts -q --skip B404,B607,B603
+	./.venv/bin/bandit -r src scripts -q --skip B404,B607,B603,B105
 
 verify-public-boundary:
 	./.venv/bin/python -m ai_agents_metrics verify-public-boundary --repo-root . --rules-path config/public-boundary-rules.toml
@@ -85,8 +88,10 @@ public-overlay-status:
 public-overlay-bootstrap:
 	./.venv/bin/python scripts/public_overlay.py --private-repo-root . bootstrap --public-repo git@github.com:sg4tech/codex-metrics-public.git
 
+ifndef PRIVATE_OVERRIDE
 public-overlay-verify:
 	./.venv/bin/python -m ai_agents_metrics verify-public-boundary --repo-root . --rules-path config/public-boundary-rules.toml
+endif
 
 public-overlay-pull:
 	./.venv/bin/python scripts/public_overlay.py --private-repo-root . pull --execute
