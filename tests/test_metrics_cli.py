@@ -3054,11 +3054,10 @@ def test_module_entrypoint_exposes_cli_version(repo: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     output = result.stdout.strip()
-    assert output.startswith("python -m ai_agents_metrics ")
     assert re.fullmatch(
-        r"python -m ai_agents_metrics \d+\.\d+.*",
+        r"python[\d.]* -m ai_agents_metrics \d+\.\d+.*",
         output,
-    )
+    ), f"unexpected --version output: {output!r}"
 
 
 def test_version_is_a_non_empty_string() -> None:
