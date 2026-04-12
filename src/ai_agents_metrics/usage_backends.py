@@ -112,6 +112,18 @@ def detect_backend_name(
     return detect_usage_backend_name(state_path, cwd, thread_id)
 
 
+def _select_thread_by_providers(
+    conn: sqlite3.Connection,
+    cwd: str,
+    provider_names: tuple[str, ...],
+) -> sqlite3.Row | None:
+    placeholders = ",".join("?" for _ in provider_names)
+    _prefix = "SELECT id FROM threads WHERE cwd = ? AND model_provider IN ("
+    _suffix = ") ORDER BY updated_at DESC LIMIT 1"
+    sql = _prefix + placeholders + _suffix  # nosec B608
+    return conn.execute(sql, (cwd, *provider_names)).fetchone()
+
+
 def find_thread_id(
     state_path: Path,
     cwd: Path,
@@ -151,9 +163,7 @@ def find_thread_id(
                 (str(cwd),),
             ).fetchone()
         else:
-            placeholders = ",".join("?" for _ in provider_names)
-            _sql = "SELECT id FROM threads WHERE cwd = ? AND model_provider IN (" + placeholders + ") ORDER BY updated_at DESC LIMIT 1"  # nosec B608
-            row = conn.execute(_sql, (str(cwd), *provider_names)).fetchone()
+            row = _select_thread_by_providers(conn, str(cwd), provider_names)
     return None if row is None else str(row["id"])
 
 
