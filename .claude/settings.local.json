@@ -147,6 +147,8 @@
       "Bash(.venv/bin/pylint *)",
       "Bash(./.venv/bin/pylint *)",
       "Bash(PYTHONPATH=src .venv/bin/lint-imports)",
+      "Bash(cd * && git add * && git commit *)",
+      "Bash(cd * && git add * && git commit * && git push *)",
       "Bash(cd * && git branch *)",
       "Bash(cd * && git checkout *)",
       "Bash(cd * && git diff *)",
