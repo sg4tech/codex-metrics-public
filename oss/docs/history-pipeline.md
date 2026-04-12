@@ -2,6 +2,8 @@
 
 **What this document is:** How `ai-agents-metrics` extracts metrics from raw AI agent session data. The history pipeline is the primary analysis layer — it reads existing conversation history files and produces retry pressure, token cost, and session timelines without any manual instrumentation. This document describes the current adapters and the pipeline stages.
 
+**Retry pressure definition:** `retry_count` is the number of user messages sent after the first one in a thread — each additional user message represents a clarifying or corrective input that the agent required before completing the task. `has_retry_pressure = retry_count > 0`. This definition is source-agnostic and works identically for Codex and Claude sessions.
+
 **When to read this:**
 - Working on history ingestion or transcript analysis
 - Adding a new data source adapter
@@ -23,6 +25,8 @@ This pipeline supports three `--source` values:
 - **Claude Code** (`--source claude`): reads from `~/.claude/projects/` only — full transcript and token usage from session JSONL files, including subagent sessions.
 
 Both sources feed the same ingest → normalize → derive pipeline and produce the same warehouse table shapes. The history pipeline is the primary product flow — run it to get retry pressure, token cost, and session timelines from existing history files with no prior setup. The NDJSON ledger (`events.ndjson`) is a complementary opt-in layer for explicit goal boundaries and outcome judgements.
+
+**Note on Codex vs Claude:** For Codex, each session file maps 1:1 to a thread — there is no multi-session threading. Retry pressure is still measured correctly for Codex through user message counts, not session counts.
 
 `sync-usage` is a separate lightweight cost-backfill adapter (reads `~/.claude` telemetry) and is not part of this transcript pipeline.
 
@@ -294,7 +298,11 @@ Message-level OLAP fact table with token usage attributed to the nearest assista
 Retry-chain summary per thread.
 
 - Primary key: `thread_id`
-- Use for: whether the thread experienced retry pressure and which attempt was first/last
+- Key fields: `retry_count`, `has_retry_pressure`, `attempt_count`
+- **`retry_count`**: number of user messages after the first one — each is a clarifying or corrective input the user had to add before the task was done
+- **`has_retry_pressure`**: 1 if `retry_count > 0`, else 0
+- **`attempt_count`**: `retry_count + 1` — total user turns in the thread
+- Use for: whether the thread required clarification and how many rounds it took
 
 ### `derived_session_usage`
 

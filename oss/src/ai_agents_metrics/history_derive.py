@@ -569,6 +569,12 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                 continue
             logs_by_thread.setdefault(thread_id, []).append(log_row)
 
+        user_message_count_by_thread: dict[str, int] = {}
+        for message_row in normalized_messages:
+            if message_row["thread_id"] is not None and message_row["role"] == "user":
+                tid = message_row["thread_id"]
+                user_message_count_by_thread[tid] = user_message_count_by_thread.get(tid, 0) + 1
+
         _clear_derived_tables(conn)
 
         message_usage_groups: dict[str, dict[int, list[NormalizedUsageEventRow]]] = {}
@@ -597,12 +603,15 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
 
         for thread_row in normalized_threads:
             thread_id = thread_row["thread_id"]
+            thread_user_messages = user_message_count_by_thread.get(thread_id, 0)
+            thread_attempt_count = thread_user_messages
+            thread_retry_count = max(thread_user_messages - 1, 0)
             project_cwd = _parent_project_cwd(thread_row["cwd"])
             if project_cwd is not None:
                 stats = get_project_stats(project_cwd)
                 stats["thread_count"] += 1
-                stats["attempt_count"] += int(thread_row["session_count"] or 0)
-                stats["retry_thread_count"] += 1 if int(thread_row["session_count"] or 0) > 1 else 0
+                stats["attempt_count"] += thread_attempt_count
+                stats["retry_thread_count"] += 1 if thread_retry_count > 0 else 0
                 stats["message_count"] += int(thread_row["message_count"] or 0)
                 stats["log_count"] += int(thread_row["log_count"] or 0)
                 stats["first_seen_at"] = _pick_earliest_timestamp(stats["first_seen_at"], thread_row["first_seen_at"])
@@ -906,8 +915,8 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                     thread_row["title"],
                     thread_row["archived"],
                     thread_row["session_count"],
-                    len(sorted_sessions),
-                    max(len(sorted_sessions) - 1, 0),
+                    thread_attempt_count,
+                    thread_retry_count,
                     thread_row["message_count"],
                     len(thread_usage_events),
                     thread_row["log_count"],
@@ -928,17 +937,17 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                 (
                     thread_id,
                     thread_row["source_path"],
-                    len(sorted_sessions),
-                    max(len(sorted_sessions) - 1, 0),
-                    1 if len(sorted_sessions) > 1 else 0,
+                    thread_attempt_count,
+                    thread_retry_count,
+                    1 if thread_retry_count > 0 else 0,
                     None if not sorted_sessions else sorted_sessions[0]["session_path"],
                     None if not sorted_sessions else sorted_sessions[-1]["session_path"],
                     json.dumps(
                         {
                             "thread_id": thread_id,
-                            "attempt_count": len(sorted_sessions),
-                            "retry_count": max(len(sorted_sessions) - 1, 0),
-                            "has_retry_pressure": len(sorted_sessions) > 1,
+                            "attempt_count": thread_attempt_count,
+                            "retry_count": thread_retry_count,
+                            "has_retry_pressure": thread_retry_count > 0,
                             "session_paths": [row["session_path"] for row in sorted_sessions],
                         },
                         ensure_ascii=False,
@@ -948,7 +957,7 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                 ),
             )
             goals += 1
-            attempts += len(sorted_sessions)
+            attempts += thread_attempt_count
             retry_chains += 1
 
         for project_cwd, stats in project_stats.items():
