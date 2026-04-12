@@ -34,21 +34,6 @@ It is not a benchmark, an eval framework, or a model comparison tool. It is a lo
 
 ---
 
-## Core Concepts
-
-| Concept | Meaning |
-|---|---|
-| **goal** | One requested outcome. Stored in the event log; `task` is a legacy alias used in CLI flags. |
-| **attempt** | One implementation pass or retry for a goal. Multiple attempts per goal are normal when corrections are needed. |
-| **session** | One continuous AI agent interaction (e.g. a single Claude Code or Codex thread). Maps to one or more attempts. |
-| **outcome** | The final result of a closed goal: `success` or `fail`. |
-| **failure reason** | The primary cause when an attempt does not succeed: `model_mistake`, `unclear_task`, `validation_failed`, `environment_issue`, `scope_too_large`, `missing_context`, `tooling_issue`, or `other`. |
-| **cost** | Token spend mapped to USD for a goal or attempt. Sourced from local agent telemetry when available. |
-| **retry pressure** | How many passes a goal required before closure. High retry pressure signals friction in the task or the workflow. |
-| **result fit** | Quality label for closed product goals: `exact_fit`, `partial_fit`, or `miss`. Separate from outcome — a goal can succeed but still be a partial fit. |
-
----
-
 ## What It Tracks
 
 **From history files (no setup required):**
@@ -113,33 +98,23 @@ That's it — no prior setup required. If you want to also add explicit goal tra
 $ ai-agents-metrics show
 
 Codex Metrics Summary
-
 Operational summary:
-Closed goals:                    8
-Successes:                       8
-Fails:                           0
-Total attempts:                  8
-Success Rate:                    100.00%
-Attempts per Closed Goal:        1.00
-
-Known total cost (USD):          9.27
-Known total tokens:              26,337,605
-  input:                         260
-  cached:                        26,088,225
-  output:                        44,883
-
-Known Cost per Success (USD):    1.32
-Known Cost per Success (Tokens): 3,762,515
-
-Model coverage: 7/8 closed goals with an unambiguous model
+Closed goals:           17
+Successes:              15
+Fails:                  2
+Success Rate:           88.24%
+Known total cost (USD): 312.59
+Known total tokens:     776,219,632
 By model:
-  claude-sonnet-4-6: 7 closed, 7 successes, 0 fails
+  claude-sonnet-4-6: 16 closed, 14 successes, 2 fails
 
-Closed entries:     8
-Entry successes:    8
-Entry fails:        0
-Entry Success Rate: 100.00%
+History signals (warehouse):
+  Project threads:           87  (worktrees merged)
+  Threads with retry pressure: 28 / 87 (32%)
+  Per-goal alignment:        16 / 17 ledger goals matched to history window
 ```
+
+The `History signals` section is derived directly from session history files — no manual tracking required. A 32% retry rate means roughly 1 in 3 tasks required more than one session to complete.
 
 ---
 
@@ -259,7 +234,19 @@ Safe to rerun on a partially initialized repository. Use `--dry-run` to preview 
 
 ## Track a Session
 
-Manual goal tracking adds explicit boundaries, outcome labels, and failure reasons on top of the history layer.
+History extraction gives you retry pressure, cost, and session timelines — but it cannot tell you *which specific tasks* had the worst outcomes or *why* a particular session failed. Manual goal tracking adds that layer: per-task breakdowns, outcome quality labels (`exact_fit`, `partial_fit`, `miss`), and classified failure reasons.
+
+If your history shows 32% retry pressure, manual tracking tells you whether it's coming from unclear requirements, model mistakes, or scope problems — and on which tasks.
+
+### Concepts
+
+| Concept | Meaning |
+|---|---|
+| **goal** | One requested outcome (`task` is a legacy alias in CLI flags) |
+| **attempt** | One implementation pass or retry for a goal |
+| **outcome** | Final result: `success` or `fail` |
+| **result fit** | Quality label: `exact_fit`, `partial_fit`, or `miss` — a goal can succeed but still be a partial fit |
+| **failure reason** | Primary cause when an attempt fails: `model_mistake`, `unclear_task`, `validation_failed`, `environment_issue`, `scope_too_large`, `missing_context`, `tooling_issue`, `other` |
 
 ### Start a goal
 
