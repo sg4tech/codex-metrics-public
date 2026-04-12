@@ -146,7 +146,9 @@
       "Read(//usr/local/bin/**)",
       "Bash(.venv/bin/pylint *)",
       "Bash(./.venv/bin/pylint *)",
-      "Bash(PYTHONPATH=src .venv/bin/lint-imports)"
+      "Bash(PYTHONPATH=src .venv/bin/lint-imports)",
+      "Skill(update-config)",
+      "Skill(update-config:*)"
     ],
     "deny": [
       "Bash(chattr*)",
