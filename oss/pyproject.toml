@@ -118,6 +118,9 @@ forbidden_modules = [
     "ai_agents_metrics.history_ingest",
     "ai_agents_metrics.history_normalize",
     "ai_agents_metrics.history_derive",
+    "ai_agents_metrics.history_derive_insert",
+    "ai_agents_metrics.history_derive_build",
+    "ai_agents_metrics.history_derive_schema",
     "ai_agents_metrics.history_compare",
     "ai_agents_metrics.history_audit",
 ]
@@ -139,6 +142,9 @@ type = "layers"
 layers = [
     "ai_agents_metrics.history_compare : ai_agents_metrics.history_audit",
     "ai_agents_metrics.history_derive",
+    "ai_agents_metrics.history_derive_insert",
+    "ai_agents_metrics.history_derive_build",
+    "ai_agents_metrics.history_derive_schema",
     "ai_agents_metrics.history_normalize",
     "ai_agents_metrics.history_ingest",
 ]
