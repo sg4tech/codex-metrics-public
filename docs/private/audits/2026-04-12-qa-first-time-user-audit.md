@@ -1,5 +1,7 @@
 # QA Audit: First-Time User Experience (PyPI 0.1.2)
 
+> **Status:** Superseded by [v0.1.3 audit](./2026-04-12-qa-first-time-user-audit-v0.1.3.md). P0 and P1 issues below are fixed in v0.1.3.
+
 **Date:** 2026-04-12
 **Method:** Installed `ai-agents-metrics 0.1.2` from PyPI via `pipx`, followed README instructions from scratch as a new user.
 **Environment:** macOS, Python 3.14, zsh
@@ -8,7 +10,7 @@
 
 ## Critical (P0)
 
-### 1. `bootstrap` crashes with FileNotFoundError
+### ~~1. `bootstrap` crashes with FileNotFoundError~~ ✓ Fixed in v0.1.3
 
 `ai-agents-metrics bootstrap --target-dir . --dry-run` produces a traceback:
 
@@ -20,7 +22,7 @@ FileNotFoundError: .../ai_agents_metrics/data/bootstrap_codex_metrics_policy.md
 
 **Impact:** The entire "Bootstrap a Repository" section of the README is broken for PyPI users.
 
-### 2. `show` displays 0 threads after `history-update`
+### ~~2. `show` displays 0 threads after `history-update`~~ ✓ Fixed in v0.1.3
 
 Quick Start promises: `history-update` → `show` → see your data. In practice:
 
@@ -35,7 +37,7 @@ Quick Start promises: `history-update` → `show` → see your data. In practice
 
 ## Serious (P1)
 
-### 3. `pip install` fails on modern macOS
+### ~~3. `pip install` fails on modern macOS~~ ✓ Fixed in v0.1.3
 
 README says `pip install ai-agents-metrics`. On macOS with PEP 668 (Python 3.12+), this produces:
 
@@ -45,14 +47,14 @@ error: externally-managed-environment
 
 **Fix needed:** Document `pipx install ai-agents-metrics` or `pip install --user ai-agents-metrics` as alternatives.
 
-### 4. Documented warehouse path does not match reality
+### ~~4. Documented warehouse path does not match reality~~ ✓ Fixed in v0.1.3
 
 - **README says:** `.ai-agents-metrics/warehouse.db`
 - **Actual path:** `metrics/.ai-agents-metrics/codex_raw_history.sqlite`
 
 Two mismatches: the `metrics/` prefix and the filename.
 
-### 5. Warehouse filename is source-agnostic but shouldn't be
+### ~~5. Warehouse filename is source-agnostic but shouldn't be~~ ✓ Fixed in v0.1.3
 
 `history-update --source claude` writes to `codex_raw_history.sqlite`. Confusing given the "agent-agnostic" positioning and the fact that source is claude.
 
@@ -60,7 +62,7 @@ Two mismatches: the `metrics/` prefix and the filename.
 
 ## UX Issues (P2)
 
-### 6. Mutation commands dump full summary
+### 6. Mutation commands dump full summary *(still open in v0.1.3)*
 
 `start-task`, `continue-task`, `finish-task` each print 40+ lines of summary (mostly `n/a`). The useful confirmation ("Updated goal 2026-04-12-001, Status: in_progress, Attempts: 1") is buried. Expected: brief confirmation; full summary via `show`.
 
