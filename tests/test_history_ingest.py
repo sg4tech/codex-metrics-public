@@ -852,3 +852,56 @@ def test_ingest_claude_history_is_idempotent_on_rerun(repo: Path) -> None:
         assert conn.execute("SELECT count(*) FROM raw_threads").fetchone()[0] == 1
         assert conn.execute("SELECT count(*) FROM raw_sessions").fetchone()[0] == 1
         assert conn.execute("SELECT count(*) FROM raw_messages").fetchone()[0] == 2
+
+
+def test_history_ingest_source_all_ingests_both_codex_and_claude(repo: Path) -> None:
+    codex_root = create_codex_history_source_root(repo)
+    claude_root = create_claude_history_source_root(repo)
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "warehouse.db"
+
+    result = run_cmd(
+        repo,
+        "history-ingest",
+        "--source", "all",
+        "--source-root", str(codex_root),  # should be rejected
+        "--warehouse-path", str(warehouse_path),
+    )
+    assert result.returncode != 0
+    assert "--source-root cannot be used with --source all" in result.stderr
+
+    # Create the expected source roots under a fake HOME
+    fake_home = repo / "fake_home"
+    fake_home.mkdir()
+    (fake_home / ".codex").symlink_to(codex_root)
+    (fake_home / ".claude").symlink_to(claude_root)
+
+    result = run_cmd(
+        repo,
+        "history-ingest",
+        "--source", "all",
+        "--warehouse-path", str(warehouse_path),
+        extra_env={"HOME": str(fake_home)},
+    )
+    assert result.returncode == 0, result.stderr
+    assert "[codex]" in result.stdout
+    assert "[claude]" in result.stdout
+
+    with sqlite3.connect(warehouse_path) as conn:
+        # 2 codex threads + 1 claude thread
+        assert conn.execute("SELECT count(*) FROM raw_threads").fetchone()[0] == 3
+
+
+def test_history_ingest_default_source_is_all(repo: Path) -> None:
+    """Omitting --source should behave the same as --source all (both roots missing → graceful skip)."""
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "warehouse.db"
+    fake_home = repo / "fake_home2"
+    fake_home.mkdir()
+
+    result = run_cmd(
+        repo,
+        "history-ingest",
+        "--warehouse-path", str(warehouse_path),
+        extra_env={"HOME": str(fake_home)},
+    )
+    # Both source roots missing → skipped gracefully
+    assert result.returncode == 0

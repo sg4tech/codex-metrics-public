@@ -546,23 +546,78 @@ def handle_compare_metrics_to_history(args: Namespace, cli_module: CommandRuntim
     return 0
 
 
-_CLAUDE_DEFAULT_ROOT = Path.home() / ".claude"
-_CODEX_DEFAULT_ROOT = Path.home() / ".codex"
+def _run_ingest(
+    source: str,
+    source_root_arg: str | None,
+    warehouse_path: Path,
+    cli_module: CommandRuntime,
+) -> tuple[dict[str, IngestSummary], list[str], str | None]:
+    """Run ingest for the resolved source(s).
 
+    Returns (summaries_by_source, skipped_source_names, error_message).
+    error_message is non-None for invalid argument combinations.
+    """
+    if source == "all":
+        if source_root_arg is not None:
+            return {}, [], "--source-root cannot be used with --source all"
+        summaries: dict[str, IngestSummary] = {}
+        skipped: list[str] = []
+        for src_name, src_root in [("codex", Path.home() / ".codex"), ("claude", Path.home() / ".claude")]:
+            if not src_root.exists():
+                skipped.append(src_name)
+                continue
+            with cli_module.metrics_mutation_lock(warehouse_path):
+                summaries[src_name] = cli_module.ingest_codex_history(src_root, warehouse_path, src_name)
+        return summaries, skipped, None
 
-def handle_ingest_codex_history(args: Namespace, cli_module: CommandRuntime) -> int:
-    source: str = getattr(args, "source", "codex")
-    source_root_arg: str | None = getattr(args, "source_root", None)
     if source_root_arg is not None:
         source_root = Path(source_root_arg).expanduser()
     elif source == "claude":
-        source_root = _CLAUDE_DEFAULT_ROOT
+        source_root = Path.home() / ".claude"
     else:
-        source_root = _CODEX_DEFAULT_ROOT
-    warehouse_path = Path(args.warehouse_path).expanduser()
+        source_root = Path.home() / ".codex"
     with cli_module.metrics_mutation_lock(warehouse_path):
         summary = cli_module.ingest_codex_history(source_root, warehouse_path, source)
-    if getattr(args, "json", False):
+    return {source: summary}, [], None
+
+
+def handle_ingest_codex_history(args: Namespace, cli_module: CommandRuntime) -> int:
+    import json as _json
+    import sys
+
+    source_root_arg: str | None = getattr(args, "source_root", None)
+    source: str = getattr(args, "source", None) or ("codex" if source_root_arg is not None else "all")
+    json_output: bool = getattr(args, "json", False)
+    warehouse_path = Path(args.warehouse_path).expanduser()
+
+    summaries, skipped, error = _run_ingest(source, source_root_arg, warehouse_path, cli_module)
+    if error:
+        print(f"Error: {error}", file=sys.stderr)
+        return 1
+
+    if source == "all":
+        if json_output:
+            print(_json.dumps({k: _json.loads(cli_module.render_ingest_summary_json(v)) for k, v in summaries.items()}))
+        else:
+            for src_name in skipped:
+                print(f"Skipping {src_name}: {Path.home() / ('.' + src_name)} not found")
+            for src_name, summary in summaries.items():
+                print(f"[{src_name}] Ingested into {summary.warehouse_path}")
+                print(f"  Source root: {summary.source_root}")
+                print(f"  Scanned files: {summary.scanned_files}")
+                print(f"  Imported files: {summary.imported_files}")
+                print(f"  Skipped files: {summary.skipped_files}")
+                print(f"  Projects: {summary.projects}")
+                print(f"  Threads: {summary.threads}")
+                print(f"  Sessions: {summary.sessions}")
+                print(f"  Session events: {summary.session_events}")
+                print(f"  Token usage events: {summary.token_usage_events}")
+                print(f"  Total tokens: {summary.total_tokens}")
+                print(f"  Messages: {summary.messages}")
+        return 0
+
+    summary = next(iter(summaries.values()))
+    if json_output:
         print(cli_module.render_ingest_summary_json(summary))
     else:
         print(f"Ingested Codex history into {summary.warehouse_path}")
@@ -624,24 +679,38 @@ def handle_derive_codex_history(args: Namespace, cli_module: CommandRuntime) -> 
 def handle_history_update(args: Namespace, cli_module: CommandRuntime) -> int:
     """Run the full history pipeline: ingest → normalize → derive."""
     import json as _json
+    import sys
 
-    source: str = getattr(args, "source", "codex")
     source_root_arg: str | None = getattr(args, "source_root", None)
-    if source_root_arg is not None:
-        source_root = Path(source_root_arg).expanduser()
-    elif source == "claude":
-        source_root = _CLAUDE_DEFAULT_ROOT
-    else:
-        source_root = _CODEX_DEFAULT_ROOT
+    source: str = getattr(args, "source", None) or ("codex" if source_root_arg is not None else "all")
     warehouse_path = Path(args.warehouse_path).expanduser()
     json_output: bool = getattr(args, "json", False)
 
+    ingest_results, ingest_skipped, error = _run_ingest(source, source_root_arg, warehouse_path, cli_module)
+    if error:
+        print(f"Error: {error}", file=sys.stderr)
+        return 1
+
+    ingest_summaries: dict[str, object] = {}
+    if source == "all":
+        for src_name in ingest_skipped:
+            if not json_output:
+                print(f"==> history-ingest ({src_name}) [skipped: {Path.home() / ('.' + src_name)} not found]")
+        for src_name, ingest_summary in ingest_results.items():
+            if not json_output:
+                print(f"==> history-ingest ({src_name})")
+                print(f"    Imported {ingest_summary.imported_files} files, {ingest_summary.threads} threads")
+            else:
+                ingest_summaries[src_name] = _json.loads(cli_module.render_ingest_summary_json(ingest_summary))
+    else:
+        ingest_summary = next(iter(ingest_results.values()))
+        if not json_output:
+            print("==> history-ingest")
+            print(f"    Imported {ingest_summary.imported_files} files, {ingest_summary.threads} threads")
+        else:
+            ingest_summaries = {source: _json.loads(cli_module.render_ingest_summary_json(ingest_summary))}
+
     if not json_output:
-        print("==> history-ingest")
-    with cli_module.metrics_mutation_lock(warehouse_path):
-        ingest_summary = cli_module.ingest_codex_history(source_root, warehouse_path, source)
-    if not json_output:
-        print(f"    Imported {ingest_summary.imported_files} files, {ingest_summary.threads} threads")
         print("==> history-normalize")
     with cli_module.metrics_mutation_lock(warehouse_path):
         normalize_summary = cli_module.normalize_codex_history(warehouse_path)
@@ -657,7 +726,7 @@ def handle_history_update(args: Namespace, cli_module: CommandRuntime) -> int:
         print(
             _json.dumps(
                 {
-                    "ingest": _json.loads(cli_module.render_ingest_summary_json(ingest_summary)),
+                    "ingest": ingest_summaries,
                     "normalize": _json.loads(cli_module.render_normalize_summary_json(normalize_summary)),
                     "derive": _json.loads(cli_module.render_derive_summary_json(derive_summary)),
                 }
