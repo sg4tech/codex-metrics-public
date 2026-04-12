@@ -17,10 +17,8 @@
       "Bash(git status *)",
       "Bash(git tag:*)",
       "Bash(git worktree *)",
-
       "Bash(make *)",
       "Bash(PYTHONPATH=src make *)",
-
       "Bash(.venv/bin/ai-agents-metrics *)",
       "Bash(.venv/bin/bandit *)",
       "Bash(.venv/bin/mypy *)",
@@ -55,25 +53,21 @@
       "Bash(oss/.venv/bin/python -m ai_agents_metrics.cli *)",
       "Bash(oss/.venv/bin/python -m pytest *)",
       "Bash(/opt/homebrew/bin/python3 -m venv .venv)",
-
       "Bash(ai-agents-metrics *)",
       "Bash(./tools/ai-agents-metrics *)",
       "Bash(sqlite3 *)",
       "Bash(tar -tzf dist/ai_agents_metrics-*.tar.gz)",
       "Bash(unzip -p /tmp/*/*.whl '*/METADATA')",
-
       "Bash(gh repo *)",
       "Bash(gh run:*)",
       "Bash(gh pr create*)",
       "Bash(/usr/local/bin/gh *)",
       "Bash(/opt/homebrew/bin/gh *)",
-
       "Bash(pip *)",
       "Bash(pip3 install:*)",
       "Bash(pipx *)",
       "Bash(python3 -c *)",
       "Bash(python3 -m venv * && * pip install *)",
-
       "Bash(awk *)",
       "Bash(cat *)",
       "Bash(cat * && echo * && head *)",
@@ -107,7 +101,6 @@
       "Bash(xargs *)",
       "Bash(curl -s \"https://docs.anthropic.com/en/docs/about-claude/models/overview\")",
       "Bash(curl -s \"https://www.anthropic.com/pricing\")",
-
       "Bash(cd * && find * | xargs *)",
       "Bash(cd * && .venv/bin/python *)",
       "Bash(cd * && source * && *)",
@@ -117,7 +110,6 @@
       "Bash(.venv/bin/python * && .venv/bin/python *)",
       "Bash(./tools/ai-agents-metrics * && *)",
       "Bash(PYTHONPATH=* .venv/bin/python -m pytest * && *)",
-
       "WebSearch",
       "WebFetch(domain:ainativedev.io)",
       "WebFetch(domain:bennycheung.github.io)",
@@ -143,24 +135,38 @@
       "WebFetch(domain:redreamality.com)",
       "WebFetch(domain:steviee.medium.com)",
       "WebFetch(domain:www.anthropic.com)",
-
       "mcp__mcp-registry__search_mcp_registry",
       "mcp__Claude_Preview__preview_start",
-
       "Skill(code-review:code-review)",
       "Skill(code-review:code-review:*)",
       "Skill(commit-commands:commit)",
       "Skill(commit-commands:commit:*)",
       "Skill(pr-review-toolkit:review-pr)",
       "Skill(pr-review-toolkit:review-pr:*)",
-
       "Read(//**)",
       "Read(//opt/homebrew/bin/**)",
       "Read(//private/tmp/**)",
       "Read(//private/tmp/qa-test-repo/**)",
       "Read(//tmp/**)",
       "Read(//usr/local/bin/**)",
-      "Read(//Users/viktor/.config/gh/**)"
+      "Bash(../tools/ai-agents-metrics start-task:*)",
+      "Bash(../tools/ai-agents-metrics finish-task:*)",
+      "Bash(.venv/bin/pylint --version)",
+      "Bash(.venv/bin/pylint src/ --disable=all --enable=C0302 --verbose)",
+      "Bash(.venv/bin/pylint src/ai_agents_metrics/cli.py --disable=all --enable=C0302 --ignore-paths=\".*/cli\\\\\\\\.py$\")",
+      "Bash(.venv/bin/pylint --list-msgs-enabled)",
+      "Bash(.venv/bin/pylint src/ai_agents_metrics/cli.py --disable=all --enable=C0302 --ignore=cli.py)",
+      "Bash(.venv/bin/pylint src/ --disable=all --enable=C0302 --ignore=cli.py,commands.py,history_ingest.py)",
+      "Bash(.venv/bin/pylint src/ --disable=all --enable=E0602,E1101,E1120,E0401,W0612,W0611,W0703,W1203,W0102,R0912,R0915,R0914,R0902,C0302,R0401,W0401,C0411,R0913)",
+      "Bash(.venv/bin/pylint src/ --disable=all --enable=E0602,E1101,E1120,E0401,W0612,W0611,W0703,W1203,W0102,R0401,W0401,C0411)",
+      "Bash(./.venv/bin/pylint src/ --disable=all --enable=E0401,E0602,E1101,E1120,W0102,W0611,W0612,W0718,W1203,R0401,C0302)",
+      "Bash(.venv/bin/pylint src/ --disable=all --enable=R0912,R0913,R0914,R0915,R0902,W0401,C0411)",
+      "Bash(sed -i '' 's/from ai_agents_metrics\\\\.history_compare import/from ai_agents_metrics.history.compare import/g' test_history_compare.py test_show_json.py)",
+      "Bash(sed -i '' 's/from ai_agents_metrics\\\\.history_normalize import/from ai_agents_metrics.history.normalize import/g' test_history_normalize.py test_history_derive.py)",
+      "Bash(sed -i '' 's/from ai_agents_metrics\\\\.history_derive import/from ai_agents_metrics.history.derive import/g' test_history_derive.py test_history_pipeline_json.py)",
+      "Bash(sed -i '' 's/from ai_agents_metrics\\\\.history_ingest import/from ai_agents_metrics.history.ingest import/g' test_history_ingest.py test_history_pipeline_json.py)",
+      "Bash(sed -i '' 's/from ai_agents_metrics\\\\.history_audit import/from ai_agents_metrics.history.audit import/g' test_history_audit.py)",
+      "Bash(PYTHONPATH=src .venv/bin/lint-imports)"
     ],
     "deny": [
       "Bash(chattr*)",
