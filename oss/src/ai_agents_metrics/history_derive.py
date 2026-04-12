@@ -216,8 +216,8 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
             attempt_count INTEGER NOT NULL,
             retry_count INTEGER NOT NULL,
             has_retry_pressure INTEGER NOT NULL,
-            first_attempt_session_path TEXT,
-            last_attempt_session_path TEXT,
+            first_session_path TEXT,
+            last_session_path TEXT,
             raw_json TEXT NOT NULL
         )
         """
@@ -604,7 +604,7 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
         for thread_row in normalized_threads:
             thread_id = thread_row["thread_id"]
             thread_user_messages = user_message_count_by_thread.get(thread_id, 0)
-            thread_attempt_count = thread_user_messages
+            thread_attempt_count = max(thread_user_messages, 1)
             thread_retry_count = max(thread_user_messages - 1, 0)
             project_cwd = _parent_project_cwd(thread_row["cwd"])
             if project_cwd is not None:
@@ -931,7 +931,7 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                 """
                 INSERT INTO derived_retry_chains (
                     thread_id, source_path, attempt_count, retry_count, has_retry_pressure,
-                    first_attempt_session_path, last_attempt_session_path, raw_json
+                    first_session_path, last_session_path, raw_json
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (

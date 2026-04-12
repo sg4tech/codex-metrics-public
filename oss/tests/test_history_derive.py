@@ -119,7 +119,7 @@ def test_derive_codex_history_builds_analysis_marts(repo: Path) -> None:
     assert "Derived Codex history in" in result.stdout
     assert "Projects: 2" in result.stdout
     assert "Goals: 2" in result.stdout
-    assert "Attempts: 2" in result.stdout  # user turns: 2 in thread-1, 0 in thread-2
+    assert "Attempts: 3" in result.stdout  # user turns: 2 in thread-1, 1 in thread-2 (min=1)
     # rollout-3 gains a user message: +1 timeline event, +1 message fact
     assert "Timeline events: 11" in result.stdout
     assert "Retry chains: 2" in result.stdout
@@ -146,12 +146,25 @@ def test_derive_codex_history_builds_analysis_marts(repo: Path) -> None:
         assert thread_1["timeline_event_count"] == 8
 
         retry_chain = conn.execute(
-            "SELECT has_retry_pressure, first_attempt_session_path, last_attempt_session_path FROM derived_retry_chains WHERE thread_id = ?",
+            "SELECT has_retry_pressure, first_session_path, last_session_path FROM derived_retry_chains WHERE thread_id = ?",
             ("thread-1",),
         ).fetchone()
         assert retry_chain["has_retry_pressure"] == 1
-        assert retry_chain["first_attempt_session_path"].endswith("rollout-1.jsonl")
-        assert retry_chain["last_attempt_session_path"].endswith("rollout-3.jsonl")
+        assert retry_chain["first_session_path"].endswith("rollout-1.jsonl")
+        assert retry_chain["last_session_path"].endswith("rollout-3.jsonl")
+
+        thread_2 = conn.execute(
+            "SELECT attempt_count, retry_count FROM derived_goals WHERE thread_id = ?",
+            ("thread-2",),
+        ).fetchone()
+        assert thread_2["attempt_count"] == 1
+        assert thread_2["retry_count"] == 0
+
+        thread_2_chain = conn.execute(
+            "SELECT has_retry_pressure FROM derived_retry_chains WHERE thread_id = ?",
+            ("thread-2",),
+        ).fetchone()
+        assert thread_2_chain["has_retry_pressure"] == 0
 
         attempt = conn.execute(
             "SELECT attempt_index, message_count, usage_event_count FROM derived_attempts WHERE session_path LIKE ?",
