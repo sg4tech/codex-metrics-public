@@ -6,6 +6,7 @@ from argparse import Namespace
 from pathlib import Path
 
 import pytest
+from test_history_ingest import run_cmd
 
 from ai_agents_metrics import commands
 from ai_agents_metrics.history_compare import (
@@ -169,6 +170,21 @@ def test_handle_compare_metrics_to_history_prints_json(capsys: pytest.CaptureFix
     payload = json.loads(captured.out)
     assert payload["ledger"]["goal_count"] == 1
 
+
+
+# ---------------------------------------------------------------------------
+# history-compare CLI — missing warehouse
+# ---------------------------------------------------------------------------
+
+
+def test_history_compare_rejects_missing_warehouse(tmp_path: Path) -> None:
+    warehouse_path = tmp_path / "missing.sqlite"
+
+    result = run_cmd(tmp_path, "history-compare", "--warehouse-path", str(warehouse_path))
+
+    assert result.returncode == 1
+    assert f"Warehouse does not exist: {warehouse_path}" in result.stderr
+    assert "history-update" in result.stderr
 
 
 # ---------------------------------------------------------------------------

@@ -489,7 +489,10 @@ def _timeline_event_id(thread_id: str, event_type: str, event_order: int, sessio
 
 def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
     if not warehouse_path.exists():
-        raise ValueError(f"Warehouse does not exist: {warehouse_path}")
+        raise ValueError(
+            f"Warehouse does not exist: {warehouse_path}. "
+            "Run 'ai-agents-metrics history-update' first."
+        )
 
     projects = 0
     goals = 0

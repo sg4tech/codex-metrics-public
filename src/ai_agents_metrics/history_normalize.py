@@ -391,7 +391,10 @@ def _usage_event_from_token_row(row: sqlite3.Row) -> dict[str, Any] | None:
 
 def normalize_codex_history(*, warehouse_path: Path) -> NormalizeSummary:
     if not warehouse_path.exists():
-        raise ValueError(f"Warehouse does not exist: {warehouse_path}")
+        raise ValueError(
+            f"Warehouse does not exist: {warehouse_path}. "
+            "Run 'ai-agents-metrics history-update' first."
+        )
 
     threads = 0
     projects = 0
