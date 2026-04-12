@@ -15,6 +15,8 @@ When doing engineering work, prefer working inside `oss/` directly.
 
 Before starting any engineering task in a worktree, run `make init` to set up the local Python environment. Do not symlink `.venv` from the main repo — each worktree has its own environment.
 
+In a worktree session, all commits go to the worktree branch. Before any `git add` + `git commit`, verify the current branch with `git branch --show-current`. Never commit to `master` as a side effect of worktree work — only when the user explicitly requests it.
+
 Before starting or continuing any engineering task, run `git pull` to ensure the working branch is up to date, then read:
 
 During a task, run `git pull` again before writing new code if significant time has passed or before starting a new subtask — other agents or the user may have pushed changes in the meantime.
