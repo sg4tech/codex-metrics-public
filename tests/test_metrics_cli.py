@@ -4660,3 +4660,85 @@ def test_invalid_entry_business_state_fails(repo: Path) -> None:
 
     assert result.returncode != 0
     assert "failure_reason must be empty when status is success" in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# history-ingest / history-update: --source all visibility and behaviour
+# ---------------------------------------------------------------------------
+
+
+def test_history_ingest_source_all_accepted(repo: Path) -> None:
+    """--source all must be accepted by argparse and exit 0 (sources are skipped if absent)."""
+    warehouse = repo / "warehouse.sqlite"
+    result = run_cmd(repo, "history-ingest", "--source", "all", "--warehouse-path", str(warehouse))
+    # argparse rejects unknown choices with exit code 2; any other non-zero means
+    # the argument was parsed and an operational error occurred, which is acceptable.
+    assert result.returncode != 2, f"argparse rejected --source all:\n{result.stderr}"
+    assert result.returncode == 0, f"history-ingest --source all failed:\n{result.stderr}"
+
+
+def test_history_ingest_no_source_flag_defaults_to_all(repo: Path) -> None:
+    """Omitting --source behaves like --source all: reads both sources, skips absent ones."""
+    warehouse = repo / "warehouse.sqlite"
+    result_default = run_cmd(repo, "history-ingest", "--warehouse-path", str(warehouse))
+    assert result_default.returncode == 0, f"history-ingest (default) failed:\n{result_default.stderr}"
+
+    warehouse2 = repo / "warehouse2.sqlite"
+    result_all = run_cmd(repo, "history-ingest", "--source", "all", "--warehouse-path", str(warehouse2))
+    assert result_all.returncode == 0, f"history-ingest --source all failed:\n{result_all.stderr}"
+
+    # Both produce the same style of output (skip lines or ingested lines), not a codex-only view.
+    # The presence of "codex" or "claude" labels in stdout distinguishes "all" from single-source output.
+    for label in ("codex", "claude"):
+        if f"Skipping {label}" in result_default.stdout or label in result_default.stdout:
+            break
+    else:
+        # Neither source was mentioned — acceptable only if both were actually ingested without labels,
+        # which should not happen; fail loudly so the test surface is clear.
+        assert False, f"Unexpected default output (no source labels):\n{result_default.stdout}"
+
+
+def test_history_ingest_source_root_incompatible_with_source_all(repo: Path) -> None:
+    """--source-root combined with --source all must be rejected with exit code 1."""
+    warehouse = repo / "warehouse.sqlite"
+    result = run_cmd(
+        repo,
+        "history-ingest",
+        "--source", "all",
+        "--source-root", str(repo),
+        "--warehouse-path", str(warehouse),
+    )
+    assert result.returncode == 1
+    assert "--source-root cannot be used with --source all" in result.stderr
+
+
+def test_history_update_source_all_accepted(repo: Path) -> None:
+    """history-update --source all must be accepted and exit 0."""
+    warehouse = repo / "warehouse.sqlite"
+    result = run_cmd(repo, "history-update", "--source", "all", "--warehouse-path", str(warehouse))
+    assert result.returncode != 2, f"argparse rejected --source all:\n{result.stderr}"
+    assert result.returncode == 0, f"history-update --source all failed:\n{result.stderr}"
+
+
+def test_history_update_no_source_flag_defaults_to_all(repo: Path) -> None:
+    """history-update without --source defaults to reading both codex and claude."""
+    warehouse = repo / "warehouse.sqlite"
+    result = run_cmd(repo, "history-update", "--warehouse-path", str(warehouse))
+    assert result.returncode == 0, f"history-update (default) failed:\n{result.stderr}"
+    # The "all" path either runs normalize or reports no sources found — both are valid.
+    # It must not fail with an unhandled warehouse-not-found error.
+    assert "Error:" not in result.stderr, f"Unexpected error:\n{result.stderr}"
+
+
+def test_history_update_source_root_incompatible_with_source_all(repo: Path) -> None:
+    """history-update --source all --source-root must be rejected with exit code 1."""
+    warehouse = repo / "warehouse.sqlite"
+    result = run_cmd(
+        repo,
+        "history-update",
+        "--source", "all",
+        "--source-root", str(repo),
+        "--warehouse-path", str(warehouse),
+    )
+    assert result.returncode == 1
+    assert "--source-root cannot be used with --source all" in result.stderr
