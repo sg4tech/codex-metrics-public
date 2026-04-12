@@ -221,6 +221,7 @@ def test_derive_codex_history_rejects_missing_normalized_warehouse(repo: Path) -
 
     assert result.returncode == 1
     assert f"Warehouse does not exist: {warehouse_path}" in result.stderr
+    assert "history-update" in result.stderr
 
 
 def test_derive_codex_history_rejects_non_normalized_warehouse(repo: Path) -> None:

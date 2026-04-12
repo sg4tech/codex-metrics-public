@@ -175,7 +175,10 @@ def _load_project_rows(conn: sqlite3.Connection) -> list[HistoryCompareProjectRo
 
 def load_history_compare_warehouse_data(*, warehouse_path: Path, cwd: Path) -> HistoryCompareWarehouseData:
     if not warehouse_path.exists():
-        raise ValueError(f"Warehouse does not exist: {warehouse_path}")
+        raise ValueError(
+            f"Warehouse does not exist: {warehouse_path}. "
+            "Run 'ai-agents-metrics history-update' first."
+        )
 
     with sqlite3.connect(warehouse_path) as conn:
         conn.row_factory = sqlite3.Row
