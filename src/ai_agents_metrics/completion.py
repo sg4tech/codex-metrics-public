@@ -101,7 +101,7 @@ def render_zsh_completion(parser: argparse.ArgumentParser) -> str:
     completion_shells = _shell_choices_for_completion(subparsers_action.choices["completion"])
 
     lines = [
-        "#compdef codex-metrics",
+        "#compdef ai-agents-metrics",
         "",
         "local curcontext=\"$curcontext\" state line",
         "typeset -A opt_args",
