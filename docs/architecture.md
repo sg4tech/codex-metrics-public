@@ -16,21 +16,28 @@
 
 ## Summary
 
-`ai-agents-metrics` is a CLI tool that appends events to a local NDJSON log. State is reconstructed at read time by replaying events in order. There is no database server, no background process, and no network dependency.
+`ai-agents-metrics` is a CLI tool for analyzing AI agent work history, tracking spending, and optimizing workflows. It operates as two complementary layers:
+
+**Primary layer — history pipeline:** reads raw session files from `~/.codex` or `~/.claude`, extracts retry pressure, token cost, and session timelines, and stores results in a local SQLite warehouse. No prior instrumentation required.
+
+**Opt-in layer — NDJSON ledger:** an append-only event log for explicit goal boundaries, outcome judgements, and failure reasons. State is reconstructed at read time by replaying events in order.
+
+There is no database server, no background process, and no network dependency.
 
 Data flow:
 
 ```
 CLI (cli.py)
   ↓  parses args, validates workflow state via workflow_fsm.py
+History pipeline (history_*.py)       ← primary analysis layer
+  ↓  ingest → normalize → derive from ~/.codex or ~/.claude
+  ↓  SQLite warehouse: retry pressure, token cost, session timeline
 Domain (domain/)
   ↓  validates records, serialises/deserialises, computes aggregates
 Storage (storage.py)
-  ↓  atomic append to metrics/events.ndjson via fcntl lock
+  ↓  atomic append to metrics/events.ndjson via fcntl lock   ← opt-in ledger
 Reporting (reporting.py)
-  ↓  computes in-memory summary, generates markdown
-History pipeline (history_*.py)
-  ↓  optional: reconstructs past goals from raw agent transcripts
+  ↓  computes in-memory summary, merges ledger + warehouse signals
 ```
 
 ---

@@ -1332,7 +1332,7 @@ def upsert_task(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Track goal, attempt, failure, and cost metrics for AI-agent-assisted work.",
+        description="Analyze your AI agent work history, track spending, and optimize your workflow. Point it at your history files and see retry pressure, token cost, and session timeline — no manual setup required.",
         epilog=(
             "Examples:\n"
             "  %(prog)s start-task --title \"Add CSV import\" --task-type product\n"
@@ -1660,6 +1660,38 @@ def build_parser() -> argparse.ArgumentParser:
         "--warehouse-path",
         default=str(RAW_WAREHOUSE_PATH),
         help="SQLite warehouse path that already contains normalized agent history",
+    )
+
+    history_update_parser = subparsers.add_parser(
+        "history-update",
+        help="Run the full history pipeline: ingest → normalize → derive",
+        description=(
+            "Run all three history pipeline stages in sequence: history-ingest, history-normalize, "
+            "history-derive. Use this for the initial setup or to refresh the warehouse after new "
+            "agent sessions. Equivalent to running the three stages separately."
+        ),
+    )
+    history_update_parser.add_argument(
+        "--source",
+        choices=["codex", "claude"],
+        default="codex",
+        help="Agent source to ingest: 'codex' (default, reads ~/.codex) or 'claude' (reads ~/.claude)",
+    )
+    history_update_parser.add_argument(
+        "--source-root",
+        default=None,
+        help="Override the agent history root directory",
+    )
+    history_update_parser.add_argument(
+        "--warehouse-path",
+        default=str(RAW_WAREHOUSE_PATH),
+        help="SQLite warehouse path",
+    )
+    history_update_parser.add_argument(
+        "--json",
+        action="store_true",
+        default=False,
+        help="Output all three stage summaries as a single JSON object",
     )
 
     retro_timeline_parser = subparsers.add_parser(
@@ -2107,6 +2139,9 @@ def main() -> int:
 
     if args.command == "history-derive":
         return commands.handle_derive_codex_history(args, sys.modules[__name__])
+
+    if args.command == "history-update":
+        return commands.handle_history_update(args, sys.modules[__name__])
 
     if args.command == "derive-retro-timeline":
         return commands.handle_derive_retro_timeline(args, sys.modules[__name__])

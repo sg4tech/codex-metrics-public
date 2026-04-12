@@ -1,4 +1,4 @@
-.PHONY: init check-init remind-task lint typecheck test verify build-check security bandit complexity arch-check verify-public-boundary setup-hooks dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke public-overlay-status public-overlay-bootstrap public-overlay-verify public-overlay-push public-overlay-pull
+.PHONY: init check-init remind-task lint typecheck test verify build-check security bandit complexity arch-check verify-public-boundary setup-hooks dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke public-overlay-status public-overlay-bootstrap public-overlay-verify public-overlay-push public-overlay-pull sync-bootstrap-policy
 
 PYTHON3 ?= python3
 
@@ -39,7 +39,13 @@ complexity: check-init
 arch-check: check-init
 	PYTHONPATH=src .venv/bin/lint-imports
 
-verify: check-init remind-task lint security bandit typecheck test build-check complexity arch-check
+sync-bootstrap-policy:
+	cp docs/ai-agents-metrics-policy.md src/ai_agents_metrics/data/bootstrap_codex_metrics_policy.md
+
+build-check:
+	./.venv/bin/pip install --no-deps -e . -q
+
+verify: check-init remind-task sync-bootstrap-policy lint security bandit typecheck test build-check complexity arch-check
 
 security:
 	./.venv/bin/python -m ai_agents_metrics security --repo-root . --rules-path config/security-rules.toml
@@ -56,7 +62,7 @@ setup-hooks:
 dev-refresh-local:
 	./.venv/bin/python -m pip install --no-deps --no-build-isolation -e .
 
-package:
+package: sync-bootstrap-policy
 	rm -rf build dist src/ai_agents_metrics.egg-info
 	./.venv/bin/python -m build --no-isolation
 

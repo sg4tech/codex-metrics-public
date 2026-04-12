@@ -5,14 +5,14 @@
 [![License](https://img.shields.io/pypi/l/ai-agents-metrics)](https://github.com/sg4tech/ai-agents-metrics/blob/main/LICENSE)
 [![Python](https://img.shields.io/pypi/pyversions/ai-agents-metrics)](https://pypi.org/project/ai-agents-metrics/)
 
-**Measure whether AI-assisted development is working.**
+**Analyze your AI agent work history. Track spending. Optimize your workflow.**
 
 AI is writing more of your code. You still don't know:
 - How many attempts each task actually takes
 - Where the process breaks down and why
 - Whether your workflow is getting faster or generating more rework
 
-`ai-agents-metrics` tracks goals, attempts, outcomes, and token cost for every AI coding session — structured data to reason about your workflow, not just your model.
+`ai-agents-metrics` extracts these signals from your existing Claude Code or Codex history — no manual setup required. Point it at your history files and see what's happening: retry pressure, token cost, session timeline. For richer tracking, add explicit goal boundaries and outcome labels on top.
 
 ---
 
@@ -22,39 +22,30 @@ AI coding tools optimize for code generation. That is not the same as optimizing
 
 A coding agent can succeed at the individual task while the overall workflow degrades — more attempts per goal, more correction passes, more cost per shipped unit.
 
-This project tracks the signals that matter at the workflow level:
+This project surfaces the signals that matter at the workflow level:
 - how many attempts goals require,
 - where retries and failures cluster,
 - whether outcomes are matching the requested result,
 - whether cost is trending in the right direction.
 
-It is not a benchmark, an eval framework, or a model comparison tool. It is a local ledger for real engineering work done with AI.
+The key insight: these signals are already present in your agent history files. `ai-agents-metrics` extracts them. You do not need to set up manual tracking to get value — though you can add it for explicit goal classification and outcome labels.
 
----
-
-## Core Concepts
-
-| Concept | Meaning |
-|---|---|
-| **goal** | One requested outcome. Stored in the event log; `task` is a legacy alias used in CLI flags. |
-| **attempt** | One implementation pass or retry for a goal. Multiple attempts per goal are normal when corrections are needed. |
-| **session** | One continuous AI agent interaction (e.g. a single Claude Code or Codex thread). Maps to one or more attempts. |
-| **outcome** | The final result of a closed goal: `success` or `fail`. |
-| **failure reason** | The primary cause when an attempt does not succeed: `model_mistake`, `unclear_task`, `validation_failed`, `environment_issue`, `scope_too_large`, `missing_context`, `tooling_issue`, or `other`. |
-| **cost** | Token spend mapped to USD for a goal or attempt. Sourced from local agent telemetry when available. |
-| **retry pressure** | How many passes a goal required before closure. High retry pressure signals friction in the task or the workflow. |
-| **result fit** | Quality label for closed product goals: `exact_fit`, `partial_fit`, or `miss`. Separate from outcome — a goal can succeed but still be a partial fit. |
+It is not a benchmark, an eval framework, or a model comparison tool. It is a local analysis tool for real engineering work done with AI.
 
 ---
 
 ## What It Tracks
 
-- **Goals and attempts** — what was requested, how many passes it took, and whether each pass succeeded
+**From history files (no setup required):**
+- **Retry pressure** — how often attempts fail or require correction, derived from session history
 - **Token cost** — input, output, and cached-input tokens per session, mapped to USD
-- **Retry pressure** — how often attempts fail or require correction
 - **Model usage** — which model ran each session and what it cost
-- **Outcome quality** — result-fit labels for product goals
-- **History analysis** — reconstruct past sessions from agent conversation transcripts
+- **Session timeline** — full activity history from first ingest
+
+**With optional manual tracking:**
+- **Goals and attempts** — what was requested, how many passes it took, and whether each pass succeeded
+- **Outcome quality** — result-fit labels for product goals (`exact_fit`, `partial_fit`, `miss`)
+- **Failure reasons** — classified cause when an attempt does not succeed
 
 ---
 
@@ -62,19 +53,19 @@ It is not a benchmark, an eval framework, or a model comparison tool. It is a lo
 
 | Capability | Status |
 |---|---|
-| Append-only local event log (NDJSON) | Available |
-| Goal and attempt lifecycle CLI | Available |
-| Retry and failure visibility | Available |
-| Cost and token tracking | Available |
+| History ingestion from Claude Code and Codex transcripts | Available |
+| Retry pressure derived from session history | Available |
+| Cost and token tracking from history | Available |
 | Automatic cost sync from Claude Code telemetry | Available |
 | Automatic cost sync from Codex telemetry | Available |
-| History ingestion from agent transcripts | Available |
 | Before/after workflow comparison | Available |
-| Shell completion (bash, zsh) | Available |
-| Standalone binary packaging | Available |
+| Interactive HTML report with trend charts | Available |
+| Goal and attempt lifecycle CLI (opt-in manual tracking) | Available |
+| Append-only local event log (NDJSON) | Available |
 | Repository bootstrap (`bootstrap` command) | Available |
 | Optional markdown report export | Available |
-| Interactive HTML report with trend charts | Available |
+| Shell completion (bash, zsh) | Available |
+| Standalone binary packaging | Available |
 | Hosted multi-user dashboards | Not planned |
 | Centralized team analytics | Not planned |
 
@@ -85,16 +76,15 @@ It is not a benchmark, an eval framework, or a model comparison tool. It is a lo
 ```bash
 pip install ai-agents-metrics
 
-# Bootstrap tracking into a repository
-ai-agents-metrics bootstrap --target-dir /path/to/repo
+# Run the full history pipeline — pick your tool:
+ai-agents-metrics history-update                   # Codex (~/.codex)
+ai-agents-metrics history-update --source claude   # Claude Code (~/.claude)
 
-# Start a goal, do the work, close it
-ai-agents-metrics start-task --title "add login endpoint" --task-type product
-ai-agents-metrics finish-task --task-id 2026-04-09-001 --status success --result-fit exact_fit
-
-# See what it cost and how many tries it took
+# See retry pressure, token cost, and session timeline
 ai-agents-metrics show
 ```
+
+That's it — no prior setup required. If you want to also add explicit goal tracking on top, see [Track a Session](#track-a-session).
 
 ---
 
@@ -104,33 +94,23 @@ ai-agents-metrics show
 $ ai-agents-metrics show
 
 Codex Metrics Summary
-
 Operational summary:
-Closed goals:                    8
-Successes:                       8
-Fails:                           0
-Total attempts:                  8
-Success Rate:                    100.00%
-Attempts per Closed Goal:        1.00
-
-Known total cost (USD):          9.27
-Known total tokens:              26,337,605
-  input:                         260
-  cached:                        26,088,225
-  output:                        44,883
-
-Known Cost per Success (USD):    1.32
-Known Cost per Success (Tokens): 3,762,515
-
-Model coverage: 7/8 closed goals with an unambiguous model
+Closed goals:           17
+Successes:              15
+Fails:                  2
+Success Rate:           88.24%
+Known total cost (USD): 312.59
+Known total tokens:     776,219,632
 By model:
-  claude-sonnet-4-6: 7 closed, 7 successes, 0 fails
+  claude-sonnet-4-6: 16 closed, 14 successes, 2 fails
 
-Closed entries:     8
-Entry successes:    8
-Entry fails:        0
-Entry Success Rate: 100.00%
+History signals (warehouse):
+  Project threads:           87  (worktrees merged)
+  Threads with retry pressure: 28 / 87 (32%)
+  Per-goal alignment:        16 / 17 ledger goals matched to history window
 ```
+
+The `History signals` section is derived directly from session history files — no manual tracking required. A 32% retry rate means roughly 1 in 3 tasks required more than one session to complete.
 
 ---
 
@@ -157,9 +137,77 @@ make package-standalone
 
 ---
 
-## Bootstrap a Repository
+## Analyze History
 
-Run once to scaffold `ai-agents-metrics` into any repository. Creates the event log, installs the policy document, and injects an agent instructions block:
+Extract metrics from existing agent session files in one command:
+
+```bash
+ai-agents-metrics history-update                   # reads ~/.codex by default
+ai-agents-metrics history-update --source claude   # reads ~/.claude/projects/
+```
+
+Or run the three stages individually (ingest → normalize → derive):
+
+```bash
+ai-agents-metrics history-ingest
+ai-agents-metrics history-normalize
+ai-agents-metrics history-derive
+```
+
+Then inspect results:
+
+```bash
+ai-agents-metrics show
+```
+
+Compare the structured event log against reconstructed history to find gaps:
+
+```bash
+ai-agents-metrics history-compare
+```
+
+Analyze before/after product metrics around each retrospective event:
+
+```bash
+ai-agents-metrics derive-retro-timeline
+```
+
+---
+
+## Inspect Metrics
+
+Print a summary of retry pressure, costs, and session history:
+
+```bash
+ai-agents-metrics show
+```
+
+Explain missing cost coverage and check whether it is recoverable from local agent logs:
+
+```bash
+ai-agents-metrics audit-cost-coverage
+```
+
+Regenerate the optional markdown report (opt-in, requires manual tracking bootstrap):
+
+```bash
+ai-agents-metrics render-report
+```
+
+Generate a self-contained interactive HTML report with four trend charts (goal types, retry pressure, token cost, cost per success):
+
+```bash
+ai-agents-metrics render-html
+ai-agents-metrics render-html --output report.html --days 30
+```
+
+The report reads token and retry data from the local warehouse when available (full history) and falls back to the event log. The output file has no external dependencies — open it in any browser.
+
+---
+
+## Bootstrap a Repository (opt-in)
+
+To also enable manual goal tracking, run once to scaffold `ai-agents-metrics` into a repository. Creates the event log, installs the policy document, and injects an agent instructions block:
 
 ```bash
 ai-agents-metrics bootstrap --target-dir /path/to/repo --dry-run
@@ -171,6 +219,20 @@ Safe to rerun on a partially initialized repository. Use `--dry-run` to preview 
 ---
 
 ## Track a Session
+
+History extraction gives you retry pressure, cost, and session timelines — but it cannot tell you *which specific tasks* had the worst outcomes or *why* a particular session failed. Manual goal tracking adds that layer: per-task breakdowns, outcome quality labels (`exact_fit`, `partial_fit`, `miss`), and classified failure reasons.
+
+If your history shows 32% retry pressure, manual tracking tells you whether it's coming from unclear requirements, model mistakes, or scope problems — and on which tasks.
+
+### Concepts
+
+| Concept | Meaning |
+|---|---|
+| **goal** | One requested outcome |
+| **attempt** | One implementation pass or retry for a goal |
+| **outcome** | Final result: `success` or `fail` |
+| **result fit** | Quality label: `exact_fit`, `partial_fit`, or `miss` — a goal can succeed but still be a partial fit |
+| **failure reason** | Primary cause when an attempt fails: `model_mistake`, `unclear_task`, `validation_failed`, `environment_issue`, `scope_too_large`, `missing_context`, `tooling_issue`, `other` |
 
 ### Start a goal
 
@@ -207,46 +269,7 @@ If work has already started without an active goal, use this to detect and creat
 ai-agents-metrics ensure-active-task
 ```
 
----
-
-## Inspect Metrics
-
-Print a summary of all goals, costs, and retry pressure:
-
-```bash
-ai-agents-metrics show
-```
-
-Audit goal history for likely misses, stale in-progress goals, and low cost coverage:
-
-```bash
-ai-agents-metrics history-audit
-```
-
-Explain missing cost coverage and check whether it is recoverable from local agent logs:
-
-```bash
-ai-agents-metrics audit-cost-coverage
-```
-
-Regenerate the optional markdown report:
-
-```bash
-ai-agents-metrics render-report
-```
-
-Generate a self-contained interactive HTML report with four trend charts (goal types, retry pressure, token cost, cost per success):
-
-```bash
-ai-agents-metrics render-html
-ai-agents-metrics render-html --output report.html --days 30
-```
-
-The report reads token and retry data from the local warehouse when available (full history) and falls back to the event log. The output file has no external dependencies — open it in any browser.
-
----
-
-## Sync Cost Data
+### Backfill cost data
 
 Backfill token and cost data from local agent telemetry into existing goal records. Supports Claude Code and Codex automatically — no provider flag required:
 
@@ -254,34 +277,12 @@ Backfill token and cost data from local agent telemetry into existing goal recor
 ai-agents-metrics sync-usage
 ```
 
----
+### Audit the ledger
 
-## Analyze History
-
-Reconstruct session history from local agent transcripts. Run the three pipeline stages in order:
+Flag suspicious ledger patterns — likely misses, stale in-progress goals, and low cost coverage:
 
 ```bash
-ai-agents-metrics history-ingest
-ai-agents-metrics history-normalize
-ai-agents-metrics history-derive
-```
-
-For Claude Code sessions, add `--source claude`:
-
-```bash
-ai-agents-metrics history-ingest --source claude
-```
-
-Compare the structured event log against reconstructed history to find gaps:
-
-```bash
-ai-agents-metrics history-compare
-```
-
-Analyze before/after product metrics around each retrospective event:
-
-```bash
-ai-agents-metrics derive-retro-timeline
+ai-agents-metrics history-audit
 ```
 
 ---
@@ -290,9 +291,9 @@ ai-agents-metrics derive-retro-timeline
 
 All data stays local. `ai-agents-metrics` writes only to:
 
-- `metrics/events.ndjson` — the append-only event log (source of truth)
-- `docs/ai-agents-metrics.md` — an optional markdown export (regenerated on demand)
-- `.ai-agents-metrics/warehouse.db` — a local SQLite cache used by the history pipeline
+- `.ai-agents-metrics/warehouse.db` — local SQLite warehouse used by the history pipeline
+- `metrics/events.ndjson` — append-only event log for manual goal tracking (opt-in)
+- `docs/ai-agents-metrics.md` — optional markdown export (regenerated on demand)
 
 No data is sent to any remote service. The event log is a plain NDJSON file you can read, audit, and version-control yourself.
 

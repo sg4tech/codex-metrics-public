@@ -9,13 +9,17 @@ Working product and metrics hypotheses that are not yet fully confirmed belong i
 
 ## Product
 
-`ai-agents-metrics` is an internal local agent-facing analysis tool for managing the effectiveness and economics of AI-agent-assisted engineering work.
+`ai-agents-metrics` is a tool that helps you analyze your history of working with AI agents, track spending, and optimize your work.
+
+The primary entry point is your existing conversation history files — no manual instrumentation required to get value. Point the tool at your `~/.codex` or `~/.claude` directory and it will show you what happened, what it cost, and where the friction is.
+
+For users who want to add explicit goal boundaries, outcome judgements, and failure reasons on top of the history layer, a manual tracking workflow is available as an opt-in enhancement.
 
 It is not a general analytics platform and not a public SaaS product.
 
 Current intended category:
 
-- internal agent-facing analysis tool
+- local history analysis and workflow optimization tool for AI-agent-assisted engineering
 
 Current near-term strategic priority:
 
@@ -45,12 +49,13 @@ Primary external scenario:
 
 Without this tool:
 
-- it is hard for an agent to tell whether workflow changes create real leverage or just extra activity
-- quality, speed, and cost are easy to summarize incorrectly from closure metrics alone
+- it is hard to tell whether AI agent work is creating real value or just activity
+- quality, speed, and cost are easy to summarize incorrectly from memory or closure status alone
 - AI usage cost is easy to underweight or overread without structured context
-- retries and failed paths get lost, which makes agent recommendations weaker
+- retries and failed paths get lost because agents rarely log them explicitly
+- new users have no visibility into how they actually use AI agents until they have accumulated manual tracking history — which they have not started yet
 
-The tool exists to make the relationship between outcome quality, delivery effort, and AI cost explicit enough to manage, so the agent can produce grounded analysis instead of a vague metrics recap.
+The tool exists to make this visible from the first run, by extracting the signals that are already present in conversation history files, without requiring prior instrumentation.
 
 In this framing:
 
@@ -61,7 +66,9 @@ In this framing:
 
 The following product truths are already confirmed:
 
-- the primary user is the AI agent that analyzes the metrics
+- the primary value proposition is history extraction: give us your agent history files, get insights with no manual setup
+- manual tracking is an opt-in enhancement layer, not the primary or required flow
+- the primary analytical user is the AI agent that reads metrics and produces synthesis
 - the human user is the receiver of final synthesized conclusions, not the main reader of raw metrics
 - quality, speed, and cost all matter
 - effectiveness means quality and speed together
@@ -79,11 +86,21 @@ The following product questions are still intentionally open and should be treat
 
 ## Main Workflow
 
+### Primary flow — history extraction (no setup required)
+
 1. Use an AI coding agent such as Codex or Claude to work on a real engineering goal.
-2. Record goals, attempts, failures, and cost signals as the work happens.
-3. Let an AI agent read goal-level and entry-level metrics together, plus history-derived evidence when it is available.
-4. Have the agent produce the analysis needed to judge whether the workflow change improved quality, speed, and cost.
+2. Run `ai-agents-metrics history-ingest` to extract your session history into a local warehouse.
+3. Run `ai-agents-metrics show` to see what happened: sessions, retry pressure, token cost, and timeline.
+4. Have an AI agent read the analysis and explain whether quality, speed, and cost are in a good state.
 5. Deliver that analysis to the human sponsor rather than raw metric interpretation.
+
+### Opt-in enhancement — manual tracking
+
+For users who want richer signal — explicit goal boundaries, outcome judgements (`result_fit`), and classified failure reasons — manual tracking is available on top of the history layer:
+
+1. Open a goal with `start-task` before starting work.
+2. Close it with `finish-task` when done, setting `success` or `fail` and a failure reason if applicable.
+3. `show` will combine the ledger and the history warehouse into a unified view.
 
 ## Core Decisions Supported
 
@@ -180,11 +197,10 @@ Future direction:
 
 In scope now:
 
-- local append-only event-log source of truth
+- history extraction pipeline: ingest, normalize, derive from `~/.codex` and `~/.claude` session files
+- history-derived retry pressure, token cost, and session timeline — available from the first run with no prior setup
+- local append-only event-log for opt-in manual goal and outcome tracking
 - optional local markdown export
-- goal and attempt history
-- retry and failure visibility
-- partial automatic usage and cost ingestion from local Codex telemetry
 - agent-facing analysis surfaces for retros, verification, and workflow-change analysis
 - public-release preparation work that makes the reusable core publishable, understandable, and safe to distribute
 

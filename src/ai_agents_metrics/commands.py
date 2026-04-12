@@ -621,6 +621,51 @@ def handle_derive_codex_history(args: Namespace, cli_module: CommandRuntime) -> 
     return 0
 
 
+def handle_history_update(args: Namespace, cli_module: CommandRuntime) -> int:
+    """Run the full history pipeline: ingest → normalize → derive."""
+    import json as _json
+
+    source: str = getattr(args, "source", "codex")
+    source_root_arg: str | None = getattr(args, "source_root", None)
+    if source_root_arg is not None:
+        source_root = Path(source_root_arg).expanduser()
+    elif source == "claude":
+        source_root = _CLAUDE_DEFAULT_ROOT
+    else:
+        source_root = _CODEX_DEFAULT_ROOT
+    warehouse_path = Path(args.warehouse_path).expanduser()
+    json_output: bool = getattr(args, "json", False)
+
+    if not json_output:
+        print("==> history-ingest")
+    with cli_module.metrics_mutation_lock(warehouse_path):
+        ingest_summary = cli_module.ingest_codex_history(source_root, warehouse_path, source)
+    if not json_output:
+        print(f"    Imported {ingest_summary.imported_files} files, {ingest_summary.threads} threads")
+        print("==> history-normalize")
+    with cli_module.metrics_mutation_lock(warehouse_path):
+        normalize_summary = cli_module.normalize_codex_history(warehouse_path)
+    if not json_output:
+        print(f"    {normalize_summary.threads} threads, {normalize_summary.messages} messages")
+        print("==> history-derive")
+    with cli_module.metrics_mutation_lock(warehouse_path):
+        derive_summary = cli_module.derive_codex_history(warehouse_path)
+    if not json_output:
+        print(f"    {derive_summary.goals} goals, {derive_summary.retry_chains} retry chains")
+        print(f"Done. Warehouse: {warehouse_path}")
+    else:
+        print(
+            _json.dumps(
+                {
+                    "ingest": _json.loads(cli_module.render_ingest_summary_json(ingest_summary)),
+                    "normalize": _json.loads(cli_module.render_normalize_summary_json(normalize_summary)),
+                    "derive": _json.loads(cli_module.render_derive_summary_json(derive_summary)),
+                }
+            )
+        )
+    return 0
+
+
 def handle_derive_retro_timeline(args: Namespace, cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
     warehouse_path = Path(args.warehouse_path).expanduser()

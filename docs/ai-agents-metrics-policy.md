@@ -4,6 +4,20 @@ This document defines the mandatory minimum policy for tracking AI-agent-assiste
 
 Use it as the operating contract for repositories that adopt `ai-agents-metrics`.
 
+## Two-Tier Model
+
+`ai-agents-metrics` operates as a two-tier system:
+
+**Tier 1 — History extraction (primary, no setup required)**
+
+Point the tool at your local agent history directory and run `history-update` + `show`. The tool extracts session structure, retry pressure, token cost, and timeline from existing conversation files — no prior instrumentation required. This is the primary product flow and the primary source of value.
+
+**Tier 2 — Manual tracking (opt-in, for explicit judgements)**
+
+For explicit goal boundaries, outcome classification (`result_fit`), and failure reasons that cannot be reliably inferred from history, the manual `start-task` / `finish-task` / `update` workflow is available as an opt-in enhancement on top of the history layer.
+
+The policy below applies to repositories that adopt both tiers. For repositories that use history extraction only, the Required Workflow section applies only to the goal boundaries and judgements that are explicitly recorded.
+
 ## Purpose
 
 Use this policy to answer four practical questions:
@@ -12,8 +26,6 @@ Use this policy to answer four practical questions:
 2. How much retry pressure was required?
 3. What failure modes keep repeating?
 4. What known cost was spent?
-
-Metrics bookkeeping is mandatory.
 
 ## Scope
 
@@ -72,8 +84,6 @@ Use one primary reason for a failed goal or failed attempt.
 
 The structured metrics file is the source of truth.
 
-For this repository:
-
 - source of truth: `metrics/events.ndjson` (append-only event log; tracked in git)
 - optional export: `docs/ai-agents-metrics.md`
 
@@ -83,44 +93,13 @@ Do not edit `metrics/events.ndjson` manually. All mutations must go through the 
 
 ## Required Workflow
 
-### Linear-First Intake
-
-Before any substantial implementation or documentation work begins, create or update the corresponding Linear issue and record the requirements there.
-
-The issue should contain, at minimum:
-
-1. the requested outcome
-2. the acceptance criteria
-3. any relevant links, files, or follow-up questions
-
-Do not start coding until the work is represented in Linear. If the scope changes mid-stream, update the issue first and continue through that issue rather than drifting into undocumented work.
-
-Standalone retrospective work is the exception. A retrospective writeup logged in `docs/retros/` and tracked as `goal_type=retro` does not require a Linear issue unless the user explicitly wants that retrospective tied back to a delivery issue.
-
-### Commit Subject Rules
-
-Use a Linear-linked commit subject for engineering work:
-
-- `CODEX-123: summary`
-
-If a change is intentionally not tied to a Linear issue, use the explicit no-task prefix instead:
-
-- `NO-TASK: summary`
-
-Retrospective-only commits must use the explicit no-task prefix:
-
-- `NO-TASK: summary`
-
-Do not use an unmarked free-form commit subject for engineering work. The validator should reject subjects that omit both prefixes, and retrospective-only commits should not use a Linear-linked subject.
-
 ### At Goal Start
 
 1. Detect whether the work belongs to an existing goal or a new goal.
 2. Create a new goal if needed.
 3. Set status to `in_progress`.
 4. Initialize attempts to `0`.
-5. Do this before substantial implementation, documentation, or validation work begins. Do not postpone task start bookkeeping until after meaningful progress already exists. The first action before writing any code must be opening a goal with `start-task`.
-6. Any change to `src/` or `tests/` is a hard gate: an open goal must exist before those files are modified. This applies regardless of how the task originated — explicit instruction, conversational question, or observation. The trigger does not matter; the file change does.
+5. Do this before substantial implementation, documentation, or validation work begins.
 
 ### On Each Attempt
 
@@ -138,20 +117,24 @@ Do not use an unmarked free-form commit subject for engineering work. The valida
 
 ## Recommended Commands
 
-Prefer the high-level task workflow commands:
+### History extraction (primary flow)
+
+```bash
+ai-agents-metrics history-update                   # reads ~/.codex (Codex)
+ai-agents-metrics history-update --source claude   # reads ~/.claude (Claude Code)
+ai-agents-metrics show
+ai-agents-metrics history-compare
+```
+
+### Manual tracking (opt-in)
 
 ```bash
 ai-agents-metrics start-task --title "Add CSV import" --task-type product
 ai-agents-metrics continue-task --task-id <goal-id> --notes "Retry after review"
 ai-agents-metrics finish-task --task-id <goal-id> --status success --notes "Validated"
 ai-agents-metrics ensure-active-task
-ai-agents-metrics show
-ai-agents-metrics render-report
 ai-agents-metrics sync-usage
-ai-agents-metrics history-ingest --help
-ai-agents-metrics history-normalize --help
-ai-agents-metrics history-derive --help
-ai-agents-metrics history-compare
+ai-agents-metrics render-report
 ```
 
 The public workflow contract should stay agent-agnostic. Provider-specific detection and telemetry support belong behind internal adapters, not in required public CLI flags.
@@ -159,7 +142,6 @@ The public workflow contract should stay agent-agnostic. Provider-specific detec
 Automatic local usage sync is implemented for Codex telemetry (SQLite) and Claude Code telemetry (JSONL under `~/.claude/projects/`). Both are detected automatically — no provider-specific flag is required. Additional agents remain in scope for the product and should land through the same universal command surface.
 
 When repository work has already started but no active task exists yet, prefer `ai-agents-metrics ensure-active-task` before continuing with active-work commands.
-Closed-goal repair via `finish-task` or a status-closing `update` remains available for history correction, but it should stay narrow and explicit.
 
 If `ai-agents-metrics` is expected but unavailable, treat that as an `environment_issue` or installation mismatch and report it clearly.
 
@@ -189,7 +171,7 @@ At minimum:
 
 ### `show` command and history signals
 
-`ai-agents-metrics show` prints the current ledger summary.  Pass `--json` to get a machine-readable JSON object.
+`ai-agents-metrics show` prints the current ledger summary. Pass `--json` to get a machine-readable JSON object.
 
 When a history warehouse is available (auto-detected by default; override with `--warehouse-path`), `show --json` includes a top-level `history_signals` key:
 
@@ -205,7 +187,7 @@ When a history warehouse is available (auto-detected by default; override with `
 }
 ```
 
-When no warehouse is available or the warehouse has not been derived yet, `history_signals` is `null`.  Consumers must handle both cases.
+When no warehouse is available or the warehouse has not been derived yet, `history_signals` is `null`. Consumers must handle both cases.
 
 - `project_threads` — total history threads attributed to this project (worktrees merged into parent).
 - `retry_threads` — threads that had more than one session (direct proxy for retry pressure).
@@ -213,7 +195,7 @@ When no warehouse is available or the warehouse has not been derived yet, `histo
 - `ledger_goal_alignments` — how many closed ledger goals with timestamps have at least one matching history thread in their time window.
 - `ledger_goals_total` — denominator for the alignment ratio.
 
-Use `retry_rate` from `history_signals` as the authoritative retry-pressure signal.  The ledger's own `attempts_per_closed_task` field is a weaker proxy because retries at the conversation level are often not captured in structured attempt records.
+Use `retry_rate` from `history_signals` as the authoritative retry-pressure signal. The ledger's own `attempts_per_closed_task` field is a weaker proxy because retries at the conversation level are often not captured in structured attempt records.
 
 ## Anti-Gaming Rules
 
