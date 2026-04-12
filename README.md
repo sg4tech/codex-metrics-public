@@ -188,7 +188,7 @@ Explain missing cost coverage and check whether it is recoverable from local age
 ai-agents-metrics audit-cost-coverage
 ```
 
-Regenerate the optional markdown report:
+Regenerate the optional markdown report (opt-in, requires manual tracking bootstrap):
 
 ```bash
 ai-agents-metrics render-report
@@ -228,7 +228,7 @@ If your history shows 32% retry pressure, manual tracking tells you whether it's
 
 | Concept | Meaning |
 |---|---|
-| **goal** | One requested outcome (`task` is a legacy alias in CLI flags) |
+| **goal** | One requested outcome |
 | **attempt** | One implementation pass or retry for a goal |
 | **outcome** | Final result: `success` or `fail` |
 | **result fit** | Quality label: `exact_fit`, `partial_fit`, or `miss` — a goal can succeed but still be a partial fit |
