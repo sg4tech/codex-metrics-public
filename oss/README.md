@@ -78,9 +78,11 @@ It is not a benchmark, an eval framework, or a model comparison tool. It is a lo
 pipx install ai-agents-metrics   # macOS / modern Linux (recommended)
 # pip install ai-agents-metrics  # inside a virtualenv
 
-# Run the full history pipeline — pick your tool:
-ai-agents-metrics history-update                   # Codex (~/.codex)
-ai-agents-metrics history-update --source claude   # Claude Code (~/.claude)
+# Run the full history pipeline (reads ~/.codex + ~/.claude by default):
+ai-agents-metrics history-update
+# Or restrict to a single source:
+ai-agents-metrics history-update --source codex    # Codex only (~/.codex)
+ai-agents-metrics history-update --source claude   # Claude Code only (~/.claude)
 
 # See retry pressure, token cost, and session timeline
 ai-agents-metrics show
@@ -145,8 +147,9 @@ make package-standalone
 Extract metrics from existing agent session files in one command:
 
 ```bash
-ai-agents-metrics history-update                   # reads ~/.codex by default
-ai-agents-metrics history-update --source claude   # reads ~/.claude/projects/
+ai-agents-metrics history-update                   # reads ~/.codex + ~/.claude (all sources)
+ai-agents-metrics history-update --source codex    # restrict to Codex only
+ai-agents-metrics history-update --source claude   # restrict to Claude Code only
 ```
 
 Or run the three stages individually (ingest → normalize → derive):
