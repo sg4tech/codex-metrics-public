@@ -20,16 +20,16 @@ from ai_agents_metrics.domain import (
     sync_goal_attempt_entries,
 )
 from ai_agents_metrics.event_store import append_event
-from ai_agents_metrics.history_audit import (
+from ai_agents_metrics.history.audit import (
     AuditReport,
 )
-from ai_agents_metrics.history_compare import (
+from ai_agents_metrics.history.compare import (
     HistoryCompareReport,
     HistorySignals,
 )
-from ai_agents_metrics.history_derive import DeriveSummary
-from ai_agents_metrics.history_ingest import IngestSummary, default_raw_warehouse_path
-from ai_agents_metrics.history_normalize import NormalizeSummary
+from ai_agents_metrics.history.derive import DeriveSummary
+from ai_agents_metrics.history.ingest import IngestSummary, default_raw_warehouse_path
+from ai_agents_metrics.history.normalize import NormalizeSummary
 from ai_agents_metrics.observability import (
     record_goal_merge_observation,
     record_goal_mutation_observation,

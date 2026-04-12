@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from ai_agents_metrics.domain import build_effective_goals, goal_from_dict
-from ai_agents_metrics.history_compare_store import (
+from ai_agents_metrics.history.compare_store import (
     HistoryCompareProjectRow,
     HistoryCompareScopeRow,
     HistoryCompareWarehouseData,

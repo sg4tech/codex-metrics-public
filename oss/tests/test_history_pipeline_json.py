@@ -9,9 +9,9 @@ from pathlib import Path
 import pytest
 
 from ai_agents_metrics import commands
-from ai_agents_metrics.history_derive import DeriveSummary, render_derive_summary_json
-from ai_agents_metrics.history_ingest import IngestSummary, render_ingest_summary_json
-from ai_agents_metrics.history_normalize import NormalizeSummary, render_normalize_summary_json
+from ai_agents_metrics.history.derive import DeriveSummary, render_derive_summary_json
+from ai_agents_metrics.history.ingest import IngestSummary, render_ingest_summary_json
+from ai_agents_metrics.history.normalize import NormalizeSummary, render_normalize_summary_json
 
 
 def _make_ingest_summary(source_root: str = "/source", warehouse: str = "/warehouse.sqlite") -> IngestSummary:

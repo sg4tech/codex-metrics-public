@@ -12,7 +12,7 @@ from ai_agents_metrics.domain import (
 from ai_agents_metrics.redaction import redact_text
 
 if TYPE_CHECKING:
-    from ai_agents_metrics.history_compare import HistorySignals
+    from ai_agents_metrics.history.compare import HistorySignals
 
 
 @dataclass(frozen=True)

@@ -85,6 +85,7 @@ The following docs exist for reference — consult them as needed, not on every 
 - Keep test-only escape hatches out of production code paths; if tests need to bypass a safety mechanism, prefer dependency injection, monkeypatching, or test fixtures over runtime environment toggles.
 - Before investing in more metrics semantics, refactoring, or process polish, ask which layer is the current bottleneck; do not optimize a non-constraint.
 - For partial-data metrics, prefer explicit coverage and covered-subset averages over brittle all-or-nothing KPIs that collapse to `n/a`.
+- Before writing repetitive boilerplate (copy-pasted fetch functions, near-identical blocks), pause and consider whether extracting a shared helper or compressing the pattern would keep the file within AI context limits (~900 lines / ~10 000 tokens). Files that exceed this limit cannot be read in a single tool call and become expensive to work with.
 
 ## Metrics tooling
 

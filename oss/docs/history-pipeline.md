@@ -55,10 +55,10 @@ Raw sources (~/.claude, Claude Code telemetry) — cost/token only (lightweight 
 
 | Stage | Module | What it does |
 |-------|--------|--------------|
-| Ingest | `history_ingest.py` | Reads raw Codex sources into the warehouse |
-| Normalize | `history_normalize.py` | Cleans and stabilises raw rows |
-| Derive | `history_derive.py` | Builds goal, attempt, and timeline marts |
-| Compare | `history_compare.py` | Diffs derived goals against the NDJSON ledger |
+| Ingest | `history/ingest.py` | Reads raw Codex sources into the warehouse |
+| Normalize | `history/normalize.py` | Cleans and stabilises raw rows |
+| Derive | `history/derive.py` | Builds goal, attempt, and timeline marts |
+| Compare | `history/compare.py` | Diffs derived goals against the NDJSON ledger |
 
 Run in order: ingest → normalize → derive → compare.
 
@@ -409,7 +409,7 @@ To add a new data source (e.g. a different agent or log format):
 
 1. Add a new ingest module that reads from the new source and writes into the same raw warehouse schema, or a new schema alongside it.
 2. Add normalize and derive stages that produce the same output table shapes (`derived_goals`, `derived_attempts`, etc.) so downstream comparison and analysis remain unchanged.
-3. The compare stage (`history_compare.py`) works against the NDJSON ledger and is source-agnostic — it does not need to change for new sources.
+3. The compare stage (`history/compare.py`) works against the NDJSON ledger and is source-agnostic — it does not need to change for new sources.
 
 The current raw table names (`raw_threads`, `raw_sessions`, etc.) are Codex-specific. New adapters should introduce their own raw table namespace rather than reusing these names.
 

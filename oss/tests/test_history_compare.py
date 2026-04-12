@@ -9,7 +9,7 @@ import pytest
 from test_history_ingest import run_cmd
 
 from ai_agents_metrics import commands
-from ai_agents_metrics.history_compare import (
+from ai_agents_metrics.history.compare import (
     HistoryCompareFinding,
     HistoryCompareProjectRow,
     HistoryCompareReport,
@@ -191,7 +191,7 @@ def test_history_compare_rejects_missing_warehouse(tmp_path: Path) -> None:
 # read_history_signals
 # ---------------------------------------------------------------------------
 
-from ai_agents_metrics.history_compare import read_history_signals  # noqa: E402
+from ai_agents_metrics.history.compare import read_history_signals  # noqa: E402
 
 
 def test_read_history_signals_absent_warehouse(tmp_path: Path) -> None:
