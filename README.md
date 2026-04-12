@@ -76,9 +76,9 @@ It is not a benchmark, an eval framework, or a model comparison tool. It is a lo
 ```bash
 pip install ai-agents-metrics
 
-# Run the full history pipeline in one step
-ai-agents-metrics history-update                   # reads ~/.codex (Codex)
-ai-agents-metrics history-update --source claude   # reads ~/.claude (Claude Code)
+# Run the full history pipeline — pick your tool:
+ai-agents-metrics history-update                   # Codex (~/.codex)
+ai-agents-metrics history-update --source claude   # Claude Code (~/.claude)
 
 # See retry pressure, token cost, and session timeline
 ai-agents-metrics show
@@ -205,16 +205,6 @@ The report reads token and retry data from the local warehouse when available (f
 
 ---
 
-## Sync Cost Data
-
-Backfill token and cost data from local agent telemetry into existing ledger goal records (opt-in manual tracking only). Supports Claude Code and Codex automatically — no provider flag required:
-
-```bash
-ai-agents-metrics sync-usage
-```
-
----
-
 ## Bootstrap a Repository (opt-in)
 
 To also enable manual goal tracking, run once to scaffold `ai-agents-metrics` into a repository. Creates the event log, installs the policy document, and injects an agent instructions block:
@@ -279,6 +269,14 @@ If work has already started without an active goal, use this to detect and creat
 ai-agents-metrics ensure-active-task
 ```
 
+### Backfill cost data
+
+Backfill token and cost data from local agent telemetry into existing goal records. Supports Claude Code and Codex automatically — no provider flag required:
+
+```bash
+ai-agents-metrics sync-usage
+```
+
 ### Audit the ledger
 
 Flag suspicious ledger patterns — likely misses, stale in-progress goals, and low cost coverage:
@@ -293,9 +291,9 @@ ai-agents-metrics history-audit
 
 All data stays local. `ai-agents-metrics` writes only to:
 
-- `metrics/events.ndjson` — the append-only event log (source of truth)
-- `docs/ai-agents-metrics.md` — an optional markdown export (regenerated on demand)
-- `.ai-agents-metrics/warehouse.db` — a local SQLite cache used by the history pipeline
+- `.ai-agents-metrics/warehouse.db` — local SQLite warehouse used by the history pipeline
+- `metrics/events.ndjson` — append-only event log for manual goal tracking (opt-in)
+- `docs/ai-agents-metrics.md` — optional markdown export (regenerated on demand)
 
 No data is sent to any remote service. The event log is a plain NDJSON file you can read, audit, and version-control yourself.
 
