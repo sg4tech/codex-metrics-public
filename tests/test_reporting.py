@@ -4,7 +4,7 @@ import io
 from unittest.mock import patch
 
 from ai_agents_metrics import domain, reporting
-from ai_agents_metrics.history_compare import HistorySignals
+from ai_agents_metrics.history.compare import HistorySignals
 
 
 def _base_metrics() -> dict[str, object]:
