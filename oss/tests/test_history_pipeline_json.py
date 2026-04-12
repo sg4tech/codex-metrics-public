@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from argparse import Namespace
 from contextlib import nullcontext
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -99,6 +100,44 @@ class _FakeRuntime:
         return render_derive_summary_json(summary)
 
 
+class _FakeRuntimeMultiSource:
+    """Runtime that tracks which sources were ingested; used for source=all tests."""
+
+    def __init__(
+        self,
+        *,
+        ingest_summaries_by_source: dict[str, IngestSummary],
+        normalize_summary: NormalizeSummary,
+        derive_summary: DeriveSummary,
+    ) -> None:
+        self.ingest_summaries_by_source = ingest_summaries_by_source
+        self.normalize_summary = normalize_summary
+        self.derive_summary = derive_summary
+        self.ingested_sources: list[str] = []
+
+    def metrics_mutation_lock(self, metrics_path: Path):
+        return nullcontext()
+
+    def ingest_codex_history(self, source_root: Path, warehouse_path: Path, source: str = "codex") -> IngestSummary:
+        self.ingested_sources.append(source)
+        return self.ingest_summaries_by_source[source]
+
+    def normalize_codex_history(self, warehouse_path: Path) -> NormalizeSummary:
+        return self.normalize_summary
+
+    def derive_codex_history(self, warehouse_path: Path) -> DeriveSummary:
+        return self.derive_summary
+
+    def render_ingest_summary_json(self, summary: IngestSummary) -> str:
+        return render_ingest_summary_json(summary)
+
+    def render_normalize_summary_json(self, summary: NormalizeSummary) -> str:
+        return render_normalize_summary_json(summary)
+
+    def render_derive_summary_json(self, summary: DeriveSummary) -> str:
+        return render_derive_summary_json(summary)
+
+
 def test_render_history_pipeline_json_summaries() -> None:
     ingest_payload = json.loads(render_ingest_summary_json(_make_ingest_summary()))
     assert ingest_payload["projects"] == 2
@@ -179,3 +218,70 @@ def test_history_update_json_output(capsys: pytest.CaptureFixture[str]) -> None:
     assert payload["ingest"]["codex"]["threads"] == 3
     assert payload["normalize"]["usage_events"] == 6
     assert payload["derive"]["retry_chains"] == 6
+
+
+def test_history_update_no_source_reads_both(
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """history-update without --source must read both ~/.codex and ~/.claude."""
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
+    (tmp_path / ".codex").mkdir()
+    (tmp_path / ".claude").mkdir()
+
+    codex_summary = replace(
+        _make_ingest_summary(source_root=str(tmp_path / ".codex"), warehouse="/warehouse.sqlite"),
+        threads=5,
+    )
+    claude_summary = replace(
+        _make_ingest_summary(source_root=str(tmp_path / ".claude"), warehouse="/warehouse.sqlite"),
+        threads=7,
+    )
+
+    runtime = _FakeRuntimeMultiSource(
+        ingest_summaries_by_source={"codex": codex_summary, "claude": claude_summary},
+        normalize_summary=_make_normalize_summary(),
+        derive_summary=_make_derive_summary(),
+    )
+    result = commands.handle_history_update(
+        Namespace(source=None, source_root=None, warehouse_path="/warehouse.sqlite", json=False),
+        runtime,
+    )
+    assert result == 0
+    assert runtime.ingested_sources == ["codex", "claude"]
+    out = capsys.readouterr().out
+    assert "==> history-ingest (codex)" in out
+    assert "==> history-ingest (claude)" in out
+    assert "==> history-normalize" in out
+    assert "==> history-derive" in out
+    assert "Done." in out
+
+
+def test_history_update_no_source_one_missing(
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """history-update without --source skips a source whose directory does not exist."""
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
+    (tmp_path / ".codex").mkdir()
+    # ~/.claude intentionally absent
+
+    codex_summary = _make_ingest_summary(source_root=str(tmp_path / ".codex"), warehouse="/warehouse.sqlite")
+
+    runtime = _FakeRuntimeMultiSource(
+        ingest_summaries_by_source={"codex": codex_summary},
+        normalize_summary=_make_normalize_summary(),
+        derive_summary=_make_derive_summary(),
+    )
+    result = commands.handle_history_update(
+        Namespace(source=None, source_root=None, warehouse_path="/warehouse.sqlite", json=False),
+        runtime,
+    )
+    assert result == 0
+    assert runtime.ingested_sources == ["codex"]
+    out = capsys.readouterr().out
+    assert "==> history-ingest (codex)" in out
+    assert "[skipped:" in out  # claude skipped message
+    assert "==> history-normalize" in out

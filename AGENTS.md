@@ -169,6 +169,7 @@ Local validation reminders:
 ## Git and GitHub safety rules
 
 - **Never** use `--admin`, `--force`, `--no-verify`, or any other flag that bypasses branch protection, required reviews, or CI gates on a shared repository — not for routine work, not to unblock a release, not for any reason — without the user explicitly naming that flag in their instruction.
+- **Never** use `git rebase` to incorporate upstream changes into a feature branch. Always use `git merge origin/master` (or the appropriate base branch). Rebase rewrites history and requires a force push, which is disruptive.
 - When a merge is blocked by branch policy (`base branch policy prohibits the merge`), **stop and report the block**. Do not retry with elevated flags. Ask the user what they want to do.
 - Review approval is a gate set by the user. It is not an obstacle to route around. "Do the release" does not authorize bypassing review requirements.
 
