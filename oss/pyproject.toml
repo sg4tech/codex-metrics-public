@@ -122,6 +122,7 @@ forbidden_modules = [
     "ai_agents_metrics.history.derive_build",
     "ai_agents_metrics.history.derive_schema",
     "ai_agents_metrics.history.compare",
+    "ai_agents_metrics.history.compare_store",
     "ai_agents_metrics.history.audit",
 ]
 
@@ -140,7 +141,7 @@ forbidden_modules = [
 name = "History pipeline follows ingest -> normalize -> derive -> compare order"
 type = "layers"
 layers = [
-    "ai_agents_metrics.history.compare : ai_agents_metrics.history.audit",
+    "ai_agents_metrics.history.compare : ai_agents_metrics.history.compare_store : ai_agents_metrics.history.audit",
     "ai_agents_metrics.history.derive",
     "ai_agents_metrics.history.derive_insert",
     "ai_agents_metrics.history.derive_build",
@@ -150,7 +151,7 @@ layers = [
 ]
 
 [tool.pylint.main]
-# cli.py, commands.py, history_ingest.py are known oversized files tracked as
+# cli.py, commands.py, history/ingest.py are known oversized files tracked as
 # architectural debt (ARCH). They are excluded here so the check guards new code
 # without blocking the build until those files are split.
 ignore = ["cli.py", "commands.py", "ingest.py"]
