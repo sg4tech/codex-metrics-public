@@ -1332,7 +1332,7 @@ def upsert_task(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Track goal, attempt, failure, and cost metrics for AI-agent-assisted work.",
+        description="Analyze your AI agent work history, track spending, and optimize your workflow. Point it at your history files and see retry pressure, token cost, and session timeline — no manual setup required.",
         epilog=(
             "Examples:\n"
             "  %(prog)s start-task --title \"Add CSV import\" --task-type product\n"

@@ -139,14 +139,14 @@ make package-standalone
 
 ## Analyze History
 
-Extract metrics from existing agent session files. Run the three pipeline stages in order:
+Extract metrics from existing agent session files in one command:
 
 ```bash
-ai-agents-metrics history-update                   # reads ~/.codex by default (runs all three stages)
+ai-agents-metrics history-update                   # reads ~/.codex by default
 ai-agents-metrics history-update --source claude   # reads ~/.claude/projects/
 ```
 
-Or run the three stages individually:
+Or run the three stages individually (ingest → normalize → derive):
 
 ```bash
 ai-agents-metrics history-ingest
@@ -182,12 +182,6 @@ Print a summary of retry pressure, costs, and session history:
 ai-agents-metrics show
 ```
 
-Audit goal history for likely misses, stale in-progress goals, and low cost coverage:
-
-```bash
-ai-agents-metrics history-audit
-```
-
 Explain missing cost coverage and check whether it is recoverable from local agent logs:
 
 ```bash
@@ -213,7 +207,7 @@ The report reads token and retry data from the local warehouse when available (f
 
 ## Sync Cost Data
 
-Backfill token and cost data from local agent telemetry into existing goal records. Supports Claude Code and Codex automatically — no provider flag required:
+Backfill token and cost data from local agent telemetry into existing ledger goal records (opt-in manual tracking only). Supports Claude Code and Codex automatically — no provider flag required:
 
 ```bash
 ai-agents-metrics sync-usage
@@ -283,6 +277,14 @@ If work has already started without an active goal, use this to detect and creat
 
 ```bash
 ai-agents-metrics ensure-active-task
+```
+
+### Audit the ledger
+
+Flag suspicious ledger patterns — likely misses, stale in-progress goals, and low cost coverage:
+
+```bash
+ai-agents-metrics history-audit
 ```
 
 ---
