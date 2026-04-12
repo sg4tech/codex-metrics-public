@@ -713,6 +713,13 @@ def handle_history_update(args: Namespace, cli_module: CommandRuntime) -> int:
         else:
             ingest_summaries = {source: _json.loads(cli_module.render_ingest_summary_json(ingest_summary))}
 
+    if not ingest_results and not warehouse_path.exists():
+        if not json_output:
+            print("No sources were ingested and no existing warehouse found — nothing to normalize.")
+        else:
+            print(_json.dumps({"ingest": ingest_summaries, "normalize": None, "derive": None}))
+        return 0
+
     if not json_output:
         print("==> history-normalize")
     with cli_module.metrics_mutation_lock(warehouse_path):
