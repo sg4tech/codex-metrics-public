@@ -75,7 +75,8 @@ It is not a benchmark, an eval framework, or a model comparison tool. It is a lo
 ## Quick Start
 
 ```bash
-pip install ai-agents-metrics
+pipx install ai-agents-metrics   # macOS / modern Linux (recommended)
+# pip install ai-agents-metrics  # inside a virtualenv
 
 # Run the full history pipeline — pick your tool:
 ai-agents-metrics history-update                   # Codex (~/.codex)
@@ -120,7 +121,8 @@ The `History signals` section is derived directly from session history files —
 Install from PyPI:
 
 ```bash
-pip install ai-agents-metrics
+pipx install ai-agents-metrics   # macOS / modern Linux (recommended)
+pip install ai-agents-metrics    # inside a virtualenv
 ```
 
 Install from source:

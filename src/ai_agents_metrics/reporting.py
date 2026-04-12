@@ -664,7 +664,10 @@ def print_summary(data: dict[str, Any], history_signals: HistorySignals | None =
         for reason, count in summary["entries"]["failure_reasons"].items():
             print(f"- {reason}: {count}")
     if history_signals is not None:
-        print("History signals (warehouse):")
+        scope_label = "all projects" if history_signals.is_all_projects else "warehouse"
+        print(f"History signals ({scope_label}):")
+        if history_signals.is_all_projects:
+            print("  (no history for current directory — showing all projects)")
         retry_pct = f"{history_signals.retry_rate:.0%}"
         print(f"  Project threads: {history_signals.project_threads}  (worktrees merged)")
         print(f"  Threads with retry pressure: {history_signals.retry_threads} / {history_signals.project_threads} ({retry_pct})")
@@ -706,6 +709,7 @@ def render_summary_json(data: dict[str, Any], history_signals: HistorySignals | 
         "goals": data["goals"],
         "entries": data["entries"],
         "history_signals": {
+            "scope": "all_projects" if history_signals.is_all_projects else "current_project",
             "project_threads": history_signals.project_threads,
             "retry_threads": history_signals.retry_threads,
             "retry_rate": history_signals.retry_rate,

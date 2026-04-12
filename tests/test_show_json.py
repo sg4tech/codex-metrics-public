@@ -301,6 +301,7 @@ def test_render_summary_json_history_signals_present() -> None:
     payload = json.loads(render_summary_json(data, signals))
     hs = payload["history_signals"]
     assert hs is not None
+    assert hs["scope"] == "current_project"
     assert hs["project_threads"] == 72
     assert hs["retry_threads"] == 21
     assert abs(hs["retry_rate"] - 0.29) < 0.001

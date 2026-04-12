@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from argparse import Namespace
 from pathlib import Path
 
@@ -282,10 +283,30 @@ def test_read_history_signals_worktree_merges_into_parent(tmp_path: Path) -> Non
     assert signals.retry_threads == 3     # 1 + 2 merged
 
 
-def test_read_history_signals_zero_threads_returns_zero_rate(tmp_path: Path) -> None:
+def test_read_history_signals_fallback_to_all_projects(tmp_path: Path) -> None:
+    """When cwd doesn't match any project, fall back to all-projects view."""
     cwd = tmp_path / "empty"
     warehouse = _make_warehouse_with_project(str(tmp_path), "/other/project", threads=5, retry_threads=2)
     signals = read_history_signals(warehouse, cwd, {"goals": []})
     assert signals is not None
+    assert signals.project_threads == 5
+    assert signals.retry_threads == 2
+    assert signals.retry_rate == 0.4
+    assert signals.is_all_projects is True
+
+
+def test_read_history_signals_no_data_returns_zero(tmp_path: Path) -> None:
+    """When warehouse has derived tables but zero projects, return zero rate."""
+    cwd = tmp_path / "empty"
+    warehouse = tmp_path / "warehouse.sqlite"
+    with sqlite3.connect(warehouse) as conn:
+        conn.execute(
+            "CREATE TABLE derived_projects "
+            "(project_cwd TEXT, parent_project_cwd TEXT, thread_count INT, retry_thread_count INT)"
+        )
+        conn.execute("CREATE TABLE derived_goals (cwd TEXT, first_seen_at TEXT, last_seen_at TEXT)")
+    signals = read_history_signals(warehouse, cwd, {"goals": []})
+    assert signals is not None
     assert signals.project_threads == 0
     assert signals.retry_rate == 0.0
+    assert signals.is_all_projects is False

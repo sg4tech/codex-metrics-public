@@ -40,7 +40,7 @@ arch-check: check-init
 	PYTHONPATH=src .venv/bin/lint-imports
 
 sync-bootstrap-policy:
-	cp docs/ai-agents-metrics-policy.md src/ai_agents_metrics/data/bootstrap_codex_metrics_policy.md
+	@test -r src/ai_agents_metrics/data/bootstrap_codex_metrics_policy.md || { echo "ERROR: bootstrap policy not found (expected symlink to docs/)"; exit 1; }
 
 build-check:
 	./.venv/bin/pip install --no-deps -e . -q
