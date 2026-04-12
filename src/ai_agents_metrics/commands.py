@@ -28,7 +28,7 @@ from ai_agents_metrics.history_compare import (
     HistorySignals,
 )
 from ai_agents_metrics.history_derive import DeriveSummary
-from ai_agents_metrics.history_ingest import IngestSummary
+from ai_agents_metrics.history_ingest import IngestSummary, default_raw_warehouse_path
 from ai_agents_metrics.history_normalize import NormalizeSummary
 from ai_agents_metrics.observability import (
     record_goal_merge_observation,
@@ -1007,7 +1007,7 @@ def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:
     warehouse_path = Path(_warehouse_arg) if _warehouse_arg else None
     if warehouse_path is None or not warehouse_path.is_file():
         # Fall back to the default warehouse location beside the metrics file.
-        warehouse_path = metrics_path.parent / ".codex-metrics" / "codex_raw_history.sqlite"
+        warehouse_path = default_raw_warehouse_path(metrics_path)
     if warehouse_path.is_file():
         try:
             cwd = str(Path.cwd())

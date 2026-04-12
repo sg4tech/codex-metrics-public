@@ -310,7 +310,7 @@ def create_codex_history_source_root(root: Path) -> Path:
 
 def test_ingest_codex_history_builds_raw_warehouse(repo: Path) -> None:
     source_root = create_codex_history_source_root(repo)
-    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "warehouse.db"
 
     result = run_cmd(
         repo,
@@ -392,7 +392,7 @@ def test_ingest_codex_history_tracks_token_count_coverage(repo: Path) -> None:
         + "\n",
         encoding="utf-8",
     )
-    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "warehouse.db"
 
     result = run_cmd(
         repo,
@@ -417,7 +417,7 @@ def test_ingest_codex_history_tracks_token_count_coverage(repo: Path) -> None:
 
 def test_ingest_codex_history_is_idempotent_on_rerun(repo: Path) -> None:
     source_root = create_codex_history_source_root(repo)
-    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "warehouse.db"
 
     first = run_cmd(
         repo,
@@ -450,7 +450,7 @@ def test_ingest_codex_history_is_idempotent_on_rerun(repo: Path) -> None:
 
 
 def test_ingest_codex_history_rejects_missing_source_root(repo: Path) -> None:
-    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "warehouse.db"
     missing_root = repo / "does-not-exist"
 
     result = run_cmd(
@@ -470,7 +470,7 @@ def test_ingest_codex_history_handles_partial_source_root_without_state_or_logs(
     source_root = create_codex_history_source_root(repo)
     (source_root / "state_5.sqlite").unlink()
     (source_root / "logs_1.sqlite").unlink()
-    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "warehouse.db"
 
     result = run_cmd(
         repo,
@@ -514,7 +514,7 @@ def test_ingest_codex_history_rejects_malformed_sqlite_sources(repo: Path) -> No
     with sqlite3.connect(source_root / "state_5.sqlite") as conn:
         conn.execute("DROP TABLE threads")
         conn.commit()
-    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "warehouse.db"
 
     result = run_cmd(
         repo,
@@ -759,7 +759,7 @@ def test_import_claude_subagent_groups_under_same_thread(tmp_path: Path) -> None
 
 def test_ingest_claude_history_builds_raw_warehouse(repo: Path) -> None:
     claude_root = create_claude_history_source_root(repo)
-    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "warehouse.db"
 
     result = run_cmd(
         repo,
@@ -804,7 +804,7 @@ def test_ingest_claude_history_builds_raw_warehouse(repo: Path) -> None:
 
 def test_ingest_claude_history_subagent_groups_under_same_thread_cli(repo: Path) -> None:
     claude_root = create_claude_history_source_root(repo, with_subagent=True)
-    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "warehouse.db"
 
     result = run_cmd(
         repo,
@@ -827,7 +827,7 @@ def test_ingest_claude_history_subagent_groups_under_same_thread_cli(repo: Path)
 
 def test_ingest_claude_history_is_idempotent_on_rerun(repo: Path) -> None:
     claude_root = create_claude_history_source_root(repo)
-    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "warehouse.db"
 
     first = run_cmd(
         repo,
