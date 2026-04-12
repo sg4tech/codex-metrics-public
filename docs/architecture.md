@@ -95,7 +95,7 @@ Four sequential modules that reconstruct goal history from raw Codex agent state
 
 ```
 Codex state/logs (SQLite)
-  ↓  history_ingest.py       → .ai-agents-metrics/codex_raw_history.sqlite
+  ↓  history_ingest.py       → .ai-agents-metrics/warehouse.db
   ↓  history_normalize.py    → cleaned warehouse rows
   ↓  history_derive.py       → GoalRecord + AttemptEntryRecord objects
   ↓  history_compare.py      → diff against replayed metrics state
@@ -155,7 +155,7 @@ Transitions produce a `WorkflowDecision(action, message)`. Commands call `classi
 - Summary is always computed in-memory from the replayed state; it is never persisted
 - Mutations serialised via fcntl lockfile (`metrics/events.ndjson.lock`)
 
-**History warehouse:** `.ai-agents-metrics/codex_raw_history.sqlite`
+**History warehouse:** `.ai-agents-metrics/warehouse.db`
 - Intermediate cache populated by `history_ingest.py`
 - Consumed by normalize → derive steps; not the source of truth
 - Also read directly by `render-html` for token/cost and retry data (warehouse-first reporting, H-038): covers full session history, while the ndjson ledger only covers manually-tracked goals

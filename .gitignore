@@ -33,4 +33,3 @@ metrics/.ai-agents-metrics/
 
 # Generated HTML reports (human-facing, not tracked)
 reports/
-src/ai_agents_metrics/data/bootstrap_codex_metrics_policy.md

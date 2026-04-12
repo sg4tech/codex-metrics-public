@@ -23,6 +23,7 @@ class HistorySignals:
     retry_rate: float
     ledger_goal_alignments: int
     ledger_goals_total: int
+    is_all_projects: bool = False
 
 
 def read_history_signals(
@@ -83,6 +84,23 @@ def read_history_signals(
 
             project_threads = int(row["thread_count"])
             retry_threads = int(row["retry_thread_count"])
+            is_all_projects = False
+
+            # Fallback: if no threads match the current cwd, show all projects.
+            if project_threads == 0:
+                row = conn.execute(
+                    """
+                    SELECT
+                        coalesce(sum(thread_count), 0)       AS thread_count,
+                        coalesce(sum(retry_thread_count), 0) AS retry_thread_count
+                    FROM derived_projects
+                    """,
+                ).fetchone()
+                project_threads = int(row["thread_count"])
+                retry_threads = int(row["retry_thread_count"])
+                if project_threads > 0:
+                    is_all_projects = True
+
             retry_rate = (retry_threads / project_threads) if project_threads > 0 else 0.0
 
             # Per-goal alignment: count ledger goals that have a matching history thread
@@ -116,6 +134,7 @@ def read_history_signals(
         retry_rate=retry_rate,
         ledger_goal_alignments=aligned_count,
         ledger_goals_total=len(closed_goals),
+        is_all_projects=is_all_projects,
     )
 
 
