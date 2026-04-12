@@ -73,6 +73,16 @@ def _add_retry_session(source_root: Path) -> None:
                         "timestamp": "2026-04-02T10:10:01.000Z",
                         "type": "response_item",
                         "payload": {
+                            "role": "user",
+                            "content": [{"type": "input_text", "text": "please clarify"}],
+                        },
+                    }
+                ),
+                json.dumps(
+                    {
+                        "timestamp": "2026-04-02T10:10:02.000Z",
+                        "type": "response_item",
+                        "payload": {
                             "role": "assistant",
                             "content": [{"type": "output_text", "text": "retry reply"}],
                         },
@@ -109,18 +119,19 @@ def test_derive_codex_history_builds_analysis_marts(repo: Path) -> None:
     assert "Derived Codex history in" in result.stdout
     assert "Projects: 2" in result.stdout
     assert "Goals: 2" in result.stdout
-    assert "Attempts: 3" in result.stdout
-    assert "Timeline events: 10" in result.stdout
+    assert "Attempts: 3" in result.stdout  # user turns: 2 in thread-1, 1 in thread-2 (min=1)
+    # rollout-3 gains a user message: +1 timeline event, +1 message fact
+    assert "Timeline events: 11" in result.stdout
     assert "Retry chains: 2" in result.stdout
-    assert "Message facts: 4" in result.stdout
+    assert "Message facts: 5" in result.stdout
     assert "Session usage: 3" in result.stdout
 
     with sqlite3.connect(warehouse_path) as conn:
         conn.row_factory = sqlite3.Row
         assert conn.execute("SELECT count(*) FROM derived_goals").fetchone()[0] == 2
         assert conn.execute("SELECT count(*) FROM derived_attempts").fetchone()[0] == 3
-        assert conn.execute("SELECT count(*) FROM derived_timeline_events").fetchone()[0] == 10
-        assert conn.execute("SELECT count(*) FROM derived_message_facts").fetchone()[0] == 4
+        assert conn.execute("SELECT count(*) FROM derived_timeline_events").fetchone()[0] == 11
+        assert conn.execute("SELECT count(*) FROM derived_message_facts").fetchone()[0] == 5
         assert conn.execute("SELECT count(*) FROM derived_retry_chains").fetchone()[0] == 2
         assert conn.execute("SELECT count(*) FROM derived_session_usage").fetchone()[0] == 3
         assert conn.execute("SELECT count(*) FROM derived_projects").fetchone()[0] == 2
@@ -129,24 +140,38 @@ def test_derive_codex_history_builds_analysis_marts(repo: Path) -> None:
             "SELECT attempt_count, retry_count, timeline_event_count FROM derived_goals WHERE thread_id = ?",
             ("thread-1",),
         ).fetchone()
+        # attempt_count = user messages in thread (2: "hello ingest" + "please clarify")
         assert thread_1["attempt_count"] == 2
         assert thread_1["retry_count"] == 1
-        assert thread_1["timeline_event_count"] == 7
+        assert thread_1["timeline_event_count"] == 8
 
         retry_chain = conn.execute(
-            "SELECT has_retry_pressure, first_attempt_session_path, last_attempt_session_path FROM derived_retry_chains WHERE thread_id = ?",
+            "SELECT has_retry_pressure, first_session_path, last_session_path FROM derived_retry_chains WHERE thread_id = ?",
             ("thread-1",),
         ).fetchone()
         assert retry_chain["has_retry_pressure"] == 1
-        assert retry_chain["first_attempt_session_path"].endswith("rollout-1.jsonl")
-        assert retry_chain["last_attempt_session_path"].endswith("rollout-3.jsonl")
+        assert retry_chain["first_session_path"].endswith("rollout-1.jsonl")
+        assert retry_chain["last_session_path"].endswith("rollout-3.jsonl")
+
+        thread_2 = conn.execute(
+            "SELECT attempt_count, retry_count FROM derived_goals WHERE thread_id = ?",
+            ("thread-2",),
+        ).fetchone()
+        assert thread_2["attempt_count"] == 1
+        assert thread_2["retry_count"] == 0
+
+        thread_2_chain = conn.execute(
+            "SELECT has_retry_pressure FROM derived_retry_chains WHERE thread_id = ?",
+            ("thread-2",),
+        ).fetchone()
+        assert thread_2_chain["has_retry_pressure"] == 0
 
         attempt = conn.execute(
             "SELECT attempt_index, message_count, usage_event_count FROM derived_attempts WHERE session_path LIKE ?",
             ("%rollout-3.jsonl",),
         ).fetchone()
         assert attempt["attempt_index"] == 2
-        assert attempt["message_count"] == 1
+        assert attempt["message_count"] == 2  # user "please clarify" + assistant "retry reply"
         assert attempt["usage_event_count"] == 0
 
         user_message = conn.execute(

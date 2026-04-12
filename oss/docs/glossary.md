@@ -8,7 +8,7 @@ A goal with `status="in_progress"`; the FSM treats any nonzero count of such goa
 
 ### attempt / entry
 
-These are the same unit of work at different layers: an `attempt` is the conceptual retry or execution pass, while an `entry` is the stored `entries[]` record for that pass.
+These are the same unit of work at different layers: an `attempt` is one user-initiated turn in a thread (initial prompt or any subsequent clarifying input), while an `entry` is the stored `entries[]` record for that pass. `attempt_count` = total user turns; `retry_count` = user turns after the first one (i.e. how many clarifying inputs the agent required).
 
 ### AttemptEntryRecord
 
@@ -57,6 +57,10 @@ The append-only NDJSON file at `metrics/events.ndjson`. Each CLI command appends
 ### model
 
 The model name attached to a goal or attempt record when it is known; it is aggregated into `model_complete_goals` and `mixed_model_goals` so the summary can distinguish goals with a single consistent model from goals whose attempts used different models.
+
+### retry pressure / has_retry_pressure
+
+A thread has retry pressure when the user had to send at least one message after the initial prompt — a clarifying or corrective input required before the task was done. `retry_count` = user messages after the first; `has_retry_pressure = retry_count > 0`. Measured from the message transcript, so it works identically for Codex and Claude. A thread with a single user message and one assistant response has `retry_count = 0`.
 
 ### result_fit
 
