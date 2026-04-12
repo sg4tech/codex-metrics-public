@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/sg4tech/ai-agents-metrics/actions/workflows/ci.yml/badge.svg)](https://github.com/sg4tech/ai-agents-metrics/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/ai-agents-metrics)](https://pypi.org/project/ai-agents-metrics/)
+[![Downloads](https://img.shields.io/pypi/dm/ai-agents-metrics)](https://pypi.org/project/ai-agents-metrics/)
 [![License](https://img.shields.io/pypi/l/ai-agents-metrics)](https://github.com/sg4tech/ai-agents-metrics/blob/main/LICENSE)
 [![Python](https://img.shields.io/pypi/pyversions/ai-agents-metrics)](https://pypi.org/project/ai-agents-metrics/)
 
@@ -322,6 +323,16 @@ make verify-public-boundary
 ## Repository
 
 [github.com/sg4tech/ai-agents-metrics](https://github.com/sg4tech/ai-agents-metrics)
+
+## Releasing
+
+Publishing to PyPI is automated via GitHub Actions. To release a new version:
+
+1. Merge all changes to `main` on this repository
+2. Create and push a tag: `git tag v0.x.y && git push public v0.x.y`
+3. The [publish workflow](https://github.com/sg4tech/ai-agents-metrics/actions/workflows/publish.yml) triggers automatically on the tag and publishes to PyPI via Trusted Publishing — no credentials required locally
+
+Do not publish manually with `twine`.
 
 ## Contributing
 
