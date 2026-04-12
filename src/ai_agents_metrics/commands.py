@@ -720,6 +720,7 @@ def handle_history_update(args: Namespace, cli_module: CommandRuntime) -> int:
             print(_json.dumps({"ingest": ingest_summaries, "normalize": None, "derive": None}))
         return 0
 
+
     if not json_output:
         print("==> history-normalize")
     with cli_module.metrics_mutation_lock(warehouse_path):
