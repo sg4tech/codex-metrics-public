@@ -88,7 +88,7 @@ def _add_retry_session(source_root: Path) -> None:
 def test_derive_codex_history_builds_analysis_marts(repo: Path) -> None:
     source_root = create_codex_history_source_root(repo)
     _add_retry_session(source_root)
-    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "warehouse.db"
 
     assert (
         run_cmd(
@@ -181,7 +181,7 @@ def test_derive_codex_history_builds_analysis_marts(repo: Path) -> None:
 
 def test_derive_codex_history_is_idempotent_on_rerun(repo: Path) -> None:
     source_root = create_codex_history_source_root(repo)
-    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "warehouse.db"
 
     assert (
         run_cmd(
@@ -462,7 +462,7 @@ def test_fetch_normalized_functions_handle_nullable_fields() -> None:
 
 def test_derive_claude_history_populates_cache_creation_tokens(repo: Path) -> None:
     claude_root = create_claude_history_source_root(repo)
-    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "warehouse.db"
 
     assert (
         run_cmd(
@@ -526,7 +526,7 @@ def test_parent_project_cwd_empty_string() -> None:
 def test_derive_merges_worktree_into_parent_project(repo: Path) -> None:
     """Worktree threads must roll up into the parent project in derived_projects."""
     source_root = create_codex_history_source_root(repo)
-    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "codex_raw_history.sqlite"
+    warehouse_path = repo / "metrics" / ".ai-agents-metrics" / "warehouse.db"
 
     assert run_cmd(repo, "history-ingest", "--source-root", str(source_root), "--warehouse-path", str(warehouse_path)).returncode == 0
     assert run_cmd(repo, "history-normalize", "--warehouse-path", str(warehouse_path)).returncode == 0

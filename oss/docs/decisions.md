@@ -61,7 +61,7 @@ New entries should follow the format below. Add entries as decisions are made or
 
 **Context:** Codex agent stores session history in `~/.codex/state_5.sqlite` and `~/.codex/logs_1.sqlite`. The tool needs to derive goal history from this raw data.
 
-**Decision:** A three-stage pipeline (ingest → normalize → derive) with an intermediate SQLite warehouse at `.ai-agents-metrics/codex_raw_history.sqlite`, separate from the primary JSON store.
+**Decision:** A three-stage pipeline (ingest → normalize → derive) with an intermediate SQLite warehouse at `.ai-agents-metrics/warehouse.db`, separate from the primary JSON store.
 
 **Trade-offs:** Inter-stage contracts exist only as SQLite column names, not Python types (tracked in ARCH-006).
 

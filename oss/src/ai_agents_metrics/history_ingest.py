@@ -12,7 +12,7 @@ from ai_agents_metrics.storage import ensure_parent_dir
 
 RAW_WAREHOUSE_DIRNAME = ".ai-agents-metrics"
 _RAW_WAREHOUSE_DIRNAME_LEGACY = ".codex-metrics"
-RAW_WAREHOUSE_FILENAME = "codex_raw_history.sqlite"
+RAW_WAREHOUSE_FILENAME = "warehouse.db"
 
 
 @dataclass(frozen=True)
