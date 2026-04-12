@@ -120,8 +120,9 @@ Do not edit `metrics/events.ndjson` manually. All mutations must go through the 
 ### History extraction (primary flow)
 
 ```bash
-ai-agents-metrics history-update                   # reads ~/.codex (Codex)
-ai-agents-metrics history-update --source claude   # reads ~/.claude (Claude Code)
+ai-agents-metrics history-update                   # reads ~/.codex + ~/.claude (all sources)
+ai-agents-metrics history-update --source codex    # restrict to Codex (~/.codex)
+ai-agents-metrics history-update --source claude   # restrict to Claude Code (~/.claude)
 ai-agents-metrics show
 ai-agents-metrics history-compare
 ```

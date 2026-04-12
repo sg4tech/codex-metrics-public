@@ -17,9 +17,10 @@ Command names and flags use `task` (`start-task`, `--task-id`, `--task-type`, et
 ### Primary flow — history extraction (no prior setup required)
 
 ```bash
-# Run the full history pipeline in one step
-ai-agents-metrics history-update                   # Codex (~/.codex)
-ai-agents-metrics history-update --source claude   # Claude Code (~/.claude)
+# Run the full history pipeline in one step (all sources by default)
+ai-agents-metrics history-update                   # ~/.codex + ~/.claude
+ai-agents-metrics history-update --source codex    # restrict to Codex only
+ai-agents-metrics history-update --source claude   # restrict to Claude Code only
 
 # Inspect: retry pressure, token cost, session timeline
 ai-agents-metrics show
@@ -305,9 +306,10 @@ ai-agents-metrics sync-usage
 
 Sequential pipeline for ingesting and analyzing raw agent session history. Run in order: ingest → normalize → derive.
 
-Supports two agent sources via `--source`:
-- `codex` (default): reads from `~/.codex`
-- `claude`: reads from `~/.claude/projects/` (Claude Code full transcript + tokens)
+Supports three `--source` values:
+- `all` (default): reads from both `~/.codex` and `~/.claude`; sources that don't exist are skipped silently
+- `codex`: reads from `~/.codex` only
+- `claude`: reads from `~/.claude/projects/` only (Claude Code full transcript + tokens)
 
 ### `history-update`
 
@@ -315,13 +317,14 @@ Run the full history pipeline in one step: ingest → normalize → derive. Use 
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--source` | `codex` | Agent source: `codex` or `claude` |
-| `--source-root` | `~/.codex` / `~/.claude` | Override agent history root |
+| `--source` | `all` | Agent source: `all`, `codex`, or `claude` |
+| `--source-root` | — | Override agent history root (implies `--source codex`; incompatible with `--source all`) |
 | `--warehouse-path` | `.ai-agents-metrics/warehouse.db` | SQLite warehouse path |
 | `--json` | — | Print a JSON object with `ingest`, `normalize`, and `derive` summaries |
 
 ```bash
 ai-agents-metrics history-update
+ai-agents-metrics history-update --source codex
 ai-agents-metrics history-update --source claude
 ai-agents-metrics history-update --json
 ```
@@ -332,12 +335,13 @@ Read thread metadata, session transcripts, telemetry events, and logs from a loc
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--source` | `codex` | Agent source: `codex` or `claude` |
-| `--source-root` | `~/.codex` / `~/.claude` | Override agent history root |
+| `--source` | `all` | Agent source: `all`, `codex`, or `claude` |
+| `--source-root` | — | Override agent history root (implies `--source codex`; incompatible with `--source all`) |
 | `--warehouse-path` | `.ai-agents-metrics/warehouse.db` | Output SQLite warehouse |
 
 ```bash
 ai-agents-metrics history-ingest
+ai-agents-metrics history-ingest --source codex
 ai-agents-metrics history-ingest --source claude
 ```
 

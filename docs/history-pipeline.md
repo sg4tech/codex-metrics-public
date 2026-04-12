@@ -16,10 +16,11 @@
 
 ## Scope and limitations
 
-This pipeline supports two agent sources:
+This pipeline supports three `--source` values:
 
-- **Codex** (`--source codex`, default): reads from `~/.codex` — full transcript, token usage, and thread metadata.
-- **Claude Code** (`--source claude`): reads from `~/.claude/projects/` — full transcript and token usage from session JSONL files, including subagent sessions.
+- **All** (`--source all`, default): reads from both `~/.codex` and `~/.claude`; sources that don't exist are skipped silently.
+- **Codex** (`--source codex`): reads from `~/.codex` only — full transcript, token usage, and thread metadata.
+- **Claude Code** (`--source claude`): reads from `~/.claude/projects/` only — full transcript and token usage from session JSONL files, including subagent sessions.
 
 Both sources feed the same ingest → normalize → derive pipeline and produce the same warehouse table shapes. The history pipeline is the primary product flow — run it to get retry pressure, token cost, and session timelines from existing history files with no prior setup. The NDJSON ledger (`events.ndjson`) is a complementary opt-in layer for explicit goal boundaries and outcome judgements.
 
@@ -337,8 +338,9 @@ Project-level aggregate after derivation.
 For Codex or Claude Code sessions (full transcript + cost):
 
 1. Ingest sources into the raw warehouse:
-   - Codex: `history-ingest --source codex` (reads `~/.codex`)
-   - Claude Code: `history-ingest --source claude` (reads `~/.claude/projects/`)
+   - All sources: `history-ingest` (reads `~/.codex` + `~/.claude`, default)
+   - Codex only: `history-ingest --source codex` (reads `~/.codex`)
+   - Claude Code only: `history-ingest --source claude` (reads `~/.claude/projects/`)
 2. Normalize raw rows into stable message, usage, and project tables.
 3. Derive higher-level goal, attempt, and timeline marts.
 4. Search `raw_messages` or `normalized_messages` for transcript text.
@@ -350,7 +352,7 @@ For Codex or Claude Code sessions (full transcript + cost):
 For cost-only backfill (Claude Code, lightweight):
 
 1. Run `sync-usage` to backfill cost and token totals from `~/.claude` telemetry into the NDJSON ledger.
-2. This does not ingest transcripts — use `--source claude` above for full conversation history.
+2. This does not ingest transcripts — use `history-ingest` (or `--source claude`) above for full conversation history.
 
 ---
 
