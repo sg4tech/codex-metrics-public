@@ -89,7 +89,7 @@ This is stronger than "default undocumented" — the README is actively making a
 
 **Fix:** Correct the Quick Start comment and state the actual default.
 
-**Decision:** Уже в работе в другом треде.
+**Decision:** Уже в работе в другом треде. **Fixed in master (2026-04-13):** default is now `all`, reads both `~/.codex` and `~/.claude`. Behaviour matches README.
 
 ### 9. Retry pressure = 0% for Codex-only data — headline metric broken on default source
 
@@ -107,7 +107,7 @@ After adding Claude history (`--source claude`), 25/108 threads show retry press
 
 **Fix:** Either document that retry detection requires Claude history, or add a note to the `History signals` output when the Codex-only warehouse shows 0%.
 
-**Decision:** Needs investigation and decision.
+**Decision:** Needs investigation and decision. **Partially mitigated (2026-04-13):** default source is now `all` so Claude history is included automatically — retry pressure will be non-zero for users who have Claude sessions. Root cause (Codex retry detection not implemented) is still open.
 
 ### 10. `finish-task` with non-existent task ID gives cryptic error
 
@@ -128,9 +128,17 @@ The argparse definition in the dev source has `choices=["codex", "claude", "all"
 
 **Fix:** Either expose `all` in `--help` or remove it from the internal choices and route to multi-source via the no-flag default path only.
 
-**Decision:** Needs decision — expose or hide consistently.
+**Decision:** **Fixed in master (2026-04-13):** `--source all` is now visible in `--help` with description "reads both ~/.codex and ~/.claude". Explicit `--source all` is accepted and works correctly.
 
-### 7. `render-html` output notation unexplained
+### 7. `show` without prior `history-update` — silent zeros, no hint
+
+When no warehouse exists, `show` omits the "History signals" section entirely with no explanation. A new user who skips `history-update` or runs `show` from a different directory sees zeros everywhere and has no indication why.
+
+**Fix:** Print "History signals: not available / Run 'ai-agents-metrics history-update'..." when warehouse is absent. Add a Tip when warehouse exists but has no data for the current directory.
+
+**Decision:** **Fixed in master (2026-04-13):** `reporting.py` now prints the hint when `history_signals is None`, and a Tip line when showing all-projects fallback.
+
+### 8. `render-html` output notation unexplained
 
 Output includes `(retry: warehouse, tokens: warehouse)` or `(retry: ledger, tokens: ledger)`. This distinction is not documented in the README or in the command output itself. A new user does not know whether "warehouse" or "ledger" is better.
 
@@ -138,7 +146,7 @@ Output includes `(retry: warehouse, tokens: warehouse)` or `(retry: ledger, toke
 
 **Decision:** Пока не ясно. Не правим, разберёмся позже.
 
-### 8. Warehouse size not mentioned
+### 9. Warehouse size not mentioned
 
 On a moderately active Claude Code install (~157 session files), the warehouse is 333 MB. The README says "all data stays local" but gives no storage guidance.
 
@@ -168,8 +176,8 @@ On a moderately active Claude Code install (~157 session files), the warehouse i
 |---|---|---|
 | `--help` / `--version` | PASS | Clear, complete |
 | `history-update --source claude` | PASS | Works from any dir |
-| `history-update` (no flag) | PASS (defaults to codex) | Default undocumented — P2 |
-| `show` | PASS | Works empty and with data |
+| `history-update` (no flag) | PASS (defaults to all) | Fixed in master 2026-04-13 — reads both sources |
+| `show` | PASS | Shows hint to run history-update when warehouse absent — fixed in master 2026-04-13 |
 | `show --json` (outside git) | FAIL | Warning on stdout, invalid JSON — P0 |
 | `bootstrap --dry-run` | PASS | Accurate preview |
 | `bootstrap` | PASS | Idempotent |
