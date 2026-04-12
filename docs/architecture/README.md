@@ -22,6 +22,7 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 | [ARCH-012](ARCH-012-import-linter.md) | Integrate import-linter for architectural boundary enforcement | medium | low | done |
 | [ARCH-013](ARCH-013-decompose-high-complexity-functions.md) | Decompose high-complexity orchestrator functions (derive_codex_history, aggregate_report_data) | high | high | open |
 | [ARCH-014](ARCH-014-extract-usage-resolution-from-cli.md) | Extract usage resolution functions out of cli.py (eliminate lazy circular imports) | medium | medium | open |
+| [ARCH-015](ARCH-015-sqlalchemy-migration.md) | Migrate from raw sqlite3 to SQLAlchemy Core | medium | high | planned |
 
 ## Recommended order
 
@@ -37,3 +38,4 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 10. **ARCH-012** — medium priority; enforces architectural layer boundaries as code grows (import-linter rules)
 11. **ARCH-013** — high priority; `derive_codex_history` (CC=85) and `aggregate_report_data` (CC=70) are untestable monoliths; decompose before further growth
 12. **ARCH-014** — medium priority; lazy `cli` imports in `usage_backends` and `commands` are a circular dep workaround; unblock import-linter contract after fix
+13. **ARCH-015** — medium priority; replace raw sqlite3 SQL strings with SQLAlchemy Core for safer, composable queries as complexity grows
