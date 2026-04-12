@@ -63,39 +63,44 @@ def _session_usage_table_name(conn: sqlite3.Connection) -> str:
 
 
 def _warehouse_scope_row(conn: sqlite3.Connection, *, cwd: str | None = None) -> HistoryCompareScopeRow:
-    where_clause = ""
-    params: tuple[Any, ...] = ()
+    _session_usage_table_name(conn)  # validate table exists
+
+    # Use a universal WHERE that passes through all rows when cwd is None,
+    # and filters by exact cwd + worktree paths when cwd is provided.
     if cwd is not None:
-        # Match both the exact project cwd and any Claude Code worktree paths rooted there.
-        # Worktrees live under <project>/.claude/worktrees/<name>, so a LIKE suffix catches them.
-        where_clause = "WHERE (cwd = ? OR cwd LIKE ?)"
-        params = (cwd, cwd + "/.claude/worktrees/%")
-    session_usage_table = _session_usage_table_name(conn)
+        params: tuple[Any, ...] = (cwd, cwd, cwd + "/.claude/worktrees/%")
+    else:
+        params = (None, None, None)
 
-    # where_clause and session_usage_table are hardcoded SQL fragments, not user input;
-    # all dynamic values are bound via parameterized `params` tuples.
-    _and_or_where = " AND " if where_clause else " WHERE "
-    _goals = "FROM derived_goals " + where_clause
-    _in_goals = "thread_id IN (SELECT thread_id FROM derived_goals " + where_clause + ")"  # nosec B608
-    _sql_thread_count = "SELECT count(*) " + _goals
-    _sql_attempt_count = "SELECT coalesce(sum(attempt_count), 0) " + _goals
-    _sql_retry = "SELECT count(*) " + _goals + _and_or_where + "retry_count > 0"
-    _sql_transcript = "SELECT count(*) " + _goals + _and_or_where + "message_count > 0"
-    _sql_usage_threads = "SELECT count(DISTINCT thread_id) FROM " + session_usage_table + " WHERE " + _in_goals + " AND total_tokens IS NOT NULL"  # nosec B608
-    _sql_input = "SELECT sum(input_tokens) FROM " + session_usage_table + " WHERE " + _in_goals  # nosec B608
-    _sql_cached = "SELECT sum(cached_input_tokens) FROM " + session_usage_table + " WHERE " + _in_goals  # nosec B608
-    _sql_output = "SELECT sum(output_tokens) FROM " + session_usage_table + " WHERE " + _in_goals  # nosec B608
-    _sql_total = "SELECT sum(total_tokens) FROM " + session_usage_table + " WHERE " + _in_goals  # nosec B608
-
-    thread_count = int(conn.execute(_sql_thread_count, params).fetchone()[0])
-    attempt_count = int(conn.execute(_sql_attempt_count, params).fetchone()[0])
-    retry_threads = int(conn.execute(_sql_retry, params).fetchone()[0])
-    transcript_threads = int(conn.execute(_sql_transcript, params).fetchone()[0])
-    usage_threads = int(conn.execute(_sql_usage_threads, params).fetchone()[0])
-    input_tokens = _sum_nullable_int(conn, _sql_input, params)
-    cached_input_tokens = _sum_nullable_int(conn, _sql_cached, params)
-    output_tokens = _sum_nullable_int(conn, _sql_output, params)
-    total_tokens = _sum_nullable_int(conn, _sql_total, params)
+    thread_count = int(conn.execute(
+        "SELECT count(*) FROM derived_goals WHERE (? IS NULL OR cwd = ? OR cwd LIKE ?)", params,
+    ).fetchone()[0])
+    attempt_count = int(conn.execute(
+        "SELECT coalesce(sum(attempt_count), 0) FROM derived_goals WHERE (? IS NULL OR cwd = ? OR cwd LIKE ?)", params,
+    ).fetchone()[0])
+    retry_threads = int(conn.execute(
+        "SELECT count(*) FROM derived_goals WHERE (? IS NULL OR cwd = ? OR cwd LIKE ?) AND retry_count > 0", params,
+    ).fetchone()[0])
+    transcript_threads = int(conn.execute(
+        "SELECT count(*) FROM derived_goals WHERE (? IS NULL OR cwd = ? OR cwd LIKE ?) AND message_count > 0", params,
+    ).fetchone()[0])
+    usage_threads = int(conn.execute(
+        "SELECT count(DISTINCT thread_id) FROM derived_session_usage"
+        " WHERE thread_id IN (SELECT thread_id FROM derived_goals WHERE (? IS NULL OR cwd = ? OR cwd LIKE ?))"
+        " AND total_tokens IS NOT NULL", params,
+    ).fetchone()[0])
+    input_tokens = _sum_nullable_int(conn,
+        "SELECT sum(input_tokens) FROM derived_session_usage"
+        " WHERE thread_id IN (SELECT thread_id FROM derived_goals WHERE (? IS NULL OR cwd = ? OR cwd LIKE ?))", params)
+    cached_input_tokens = _sum_nullable_int(conn,
+        "SELECT sum(cached_input_tokens) FROM derived_session_usage"
+        " WHERE thread_id IN (SELECT thread_id FROM derived_goals WHERE (? IS NULL OR cwd = ? OR cwd LIKE ?))", params)
+    output_tokens = _sum_nullable_int(conn,
+        "SELECT sum(output_tokens) FROM derived_session_usage"
+        " WHERE thread_id IN (SELECT thread_id FROM derived_goals WHERE (? IS NULL OR cwd = ? OR cwd LIKE ?))", params)
+    total_tokens = _sum_nullable_int(conn,
+        "SELECT sum(total_tokens) FROM derived_session_usage"
+        " WHERE thread_id IN (SELECT thread_id FROM derived_goals WHERE (? IS NULL OR cwd = ? OR cwd LIKE ?))", params)
     if _table_exists(conn, "derived_projects"):
         projects_columns = {row[1] for row in conn.execute("PRAGMA table_info(derived_projects)").fetchall()}
         has_parent_col = "parent_project_cwd" in projects_columns
@@ -118,8 +123,9 @@ def _warehouse_scope_row(conn: sqlite3.Connection, *, cwd: str | None = None) ->
             project_count = int(conn.execute("SELECT count(*) FROM derived_projects").fetchone()[0])
     else:
         if cwd is not None:
-            _sql_proj = "SELECT count(DISTINCT cwd) FROM derived_goals " + where_clause  # nosec B608
-            project_count = int(conn.execute(_sql_proj, params).fetchone()[0])
+            project_count = int(conn.execute(
+                "SELECT count(DISTINCT cwd) FROM derived_goals WHERE (? IS NULL OR cwd = ? OR cwd LIKE ?)", params,
+            ).fetchone()[0])
         else:
             project_count = int(
                 conn.execute(
