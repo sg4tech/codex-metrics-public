@@ -332,7 +332,7 @@ Publishing to PyPI is automated via GitHub Actions. To release a new version:
 2. Create and push a tag: `git tag v0.x.y && git push public v0.x.y`
 3. The [publish workflow](https://github.com/sg4tech/ai-agents-metrics/actions/workflows/publish.yml) triggers automatically on the tag and publishes to PyPI via Trusted Publishing — no credentials required locally
 
-Do not publish manually with `twine`.
+Manual publishing with `twine` is not needed — the workflow handles it.
 
 ## Contributing
 
