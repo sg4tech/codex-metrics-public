@@ -63,38 +63,38 @@ from ai_agents_metrics.git_state import (
 from ai_agents_metrics.git_state import (
     _normalize_worktree_path as _git_state_normalize_worktree_path,
 )
-from ai_agents_metrics.history_audit import (  # noqa: F401 — re-exported as cli_module attributes
+from ai_agents_metrics.history.audit import (  # noqa: F401 — re-exported as cli_module attributes
     audit_history,
     render_audit_report,
     render_audit_report_json,
 )
-from ai_agents_metrics.history_compare import (  # noqa: F401 — re-exported as cli_module attributes
+from ai_agents_metrics.history.compare import (  # noqa: F401 — re-exported as cli_module attributes
     HistorySignals,
     compare_metrics_to_history,
     read_history_signals,
     render_history_compare_report,
     render_history_compare_report_json,
 )
-from ai_agents_metrics.history_derive import (
+from ai_agents_metrics.history.derive import (
     DeriveSummary,
     render_derive_summary_json,  # noqa: F401 — re-exported as cli_module attribute
 )
-from ai_agents_metrics.history_derive import (
+from ai_agents_metrics.history.derive import (
     derive_codex_history as run_derive_codex_history,
 )
-from ai_agents_metrics.history_ingest import (
+from ai_agents_metrics.history.ingest import (
     IngestSummary,
     default_raw_warehouse_path,
     render_ingest_summary_json,  # noqa: F401 — re-exported as cli_module attribute
 )
-from ai_agents_metrics.history_ingest import (
+from ai_agents_metrics.history.ingest import (
     ingest_codex_history as run_ingest_codex_history,
 )
-from ai_agents_metrics.history_normalize import (
+from ai_agents_metrics.history.normalize import (
     NormalizeSummary,
     render_normalize_summary_json,  # noqa: F401 — re-exported as cli_module attribute
 )
-from ai_agents_metrics.history_normalize import (
+from ai_agents_metrics.history.normalize import (
     normalize_codex_history as run_normalize_codex_history,
 )
 from ai_agents_metrics.observability import record_cli_invocation_observation

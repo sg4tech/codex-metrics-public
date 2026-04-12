@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 from typing import Any, cast
 
-from ai_agents_metrics.history_normalize import (
+from ai_agents_metrics.history.normalize import (
     NormalizedLogRow,
     NormalizedMessageRow,
     NormalizedSessionRow,

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ai_agents_metrics.history_derive_build import (
+from ai_agents_metrics.history.derive_build import (
     _build_index_maps,
     _build_message_usage_groups,
     _build_timeline_items,
@@ -20,14 +20,14 @@ from ai_agents_metrics.history_derive_build import (
     _pick_earliest_timestamp,
     _pick_latest_timestamp,
 )
-from ai_agents_metrics.history_derive_insert import (
+from ai_agents_metrics.history.derive_insert import (
     _insert_attempts_and_session_usage,
     _insert_goal_and_retry_chain,
     _insert_message_facts,
     _insert_projects,
     _insert_timeline_events,
 )
-from ai_agents_metrics.history_derive_schema import (
+from ai_agents_metrics.history.derive_schema import (
     _clear_derived_tables,
     _ensure_schema,
 )

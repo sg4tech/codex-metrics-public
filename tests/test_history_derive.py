@@ -13,14 +13,14 @@ from test_history_ingest import (
     run_cmd,
 )
 
-from ai_agents_metrics.history_derive import (
+from ai_agents_metrics.history.derive import (
     _fetch_normalized_logs,
     _fetch_normalized_messages,
     _fetch_normalized_sessions,
     _fetch_normalized_threads,
     _fetch_normalized_usage_events,
 )
-from ai_agents_metrics.history_normalize import _ensure_schema
+from ai_agents_metrics.history.normalize import _ensure_schema
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
 ABS_SCRIPT = WORKSPACE_ROOT / "scripts" / "metrics_cli.py"
@@ -497,30 +497,30 @@ def test_derive_claude_history_populates_cache_creation_tokens(repo: Path) -> No
 # ---------------------------------------------------------------------------
 
 def test_parent_project_cwd_plain_path() -> None:
-    from ai_agents_metrics.history_derive import _parent_project_cwd
+    from ai_agents_metrics.history.derive import _parent_project_cwd
     assert _parent_project_cwd("/Users/viktor/myproject") == "/Users/viktor/myproject"
 
 
 def test_parent_project_cwd_worktree_path() -> None:
-    from ai_agents_metrics.history_derive import _parent_project_cwd
+    from ai_agents_metrics.history.derive import _parent_project_cwd
     result = _parent_project_cwd("/Users/viktor/myproject/.claude/worktrees/eloquent-rhodes")
     assert result == "/Users/viktor/myproject"
 
 
 def test_parent_project_cwd_nested_worktree() -> None:
-    from ai_agents_metrics.history_derive import _parent_project_cwd
+    from ai_agents_metrics.history.derive import _parent_project_cwd
     result = _parent_project_cwd("/a/b/.claude/worktrees/foo/.claude/worktrees/bar")
     # Only the first marker is stripped
     assert result == "/a/b"
 
 
 def test_parent_project_cwd_none_input() -> None:
-    from ai_agents_metrics.history_derive import _parent_project_cwd
+    from ai_agents_metrics.history.derive import _parent_project_cwd
     assert _parent_project_cwd(None) is None
 
 
 def test_parent_project_cwd_empty_string() -> None:
-    from ai_agents_metrics.history_derive import _parent_project_cwd
+    from ai_agents_metrics.history.derive import _parent_project_cwd
     assert _parent_project_cwd("") is None
 
 

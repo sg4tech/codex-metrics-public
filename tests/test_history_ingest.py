@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_agents_metrics.history_ingest import (
+from ai_agents_metrics.history.ingest import (
     _encode_claude_cwd,
     _extract_claude_token_usage,
     _extract_message_text,
@@ -680,7 +680,7 @@ def test_extract_claude_token_usage_zero_total_returns_none() -> None:
 def test_import_claude_session_file_populates_warehouse(tmp_path: Path) -> None:
     import sqlite3 as _sqlite3
 
-    from ai_agents_metrics.history_ingest import _ensure_schema
+    from ai_agents_metrics.history.ingest import _ensure_schema
 
     warehouse = tmp_path / "warehouse.sqlite"
     session_id = "bbbb0000-0000-0000-0000-000000000001"
@@ -718,7 +718,7 @@ def test_import_claude_session_file_populates_warehouse(tmp_path: Path) -> None:
 def test_import_claude_subagent_groups_under_same_thread(tmp_path: Path) -> None:
     import sqlite3 as _sqlite3
 
-    from ai_agents_metrics.history_ingest import _ensure_schema
+    from ai_agents_metrics.history.ingest import _ensure_schema
 
     warehouse = tmp_path / "warehouse.sqlite"
     session_id = "cccc0000-0000-0000-0000-000000000001"
