@@ -663,11 +663,16 @@ def print_summary(data: dict[str, Any], history_signals: HistorySignals | None =
         print("Entry failure reasons:")
         for reason, count in summary["entries"]["failure_reasons"].items():
             print(f"- {reason}: {count}")
-    if history_signals is not None:
+    if history_signals is None:
+        print("History signals: not available")
+        print("  Run 'ai-agents-metrics history-update' to extract retry pressure and")
+        print("  token cost from your agent history files.")
+    else:
         scope_label = "all projects" if history_signals.is_all_projects else "warehouse"
         print(f"History signals ({scope_label}):")
         if history_signals.is_all_projects:
             print("  (no history for current directory — showing all projects)")
+            print("  Tip: run history-update from your project directory to get per-project signals.")
         retry_pct = f"{history_signals.retry_rate:.0%}"
         print(f"  Project threads: {history_signals.project_threads}  (worktrees merged)")
         print(f"  Threads with retry pressure: {history_signals.retry_threads} / {history_signals.project_threads} ({retry_pct})")

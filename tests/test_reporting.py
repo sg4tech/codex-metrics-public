@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import io
+from unittest.mock import patch
+
 from ai_agents_metrics import domain, reporting
+from ai_agents_metrics.history_compare import HistorySignals
 
 
 def _base_metrics() -> dict[str, object]:
@@ -245,3 +249,53 @@ def test_generate_report_md_redacts_secret_like_notes_and_titles() -> None:
     assert "sk-test-secret-value-1234567890" not in rendered
     assert "Bearer abcdefghijklmnop" not in rendered
     assert "[REDACTED]" in rendered
+
+
+# print_summary — history signals section
+
+
+def _capture_print_summary(history_signals: HistorySignals | None) -> str:
+    data = {"summary": domain.empty_summary_block(include_by_task_type=True), "goals": [], "entries": []}
+    domain.recompute_summary(data)
+    buf = io.StringIO()
+    with patch("builtins.print", side_effect=lambda *a, **_kw: buf.write(" ".join(str(x) for x in a) + "\n")):
+        reporting.print_summary(data, history_signals)
+    return buf.getvalue()
+
+
+def test_print_summary_no_warehouse_shows_hint() -> None:
+    output = _capture_print_summary(None)
+    assert "History signals: not available" in output
+    assert "history-update" in output
+
+
+def test_print_summary_all_projects_scope_shows_tip() -> None:
+    signals = HistorySignals(
+        project_threads=10,
+        retry_threads=2,
+        retry_rate=0.2,
+        ledger_goal_alignments=0,
+        ledger_goals_total=0,
+        is_all_projects=True,
+    )
+    output = _capture_print_summary(signals)
+    assert "no history for current directory" in output
+    assert "Tip:" in output
+    assert "history-update" in output
+    # Should not show per-goal alignment line for all-projects scope
+    assert "Per-goal alignment" not in output
+
+
+def test_print_summary_current_project_scope_no_tip() -> None:
+    signals = HistorySignals(
+        project_threads=5,
+        retry_threads=1,
+        retry_rate=0.2,
+        ledger_goal_alignments=3,
+        ledger_goals_total=4,
+        is_all_projects=False,
+    )
+    output = _capture_print_summary(signals)
+    assert "History signals (warehouse):" in output
+    assert "no history for current directory" not in output
+    assert "Per-goal alignment" in output
