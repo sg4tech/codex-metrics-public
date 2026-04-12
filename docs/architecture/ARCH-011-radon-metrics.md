@@ -1,6 +1,6 @@
 # ARCH-011: Integrate radon for code complexity metrics
 
-**Status:** open  
+**Status:** in-progress  
 **Priority:** medium  
 **Complexity:** low
 

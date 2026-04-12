@@ -17,9 +17,11 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 | [ARCH-007](ARCH-007-legacy-supersedes-map.md) | Remove LEGACY_GOAL_SUPERSEDES_MAP from domain.py | low | low | done |
 | [ARCH-008](ARCH-008-cli-command-reference.md) | Write CLI command reference | medium | low | done |
 | [ARCH-009](ARCH-009-subprocess-coverage.md) | Automate subprocess coverage without manual env toggle | low | low | open |
-| [ARCH-010](ARCH-010-bandit-security-scan.md) | Integrate bandit security scanner into verify | medium | low | open |
-| [ARCH-011](ARCH-011-radon-metrics.md) | Integrate radon for code complexity metrics | medium | low | open |
-| [ARCH-012](ARCH-012-import-linter.md) | Integrate import-linter for architectural boundary enforcement | medium | low | open |
+| [ARCH-010](ARCH-010-bandit-security-scan.md) | Integrate bandit security scanner into verify | medium | low | done |
+| [ARCH-011](ARCH-011-radon-metrics.md) | Integrate radon for code complexity metrics | medium | low | in-progress |
+| [ARCH-012](ARCH-012-import-linter.md) | Integrate import-linter for architectural boundary enforcement | medium | low | done |
+| [ARCH-013](ARCH-013-decompose-high-complexity-functions.md) | Decompose high-complexity orchestrator functions (derive_codex_history, aggregate_report_data) | high | high | open |
+| [ARCH-014](ARCH-014-extract-usage-resolution-from-cli.md) | Extract usage resolution functions out of cli.py (eliminate lazy circular imports) | medium | medium | open |
 
 ## Recommended order
 
@@ -33,3 +35,5 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 8. **ARCH-010** — medium priority; enforces security scanning in CI/CD (fix B110 exception handling + B608 SQL patterns)
 9. **ARCH-011** — medium priority; identifies overly complex functions and modules needing decomposition (radon metrics)
 10. **ARCH-012** — medium priority; enforces architectural layer boundaries as code grows (import-linter rules)
+11. **ARCH-013** — high priority; `derive_codex_history` (CC=85) and `aggregate_report_data` (CC=70) are untestable monoliths; decompose before further growth
+12. **ARCH-014** — medium priority; lazy `cli` imports in `usage_backends` and `commands` are a circular dep workaround; unblock import-linter contract after fix

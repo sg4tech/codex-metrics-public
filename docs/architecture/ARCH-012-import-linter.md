@@ -1,6 +1,6 @@
 # ARCH-012: Integrate import-linter for architectural boundary enforcement
 
-**Status:** open  
+**Status:** done  
 **Priority:** medium  
 **Complexity:** low
 

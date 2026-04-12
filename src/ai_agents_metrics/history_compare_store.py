@@ -72,46 +72,48 @@ def _warehouse_scope_row(conn: sqlite3.Connection, *, cwd: str | None = None) ->
         params = (cwd, cwd + "/.claude/worktrees/%")
     session_usage_table = _session_usage_table_name(conn)
 
-    thread_count = int(conn.execute(f"SELECT count(*) FROM derived_goals {where_clause}", params).fetchone()[0])
+    # nosec B608 — where_clause and session_usage_table are hardcoded SQL fragments, not user input;
+    # all dynamic values are bound via parameterized `params` tuples.
+    thread_count = int(conn.execute(f"SELECT count(*) FROM derived_goals {where_clause}", params).fetchone()[0])  # nosec B608
     attempt_count = int(
-        conn.execute(f"SELECT coalesce(sum(attempt_count), 0) FROM derived_goals {where_clause}", params).fetchone()[0]
+        conn.execute(f"SELECT coalesce(sum(attempt_count), 0) FROM derived_goals {where_clause}", params).fetchone()[0]  # nosec B608
     )
     retry_threads = int(
         conn.execute(
-            f"SELECT count(*) FROM derived_goals {where_clause + (' AND ' if where_clause else ' WHERE ')} retry_count > 0",
+            f"SELECT count(*) FROM derived_goals {where_clause + (' AND ' if where_clause else ' WHERE ')} retry_count > 0",  # nosec B608
             params,
         ).fetchone()[0]
     )
     transcript_threads = int(
         conn.execute(
-            f"SELECT count(*) FROM derived_goals {where_clause + (' AND ' if where_clause else ' WHERE ')} message_count > 0",
+            f"SELECT count(*) FROM derived_goals {where_clause + (' AND ' if where_clause else ' WHERE ')} message_count > 0",  # nosec B608
             params,
         ).fetchone()[0]
     )
     usage_threads = int(
         conn.execute(
-            f"SELECT count(DISTINCT thread_id) FROM {session_usage_table} WHERE thread_id IN (SELECT thread_id FROM derived_goals {where_clause}) AND total_tokens IS NOT NULL",
+            f"SELECT count(DISTINCT thread_id) FROM {session_usage_table} WHERE thread_id IN (SELECT thread_id FROM derived_goals {where_clause}) AND total_tokens IS NOT NULL",  # nosec B608
             params,
         ).fetchone()[0]
     )
     input_tokens = _sum_nullable_int(
         conn,
-        f"SELECT sum(input_tokens) FROM {session_usage_table} WHERE thread_id IN (SELECT thread_id FROM derived_goals {where_clause})",
+        f"SELECT sum(input_tokens) FROM {session_usage_table} WHERE thread_id IN (SELECT thread_id FROM derived_goals {where_clause})",  # nosec B608
         params,
     )
     cached_input_tokens = _sum_nullable_int(
         conn,
-        f"SELECT sum(cached_input_tokens) FROM {session_usage_table} WHERE thread_id IN (SELECT thread_id FROM derived_goals {where_clause})",
+        f"SELECT sum(cached_input_tokens) FROM {session_usage_table} WHERE thread_id IN (SELECT thread_id FROM derived_goals {where_clause})",  # nosec B608
         params,
     )
     output_tokens = _sum_nullable_int(
         conn,
-        f"SELECT sum(output_tokens) FROM {session_usage_table} WHERE thread_id IN (SELECT thread_id FROM derived_goals {where_clause})",
+        f"SELECT sum(output_tokens) FROM {session_usage_table} WHERE thread_id IN (SELECT thread_id FROM derived_goals {where_clause})",  # nosec B608
         params,
     )
     total_tokens = _sum_nullable_int(
         conn,
-        f"SELECT sum(total_tokens) FROM {session_usage_table} WHERE thread_id IN (SELECT thread_id FROM derived_goals {where_clause})",
+        f"SELECT sum(total_tokens) FROM {session_usage_table} WHERE thread_id IN (SELECT thread_id FROM derived_goals {where_clause})",  # nosec B608
         params,
     )
     if _table_exists(conn, "derived_projects"):
@@ -138,7 +140,7 @@ def _warehouse_scope_row(conn: sqlite3.Connection, *, cwd: str | None = None) ->
         if cwd is not None:
             project_count = int(
                 conn.execute(
-                    f"SELECT count(DISTINCT cwd) FROM derived_goals {where_clause}",
+                    f"SELECT count(DISTINCT cwd) FROM derived_goals {where_clause}",  # nosec B608
                     params,
                 ).fetchone()[0]
             )

@@ -1,4 +1,4 @@
-.PHONY: init check-init remind-task lint typecheck test verify build-check security bandit verify-public-boundary setup-hooks dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke public-overlay-status public-overlay-bootstrap public-overlay-verify public-overlay-push public-overlay-pull
+.PHONY: init check-init remind-task lint typecheck test verify build-check security bandit complexity arch-check verify-public-boundary setup-hooks dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke public-overlay-status public-overlay-bootstrap public-overlay-verify public-overlay-push public-overlay-pull
 
 PYTHON3 ?= python3
 
@@ -30,13 +30,22 @@ test: remind-task
 build-check:
 	./.venv/bin/pip install --no-deps -e . -q
 
-verify: check-init remind-task lint security typecheck test build-check
+complexity: check-init
+	@echo "=== Cyclomatic complexity report (rank C and above) ==="
+	@.venv/bin/radon cc src/ -n C -s || true
+	@echo "=== Maintainability index (rank C — hard to maintain) ==="
+	@.venv/bin/radon mi src/ -n C -s || true
+
+arch-check: check-init
+	PYTHONPATH=src .venv/bin/lint-imports
+
+verify: check-init remind-task lint security bandit typecheck test build-check complexity arch-check
 
 security:
 	./.venv/bin/python -m ai_agents_metrics security --repo-root . --rules-path config/security-rules.toml
 
 bandit: remind-task
-	./.venv/bin/bandit -r src scripts -q --skip B404,B607,B603,B105
+	./.venv/bin/bandit -r src scripts -q --skip B404,B607,B603
 
 verify-public-boundary:
 	./.venv/bin/python -m ai_agents_metrics verify-public-boundary --repo-root . --rules-path config/public-boundary-rules.toml

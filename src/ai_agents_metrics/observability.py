@@ -264,7 +264,7 @@ def _record_event_best_effort(
         )
         try:
             _append_debug_line(paths.debug_log_path, fallback_line)
-        except Exception:
+        except Exception:  # nosec B110 — best-effort debug log; silently dropping is intentional
             pass
 
 
