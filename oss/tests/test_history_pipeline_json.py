@@ -176,6 +176,6 @@ def test_history_update_json_output(capsys: pytest.CaptureFixture[str]) -> None:
     )
     assert result == 0
     payload = json.loads(capsys.readouterr().out)
-    assert payload["ingest"]["threads"] == 3
+    assert payload["ingest"]["codex"]["threads"] == 3
     assert payload["normalize"]["usage_events"] == 6
     assert payload["derive"]["retry_chains"] == 6

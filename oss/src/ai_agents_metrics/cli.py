@@ -1619,14 +1619,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     ingest_parser.add_argument(
         "--source",
-        choices=["codex", "claude"],
-        default="codex",
-        help="Agent source to ingest: 'codex' (default, reads ~/.codex) or 'claude' (reads ~/.claude)",
+        choices=["codex", "claude", "all"],
+        default=None,
+        help="Agent source to ingest: 'all' (default when no --source-root), 'codex' (~/.codex), or 'claude' (~/.claude)",
     )
     ingest_parser.add_argument(
         "--source-root",
         default=None,
-        help="Override the agent history root directory (default: ~/.codex for codex, ~/.claude for claude)",
+        help="Override the agent history root directory (implies --source codex unless --source is set; incompatible with --source all)",
     )
     ingest_parser.add_argument(
         "--warehouse-path",
@@ -1673,14 +1673,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     history_update_parser.add_argument(
         "--source",
-        choices=["codex", "claude"],
-        default="codex",
-        help="Agent source to ingest: 'codex' (default, reads ~/.codex) or 'claude' (reads ~/.claude)",
+        choices=["codex", "claude", "all"],
+        default=None,
+        help="Agent source to ingest: 'all' (default when no --source-root), 'codex' (~/.codex), or 'claude' (~/.claude)",
     )
     history_update_parser.add_argument(
         "--source-root",
         default=None,
-        help="Override the agent history root directory",
+        help="Override the agent history root directory (implies --source codex unless --source is set; incompatible with --source all)",
     )
     history_update_parser.add_argument(
         "--warehouse-path",
