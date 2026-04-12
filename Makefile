@@ -1,4 +1,4 @@
-.PHONY: init check-init remind-task lint typecheck test verify build-check security bandit complexity arch-check verify-public-boundary setup-hooks dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke public-overlay-status public-overlay-bootstrap public-overlay-verify public-overlay-push public-overlay-pull
+.PHONY: init check-init remind-task lint typecheck test verify build-check security bandit complexity arch-check verify-public-boundary setup-hooks dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke public-overlay-status public-overlay-bootstrap public-overlay-verify public-overlay-push public-overlay-pull sync-bootstrap-policy check-bootstrap-policy
 
 PYTHON3 ?= python3
 
@@ -39,7 +39,15 @@ complexity: check-init
 arch-check: check-init
 	PYTHONPATH=src .venv/bin/lint-imports
 
-verify: check-init remind-task lint security bandit typecheck test build-check complexity arch-check
+sync-bootstrap-policy:
+	cp docs/ai-agents-metrics-policy.md src/ai_agents_metrics/data/bootstrap_codex_metrics_policy.md
+
+check-bootstrap-policy:
+	@diff -q docs/ai-agents-metrics-policy.md src/ai_agents_metrics/data/bootstrap_codex_metrics_policy.md > /dev/null \
+		|| (echo "ERROR: bootstrap policy is out of sync with docs/ai-agents-metrics-policy.md — run: make sync-bootstrap-policy" && exit 1)
+	@echo "Bootstrap policy in sync."
+
+verify: check-init remind-task lint security bandit typecheck test build-check complexity arch-check check-bootstrap-policy
 
 security:
 	./.venv/bin/python -m ai_agents_metrics security --repo-root . --rules-path config/security-rules.toml

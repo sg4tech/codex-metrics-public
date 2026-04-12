@@ -53,6 +53,8 @@ Apply this policy when an AI agent materially contributes to an engineering outc
 - `retro` for retrospective analysis and writeups
 - `meta` for bookkeeping, policy, audits, tooling governance, and support work
 
+To choose between `product` and `meta`: ask whether the change expands what a user of the tool can do. If yes, use `product`. If the work is internal overhead — tracking, auditing, policy updates, or fixing bookkeeping — use `meta`. Examples: new CLI command or ingest adapter → `product`; updating this policy doc or fixing a metrics tracking bug → `meta`.
+
 Always set `goal_type` explicitly for new goals.
 
 If a new goal intentionally continues or supersedes a prior closed goal, record that link explicitly.

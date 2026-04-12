@@ -10,7 +10,7 @@ Use it as the operating contract for repositories that adopt `ai-agents-metrics`
 
 **Tier 1 — History extraction (primary, no setup required)**
 
-Point the tool at your local agent history directory and run `history-ingest` + `show`. The tool extracts session structure, retry pressure, token cost, and timeline from existing conversation files — no prior instrumentation required. This is the primary product flow and the primary source of value.
+Point the tool at your local agent history directory and run `history-update` + `show`. The tool extracts session structure, retry pressure, token cost, and timeline from existing conversation files — no prior instrumentation required. This is the primary product flow and the primary source of value.
 
 **Tier 2 — Manual tracking (opt-in, for explicit judgements)**
 
@@ -120,10 +120,8 @@ Do not edit `metrics/events.ndjson` manually. All mutations must go through the 
 ### History extraction (primary flow)
 
 ```bash
-ai-agents-metrics history-ingest
-ai-agents-metrics history-ingest --source claude
-ai-agents-metrics history-normalize
-ai-agents-metrics history-derive
+ai-agents-metrics history-update                   # reads ~/.codex (Codex)
+ai-agents-metrics history-update --source claude   # reads ~/.claude (Claude Code)
 ai-agents-metrics show
 ai-agents-metrics history-compare
 ```
