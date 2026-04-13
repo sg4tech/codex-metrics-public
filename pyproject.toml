@@ -111,7 +111,11 @@ type = "forbidden"
 source_modules = ["ai_agents_metrics.domain"]
 forbidden_modules = [
     "ai_agents_metrics.cli",
+    "ai_agents_metrics.cli_parser",
+    "ai_agents_metrics.cli_usage",
     "ai_agents_metrics.commands",
+    "ai_agents_metrics.commands_install",
+    "ai_agents_metrics.pricing",
     "ai_agents_metrics.storage",
     "ai_agents_metrics.reporting",
     "ai_agents_metrics.workflow_fsm",
@@ -133,7 +137,11 @@ source_modules = ["ai_agents_metrics.storage"]
 forbidden_modules = [
     "ai_agents_metrics.domain",
     "ai_agents_metrics.cli",
+    "ai_agents_metrics.cli_parser",
+    "ai_agents_metrics.cli_usage",
     "ai_agents_metrics.commands",
+    "ai_agents_metrics.commands_install",
+    "ai_agents_metrics.pricing",
     "ai_agents_metrics.reporting",
 ]
 

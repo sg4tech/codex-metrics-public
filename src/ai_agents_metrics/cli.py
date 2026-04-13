@@ -100,27 +100,22 @@ from ai_agents_metrics.workflow_fsm import (
     resolve_workflow_transition,
 )
 
-# Functions and symbols used as cli_module attributes (dependency-injected into commands).
-# They must remain importable from this module even if not called directly here.
+# Symbols imported from other modules and re-exported from this one. Listed in __all__ so ruff
+# does not flag them as unused imports (F401). They are accessed via cli_module.<name> by the
+# dependency-injection pattern in commands.py / commands_install.py. Symbols defined directly in
+# this file (audit_cost_coverage, bootstrap_project, derive_codex_history, ensure_active_task,
+# get_active_goals, ingest_codex_history, init_files, load_metrics, merge_tasks,
+# normalize_codex_history, recompute_summary, resolve_workflow_resolution, save_report,
+# sync_usage, upsert_task, verify_public_boundary) are also part of the DI contract but do not
+# need __all__ because they are defined here, not imported.
 __all__ = [
-    "audit_history",
-    "compare_metrics_to_history",
-    "derive_retro_timeline",
-    "metrics_mutation_lock",
-    "print_summary",
-    "read_history_signals",
-    "render_audit_report",
-    "render_audit_report_json",
-    "render_cost_audit_report_json",
-    "render_derive_summary_json",
-    "render_history_compare_report",
-    "render_history_compare_report_json",
-    "render_ingest_summary_json",
-    "render_normalize_summary_json",
-    "render_retro_timeline_report",
-    "render_retro_timeline_report_json",
-    "render_summary_json",
-    "resolve_pricing_path",
+    "audit_history", "compare_metrics_to_history", "derive_retro_timeline",
+    "metrics_mutation_lock", "print_summary", "read_history_signals",
+    "render_audit_report", "render_audit_report_json", "render_cost_audit_report_json",
+    "render_derive_summary_json", "render_history_compare_report",
+    "render_history_compare_report_json", "render_ingest_summary_json",
+    "render_normalize_summary_json", "render_retro_timeline_report",
+    "render_retro_timeline_report_json", "render_summary_json", "resolve_pricing_path",
 ]
 
 EVENTS_NDJSON_PATH = Path("metrics/events.ndjson")

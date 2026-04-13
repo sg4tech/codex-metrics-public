@@ -34,6 +34,7 @@ from ai_agents_metrics.domain import (
     validate_metrics_data,
 )
 from ai_agents_metrics.pricing import (
+    compute_event_cost_usd,
     load_pricing,
     parse_usage_event,
     resolve_pricing_model_alias,
@@ -1560,6 +1561,72 @@ def test_load_pricing_requires_all_fields(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="Missing pricing field"):
         load_pricing(pricing_path)
+
+
+def _make_pricing(
+    input_rate: float = 3.0,
+    cached_rate: float = 0.3,
+    output_rate: float = 15.0,
+) -> dict[str, dict[str, float | None]]:
+    return {
+        "test-model": {
+            "input_per_million_usd": input_rate,
+            "cached_input_per_million_usd": cached_rate,
+            "output_per_million_usd": output_rate,
+        }
+    }
+
+
+def test_compute_event_cost_usd_basic() -> None:
+    pricing = _make_pricing()
+    event = {
+        "model": "test-model",
+        "input_tokens": 1_000_000,
+        "cached_input_tokens": 0,
+        "output_tokens": 0,
+    }
+    assert compute_event_cost_usd(event, pricing) == pytest.approx(3.0, rel=1e-6)
+
+
+def test_compute_event_cost_usd_with_cached_tokens() -> None:
+    pricing = _make_pricing(input_rate=3.0, cached_rate=0.3, output_rate=15.0)
+    event = {
+        "model": "test-model",
+        "input_tokens": 0,
+        "cached_input_tokens": 1_000_000,
+        "output_tokens": 1_000_000,
+    }
+    cost = compute_event_cost_usd(event, pricing)
+    assert cost == pytest.approx(0.3 + 15.0, rel=1e-6)
+
+
+def test_compute_event_cost_usd_unknown_model_returns_zero() -> None:
+    pricing = _make_pricing()
+    event = {
+        "model": "unknown-model",
+        "input_tokens": 1_000_000,
+        "cached_input_tokens": 0,
+        "output_tokens": 1_000_000,
+    }
+    assert compute_event_cost_usd(event, pricing) == 0.0
+
+
+def test_compute_event_cost_usd_cached_tokens_without_cached_rate_raises() -> None:
+    pricing: dict[str, dict[str, float | None]] = {
+        "no-cache-model": {
+            "input_per_million_usd": 3.0,
+            "cached_input_per_million_usd": None,
+            "output_per_million_usd": 15.0,
+        }
+    }
+    event = {
+        "model": "no-cache-model",
+        "input_tokens": 0,
+        "cached_input_tokens": 100,
+        "output_tokens": 0,
+    }
+    with pytest.raises(ValueError, match="does not support cached input pricing"):
+        compute_event_cost_usd(event, pricing)
 
 
 def test_resolve_usage_costs_requires_token_fields_when_model_is_given() -> None:
