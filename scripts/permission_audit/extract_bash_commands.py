@@ -19,6 +19,8 @@ import json
 from collections import Counter
 from pathlib import Path
 
+from claude_glob import find_repo_root
+
 _CLAUDE_PROJECTS = Path.home() / ".claude" / "projects"
 
 
@@ -53,7 +55,10 @@ def extract_commands(session_files: list[Path]) -> Counter[str]:
                     rec = json.loads(line)
                 except json.JSONDecodeError:
                     continue
-                content = rec.get("message", rec).get("content", [])
+                msg = rec.get("message", rec)
+                if not isinstance(msg, dict):
+                    continue
+                content = msg.get("content", [])
                 if isinstance(content, str):
                     continue
                 for block in content or []:
@@ -76,15 +81,6 @@ def write_tsv(commands: Counter[str], output: Path) -> None:
             f.write(f"{count}\t{cmd}\n")
 
 
-def _find_repo_root() -> Path:
-    """Walk up from CWD to find the nearest ``.git`` directory."""
-    cwd = Path.cwd().resolve()
-    for parent in [cwd, *cwd.parents]:
-        if (parent / ".git").exists():
-            return parent
-    return cwd
-
-
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -100,7 +96,7 @@ def main(argv: list[str] | None = None) -> None:
     )
     args = parser.parse_args(argv)
 
-    slug = args.project or _detect_project_slug(_find_repo_root())
+    slug = args.project or _detect_project_slug(find_repo_root())
     output = args.output or Path(__file__).resolve().parent / "claude_bash_commands.tsv"
 
     files = find_session_files(slug)
