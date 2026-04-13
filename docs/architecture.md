@@ -29,7 +29,7 @@ Data flow:
 ```
 CLI (cli.py)
   ↓  parses args, validates workflow state via workflow_fsm.py
-History pipeline (history_*.py)       ← primary analysis layer
+History pipeline (history/*)           ← primary analysis layer
   ↓  ingest → normalize → derive from ~/.codex or ~/.claude
   ↓  SQLite warehouse: retry pressure, token cost, session timeline
 Domain (domain/)
@@ -95,12 +95,12 @@ Four sequential modules that reconstruct goal history from raw Codex agent state
 
 ```
 Codex state/logs (SQLite)
-  ↓  history_ingest.py       → .ai-agents-metrics/warehouse.db
-  ↓  history_normalize.py    → cleaned warehouse rows
-  ↓  history_derive.py       → GoalRecord + AttemptEntryRecord objects
-  ↓  history_compare.py      → diff against replayed metrics state
-       history_compare_store.py  (persistence for compare results)
-       history_audit.py          (consistency checks on derived goals)
+  ↓  history/ingest.py       → .ai-agents-metrics/warehouse.db
+  ↓  history/normalize.py    → cleaned warehouse rows
+  ↓  history/derive.py       → GoalRecord + AttemptEntryRecord objects
+  ↓  history/compare.py      → diff against replayed metrics state
+       history/compare_store.py  (persistence for compare results)
+       history/audit.py          (consistency checks on derived goals)
 ```
 
 ### Analysis and Reporting
@@ -156,7 +156,7 @@ Transitions produce a `WorkflowDecision(action, message)`. Commands call `classi
 - Mutations serialised via fcntl lockfile (`metrics/events.ndjson.lock`)
 
 **History warehouse:** `.ai-agents-metrics/warehouse.db`
-- Intermediate cache populated by `history_ingest.py`
+- Intermediate cache populated by `history/ingest.py`
 - Consumed by normalize → derive steps; not the source of truth
 - Also read directly by `render-html` for token/cost and retry data (warehouse-first reporting, H-038): covers full session history, while the ndjson ledger only covers manually-tracked goals
 

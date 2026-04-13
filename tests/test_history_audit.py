@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from ai_agents_metrics import commands
-from ai_agents_metrics.history_audit import (
+from ai_agents_metrics.history.audit import (
     AuditCandidate,
     AuditReport,
     render_audit_report,

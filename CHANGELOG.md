@@ -4,6 +4,22 @@ All notable changes to `ai-agents-metrics` will be recorded here.
 
 ## Unreleased
 
+## 0.1.5 (2026-04-13)
+
+### Fixed
+
+- `history-update` and `history-ingest` now default to `--source all`: reads both `~/.codex` and `~/.claude` automatically — Claude Code users no longer need `--source claude` explicitly (CODEX-67)
+- `--source all` is now visible in `--help` with per-choice descriptions — was previously an undocumented internal value (CODEX-67)
+- `history-update` no longer errors when all sources are absent or skipped — exits cleanly with a summary (CODEX-67)
+- `show` now prints an actionable hint when the warehouse does not exist yet: `Run 'ai-agents-metrics history-update' to extract retry pressure and token cost from your agent history files.`
+- `show` now prints a Tip when showing all-project fallback: `run history-update from your project directory to get per-project signals.`
+- `attempt_count` floor corrected: single-session threads no longer inflate retry counts (CODEX-67)
+
+### Internal
+
+- `history_derive.py` split into a `history/` subpackage (`derive.py`, `derive_build.py`, `derive_insert.py`, `derive_schema.py`) for maintainability (CODEX-68)
+- `history_audit.py`, `history_compare.py`, `history_ingest.py`, `history_normalize.py` moved into the `history/` subpackage — import paths unchanged
+
 ## 0.1.4 (2026-04-12)
 
 ### Fixed
