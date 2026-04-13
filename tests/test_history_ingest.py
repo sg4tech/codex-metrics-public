@@ -11,13 +11,13 @@ from pathlib import Path
 
 import pytest
 
-from ai_agents_metrics.history._ingest_claude import (
+from ai_agents_metrics.history.ingest import (
     _encode_claude_cwd,
     _extract_claude_token_usage,
+    _extract_message_text,
     _import_claude_session_file,
+    _optional_row_value,
 )
-from ai_agents_metrics.history._ingest_utils import _optional_row_value
-from ai_agents_metrics.history.ingest import _extract_message_text
 
 
 def _find_paths() -> tuple[Path, Path, Path]:
