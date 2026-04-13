@@ -14,7 +14,13 @@ Before marking the task as done, verify the following:
 - Was the result validated from a product perspective?
 - Does it match the original intent?
 
-4. Chat → Documentation
+4. Public Overlay Sync
+- Was `make public-overlay-pull` run to pull in any upstream changes from the public `main` branch before closing?
+- If there were incoming changes, were they reviewed and merged cleanly?
+- Is the `sync` branch on the public remote clear — no open or unmerged PR from `sync` → `main` that includes work from this task?
+- Source: `docs/private/public-overlay-sync.md`
+
+5. Chat → Documentation
 - What important decisions were made in this thread?
 - Extract them explicitly.
 - Where are they documented?

@@ -74,15 +74,71 @@ The error message does not suggest the fix. A new user following the README but 
 
 **Decision:** Fix. → будем делать. **Fixed in master (CODEX-64).**
 
-### 6. Default `--source` is `codex` — not stated explicitly in README
+### 6. README actively claims `history-update` reads both sources by default — false
 
-The Quick Start correctly shows `--source claude` for Claude Code users, but the default is never stated. A Claude Code user who runs `ai-agents-metrics history-update` without the flag gets a silently empty or wrong warehouse.
+The Quick Start says:
 
-**Fix:** Add one line to Quick Start: "Default source is `codex`. Use `--source claude` for Claude Code."
+```
+# Run the full history pipeline (reads ~/.codex + ~/.claude by default):
+ai-agents-metrics history-update
+```
 
-**Decision:** Уже в работе в другом треде.
+This is wrong. Without `--source`, only `~/.codex` is read (`source_root: /Users/.../.codex` confirmed via `--json`). A Claude Code user who follows this instruction verbatim gets a warehouse with only Codex data and no explanation why Claude sessions are missing.
 
-### 7. `render-html` output notation unexplained
+This is stronger than "default undocumented" — the README is actively making a false claim.
+
+**Fix:** Correct the Quick Start comment and state the actual default.
+
+**Decision:** Уже в работе в другом треде. **Fixed in master (2026-04-13):** default is now `all`, reads both `~/.codex` and `~/.claude`. Behaviour matches README.
+
+### 9. Retry pressure = 0% for Codex-only data — headline metric broken on default source
+
+After running `ai-agents-metrics history-update` (default: Codex), all 70 threads show `has_retry_pressure=0`, `attempt_count=1`. The "History signals" section reports:
+
+```
+Threads with retry pressure: 0 / 51 (0%)
+```
+
+After adding Claude history (`--source claude`), 25/108 threads show retry pressure (23%). The retry detection either does not work for Codex threads, or Codex sessions genuinely represent single-attempt threads (no continuation mechanism to detect). Either way:
+
+- The main value-proposition metric is 0% on the default source
+- The README example shows 32% — impossible to reproduce without Claude data
+- No explanation is given in the output or docs
+
+**Fix:** Either document that retry detection requires Claude history, or add a note to the `History signals` output when the Codex-only warehouse shows 0%.
+
+**Decision:** Needs investigation and decision. **Partially mitigated (2026-04-13):** default source is now `all` so Claude history is included automatically — retry pressure will be non-zero for users who have Claude sessions. Root cause (Codex retry detection not implemented) is still open.
+
+### 10. `finish-task` with non-existent task ID gives cryptic error
+
+```bash
+$ ai-agents-metrics finish-task --task-id 2026-01-01-999 --status success
+Error: title is required when creating a new task
+```
+
+The tool attempts to create a new goal instead of rejecting the unknown ID. The error message exposes internal logic ("creating a new task") instead of the user-facing problem ("goal not found").
+
+**Fix:** Validate that `--task-id` refers to an existing goal before proceeding; return `Error: Goal 2026-01-01-999 not found.`
+
+**Decision:** Needs fix.
+
+### 11. `--source all` is a valid internal choice but hidden from `--help`
+
+The argparse definition in the dev source has `choices=["codex", "claude", "all"]`, but `--help` shows only `{codex,claude}`. A user cannot discover `--source all` from the CLI. The behaviour is also internally inconsistent: without `--source`, the code routes to `all`; but passing `--source all` explicitly is rejected by the installed binary.
+
+**Fix:** Either expose `all` in `--help` or remove it from the internal choices and route to multi-source via the no-flag default path only.
+
+**Decision:** **Fixed in master (2026-04-13):** `--source all` is now visible in `--help` with description "reads both ~/.codex and ~/.claude". Explicit `--source all` is accepted and works correctly.
+
+### 7. `show` without prior `history-update` — silent zeros, no hint
+
+When no warehouse exists, `show` omits the "History signals" section entirely with no explanation. A new user who skips `history-update` or runs `show` from a different directory sees zeros everywhere and has no indication why.
+
+**Fix:** Print "History signals: not available / Run 'ai-agents-metrics history-update'..." when warehouse is absent. Add a Tip when warehouse exists but has no data for the current directory.
+
+**Decision:** **Fixed in master (2026-04-13):** `reporting.py` now prints the hint when `history_signals is None`, and a Tip line when showing all-projects fallback.
+
+### 8. `render-html` output notation unexplained
 
 Output includes `(retry: warehouse, tokens: warehouse)` or `(retry: ledger, tokens: ledger)`. This distinction is not documented in the README or in the command output itself. A new user does not know whether "warehouse" or "ledger" is better.
 
@@ -90,7 +146,7 @@ Output includes `(retry: warehouse, tokens: warehouse)` or `(retry: ledger, toke
 
 **Decision:** Пока не ясно. Не правим, разберёмся позже.
 
-### 8. Warehouse size not mentioned
+### 9. Warehouse size not mentioned
 
 On a moderately active Claude Code install (~157 session files), the warehouse is 333 MB. The README says "all data stays local" but gives no storage guidance.
 
@@ -120,8 +176,8 @@ On a moderately active Claude Code install (~157 session files), the warehouse i
 |---|---|---|
 | `--help` / `--version` | PASS | Clear, complete |
 | `history-update --source claude` | PASS | Works from any dir |
-| `history-update` (no flag) | PASS (defaults to codex) | Default undocumented — P2 |
-| `show` | PASS | Works empty and with data |
+| `history-update` (no flag) | PASS (defaults to all) | Fixed in master 2026-04-13 — reads both sources |
+| `show` | PASS | Shows hint to run history-update when warehouse absent — fixed in master 2026-04-13 |
 | `show --json` (outside git) | FAIL | Warning on stdout, invalid JSON — P0 |
 | `bootstrap --dry-run` | PASS | Accurate preview |
 | `bootstrap` | PASS | Idempotent |
