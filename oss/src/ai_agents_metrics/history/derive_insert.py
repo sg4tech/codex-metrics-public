@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from dataclasses import dataclass
 from typing import Any
 
 from ai_agents_metrics.history.derive_build import (
@@ -90,6 +91,66 @@ def _insert_timeline_events(
     return count
 
 
+# ── message facts ─────────────────────────────────────────────────────────────
+
+
+def _resolve_usage_for_message(
+    message_row: NormalizedMessageRow,
+    usage_groups: dict[int, list[NormalizedUsageEventRow]],
+) -> tuple[NormalizedUsageEventRow | None, list[NormalizedUsageEventRow]]:
+    """Return the first usage event and all usage rows for a message."""
+    usage_rows = usage_groups.get(int(message_row["event_index"]), [])
+    usage_event = usage_rows[0] if usage_rows else None
+    return usage_event, usage_rows
+
+
+def _insert_message_fact_row(
+    conn: sqlite3.Connection,
+    thread_id: str,
+    session_path: str,
+    attempt_index: int | None,
+    message_row: NormalizedMessageRow,
+    thread_model: str | None,
+    usage_event: NormalizedUsageEventRow | None,
+    usage_rows: list[NormalizedUsageEventRow],
+) -> None:
+    message_timestamp = _normalize_timestamp(message_row["timestamp"])
+    conn.execute(
+        """
+        INSERT INTO derived_message_facts (
+            message_id, thread_id, source_path, session_path, attempt_index,
+            event_index, message_index, role, message_timestamp, message_date,
+            text, model, usage_event_id, usage_event_index, usage_timestamp,
+            input_tokens, cached_input_tokens, output_tokens,
+            reasoning_output_tokens, total_tokens, raw_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            message_row["message_id"],
+            thread_id,
+            message_row["source_path"],
+            session_path,
+            attempt_index,
+            message_row["event_index"],
+            message_row["message_index"],
+            message_row["role"],
+            message_timestamp,
+            _message_date_from_timestamp(message_timestamp),
+            message_row["text"],
+            _resolve_message_model(usage_event, thread_model),
+            None if usage_event is None else usage_event["usage_event_id"],
+            None if usage_event is None else int(usage_event["event_index"]),
+            None if usage_event is None else _normalize_timestamp(usage_event["timestamp"]),
+            _sum_known_int([row["input_tokens"] for row in usage_rows]),
+            _sum_known_int([row["cached_input_tokens"] for row in usage_rows]),
+            _sum_known_int([row["output_tokens"] for row in usage_rows]),
+            _sum_known_int([row["reasoning_output_tokens"] for row in usage_rows]),
+            _sum_known_int([row["total_tokens"] for row in usage_rows]),
+            message_row["raw_json"],
+        ),
+    )
+
+
 def _insert_message_facts(
     conn: sqlite3.Connection,
     thread_id: str,
@@ -108,45 +169,157 @@ def _insert_message_facts(
         usage_groups = message_usage_groups.get(session_path, {})
         attempt_index = session_index_map.get(session_path)
         for message_row in session_messages:
-            usage_rows = usage_groups.get(int(message_row["event_index"]), [])
-            usage_event = usage_rows[0] if usage_rows else None
-            message_timestamp = _normalize_timestamp(message_row["timestamp"])
-            conn.execute(
-                """
-                INSERT INTO derived_message_facts (
-                    message_id, thread_id, source_path, session_path, attempt_index,
-                    event_index, message_index, role, message_timestamp, message_date,
-                    text, model, usage_event_id, usage_event_index, usage_timestamp,
-                    input_tokens, cached_input_tokens, output_tokens,
-                    reasoning_output_tokens, total_tokens, raw_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    message_row["message_id"],
-                    thread_id,
-                    message_row["source_path"],
-                    session_path,
-                    attempt_index,
-                    message_row["event_index"],
-                    message_row["message_index"],
-                    message_row["role"],
-                    message_timestamp,
-                    _message_date_from_timestamp(message_timestamp),
-                    message_row["text"],
-                    _resolve_message_model(usage_event, thread_row["model"]),
-                    None if usage_event is None else usage_event["usage_event_id"],
-                    None if usage_event is None else int(usage_event["event_index"]),
-                    None if usage_event is None else _normalize_timestamp(usage_event["timestamp"]),
-                    _sum_known_int([row["input_tokens"] for row in usage_rows]),
-                    _sum_known_int([row["cached_input_tokens"] for row in usage_rows]),
-                    _sum_known_int([row["output_tokens"] for row in usage_rows]),
-                    _sum_known_int([row["reasoning_output_tokens"] for row in usage_rows]),
-                    _sum_known_int([row["total_tokens"] for row in usage_rows]),
-                    message_row["raw_json"],
-                ),
+            usage_event, usage_rows = _resolve_usage_for_message(message_row, usage_groups)
+            _insert_message_fact_row(
+                conn, thread_id, session_path, attempt_index,
+                message_row, thread_row["model"], usage_event, usage_rows,
             )
             count += 1
     return count
+
+
+# ── attempts and session usage ────────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class _SessionTokenSums:
+    inp: int | None
+    cac_create: int | None
+    cac: int | None
+    out: int | None
+    reasoning: int | None
+    total: int | None
+    count: int
+    first_at: str | None
+    last_at: str | None
+
+
+def _session_usage_timestamps(
+    usage_rows: list[NormalizedUsageEventRow],
+) -> tuple[str | None, str | None]:
+    """Return (first, last) normalized timestamps from usage rows."""
+    timestamps = [ts for r in usage_rows if (ts := _normalize_timestamp(r["timestamp"])) is not None]
+    return (min(timestamps) if timestamps else None), (max(timestamps) if timestamps else None)
+
+
+def _compute_session_token_sums(
+    usage_rows: list[NormalizedUsageEventRow],
+) -> _SessionTokenSums:
+    """Aggregate token counts and timestamps from all usage events for a session."""
+    first_at, last_at = _session_usage_timestamps(usage_rows)
+    return _SessionTokenSums(
+        inp=_sum_known_int([r["input_tokens"] for r in usage_rows]),
+        cac_create=_sum_known_int([r["cache_creation_input_tokens"] for r in usage_rows]),
+        cac=_sum_known_int([r["cached_input_tokens"] for r in usage_rows]),
+        out=_sum_known_int([r["output_tokens"] for r in usage_rows]),
+        reasoning=_sum_known_int([r["reasoning_output_tokens"] for r in usage_rows]),
+        total=_sum_known_int([r["total_tokens"] for r in usage_rows]),
+        count=len(usage_rows),
+        first_at=first_at,
+        last_at=last_at,
+    )
+
+
+def _update_project_stats(
+    stats_entry: dict[str, Any],
+    sums: _SessionTokenSums,
+) -> None:
+    """Accumulate session token counts into the project-level stats dict."""
+    stats_entry["input_tokens"] += sums.inp or 0
+    stats_entry["cache_creation_input_tokens"] += sums.cac_create or 0
+    stats_entry["cached_input_tokens"] += sums.cac or 0
+    stats_entry["output_tokens"] += sums.out or 0
+    stats_entry["total_tokens"] += sums.total or 0
+
+
+def _insert_attempt_row(
+    conn: sqlite3.Connection,
+    thread_id: str,
+    session_row: NormalizedSessionRow,
+    attempt_index: int,
+    sums: _SessionTokenSums,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO derived_attempts (
+            attempt_id, thread_id, source_path, session_path, attempt_index,
+            session_timestamp, cwd, source, model_provider, cli_version, originator,
+            event_count, message_count, usage_event_count, first_event_at, last_event_at, raw_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            _derived_attempt_id(thread_id, session_row["session_path"]),
+            thread_id,
+            session_row["source_path"],
+            session_row["session_path"],
+            attempt_index,
+            _normalize_timestamp(session_row["session_timestamp"]),
+            session_row["cwd"],
+            session_row["source"],
+            session_row["model_provider"],
+            session_row["cli_version"],
+            session_row["originator"],
+            session_row["event_count"],
+            session_row["message_count"],
+            sums.count,
+            _normalize_timestamp(session_row["first_event_at"]),
+            _normalize_timestamp(session_row["last_event_at"]),
+            session_row["raw_json"],
+        ),
+    )
+
+
+def _insert_session_usage_row(
+    conn: sqlite3.Connection,
+    thread_id: str,
+    session_row: NormalizedSessionRow,
+    attempt_index: int,
+    sums: _SessionTokenSums,
+) -> None:
+    session_path = session_row["session_path"]
+    conn.execute(
+        """
+        INSERT INTO derived_session_usage (
+            session_usage_id, thread_id, source_path, session_path, attempt_index,
+            usage_event_count, input_tokens, cache_creation_input_tokens,
+            cached_input_tokens, output_tokens, reasoning_output_tokens,
+            total_tokens, first_usage_at, last_usage_at, raw_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            _session_usage_id(session_path),
+            thread_id,
+            session_row["source_path"],
+            session_path,
+            attempt_index,
+            sums.count,
+            sums.inp,
+            sums.cac_create,
+            sums.cac,
+            sums.out,
+            sums.reasoning,
+            sums.total,
+            sums.first_at,
+            sums.last_at,
+            json.dumps(
+                {
+                    "thread_id": thread_id,
+                    "session_path": session_path,
+                    "attempt_index": attempt_index,
+                    "usage_event_count": sums.count,
+                    "input_tokens": sums.inp,
+                    "cache_creation_input_tokens": sums.cac_create,
+                    "cached_input_tokens": sums.cac,
+                    "output_tokens": sums.out,
+                    "reasoning_output_tokens": sums.reasoning,
+                    "total_tokens": sums.total,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ),
+        ),
+    )
 
 
 def _insert_attempts_and_session_usage(
@@ -158,95 +331,16 @@ def _insert_attempts_and_session_usage(
 ) -> int:
     count = 0
     for attempt_index, session_row in enumerate(sorted_sessions, start=1):
-        session_path = session_row["session_path"]
-        usage_rows = usage_events_by_session.get(session_path, [])
-        usage_input = _sum_known_int([r["input_tokens"] for r in usage_rows])
-        usage_cache_create = _sum_known_int([r["cache_creation_input_tokens"] for r in usage_rows])
-        usage_cached = _sum_known_int([r["cached_input_tokens"] for r in usage_rows])
-        usage_output = _sum_known_int([r["output_tokens"] for r in usage_rows])
-        usage_reasoning = _sum_known_int([r["reasoning_output_tokens"] for r in usage_rows])
-        usage_total = _sum_known_int([r["total_tokens"] for r in usage_rows])
-
+        sums = _compute_session_token_sums(usage_events_by_session.get(session_row["session_path"], []))
         if stats_entry is not None:
-            stats_entry["input_tokens"] += usage_input or 0
-            stats_entry["cache_creation_input_tokens"] += usage_cache_create or 0
-            stats_entry["cached_input_tokens"] += usage_cached or 0
-            stats_entry["output_tokens"] += usage_output or 0
-            stats_entry["total_tokens"] += usage_total or 0
-
-        conn.execute(
-            """
-            INSERT INTO derived_attempts (
-                attempt_id, thread_id, source_path, session_path, attempt_index,
-                session_timestamp, cwd, source, model_provider, cli_version, originator,
-                event_count, message_count, usage_event_count, first_event_at, last_event_at, raw_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                _derived_attempt_id(thread_id, session_path),
-                thread_id,
-                session_row["source_path"],
-                session_path,
-                attempt_index,
-                _normalize_timestamp(session_row["session_timestamp"]),
-                session_row["cwd"],
-                session_row["source"],
-                session_row["model_provider"],
-                session_row["cli_version"],
-                session_row["originator"],
-                session_row["event_count"],
-                session_row["message_count"],
-                len(usage_rows),
-                _normalize_timestamp(session_row["first_event_at"]),
-                _normalize_timestamp(session_row["last_event_at"]),
-                session_row["raw_json"],
-            ),
-        )
-        conn.execute(
-            """
-            INSERT INTO derived_session_usage (
-                session_usage_id, thread_id, source_path, session_path, attempt_index,
-                usage_event_count, input_tokens, cache_creation_input_tokens,
-                cached_input_tokens, output_tokens, reasoning_output_tokens,
-                total_tokens, first_usage_at, last_usage_at, raw_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                _session_usage_id(session_path),
-                thread_id,
-                session_row["source_path"],
-                session_path,
-                attempt_index,
-                len(usage_rows),
-                usage_input,
-                usage_cache_create,
-                usage_cached,
-                usage_output,
-                usage_reasoning,
-                usage_total,
-                min((ts for r in usage_rows if (ts := _normalize_timestamp(r["timestamp"])) is not None), default=None),
-                max((ts for r in usage_rows if (ts := _normalize_timestamp(r["timestamp"])) is not None), default=None),
-                json.dumps(
-                    {
-                        "thread_id": thread_id,
-                        "session_path": session_path,
-                        "attempt_index": attempt_index,
-                        "usage_event_count": len(usage_rows),
-                        "input_tokens": usage_input,
-                        "cache_creation_input_tokens": usage_cache_create,
-                        "cached_input_tokens": usage_cached,
-                        "output_tokens": usage_output,
-                        "reasoning_output_tokens": usage_reasoning,
-                        "total_tokens": usage_total,
-                    },
-                    ensure_ascii=False,
-                    sort_keys=True,
-                    separators=(",", ":"),
-                ),
-            ),
-        )
+            _update_project_stats(stats_entry, sums)
+        _insert_attempt_row(conn, thread_id, session_row, attempt_index, sums)
+        _insert_session_usage_row(conn, thread_id, session_row, attempt_index, sums)
         count += 1
     return count
+
+
+# ── goal and retry chain ──────────────────────────────────────────────────────
 
 
 def _insert_goal_and_retry_chain(

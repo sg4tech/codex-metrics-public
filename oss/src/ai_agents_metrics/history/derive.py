@@ -32,6 +32,51 @@ from ai_agents_metrics.history.derive_schema import (
     _ensure_schema,
 )
 
+_EMPTY_PROJECT_STATS: dict[str, Any] = {
+    "thread_count": 0, "attempt_count": 0, "retry_thread_count": 0,
+    "message_count": 0, "usage_event_count": 0, "log_count": 0,
+    "timeline_event_count": 0, "input_tokens": 0,
+    "cache_creation_input_tokens": 0, "cached_input_tokens": 0,
+    "output_tokens": 0, "total_tokens": 0,
+    "first_seen_at": None, "last_seen_at": None,
+}
+
+
+def _ensure_project_stats(project_stats: dict[str, dict[str, Any]], cwd: str) -> dict[str, Any]:
+    """Return the stats entry for *cwd*, creating it with zero values if absent."""
+    if cwd not in project_stats:
+        project_stats[cwd] = dict(_EMPTY_PROJECT_STATS)
+    return project_stats[cwd]
+
+
+def _accumulate_thread_project_stats(
+    project_stats: dict[str, dict[str, Any]],
+    project_cwd: str,
+    thread_row: Any,
+    thread_usage_events: list[Any],
+) -> None:
+    """Update project-level counters from a single thread's metadata."""
+    stats = _ensure_project_stats(project_stats, project_cwd)
+    stats["thread_count"] += 1
+    stats["attempt_count"] += int(thread_row["session_count"] or 0)
+    stats["retry_thread_count"] += 1 if int(thread_row["session_count"] or 0) > 1 else 0
+    stats["message_count"] += int(thread_row["message_count"] or 0)
+    stats["log_count"] += int(thread_row["log_count"] or 0)
+    stats["usage_event_count"] += len(thread_usage_events)
+    stats["first_seen_at"] = _pick_earliest_timestamp(stats["first_seen_at"], thread_row["first_seen_at"])
+    stats["last_seen_at"] = _pick_latest_timestamp(stats["last_seen_at"], thread_row["last_seen_at"])
+
+
+def _sort_sessions(thread_sessions: list[Any]) -> list[Any]:
+    return sorted(
+        thread_sessions,
+        key=lambda row: (
+            1 if _normalize_timestamp(row["session_timestamp"]) is None else 0,
+            _normalize_timestamp(row["session_timestamp"]) or "",
+            row["session_path"],
+        ),
+    )
+
 
 @dataclass(frozen=True)
 class DeriveSummary:
@@ -92,18 +137,6 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
 
         project_stats: dict[str, dict[str, Any]] = {}
 
-        def get_project_stats(cwd: str) -> dict[str, Any]:
-            if cwd not in project_stats:
-                project_stats[cwd] = {
-                    "thread_count": 0, "attempt_count": 0, "retry_thread_count": 0,
-                    "message_count": 0, "usage_event_count": 0, "log_count": 0,
-                    "timeline_event_count": 0, "input_tokens": 0,
-                    "cache_creation_input_tokens": 0, "cached_input_tokens": 0,
-                    "output_tokens": 0, "total_tokens": 0,
-                    "first_seen_at": None, "last_seen_at": None,
-                }
-            return project_stats[cwd]
-
         for thread_row in normalized_threads:
             thread_id = thread_row["thread_id"]
             project_cwd = _parent_project_cwd(thread_row["cwd"])
@@ -113,42 +146,27 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
             thread_logs = logs_by_thread.get(thread_id, [])
 
             if project_cwd is not None:
-                stats = get_project_stats(project_cwd)
-                stats["thread_count"] += 1
-                stats["attempt_count"] += int(thread_row["session_count"] or 0)
-                stats["retry_thread_count"] += 1 if int(thread_row["session_count"] or 0) > 1 else 0
-                stats["message_count"] += int(thread_row["message_count"] or 0)
-                stats["log_count"] += int(thread_row["log_count"] or 0)
-                stats["usage_event_count"] += len(thread_usage_events)
-                stats["first_seen_at"] = _pick_earliest_timestamp(stats["first_seen_at"], thread_row["first_seen_at"])
-                stats["last_seen_at"] = _pick_latest_timestamp(stats["last_seen_at"], thread_row["last_seen_at"])
+                _accumulate_thread_project_stats(project_stats, project_cwd, thread_row, thread_usage_events)
 
             timeline_items = _build_timeline_items(
                 thread_id, thread_sessions, thread_messages, thread_usage_events, thread_logs
             )
 
             if project_cwd is not None:
-                get_project_stats(project_cwd)["timeline_event_count"] += len(timeline_items)
+                _ensure_project_stats(project_stats, project_cwd)["timeline_event_count"] += len(timeline_items)
 
             timeline_events += _insert_timeline_events(conn, thread_id, timeline_items)
             message_facts += _insert_message_facts(
                 conn, thread_id, thread_row, thread_messages, thread_sessions, message_usage_groups
             )
 
-            sorted_sessions = sorted(
-                thread_sessions,
-                key=lambda row: (
-                    1 if _normalize_timestamp(row["session_timestamp"]) is None else 0,
-                    _normalize_timestamp(row["session_timestamp"]) or "",
-                    row["session_path"],
-                ),
-            )
+            sorted_sessions = _sort_sessions(thread_sessions)
             session_usage += _insert_attempts_and_session_usage(
                 conn,
                 thread_id,
                 sorted_sessions,
                 usage_events_by_session,
-                get_project_stats(project_cwd) if project_cwd is not None else None,
+                _ensure_project_stats(project_stats, project_cwd) if project_cwd is not None else None,
             )
             _insert_goal_and_retry_chain(
                 conn, thread_id, thread_row, sorted_sessions, thread_usage_events, timeline_items
