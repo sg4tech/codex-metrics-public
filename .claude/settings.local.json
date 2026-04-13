@@ -146,7 +146,20 @@
       "Read(//usr/local/bin/**)",
       "Bash(.venv/bin/pylint *)",
       "Bash(./.venv/bin/pylint *)",
-      "Bash(PYTHONPATH=src .venv/bin/lint-imports)"
+      "Bash(../.venv/bin/pylint *)",
+      "Bash(../.venv/bin/ruff *)",
+      "Bash(../.venv/bin/pytest *)",
+      "Bash(../.venv/bin/python *)",
+      "Bash(../.venv/bin/mypy *)",
+      "Bash(PYTHONPATH=src ../.venv/bin/pylint *)",
+      "Bash(PYTHONPATH=src ../.venv/bin/ruff *)",
+      "Bash(PYTHONPATH=src ../.venv/bin/pytest *)",
+      "Bash(PYTHONPATH=src ../.venv/bin/python *)",
+      "Bash(PYTHONPATH=src ../.venv/bin/lint-imports)",
+      "Bash(PYTHONPATH=src .venv/bin/lint-imports)",
+      "Bash(git checkout *)",
+      "Bash(git merge *)",
+      "Bash(git status)"
     ],
     "deny": [
       "Bash(chattr*)",
