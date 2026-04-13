@@ -1,4 +1,4 @@
-"""Pytest configuration for input/ test suite."""
+"""Pytest configuration for permission_audit test suite."""
 
 import sys
 from pathlib import Path

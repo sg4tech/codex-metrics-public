@@ -18,7 +18,7 @@ import json
 import re
 from pathlib import Path
 
-from claude_glob import matches
+from claude_glob import find_repo_root, matches
 
 
 def load_bash_allow(settings_path: Path) -> list[str]:
@@ -38,17 +38,8 @@ def _generate_test_strings(pattern: str) -> list[str]:
     return [pattern.replace("*", f) for f in fillers]
 
 
-def _find_repo_root() -> Path:
-    """Walk up from CWD to find the nearest ``.git`` directory."""
-    cwd = Path.cwd().resolve()
-    for parent in [cwd, *cwd.parents]:
-        if (parent / ".git").exists():
-            return parent
-    return cwd
-
-
 def main(argv: list[str] | None = None) -> None:
-    repo_root = _find_repo_root()
+    repo_root = find_repo_root()
     script_dir = Path(__file__).resolve().parent
 
     parser = argparse.ArgumentParser(description=__doc__)

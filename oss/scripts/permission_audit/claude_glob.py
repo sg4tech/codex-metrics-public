@@ -12,6 +12,7 @@ treated as operators — only ``>`` without a preceding digit counts.
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 # Detects unquoted shell operators in a raw string.
 # > is only an operator when NOT preceded by a digit (fd redirects are safe).
@@ -92,3 +93,12 @@ def matches(cmd: str, pattern: str) -> bool:
 def pattern_contains_operators(pattern: str) -> bool:
     """Return True if *pattern* itself contains literal shell operators."""
     return bool(_HAS_OPERATORS.search(pattern))
+
+
+def find_repo_root() -> Path:
+    """Walk up from CWD to find the nearest ``.git`` directory."""
+    cwd = Path.cwd().resolve()
+    for parent in [cwd, *cwd.parents]:
+        if (parent / ".git").exists():
+            return parent
+    return cwd
