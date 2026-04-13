@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pytest
 
+from ai_agents_metrics.cli import resolve_usage_costs
+from ai_agents_metrics.cli_usage import resolve_codex_usage_window
 from ai_agents_metrics.domain import (
     AttemptEntryRecord,
     EffectiveGoalRecord,
@@ -30,6 +32,13 @@ from ai_agents_metrics.domain import (
     validate_entry_record,
     validate_goal_record,
     validate_metrics_data,
+)
+from ai_agents_metrics.pricing import (
+    compute_event_cost_usd,
+    load_pricing,
+    parse_usage_event,
+    resolve_pricing_model_alias,
+    resolve_pricing_path,
 )
 from ai_agents_metrics.reporting import build_operator_review
 
@@ -820,7 +829,7 @@ def test_finalize_goal_update_sets_attempts_and_clears_failure_reason_on_success
 
 
 def test_parse_usage_event_extracts_expected_fields() -> None:
-    event = MODULE.parse_usage_event(
+    event = parse_usage_event(
         'event.name="codex.sse_event" '
         "event.kind=response.completed "
         "input_token_count=1000 "
@@ -857,8 +866,8 @@ def test_resolve_pricing_model_alias_accepts_current_model_suffixes() -> None:
         },
     }
 
-    assert MODULE.resolve_pricing_model_alias("gpt-5.4", pricing) == "gpt-5"
-    assert MODULE.resolve_pricing_model_alias("gpt-5.4-mini", pricing) == "gpt-5-mini"
+    assert resolve_pricing_model_alias("gpt-5.4", pricing) == "gpt-5"
+    assert resolve_pricing_model_alias("gpt-5.4-mini", pricing) == "gpt-5-mini"
 
 
 def test_resolve_pricing_model_alias_strips_date_suffix() -> None:
@@ -871,9 +880,9 @@ def test_resolve_pricing_model_alias_strips_date_suffix() -> None:
     }
 
     # Model ID with date suffix should resolve to the date-stripped key
-    assert MODULE.resolve_pricing_model_alias("claude-sonnet-4-6-20251022", pricing) == "claude-sonnet-4-6"
+    assert resolve_pricing_model_alias("claude-sonnet-4-6-20251022", pricing) == "claude-sonnet-4-6"
     # Model ID without date suffix resolves directly
-    assert MODULE.resolve_pricing_model_alias("claude-sonnet-4-6", pricing) == "claude-sonnet-4-6"
+    assert resolve_pricing_model_alias("claude-sonnet-4-6", pricing) == "claude-sonnet-4-6"
 
 
 def test_resolve_pricing_model_alias_unknown_model_returns_none() -> None:
@@ -885,7 +894,7 @@ def test_resolve_pricing_model_alias_unknown_model_returns_none() -> None:
         },
     }
 
-    assert MODULE.resolve_pricing_model_alias("unknown-model-xyz", pricing) is None
+    assert resolve_pricing_model_alias("unknown-model-xyz", pricing) is None
 
 
 def test_resolve_pricing_path_returns_workspace_override(tmp_path: Path) -> None:
@@ -895,13 +904,13 @@ def test_resolve_pricing_path_returns_workspace_override(tmp_path: Path) -> None
         encoding="utf-8",
     )
 
-    result = MODULE.resolve_pricing_path(tmp_path)
+    result = resolve_pricing_path(tmp_path)
     assert result == override
 
 
 def test_resolve_pricing_path_falls_back_to_bundled(tmp_path: Path) -> None:
     # tmp_path has no model_pricing.json
-    result = MODULE.resolve_pricing_path(tmp_path)
+    result = resolve_pricing_path(tmp_path)
     assert result.name == "model_pricing.json"
     assert result.exists()
 
@@ -953,7 +962,7 @@ def test_resolve_codex_usage_window_returns_none_without_matching_thread(
             """
         )
 
-    assert MODULE.resolve_codex_usage_window(
+    assert resolve_codex_usage_window(
         state_path=state_path,
         logs_path=logs_path,
         cwd=tmp_path,
@@ -1051,7 +1060,7 @@ def test_resolve_codex_usage_window_falls_back_to_session_token_counts(
             ),
         )
 
-    assert MODULE.resolve_codex_usage_window(
+    assert resolve_codex_usage_window(
         state_path=state_path,
         logs_path=logs_path,
         cwd=tmp_path,
@@ -1167,7 +1176,7 @@ def test_resolve_codex_usage_window_sums_multiple_session_token_events(
             ),
         )
 
-    assert MODULE.resolve_codex_usage_window(
+    assert resolve_codex_usage_window(
         state_path=state_path,
         logs_path=logs_path,
         cwd=tmp_path,
@@ -1301,7 +1310,7 @@ def test_resolve_codex_usage_window_ignores_session_events_outside_window(
             ),
         )
 
-    assert MODULE.resolve_codex_usage_window(
+    assert resolve_codex_usage_window(
         state_path=state_path,
         logs_path=logs_path,
         cwd=tmp_path,
@@ -1395,7 +1404,7 @@ def test_resolve_codex_usage_window_recovers_tokens_without_cost_when_model_miss
             ),
         )
 
-    assert MODULE.resolve_codex_usage_window(
+    assert resolve_codex_usage_window(
         state_path=state_path,
         logs_path=logs_path,
         cwd=tmp_path,
@@ -1503,7 +1512,7 @@ def test_resolve_codex_usage_window_prefers_legacy_sse_events_over_session_fallb
             ),
         )
 
-    assert MODULE.resolve_codex_usage_window(
+    assert resolve_codex_usage_window(
         state_path=state_path,
         logs_path=logs_path,
         cwd=tmp_path,
@@ -1531,7 +1540,7 @@ def test_load_pricing_rejects_negative_values(tmp_path: Path) -> None:
     )
 
     with pytest.raises(ValueError, match="Pricing value cannot be negative"):
-        MODULE.load_pricing(pricing_path)
+        load_pricing(pricing_path)
 
 
 def test_load_pricing_requires_all_fields(tmp_path: Path) -> None:
@@ -1551,12 +1560,78 @@ def test_load_pricing_requires_all_fields(tmp_path: Path) -> None:
     )
 
     with pytest.raises(ValueError, match="Missing pricing field"):
-        MODULE.load_pricing(pricing_path)
+        load_pricing(pricing_path)
+
+
+def _make_pricing(
+    input_rate: float = 3.0,
+    cached_rate: float = 0.3,
+    output_rate: float = 15.0,
+) -> dict[str, dict[str, float | None]]:
+    return {
+        "test-model": {
+            "input_per_million_usd": input_rate,
+            "cached_input_per_million_usd": cached_rate,
+            "output_per_million_usd": output_rate,
+        }
+    }
+
+
+def test_compute_event_cost_usd_basic() -> None:
+    pricing = _make_pricing()
+    event = {
+        "model": "test-model",
+        "input_tokens": 1_000_000,
+        "cached_input_tokens": 0,
+        "output_tokens": 0,
+    }
+    assert compute_event_cost_usd(event, pricing) == pytest.approx(3.0, rel=1e-6)
+
+
+def test_compute_event_cost_usd_with_cached_tokens() -> None:
+    pricing = _make_pricing(input_rate=3.0, cached_rate=0.3, output_rate=15.0)
+    event = {
+        "model": "test-model",
+        "input_tokens": 0,
+        "cached_input_tokens": 1_000_000,
+        "output_tokens": 1_000_000,
+    }
+    cost = compute_event_cost_usd(event, pricing)
+    assert cost == pytest.approx(0.3 + 15.0, rel=1e-6)
+
+
+def test_compute_event_cost_usd_unknown_model_returns_zero() -> None:
+    pricing = _make_pricing()
+    event = {
+        "model": "unknown-model",
+        "input_tokens": 1_000_000,
+        "cached_input_tokens": 0,
+        "output_tokens": 1_000_000,
+    }
+    assert compute_event_cost_usd(event, pricing) == 0.0
+
+
+def test_compute_event_cost_usd_cached_tokens_without_cached_rate_raises() -> None:
+    pricing: dict[str, dict[str, float | None]] = {
+        "no-cache-model": {
+            "input_per_million_usd": 3.0,
+            "cached_input_per_million_usd": None,
+            "output_per_million_usd": 15.0,
+        }
+    }
+    event = {
+        "model": "no-cache-model",
+        "input_tokens": 0,
+        "cached_input_tokens": 100,
+        "output_tokens": 0,
+    }
+    with pytest.raises(ValueError, match="does not support cached input pricing"):
+        compute_event_cost_usd(event, pricing)
 
 
 def test_resolve_usage_costs_requires_token_fields_when_model_is_given() -> None:
     with pytest.raises(ValueError, match="At least one usage token field is required"):
-        MODULE.resolve_usage_costs(
+        resolve_usage_costs(
             pricing_path=SCRIPT_PATH.parents[1] / "pricing" / "model_pricing.json",
             model="gpt-5",
             input_tokens=None,

@@ -2,29 +2,18 @@
 from __future__ import annotations
 
 import argparse
-import json
-import re
-import sqlite3
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone  # noqa: F401
-from decimal import Decimal
-from importlib import resources
 from pathlib import Path
 from typing import Any
 
-from ai_agents_metrics import __version__
 from ai_agents_metrics.bootstrap import bootstrap_project as run_bootstrap_project
+from ai_agents_metrics.cli_parser import build_parser
+from ai_agents_metrics.cli_usage import find_usage_thread_id
+from ai_agents_metrics.commands_install import handle_bootstrap, handle_install_self
 from ai_agents_metrics.completion import render_completion
-from ai_agents_metrics.cost_audit import (
-    CostAuditReport,
-    render_cost_audit_report_json,  # noqa: F401 — re-exported as cli_module attribute
-)
+from ai_agents_metrics.cost_audit import CostAuditReport, render_cost_audit_report_json
 from ai_agents_metrics.domain import (
-    ALLOWED_FAILURE_REASONS,
-    ALLOWED_RESULT_FITS,
-    ALLOWED_STATUSES,
-    ALLOWED_TASK_TYPES,
     GoalRecord,
     apply_goal_updates,
     build_merged_notes,
@@ -40,11 +29,8 @@ from ai_agents_metrics.domain import (
     goal_to_dict,
     load_metrics,
     next_goal_id,
-    now_utc_datetime,
     now_utc_iso,
-    parse_iso_datetime,
-    parse_iso_datetime_flexible,
-    recompute_summary,  # noqa: F401 — re-exported as cli_module attribute
+    recompute_summary,
     resolve_linked_task_reference,
     round_usd,
     sync_goal_attempt_entries,
@@ -63,72 +49,46 @@ from ai_agents_metrics.git_state import (
 from ai_agents_metrics.git_state import (
     _normalize_worktree_path as _git_state_normalize_worktree_path,
 )
-from ai_agents_metrics.history.audit import (  # noqa: F401 — re-exported as cli_module attributes
+from ai_agents_metrics.history.audit import (
     audit_history,
     render_audit_report,
     render_audit_report_json,
 )
-from ai_agents_metrics.history.compare import (  # noqa: F401 — re-exported as cli_module attributes
-    HistorySignals,
+from ai_agents_metrics.history.compare import (
     compare_metrics_to_history,
     read_history_signals,
     render_history_compare_report,
     render_history_compare_report_json,
 )
-from ai_agents_metrics.history.derive import (
-    DeriveSummary,
-    render_derive_summary_json,  # noqa: F401 — re-exported as cli_module attribute
-)
-from ai_agents_metrics.history.derive import (
-    derive_codex_history as run_derive_codex_history,
-)
+from ai_agents_metrics.history.derive import DeriveSummary, render_derive_summary_json
 from ai_agents_metrics.history.ingest import (
     IngestSummary,
     default_raw_warehouse_path,
-    render_ingest_summary_json,  # noqa: F401 — re-exported as cli_module attribute
+    render_ingest_summary_json,
 )
-from ai_agents_metrics.history.ingest import (
-    ingest_codex_history as run_ingest_codex_history,
-)
-from ai_agents_metrics.history.normalize import (
-    NormalizeSummary,
-    render_normalize_summary_json,  # noqa: F401 — re-exported as cli_module attribute
-)
-from ai_agents_metrics.history.normalize import (
-    normalize_codex_history as run_normalize_codex_history,
-)
+from ai_agents_metrics.history.normalize import NormalizeSummary, render_normalize_summary_json
 from ai_agents_metrics.observability import record_cli_invocation_observation
-from ai_agents_metrics.public_boundary import (
-    PublicBoundaryReport,
+from ai_agents_metrics.pricing import (
+    load_pricing,
+    resolve_pricing_model_alias,
+    resolve_pricing_path,
 )
+from ai_agents_metrics.public_boundary import PublicBoundaryReport
 from ai_agents_metrics.public_boundary import (
     verify_public_boundary as run_verify_public_boundary,
 )
-from ai_agents_metrics.reporting import (
-    generate_report_md,
-    print_summary,  # noqa: F401 — re-exported as cli_module attribute
-    render_summary_json,  # noqa: F401 — re-exported as cli_module attribute
-)
-from ai_agents_metrics.retro_timeline import (  # noqa: F401 — re-exported as cli_module attributes
+from ai_agents_metrics.reporting import generate_report_md, print_summary, render_summary_json
+from ai_agents_metrics.retro_timeline import (
     derive_retro_timeline,
     render_retro_timeline_report,
     render_retro_timeline_report_json,
 )
-from ai_agents_metrics.security import (
-    SecurityReport,
-    render_security_report,
-)
-from ai_agents_metrics.security import (
-    verify_security as run_verify_security,
-)
-from ai_agents_metrics.storage import (
-    atomic_write_text,
-    metrics_mutation_lock,  # noqa: F401 — re-exported as cli_module attribute
-)
+from ai_agents_metrics.security import SecurityReport, render_security_report
+from ai_agents_metrics.security import verify_security as run_verify_security
+from ai_agents_metrics.storage import atomic_write_text, metrics_mutation_lock
 from ai_agents_metrics.usage_backends import (
     ClaudeUsageBackend,
     UsageBackend,
-    UsageWindow,
     select_usage_backend,
 )
 from ai_agents_metrics.usage_backends import (
@@ -140,6 +100,24 @@ from ai_agents_metrics.workflow_fsm import (
     resolve_workflow_transition,
 )
 
+# Symbols imported from other modules and re-exported from this one. Listed in __all__ so ruff
+# does not flag them as unused imports (F401). They are accessed via cli_module.<name> by the
+# dependency-injection pattern in commands.py / commands_install.py. Symbols defined directly in
+# this file (audit_cost_coverage, bootstrap_project, derive_codex_history, ensure_active_task,
+# get_active_goals, ingest_codex_history, init_files, load_metrics, merge_tasks,
+# normalize_codex_history, recompute_summary, resolve_workflow_resolution, save_report,
+# sync_usage, upsert_task, verify_public_boundary) are also part of the DI contract but do not
+# need __all__ because they are defined here, not imported.
+__all__ = [
+    "audit_history", "compare_metrics_to_history", "derive_retro_timeline",
+    "metrics_mutation_lock", "print_summary", "read_history_signals",
+    "render_audit_report", "render_audit_report_json", "render_cost_audit_report_json",
+    "render_derive_summary_json", "render_history_compare_report",
+    "render_history_compare_report_json", "render_ingest_summary_json",
+    "render_normalize_summary_json", "render_retro_timeline_report",
+    "render_retro_timeline_report_json", "render_summary_json", "resolve_pricing_path",
+]
+
 EVENTS_NDJSON_PATH = Path("metrics/events.ndjson")
 METRICS_JSON_PATH = EVENTS_NDJSON_PATH  # backward-compat alias used by args.metrics_path
 REPORT_MD_PATH = Path("docs/ai-agents-metrics.md")
@@ -150,16 +128,6 @@ CLAUDE_ROOT = Path.home() / ".claude"
 RAW_WAREHOUSE_PATH = default_raw_warehouse_path(METRICS_JSON_PATH)
 PUBLIC_BOUNDARY_RULES_PATH = Path("config/public-boundary-rules.toml")
 SECURITY_RULES_PATH = Path("config/security-rules.toml")
-USAGE_FIELD_PATTERNS = {
-    "input_tokens": re.compile(r"\binput_token_count=(\d+)"),
-    "cached_input_tokens": re.compile(r"\bcached_token_count=(\d+)"),
-    "output_tokens": re.compile(r"\boutput_token_count=(\d+)"),
-    "reasoning_tokens": re.compile(r"\breasoning_token_count=(\d+)"),
-    "tool_tokens": re.compile(r"\btool_token_count=(\d+)"),
-    "model": re.compile(r"\bmodel=([^ ]+)"),
-    "timestamp": re.compile(r"\bevent\.timestamp=([^ ]+)"),
-}
-THREAD_MODEL_PATTERN = re.compile(r"\bmodel=([A-Za-z0-9._-]+)")
 
 
 def _normalize_worktree_path(path_text: str) -> str:
@@ -179,15 +147,18 @@ class ActiveTaskResolution:
 
 
 def ingest_codex_history(source_root: Path, warehouse_path: Path, source: str = "codex") -> IngestSummary:
-    return run_ingest_codex_history(source_root=source_root, warehouse_path=warehouse_path, source=source)
+    from ai_agents_metrics.history.ingest import ingest_codex_history as _run
+    return _run(source_root=source_root, warehouse_path=warehouse_path, source=source)
 
 
 def normalize_codex_history(warehouse_path: Path) -> NormalizeSummary:
-    return run_normalize_codex_history(warehouse_path=warehouse_path)
+    from ai_agents_metrics.history.normalize import normalize_codex_history as _run
+    return _run(warehouse_path=warehouse_path)
 
 
 def derive_codex_history(warehouse_path: Path) -> DeriveSummary:
-    return run_derive_codex_history(warehouse_path=warehouse_path)
+    from ai_agents_metrics.history.derive import derive_codex_history as _run
+    return _run(warehouse_path=warehouse_path)
 
 
 def verify_public_boundary(*, repo_root: Path, rules_path: Path) -> PublicBoundaryReport:
@@ -266,687 +237,6 @@ def ensure_active_task(data: dict[str, Any], cwd: Path) -> ActiveTaskResolution:
     )
 
 
-def default_pricing_path() -> Path:
-    return Path(str(resources.files("ai_agents_metrics").joinpath("data/model_pricing.json")))
-
-
-PRICING_JSON_PATH = default_pricing_path()
-
-
-def load_pricing(path: Path) -> dict[str, dict[str, float | None]]:
-    if not path.exists():
-        raise ValueError(f"Pricing file not found: {path}")
-    with path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    models = data.get("models")
-    if not isinstance(models, dict):
-        raise ValueError(f"Invalid pricing file format: {path}")
-
-    validated_models: dict[str, dict[str, float | None]] = {}
-    for model_name, config in models.items():
-        if not isinstance(config, dict):
-            raise ValueError(f"Invalid pricing config for model: {model_name}")
-        required_fields = ("input_per_million_usd", "cached_input_per_million_usd", "output_per_million_usd")
-        optional_fields = ("cache_creation_per_million_usd",)
-        validated_config: dict[str, float | None] = {}
-        for field_name in required_fields:
-            if field_name not in config:
-                raise ValueError(f"Missing pricing field {field_name} for model: {model_name}")
-            value = config[field_name]
-            if value is not None and not isinstance(value, (int, float)):
-                raise ValueError(f"Invalid pricing value for {model_name}.{field_name}")
-            if isinstance(value, (int, float)) and value < 0:
-                raise ValueError(f"Pricing value cannot be negative for {model_name}.{field_name}")
-            validated_config[field_name] = None if value is None else float(value)
-        for field_name in optional_fields:
-            if field_name in config:
-                value = config[field_name]
-                if value is not None and not isinstance(value, (int, float)):
-                    raise ValueError(f"Invalid pricing value for {model_name}.{field_name}")
-                if isinstance(value, (int, float)) and value < 0:
-                    raise ValueError(f"Pricing value cannot be negative for {model_name}.{field_name}")
-                validated_config[field_name] = None if value is None else float(value)
-        validated_models[model_name] = validated_config
-    return validated_models
-
-
-def parse_usage_event(body: str) -> dict[str, Any] | None:
-    if 'event.name="codex.sse_event"' not in body or "event.kind=response.completed" not in body:
-        return None
-
-    timestamp_match = USAGE_FIELD_PATTERNS["timestamp"].search(body)
-    model_match = USAGE_FIELD_PATTERNS["model"].search(body)
-    input_match = USAGE_FIELD_PATTERNS["input_tokens"].search(body)
-    output_match = USAGE_FIELD_PATTERNS["output_tokens"].search(body)
-    cached_match = USAGE_FIELD_PATTERNS["cached_input_tokens"].search(body)
-    if timestamp_match is None or model_match is None or input_match is None or output_match is None or cached_match is None:
-        return None
-
-    parsed: dict[str, Any] = {
-        "timestamp": parse_iso_datetime_flexible(timestamp_match.group(1), "event.timestamp"),
-        "model": model_match.group(1),
-        "input_tokens": int(input_match.group(1)),
-        "cached_input_tokens": int(cached_match.group(1)),
-        "output_tokens": int(output_match.group(1)),
-    }
-
-    for field_name in ("reasoning_tokens", "tool_tokens"):
-        match = USAGE_FIELD_PATTERNS[field_name].search(body)
-        parsed[field_name] = int(match.group(1)) if match is not None else 0
-
-    return parsed
-
-
-def resolve_pricing_model_alias(model: str, pricing: dict[str, dict[str, float | None]]) -> str | None:
-    """Resolve a model identifier to its key in the pricing dict, or return None if not found.
-
-    Normalization steps tried in order:
-    1. Direct lookup.
-    2. Strip trailing date suffix (e.g. claude-sonnet-4-6-20251022 → claude-sonnet-4-6).
-    3. OpenAI Codex version suffix (e.g. gpt-5.4 → gpt-5).
-    """
-    if model in pricing:
-        return model
-
-    # Strip trailing date suffix (YYYYMMDD), e.g. claude-sonnet-4-6-20251022 → claude-sonnet-4-6
-    date_stripped = re.sub(r"-\d{8}$", "", model)
-    if date_stripped != model and date_stripped in pricing:
-        return date_stripped
-
-    # OpenAI Codex version suffix alias (e.g. gpt-5.4 → gpt-5)
-    if model.endswith(".4"):
-        candidate = model.rsplit(".4", maxsplit=1)[0]
-        if candidate in pricing:
-            return candidate
-    if model.endswith(".4-mini"):
-        candidate = model.rsplit(".4-mini", maxsplit=1)[0] + "-mini"
-        if candidate in pricing:
-            return candidate
-
-    return None
-
-
-def resolve_pricing_path(cwd: Path) -> Path:
-    """Return the effective pricing file path for the given workspace.
-
-    If a model_pricing.json exists in the workspace root, it overrides the
-    bundled default. Otherwise the bundled package file is used.
-    """
-    workspace_override = cwd / "model_pricing.json"
-    if workspace_override.exists():
-        return workspace_override
-    return default_pricing_path()
-
-
-def compute_event_cost_usd(event: dict[str, Any], pricing: dict[str, dict[str, float | None]]) -> float:
-    pricing_model = resolve_pricing_model_alias(event["model"], pricing)
-    if pricing_model is None:
-        return 0.0
-    model_pricing = pricing[pricing_model]
-    cached_rate = model_pricing["cached_input_per_million_usd"]
-    if event["cached_input_tokens"] > 0 and cached_rate is None:
-        raise ValueError(f"Model {event['model']} does not support cached input pricing")
-
-    input_cost = Decimal(str(model_pricing["input_per_million_usd"])) * Decimal(event["input_tokens"]) / Decimal(1_000_000)
-    cached_input_cost = Decimal("0")
-    if cached_rate is not None:
-        cached_input_cost = Decimal(str(cached_rate)) * Decimal(event["cached_input_tokens"]) / Decimal(1_000_000)
-    output_cost = Decimal(str(model_pricing["output_per_million_usd"])) * Decimal(event["output_tokens"]) / Decimal(1_000_000)
-    return round_usd(input_cost + cached_input_cost + output_cost)
-
-
-def _encode_cwd_for_claude(cwd: Path) -> str:
-    """Encode a filesystem path to the directory name used by Claude Code in ~/.claude/projects/.
-
-    Claude Code replaces every '/' and '.' character with '-' when naming the project directory.
-    For example: /Users/viktor/.claude/worktrees/foo → -Users-viktor--claude-worktrees-foo
-    """
-    return str(cwd).replace("/", "-").replace(".", "-")
-
-
-def _compute_claude_event_cost_usd(
-    *,
-    model: str | None,
-    input_tokens: int,
-    cache_creation_tokens: int,
-    cache_read_tokens: int,
-    output_tokens: int,
-    pricing: dict[str, dict[str, float | None]],
-) -> float:
-    """Compute cost for a single Claude JSONL assistant event.
-
-    Claude has three distinct token categories:
-    - input_tokens: plain (non-cached) input, billed at base input rate
-    - cache_creation_input_tokens: tokens written to prompt cache (5-min tier), billed at 1.25× input rate
-    - cache_read_input_tokens: tokens read from prompt cache, billed at 0.1× input rate
-    - output_tokens: generated output
-    """
-    if model is None or (input_tokens == 0 and cache_creation_tokens == 0 and cache_read_tokens == 0 and output_tokens == 0):
-        return 0.0
-
-    pricing_model = resolve_pricing_model_alias(model, pricing)
-    if pricing_model is None:
-        return 0.0
-    model_pricing = pricing[pricing_model]
-
-    input_cost = Decimal(str(model_pricing["input_per_million_usd"])) * Decimal(input_tokens) / Decimal(1_000_000)
-
-    cache_creation_cost = Decimal("0")
-    cache_creation_rate = model_pricing.get("cache_creation_per_million_usd")
-    if cache_creation_tokens > 0:
-        if cache_creation_rate is None:
-            raise ValueError(f"Model {model} does not have cache_creation pricing; cannot price {cache_creation_tokens} cache_creation tokens")
-        cache_creation_cost = Decimal(str(cache_creation_rate)) * Decimal(cache_creation_tokens) / Decimal(1_000_000)
-
-    cache_read_cost = Decimal("0")
-    cache_read_rate = model_pricing["cached_input_per_million_usd"]
-    if cache_read_tokens > 0 and cache_read_rate is not None:
-        cache_read_cost = Decimal(str(cache_read_rate)) * Decimal(cache_read_tokens) / Decimal(1_000_000)
-
-    output_cost = Decimal(str(model_pricing["output_per_million_usd"])) * Decimal(output_tokens) / Decimal(1_000_000)
-
-    return round_usd(input_cost + cache_creation_cost + cache_read_cost + output_cost)
-
-
-def _resolve_claude_usage_window_impl(
-    claude_root: Path,
-    cwd: Path,
-    started_at: str | None,
-    finished_at: str | None,
-    pricing_path: Path,
-) -> tuple[float | None, int | None, int | None, int | None, int | None, str | None]:
-    """Parse Claude Code JSONL telemetry to compute token usage and cost for a time window.
-
-    Returns: (cost_usd, total_tokens, input_tokens, cached_input_tokens, output_tokens, model_name)
-
-    token mapping:
-      input_tokens           → input_tokens       (plain non-cached input)
-      cache_read_input_tokens → cached_input_tokens (cheap cached reads, mapped to existing domain field)
-      cache_creation_input_tokens → included in cost and total_tokens (write-to-cache, not a separate domain field)
-      output_tokens          → output_tokens
-    """
-    if started_at is None:
-        return None, None, None, None, None, None
-
-    encoded_cwd = _encode_cwd_for_claude(cwd)
-    projects_dir = claude_root / "projects" / encoded_cwd
-    if not projects_dir.exists():
-        return None, None, None, None, None, None
-
-    started_dt = parse_iso_datetime(started_at, "started_at")
-    finished_dt = parse_iso_datetime(finished_at, "finished_at") if finished_at is not None else now_utc_datetime()
-    if finished_dt < started_dt:
-        raise ValueError("finished_at cannot be earlier than started_at")
-
-    pricing = load_pricing(pricing_path)
-
-    # Collect JSONL files: top-level sessions + subagent files
-    jsonl_files: list[Path] = list(projects_dir.glob("*.jsonl"))
-    for subagent_dir in projects_dir.glob("*/subagents"):
-        jsonl_files.extend(subagent_dir.glob("agent-*.jsonl"))
-
-    total_cost = 0.0
-    total_input = 0
-    total_cache_creation = 0
-    total_cache_read = 0
-    total_output = 0
-    total_tokens = 0
-    detected_model: str | None = None
-    latest_event_dt = None
-
-    for jsonl_file in jsonl_files:
-        try:
-            lines = jsonl_file.read_text(encoding="utf-8").splitlines()
-        except OSError:
-            continue
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                event = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-
-            if event.get("type") != "assistant":
-                continue
-
-            ts_str = event.get("timestamp")
-            if not ts_str:
-                continue
-            try:
-                event_dt = parse_iso_datetime_flexible(ts_str, "timestamp")
-            except ValueError:
-                continue
-
-            if not (started_dt <= event_dt <= finished_dt):
-                continue
-
-            message = event.get("message") or {}
-            usage = message.get("usage") or {}
-            model = message.get("model")
-
-            input_toks = int(usage.get("input_tokens") or 0)
-            cache_creation_toks = int(usage.get("cache_creation_input_tokens") or 0)
-            cache_read_toks = int(usage.get("cache_read_input_tokens") or 0)
-            output_toks = int(usage.get("output_tokens") or 0)
-
-            if latest_event_dt is None or event_dt > latest_event_dt:
-                latest_event_dt = event_dt
-                if model:
-                    detected_model = model
-
-            total_input += input_toks
-            total_cache_creation += cache_creation_toks
-            total_cache_read += cache_read_toks
-            total_output += output_toks
-            total_tokens += input_toks + cache_creation_toks + cache_read_toks + output_toks
-
-            if model is not None:
-                try:
-                    total_cost = round_usd(
-                        total_cost
-                        + _compute_claude_event_cost_usd(
-                            model=model,
-                            input_tokens=input_toks,
-                            cache_creation_tokens=cache_creation_toks,
-                            cache_read_tokens=cache_read_toks,
-                            output_tokens=output_toks,
-                            pricing=pricing,
-                        )
-                    )
-                except ValueError:
-                    pass  # unknown model — skip cost, still count tokens
-
-    if total_tokens == 0:
-        return None, None, None, None, None, None
-
-    return (
-        total_cost if total_cost > 0 else None,
-        total_tokens,
-        total_input,
-        total_cache_read,  # mapped to cached_input_tokens in domain
-        total_output,
-        detected_model,
-    )
-
-
-def resolve_claude_usage_window(
-    claude_root: Path,
-    cwd: Path,
-    started_at: str | None,
-    finished_at: str | None,
-    pricing_path: Path,
-) -> tuple[float | None, int | None, int | None, int | None, int | None, str | None]:
-    """Public entry point for Claude JSONL usage resolution (used by ClaudeUsageBackend)."""
-    return _resolve_claude_usage_window_impl(
-        claude_root=claude_root,
-        cwd=cwd,
-        started_at=started_at,
-        finished_at=finished_at,
-        pricing_path=pricing_path,
-    )
-
-
-def find_usage_thread_id(state_path: Path, cwd: Path, thread_id: str | None) -> str | None:
-    if not state_path.exists():
-        return None
-
-    with sqlite3.connect(state_path) as conn:
-        conn.row_factory = sqlite3.Row
-        if thread_id is not None:
-            row = conn.execute("SELECT id FROM threads WHERE id = ?", (thread_id,)).fetchone()
-            return None if row is None else str(row["id"])
-
-        row = conn.execute(
-            """
-            SELECT id
-            FROM threads
-            WHERE cwd = ?
-            ORDER BY updated_at DESC
-            LIMIT 1
-            """,
-            (str(cwd),),
-        ).fetchone()
-    return None if row is None else str(row["id"])
-
-
-def find_codex_thread_id(state_path: Path, cwd: Path, thread_id: str | None) -> str | None:
-    return find_usage_thread_id(state_path, cwd, thread_id)
-
-
-def _resolve_usage_window_impl(
-    state_path: Path,
-    logs_path: Path,
-    cwd: Path,
-    started_at: str | None,
-    finished_at: str | None,
-    pricing_path: Path,
-    thread_id: str | None = None,
-) -> tuple[float | None, int | None, int | None, int | None, int | None, str | None]:
-    if started_at is None or not state_path.exists() or not logs_path.exists():
-        return None, None, None, None, None, None
-
-    started_dt = parse_iso_datetime(started_at, "started_at")
-    finished_dt = parse_iso_datetime(finished_at, "finished_at") if finished_at is not None else now_utc_datetime()
-    if finished_dt < started_dt:
-        raise ValueError("finished_at cannot be earlier than started_at")
-
-    resolved_thread_id = find_usage_thread_id(state_path, cwd, thread_id)
-    if resolved_thread_id is None:
-        return None, None, None, None, None, None
-
-    pricing = load_pricing(pricing_path)
-    usage_events: list[dict[str, Any]] = []
-    with sqlite3.connect(logs_path) as conn:
-        conn.row_factory = sqlite3.Row
-        rows = conn.execute(
-            """
-            SELECT feedback_log_body
-            FROM logs
-            WHERE feedback_log_body LIKE ?
-              AND feedback_log_body LIKE '%event.name="codex.sse_event"%'
-              AND feedback_log_body LIKE '%event.kind=response.completed%'
-            ORDER BY id ASC
-            """,
-            (f"%conversation.id={resolved_thread_id}%",),
-        ).fetchall()
-
-    for row in rows:
-        body = row["feedback_log_body"]
-        if body is None:
-            continue
-        event = parse_usage_event(str(body))
-        if event is None:
-            continue
-        if started_dt <= event["timestamp"] <= finished_dt:
-            usage_events.append(event)
-
-    if not usage_events:
-        session_cost_usd, session_total_tokens, session_input_tokens, session_cached_input_tokens, session_output_tokens, session_model = resolve_usage_session_window(
-            logs_path=logs_path,
-            thread_id=resolved_thread_id,
-            started_dt=started_dt,
-            finished_dt=finished_dt,
-            pricing=pricing,
-        )
-        if (
-            session_cost_usd is None
-            and session_total_tokens is None
-            and session_input_tokens is None
-            and session_cached_input_tokens is None
-            and session_output_tokens is None
-            and session_model is None
-        ):
-            return None, None, None, None, None, None
-        return (
-            session_cost_usd,
-            session_total_tokens,
-            session_input_tokens,
-            session_cached_input_tokens,
-            session_output_tokens,
-            session_model,
-        )
-
-    total_cost = 0.0
-    total_input_tokens = 0
-    total_cached_input_tokens = 0
-    total_output_tokens = 0
-    total_tokens = 0
-    detected_model = None
-    for event in usage_events:
-        total_cost = round_usd(total_cost + compute_event_cost_usd(event, pricing))
-        total_input_tokens += event["input_tokens"]
-        total_cached_input_tokens += event["cached_input_tokens"]
-        total_output_tokens += event["output_tokens"]
-        total_tokens += (
-            event["input_tokens"]
-            + event["cached_input_tokens"]
-            + event["output_tokens"]
-            + event["reasoning_tokens"]
-            + event["tool_tokens"]
-        )
-        if detected_model is None and event.get("model") is not None:
-            detected_model = event["model"]
-    return total_cost, total_tokens, total_input_tokens, total_cached_input_tokens, total_output_tokens, detected_model
-
-
-class _CodexUsageBackend:
-    name = "codex"
-
-    def resolve_window(
-        self,
-        *,
-        state_path: Path,
-        logs_path: Path,
-        cwd: Path,
-        started_at: str | None,
-        finished_at: str | None,
-        pricing_path: Path,
-        thread_id: str | None = None,
-    ) -> UsageWindow:
-        cost_usd, total_tokens, input_tokens, cached_input_tokens, output_tokens, agent_name = _resolve_usage_window_impl(
-            state_path=state_path,
-            logs_path=logs_path,
-            cwd=cwd,
-            started_at=started_at,
-            finished_at=finished_at,
-            pricing_path=pricing_path,
-            thread_id=thread_id,
-        )
-        return UsageWindow(
-            cost_usd=cost_usd,
-            total_tokens=total_tokens,
-            input_tokens=input_tokens,
-            cached_input_tokens=cached_input_tokens,
-            output_tokens=output_tokens,
-            model_name=agent_name,
-            backend_name=self.name,
-        )
-
-
-DEFAULT_USAGE_BACKEND: UsageBackend = _CodexUsageBackend()
-CLAUDE_USAGE_BACKEND: UsageBackend = ClaudeUsageBackend()
-
-
-def resolve_usage_window(
-    state_path: Path,
-    logs_path: Path,
-    cwd: Path,
-    started_at: str | None,
-    finished_at: str | None,
-    pricing_path: Path,
-    thread_id: str | None = None,
-) -> tuple[float | None, int | None, int | None, int | None, int | None, str | None]:
-    resolved_backend = select_usage_backend(state_path, cwd, thread_id)
-    window = resolve_backend_usage_window(
-        resolved_backend,
-        state_path=state_path,
-        logs_path=logs_path,
-        cwd=cwd,
-        started_at=started_at,
-        finished_at=finished_at,
-        pricing_path=pricing_path,
-        thread_id=thread_id,
-    )
-    return (
-        window.cost_usd,
-        window.total_tokens,
-        window.input_tokens,
-        window.cached_input_tokens,
-        window.output_tokens,
-        window.model_name,
-    )
-
-
-def resolve_codex_usage_window(
-    state_path: Path,
-    logs_path: Path,
-    cwd: Path,
-    started_at: str | None,
-    finished_at: str | None,
-    pricing_path: Path,
-    thread_id: str | None = None,
-) -> tuple[float | None, int | None, int | None, int | None, int | None, str | None]:
-    window = resolve_backend_usage_window(
-        DEFAULT_USAGE_BACKEND,
-        state_path=state_path,
-        logs_path=logs_path,
-        cwd=cwd,
-        started_at=started_at,
-        finished_at=finished_at,
-        pricing_path=pricing_path,
-        thread_id=thread_id,
-    )
-    return (
-        window.cost_usd,
-        window.total_tokens,
-        window.input_tokens,
-        window.cached_input_tokens,
-        window.output_tokens,
-        window.model_name,
-    )
-
-
-def find_session_rollout_path(sessions_root: Path, thread_id: str) -> Path | None:
-    if not sessions_root.exists():
-        return None
-
-    candidates = sorted(
-        sessions_root.rglob(f"*{thread_id}.jsonl"),
-        key=lambda path: path.name,
-        reverse=True,
-    )
-    return candidates[0] if candidates else None
-
-
-def resolve_thread_model_from_logs(logs_path: Path, thread_id: str) -> str | None:
-    with sqlite3.connect(logs_path) as conn:
-        conn.row_factory = sqlite3.Row
-        rows = conn.execute(
-            """
-            SELECT feedback_log_body
-            FROM logs
-            WHERE thread_id = ?
-              AND feedback_log_body LIKE '%model=%'
-            ORDER BY id DESC
-            LIMIT 200
-            """,
-            (thread_id,),
-        ).fetchall()
-
-    for row in rows:
-        body = row["feedback_log_body"]
-        if body is None:
-            continue
-        match = THREAD_MODEL_PATTERN.search(str(body))
-        if match is not None:
-            return match.group(1)
-    return None
-
-
-def resolve_usage_session_window(
-    *,
-    logs_path: Path,
-    thread_id: str,
-    started_dt: datetime,
-    finished_dt: datetime,
-    pricing: dict[str, dict[str, float | None]],
-) -> tuple[float | None, int | None, int | None, int | None, int | None, str | None]:
-    sessions_root = logs_path.parent / "sessions"
-    rollout_path = find_session_rollout_path(sessions_root, thread_id)
-    if rollout_path is None:
-        return None, None, None, None, None, None
-
-    model = resolve_thread_model_from_logs(logs_path, thread_id)
-    total_cost = 0.0
-    total_input_tokens = 0
-    total_cached_input_tokens = 0
-    total_output_tokens = 0
-    total_tokens = 0
-    cost_found = False
-    tokens_found = False
-    breakdown_found = False
-    model_found = model
-
-    with rollout_path.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            if not line.strip():
-                continue
-            record = json.loads(line)
-            if record.get("type") != "event_msg":
-                continue
-            payload = record.get("payload")
-            if not isinstance(payload, dict) or payload.get("type") != "token_count":
-                continue
-            timestamp = record.get("timestamp")
-            if not isinstance(timestamp, str):
-                continue
-            event_dt = parse_iso_datetime_flexible(timestamp, "timestamp")
-            if not (started_dt <= event_dt <= finished_dt):
-                continue
-
-            info = payload.get("info")
-            if not isinstance(info, dict):
-                continue
-            last_usage = info.get("last_token_usage")
-            if not isinstance(last_usage, dict):
-                continue
-
-            input_tokens = int(last_usage.get("input_tokens", 0))
-            cached_input_tokens = int(last_usage.get("cached_input_tokens", 0))
-            output_tokens = int(last_usage.get("output_tokens", 0))
-            reasoning_tokens = int(last_usage.get("reasoning_output_tokens", 0))
-            total_input_tokens += input_tokens
-            total_cached_input_tokens += cached_input_tokens
-            total_output_tokens += output_tokens
-            total_tokens += int(last_usage.get("total_tokens", input_tokens + cached_input_tokens + output_tokens))
-            total_tokens += 0
-            if reasoning_tokens > 0 and "total_tokens" not in last_usage:
-                total_tokens += reasoning_tokens
-            tokens_found = True
-            breakdown_found = True
-
-            if model is None:
-                continue
-
-            event = {
-                "model": model,
-                "input_tokens": input_tokens,
-                "cached_input_tokens": cached_input_tokens,
-                "output_tokens": output_tokens,
-            }
-            total_cost = round_usd(total_cost + compute_event_cost_usd(event, pricing))
-            cost_found = True
-
-    return (
-        round_usd(total_cost) if cost_found else None,
-        total_tokens if tokens_found else None,
-        total_input_tokens if breakdown_found else None,
-        total_cached_input_tokens if breakdown_found else None,
-        total_output_tokens if breakdown_found else None,
-        model_found if tokens_found else None,
-    )
-
-
-def resolve_codex_session_usage_window(
-    *,
-    logs_path: Path,
-    thread_id: str,
-    started_dt: datetime,
-    finished_dt: datetime,
-    pricing: dict[str, dict[str, float | None]],
-) -> tuple[float | None, int | None, int | None, int | None, int | None, str | None]:
-    return resolve_usage_session_window(
-        logs_path=logs_path,
-        thread_id=thread_id,
-        started_dt=started_dt,
-        finished_dt=finished_dt,
-        pricing=pricing,
-    )
-
-
 def resolve_usage_costs(
     pricing_path: Path,
     model: str | None,
@@ -956,6 +246,8 @@ def resolve_usage_costs(
     explicit_cost_fields_used: bool,
     explicit_token_fields_used: bool,
 ) -> tuple[float | None, int | None, int | None, int | None, int | None, str | None]:
+    from decimal import Decimal
+
     usage_fields_used = any(value is not None for value in (input_tokens, cached_input_tokens, output_tokens))
     if model is None and not usage_fields_used:
         return None, None, None, None, None, None
@@ -990,8 +282,6 @@ def resolve_usage_costs(
     total_cost = round_usd(input_cost + cached_input_cost + output_cost)
     total_tokens = input_tokens_value + cached_input_tokens_value + output_tokens_value
     return total_cost, total_tokens, input_tokens_value, cached_input_tokens_value, output_tokens_value, model
-
-
 
 
 def save_report(path: Path, data: dict[str, Any]) -> None:
@@ -1042,7 +332,6 @@ def bootstrap_project(
         save_report=save_report,
     )
     return result.messages
-
 
 
 def resolve_goal_usage_updates(
@@ -1328,509 +617,6 @@ def upsert_task(
     tasks[task_index] = task_dict
 
     return task_dict
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Analyze your AI agent work history, track spending, and optimize your workflow. Point it at your history files and see retry pressure, token cost, and session timeline — no manual setup required.",
-        epilog=(
-            "Examples:\n"
-            "  %(prog)s start-task --title \"Add CSV import\" --task-type product\n"
-            "  %(prog)s continue-task --task-id 2026-03-29-001 --notes \"Retry after validation failure\"\n"
-            "  %(prog)s finish-task --task-id 2026-03-29-001 --status success --notes \"Validated\"\n"
-            "  %(prog)s update --title \"Add CSV import\" --task-type product --attempts-delta 1\n"
-            "  %(prog)s update --task-id 2026-03-29-001 --status success --notes \"Validated\"\n"
-            "  %(prog)s update --task-id 2026-03-29-002 --title \"Retry CSV import\" --task-type product --supersedes-task-id 2026-03-29-001 --status success\n"
-            "  %(prog)s ensure-active-task\n"
-            "  %(prog)s history-ingest --source-root ~/.codex\n"
-            "  %(prog)s history-normalize\n"
-            "  %(prog)s history-derive\n"
-            "  %(prog)s audit-cost-coverage\n"
-            "  %(prog)s sync-usage\n"
-        ),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument(
-        "--version",
-        action="version",
-        version=f"%(prog)s {__version__}",
-    )
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
-    init_parser = subparsers.add_parser(
-        "init",
-        help="Create the metrics JSON source of truth",
-        description=(
-            "Create the low-level metrics source of truth file. "
-            "Use --write-report when you also want a markdown export."
-        ),
-    )
-    init_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
-    init_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
-    init_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
-    init_parser.add_argument("--force", action="store_true", help="Overwrite existing metrics files")
-
-    bootstrap_parser = subparsers.add_parser(
-        "bootstrap",
-        help="Scaffold ai-agents-metrics into a repository, including an instructions file and policy",
-        description=(
-            "Create the full ai-agents-metrics repository scaffold: metrics artifact, "
-            "docs/ai-agents-metrics-policy.md, and a managed ai-agents-metrics block inside your instructions file. "
-            "Use --write-report when you also want the optional markdown export."
-        ),
-    )
-    bootstrap_parser.add_argument("--target-dir", default=".", help="Repository root to initialize")
-    bootstrap_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
-    bootstrap_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
-    bootstrap_parser.add_argument("--write-report", action="store_true", help="Also create or update the optional markdown report")
-    bootstrap_parser.add_argument("--policy-path", default="docs/ai-agents-metrics-policy.md")
-    bootstrap_parser.add_argument("--command-path", default="tools/ai-agents-metrics")
-    bootstrap_parser.add_argument("--agents-path", "--instructions-path", dest="agents_path", default="AGENTS.md")
-    bootstrap_parser.add_argument("--force", action="store_true", help="Replace conflicting scaffold files")
-    bootstrap_parser.add_argument("--dry-run", action="store_true", help="Preview planned changes without writing files")
-
-    install_self_parser = subparsers.add_parser(
-        "install-self",
-        help="Install this executable into ~/bin/ai-agents-metrics",
-        description=(
-            "Install the current ai-agents-metrics executable into a stable user-local location. "
-            "On macOS/Linux this defaults to a symlink at ~/bin/ai-agents-metrics."
-        ),
-    )
-    install_self_parser.add_argument("--target-dir", default=str(Path.home() / "bin"))
-    install_self_parser.add_argument("--target-path")
-    install_self_parser.add_argument("--command-name", default="ai-agents-metrics")
-    install_self_parser.add_argument("--copy", action="store_true", help="Copy the executable instead of creating a symlink")
-    install_self_parser.add_argument(
-        "--write-shell-profile",
-        action="store_true",
-        help="Append the target directory to the detected shell profile when it is not already on PATH",
-    )
-
-    completion_parser = subparsers.add_parser(
-        "completion",
-        help="Print shell completion for bash or zsh",
-        description=(
-            "Print a shell completion script for ai-agents-metrics. "
-            "Use this to enable command and option completion in bash or zsh."
-        ),
-    )
-    completion_parser.add_argument("shell", choices=("bash", "zsh"))
-
-    start_parser = subparsers.add_parser(
-        "start-task",
-        help="Create a new goal and record the first implementation pass",
-        description=(
-            "Create a new goal with attempts incremented for the first implementation pass. "
-            "Use this when starting meaningful work on a new task."
-        ),
-    )
-    start_parser.add_argument("--title", required=True, help="Goal title")
-    start_parser.add_argument("--task-type", required=True, choices=sorted(ALLOWED_TASK_TYPES), help="Goal classification")
-    start_linked_group = start_parser.add_mutually_exclusive_group()
-    start_linked_group.add_argument("--continuation-of", help="Create a new goal linked to a previous closed goal")
-    start_linked_group.add_argument("--supersedes-task-id", help="Create a replacement goal for a previous closed goal")
-    start_parser.add_argument("--notes", help="Optional note recorded on the goal and latest attempt entry")
-    start_parser.add_argument("--started-at", help="Explicit ISO8601 start timestamp")
-    start_parser.add_argument("--cost-usd-add", type=float, help="Add explicit USD cost")
-    start_parser.add_argument("--tokens-add", type=int, help="Add explicit token count")
-    start_parser.add_argument("--model", help="Pricing model name for token-based cost calculation")
-    start_parser.add_argument("--input-tokens", type=int, help="Input tokens for model-based pricing")
-    start_parser.add_argument("--cached-input-tokens", type=int, help="Cached input tokens for model-based pricing")
-    start_parser.add_argument("--output-tokens", type=int, help="Output tokens for model-based pricing")
-    start_parser.add_argument("--pricing-path", default=None)
-    start_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
-    start_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
-    start_parser.add_argument("--codex-thread-id")
-    start_parser.add_argument("--claude-root", default=str(CLAUDE_ROOT))
-    start_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
-    start_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
-    start_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
-
-    continue_parser = subparsers.add_parser(
-        "continue-task",
-        help="Record another implementation pass for an existing goal",
-        description=(
-            "Increment attempts for an existing goal and optionally attach notes, failure reason, "
-            "or usage data for the new pass."
-        ),
-    )
-    continue_parser.add_argument("--task-id", required=True, help="Existing goal identifier")
-    continue_parser.add_argument("--notes", help="Optional note recorded on the goal and latest attempt entry")
-    continue_parser.add_argument(
-        "--failure-reason",
-        choices=sorted(ALLOWED_FAILURE_REASONS),
-        help="Primary failure reason for the new unsuccessful pass",
-    )
-    continue_parser.add_argument("--started-at", help="Explicit ISO8601 timestamp for the new pass")
-    continue_parser.add_argument("--cost-usd-add", type=float, help="Add explicit USD cost")
-    continue_parser.add_argument("--tokens-add", type=int, help="Add explicit token count")
-    continue_parser.add_argument("--model", help="Pricing model name for token-based cost calculation")
-    continue_parser.add_argument("--input-tokens", type=int, help="Input tokens for model-based pricing")
-    continue_parser.add_argument("--cached-input-tokens", type=int, help="Cached input tokens for model-based pricing")
-    continue_parser.add_argument("--output-tokens", type=int, help="Output tokens for model-based pricing")
-    continue_parser.add_argument("--pricing-path", default=None)
-    continue_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
-    continue_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
-    continue_parser.add_argument("--codex-thread-id")
-    continue_parser.add_argument("--claude-root", default=str(CLAUDE_ROOT))
-    continue_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
-    continue_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
-    continue_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
-
-    finish_parser = subparsers.add_parser(
-        "finish-task",
-        help="Close an existing goal as success or fail",
-        description=(
-            "Close an existing goal after implementation work is done. Use --status success for a validated "
-            "completion or --status fail with a dominant failure reason when the goal did not succeed."
-        ),
-    )
-    finish_parser.add_argument("--task-id", required=True, help="Existing goal identifier")
-    finish_parser.add_argument("--status", required=True, choices=("success", "fail"), help="Final goal status")
-    finish_parser.add_argument(
-        "--failure-reason",
-        choices=sorted(ALLOWED_FAILURE_REASONS),
-        help="Primary failure reason. Required when closing a goal as fail.",
-    )
-    finish_parser.add_argument(
-        "--result-fit",
-        choices=sorted(ALLOWED_RESULT_FITS),
-        help="Optional operator quality judgement for closed product goals",
-    )
-    finish_parser.add_argument("--notes", help="Optional note recorded on the goal and latest attempt entry")
-    finish_parser.add_argument("--finished-at", help="Explicit ISO8601 finish timestamp")
-    finish_parser.add_argument("--cost-usd-add", type=float, help="Add explicit USD cost")
-    finish_parser.add_argument("--tokens-add", type=int, help="Add explicit token count")
-    finish_parser.add_argument("--model", help="Pricing model name for token-based cost calculation")
-    finish_parser.add_argument("--input-tokens", type=int, help="Input tokens for model-based pricing")
-    finish_parser.add_argument("--cached-input-tokens", type=int, help="Cached input tokens for model-based pricing")
-    finish_parser.add_argument("--output-tokens", type=int, help="Output tokens for model-based pricing")
-    finish_parser.add_argument("--pricing-path", default=None)
-    finish_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
-    finish_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
-    finish_parser.add_argument("--codex-thread-id")
-    finish_parser.add_argument("--claude-root", default=str(CLAUDE_ROOT))
-    finish_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
-    finish_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
-    finish_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
-
-    update_parser = subparsers.add_parser(
-        "update",
-        help="Create or update a goal record",
-        description=(
-            "Create a new goal or update an existing one. For new goals, omit --task-id and let the updater "
-            "generate one. Use --attempts-delta for a new implementation pass, --supersedes-task-id for a "
-            "replacement goal, and --task-type explicitly for new goals."
-        ),
-        epilog=(
-            "Examples:\n"
-            "  %(prog)s --title \"Improve CLI help\" --task-type product --attempts-delta 1\n"
-            "  %(prog)s --task-id 2026-03-29-010 --status success --notes \"Validated\"\n"
-            "  %(prog)s --task-id 2026-03-29-011 --title \"Retry CLI help\" --task-type product --supersedes-task-id 2026-03-29-010 --status success\n"
-            "  %(prog)s --title \"Write retro\" --task-type retro --attempts-delta 1 --status success\n"
-        ),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    update_parser.add_argument(
-        "--task-id",
-        help=(
-            "Stable goal identifier. Omit this for new goals and let the updater generate one. "
-            "Pass it when updating an existing goal or replaying history."
-        ),
-    )
-    update_parser.add_argument("--title", help="Goal title. Required for new goals.")
-    update_parser.add_argument("--task-type", choices=sorted(ALLOWED_TASK_TYPES), help="Goal classification for new goals")
-    linked_task_group = update_parser.add_mutually_exclusive_group()
-    linked_task_group.add_argument("--continuation-of", help="Create a new goal linked to a previous closed goal")
-    linked_task_group.add_argument("--supersedes-task-id", help="Create a replacement goal for a previous closed goal")
-    update_parser.add_argument("--status", choices=sorted(ALLOWED_STATUSES), help="Goal status")
-    update_parser.add_argument("--attempts-delta", type=int, help="Increment attempts by this amount")
-    update_parser.add_argument("--attempts", type=int, help="Set absolute attempts count")
-    update_parser.add_argument("--cost-usd-add", type=float, help="Add explicit USD cost")
-    update_parser.add_argument("--cost-usd", type=float, help="Set explicit USD cost")
-    update_parser.add_argument("--tokens-add", type=int, help="Add explicit token count")
-    update_parser.add_argument("--tokens", type=int, help="Set explicit token count")
-    update_parser.add_argument("--model", help="Pricing model name for token-based cost calculation")
-    update_parser.add_argument("--input-tokens", type=int, help="Input tokens for model-based pricing")
-    update_parser.add_argument("--cached-input-tokens", type=int, help="Cached input tokens for model-based pricing")
-    update_parser.add_argument("--output-tokens", type=int, help="Output tokens for model-based pricing")
-    update_parser.add_argument("--pricing-path", default=None)
-    update_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
-    update_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
-    update_parser.add_argument("--codex-thread-id")
-    update_parser.add_argument("--claude-root", default=str(CLAUDE_ROOT))
-    update_parser.add_argument("--failure-reason", choices=sorted(ALLOWED_FAILURE_REASONS), help="Primary failure reason for a failed goal")
-    update_parser.add_argument(
-        "--result-fit",
-        choices=sorted(ALLOWED_RESULT_FITS),
-        help="Operator quality judgement for closed product goals: exact_fit, partial_fit, or miss",
-    )
-    update_parser.add_argument("--notes", help="Optional note recorded on the goal and latest attempt entry")
-    update_parser.add_argument("--started-at", help="Explicit ISO8601 start timestamp")
-    update_parser.add_argument("--finished-at", help="Explicit ISO8601 finish timestamp")
-    update_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
-    update_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
-    update_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
-
-    show_parser = subparsers.add_parser(
-        "show",
-        help="Print current summary and operator review",
-        description="Print the current summary, cost coverage, and operator review.",
-    )
-    show_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
-    show_parser.add_argument(
-        "--warehouse-path",
-        default=str(RAW_WAREHOUSE_PATH),
-        help="Path to the history warehouse SQLite file (default: auto-detected from metrics path)",
-    )
-    show_parser.add_argument("--json", action="store_true", help="Output summary as JSON")
-
-    audit_parser = subparsers.add_parser(
-        "history-audit",
-        help="Flag suspicious history patterns for manual review",
-        description=(
-            "Analyze stored goal history and print audit candidates such as likely misses, "
-            "partial-fit recoveries, stale in-progress goals, and low-cost-coverage product goals."
-        ),
-    )
-    audit_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
-
-    compare_parser = subparsers.add_parser(
-        "history-compare",
-        help="Compare the structured metrics ledger against reconstructed agent history",
-        description=(
-            "Read the metrics source of truth and a derived agent history warehouse, then print an "
-            "aggregate comparison for the current repository cwd."
-        ),
-    )
-    compare_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
-    compare_parser.add_argument("--warehouse-path", default=str(RAW_WAREHOUSE_PATH))
-    compare_parser.add_argument("--cwd", default=str(Path.cwd()))
-
-    ingest_parser = subparsers.add_parser(
-        "history-ingest",
-        help="Ingest local agent history into a raw SQLite warehouse",
-        description=(
-            "Read thread metadata, session transcripts, telemetry events, and logs from a local "
-            "agent history directory into a raw warehouse for later derivation. "
-            "Supports Codex (~/.codex) and Claude Code (~/.claude)."
-        ),
-        formatter_class=argparse.RawTextHelpFormatter,
-    )
-    ingest_parser.add_argument(
-        "--source",
-        choices=["codex", "claude", "all"],
-        default=None,
-        help=(
-            "Agent source to ingest (default: all):\n"
-            "  codex   — reads ~/.codex only\n"
-            "  claude  — reads ~/.claude only\n"
-            "  all     — reads both ~/.codex and ~/.claude"
-        ),
-    )
-    ingest_parser.add_argument(
-        "--source-root",
-        default=None,
-        help="Override the agent history root directory (implies --source codex unless --source is set; incompatible with --source all)",
-    )
-    ingest_parser.add_argument(
-        "--warehouse-path",
-        default=str(RAW_WAREHOUSE_PATH),
-        help="SQLite warehouse path for raw imported data",
-    )
-
-    normalize_parser = subparsers.add_parser(
-        "history-normalize",
-        help="Normalize raw agent history into analysis-friendly tables",
-        description=(
-            "Read the raw warehouse populated by history-ingest and build normalized summary tables "
-            "for downstream analysis."
-        ),
-    )
-    normalize_parser.add_argument(
-        "--warehouse-path",
-        default=str(RAW_WAREHOUSE_PATH),
-        help="SQLite warehouse path that already contains raw imported data",
-    )
-
-    derive_parser = subparsers.add_parser(
-        "history-derive",
-        help="Derive analysis marts from normalized agent history",
-        description=(
-            "Read the normalized warehouse populated by history-normalize and build reusable "
-            "analysis marts for goals, attempts, timelines, retry chains, and session usage."
-        ),
-    )
-    derive_parser.add_argument(
-        "--warehouse-path",
-        default=str(RAW_WAREHOUSE_PATH),
-        help="SQLite warehouse path that already contains normalized agent history",
-    )
-
-    history_update_parser = subparsers.add_parser(
-        "history-update",
-        help="Run the full history pipeline: ingest → normalize → derive",
-        description=(
-            "Run all three history pipeline stages in sequence: history-ingest, history-normalize, "
-            "history-derive. Use this for the initial setup or to refresh the warehouse after new "
-            "agent sessions. Equivalent to running the three stages separately."
-        ),
-        formatter_class=argparse.RawTextHelpFormatter,
-    )
-    history_update_parser.add_argument(
-        "--source",
-        choices=["codex", "claude", "all"],
-        default=None,
-        help=(
-            "Agent source to ingest (default: all):\n"
-            "  codex   — reads ~/.codex only\n"
-            "  claude  — reads ~/.claude only\n"
-            "  all     — reads both ~/.codex and ~/.claude"
-        ),
-    )
-    history_update_parser.add_argument(
-        "--source-root",
-        default=None,
-        help="Override the agent history root directory (implies --source codex unless --source is set; incompatible with --source all)",
-    )
-    history_update_parser.add_argument(
-        "--warehouse-path",
-        default=str(RAW_WAREHOUSE_PATH),
-        help="SQLite warehouse path",
-    )
-    history_update_parser.add_argument(
-        "--json",
-        action="store_true",
-        default=False,
-        help="Output all three stage summaries as a single JSON object",
-    )
-
-    retro_timeline_parser = subparsers.add_parser(
-        "derive-retro-timeline",
-        help="Derive before/after product-metric windows around retrospective events",
-        description=(
-            "Read normalized Codex history from main.normalized_messages, build a retrospective timeline dataset, "
-            "write it into the SQLite warehouse, and print before/after product-metric windows around each retro."
-        ),
-    )
-    retro_timeline_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
-    retro_timeline_parser.add_argument("--warehouse-path", default=str(RAW_WAREHOUSE_PATH))
-    retro_timeline_parser.add_argument("--cwd", default=str(Path.cwd()))
-    retro_timeline_parser.add_argument("--window-size", type=int, default=5)
-
-    cost_audit_parser = subparsers.add_parser(
-        "audit-cost-coverage",
-        help="Explain why product goals are missing cost coverage",
-        description=(
-            "Inspect closed product goals and explain why cost coverage is missing, partial, or recoverable."
-        ),
-    )
-    cost_audit_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
-    cost_audit_parser.add_argument("--pricing-path", default=None)
-    cost_audit_parser.add_argument("--codex-state-path", default=str(CODEX_STATE_PATH))
-    cost_audit_parser.add_argument("--codex-logs-path", default=str(CODEX_LOGS_PATH))
-    cost_audit_parser.add_argument("--codex-thread-id")
-    cost_audit_parser.add_argument("--claude-root", default=str(CLAUDE_ROOT))
-
-    public_boundary_parser = subparsers.add_parser(
-        "verify-public-boundary",
-        help="Verify that a public repository tree does not contain private-only material",
-        description=(
-            "Check a candidate public repository tree against explicit public-boundary rules. "
-            "Fail on forbidden paths, forbidden file types, unexpected roots, or private-content markers."
-        ),
-    )
-    public_boundary_parser.add_argument("--repo-root", default=".")
-    public_boundary_parser.add_argument("--rules-path", default=str(PUBLIC_BOUNDARY_RULES_PATH))
-
-    security_parser = subparsers.add_parser(
-        "security",
-        help="Run a fast staged-file security scan",
-        description=(
-            "Scan staged changes for secrets, token patterns, private keys, and other dangerous data "
-            "before it lands in git."
-        ),
-    )
-    security_parser.add_argument("--repo-root", default=".")
-    security_parser.add_argument("--rules-path", default=str(SECURITY_RULES_PATH))
-
-    subparsers.add_parser(
-        "ensure-active-task",
-        help="Recover or verify active task bookkeeping from local git changes",
-        description=(
-            "Inspect the current git working tree for meaningful repository work and ensure that active task "
-            "bookkeeping exists. If work has started without an active goal, create a recovery draft."
-        ),
-    ).add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
-
-    sync_parser = subparsers.add_parser(
-        "sync-usage",
-        help="Backfill usage and cost from local agent logs",
-        description="Backfill known cost and token totals from local agent telemetry.",
-    )
-    sync_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
-    sync_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
-    sync_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
-    sync_parser.add_argument("--pricing-path", default=None)
-    sync_parser.add_argument("--usage-state-path", "--codex-state-path", dest="usage_state_path", default=str(CODEX_STATE_PATH))
-    sync_parser.add_argument("--usage-logs-path", "--codex-logs-path", dest="usage_logs_path", default=str(CODEX_LOGS_PATH))
-    sync_parser.add_argument("--usage-thread-id", "--codex-thread-id", dest="usage_thread_id")
-    sync_parser.add_argument("--claude-root", default=str(CLAUDE_ROOT))
-
-    sync_legacy_parser = subparsers.add_parser(
-        "sync-codex-usage",
-        help="Deprecated alias for sync-usage",
-        description="Backfill known cost and token totals from local agent telemetry.",
-    )
-    sync_legacy_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
-    sync_legacy_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
-    sync_legacy_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
-    sync_legacy_parser.add_argument("--pricing-path", default=None)
-    sync_legacy_parser.add_argument("--usage-state-path", "--codex-state-path", dest="usage_state_path", default=str(CODEX_STATE_PATH))
-    sync_legacy_parser.add_argument("--usage-logs-path", "--codex-logs-path", dest="usage_logs_path", default=str(CODEX_LOGS_PATH))
-    sync_legacy_parser.add_argument("--usage-thread-id", "--codex-thread-id", dest="usage_thread_id")
-    sync_legacy_parser.add_argument("--claude-root", default=str(CLAUDE_ROOT))
-
-    merge_parser = subparsers.add_parser(
-        "merge-tasks",
-        help="Merge a dropped split goal into a kept goal",
-        description="Recombine mistakenly split goal history into one kept goal.",
-    )
-    merge_parser.add_argument("--keep-task-id", required=True, help="Goal that should remain after the merge")
-    merge_parser.add_argument("--drop-task-id", required=True, help="Goal that should be merged into the kept goal")
-    merge_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
-    merge_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
-    merge_parser.add_argument("--write-report", action="store_true", help="Also render the optional markdown report")
-
-    render_report_parser = subparsers.add_parser(
-        "render-report",
-        help="Render the optional markdown report from stored metrics",
-        description="Generate docs/ai-agents-metrics.md on demand from the JSON source of truth.",
-    )
-    render_report_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
-    render_report_parser.add_argument("--report-path", default=str(REPORT_MD_PATH))
-
-    render_html_parser = subparsers.add_parser(
-        "render-html",
-        help="Render a self-contained HTML report with trend charts",
-        description="Generate a static HTML file with four trend charts for human review.",
-    )
-    render_html_parser.add_argument("--metrics-path", default=str(METRICS_JSON_PATH))
-    render_html_parser.add_argument(
-        "--output",
-        default=str(REPORT_HTML_PATH),
-        help="Output path for the HTML file (default: reports/report.html)",
-    )
-    render_html_parser.add_argument(
-        "--days",
-        type=int,
-        default=None,
-        metavar="N",
-        help="Limit the time window to the last N days",
-    )
-
-    return parser
 
 
 def sync_usage(
@@ -2119,10 +905,10 @@ def main() -> int:
         return commands.handle_show(args, sys.modules[__name__])
 
     if args.command == "bootstrap":
-        return commands.handle_bootstrap(args, sys.modules[__name__])
+        return handle_bootstrap(args, sys.modules[__name__])
 
     if args.command == "install-self":
-        return commands.handle_install_self(args, sys.modules[__name__])
+        return handle_install_self(args, sys.modules[__name__])
 
     if args.command == "completion":
         print(render_completion(build_parser(), args.shell), end="")
