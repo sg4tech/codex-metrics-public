@@ -37,7 +37,7 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["ruff", "mypy", "pytest", "coverage[toml]", "setuptools>=82", "build", "bandit", "radon", "import-linter"]
+dev = ["ruff", "mypy", "pytest", "coverage[toml]", "setuptools>=82", "build", "bandit", "radon", "import-linter", "pylint"]
 
 [project.scripts]
 ai-agents-metrics = "ai_agents_metrics.cli:console_main"
@@ -115,11 +115,15 @@ forbidden_modules = [
     "ai_agents_metrics.storage",
     "ai_agents_metrics.reporting",
     "ai_agents_metrics.workflow_fsm",
-    "ai_agents_metrics.history_ingest",
-    "ai_agents_metrics.history_normalize",
-    "ai_agents_metrics.history_derive",
-    "ai_agents_metrics.history_compare",
-    "ai_agents_metrics.history_audit",
+    "ai_agents_metrics.history.ingest",
+    "ai_agents_metrics.history.normalize",
+    "ai_agents_metrics.history.derive",
+    "ai_agents_metrics.history.derive_insert",
+    "ai_agents_metrics.history.derive_build",
+    "ai_agents_metrics.history.derive_schema",
+    "ai_agents_metrics.history.compare",
+    "ai_agents_metrics.history.compare_store",
+    "ai_agents_metrics.history.audit",
 ]
 
 [[tool.importlinter.contracts]]
@@ -137,8 +141,57 @@ forbidden_modules = [
 name = "History pipeline follows ingest -> normalize -> derive -> compare order"
 type = "layers"
 layers = [
-    "ai_agents_metrics.history_compare : ai_agents_metrics.history_audit",
-    "ai_agents_metrics.history_derive",
-    "ai_agents_metrics.history_normalize",
-    "ai_agents_metrics.history_ingest",
+    "ai_agents_metrics.history.compare : ai_agents_metrics.history.compare_store : ai_agents_metrics.history.audit",
+    "ai_agents_metrics.history.derive",
+    "ai_agents_metrics.history.derive_insert",
+    "ai_agents_metrics.history.derive_build",
+    "ai_agents_metrics.history.derive_schema",
+    "ai_agents_metrics.history.normalize",
+    "ai_agents_metrics.history.ingest",
 ]
+
+[tool.pylint.main]
+# cli.py, commands.py, history/ingest.py are known oversized files tracked as
+# architectural debt (ARCH). They are excluded here so the check guards new code
+# without blocking the build until those files are split.
+ignore = ["cli.py", "commands.py", "ingest.py"]
+
+[tool.pylint."messages control"]
+disable = "all"
+# Tier 1 — hard-fail (build-blocking):
+#   E0401 import-error, E0602 undefined-variable, E1101 no-member, E1120 no-value-for-argument
+#   W0102 dangerous-default-value, W0611 unused-import, W0612 unused-variable,
+#   W0718 broad-exception-caught, W1203 logging-fstring-interpolation
+#   R0401 cyclic-import, C0302 too-many-lines
+# Tier 2 — soft complexity warnings (advisory, non-blocking via || true in Makefile):
+#   R0912 too-many-branches, R0913 too-many-arguments, R0914 too-many-locals,
+#   R0915 too-many-statements, R0902 too-many-instance-attributes, W0401 wildcard-import
+#   C0411 wrong-import-order
+enable = [
+    "E0401",
+    "E0602",
+    "E1101",
+    "E1120",
+    "W0102",
+    "W0611",
+    "W0612",
+    "W0718",
+    "W1203",
+    "R0401",
+    "C0302",
+    "R0912",
+    "R0913",
+    "R0914",
+    "R0915",
+    "R0902",
+    "W0401",
+    "C0411",
+]
+
+[tool.pylint.design]
+max-module-lines = 1000
+max-args = 8
+max-locals = 20
+max-branches = 15
+max-statements = 60
+max-attributes = 10

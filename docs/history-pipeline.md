@@ -2,6 +2,8 @@
 
 **What this document is:** How `ai-agents-metrics` extracts metrics from raw AI agent session data. The history pipeline is the primary analysis layer — it reads existing conversation history files and produces retry pressure, token cost, and session timelines without any manual instrumentation. This document describes the current adapters and the pipeline stages.
 
+**Retry pressure definition:** `retry_count` is the number of user messages sent after the first one in a thread — each additional user message represents a clarifying or corrective input that the agent required before completing the task. `has_retry_pressure = retry_count > 0`. This definition is source-agnostic and works identically for Codex and Claude sessions.
+
 **When to read this:**
 - Working on history ingestion or transcript analysis
 - Adding a new data source adapter
@@ -23,6 +25,8 @@ This pipeline supports three `--source` values:
 - **Claude Code** (`--source claude`): reads from `~/.claude/projects/` only — full transcript and token usage from session JSONL files, including subagent sessions.
 
 Both sources feed the same ingest → normalize → derive pipeline and produce the same warehouse table shapes. The history pipeline is the primary product flow — run it to get retry pressure, token cost, and session timelines from existing history files with no prior setup. The NDJSON ledger (`events.ndjson`) is a complementary opt-in layer for explicit goal boundaries and outcome judgements.
+
+**Note on Codex vs Claude:** For Codex, each session file maps 1:1 to a thread — there is no multi-session threading. Retry pressure is still measured correctly for Codex through user message counts, not session counts.
 
 `sync-usage` is a separate lightweight cost-backfill adapter (reads `~/.claude` telemetry) and is not part of this transcript pipeline.
 
@@ -51,10 +55,10 @@ Raw sources (~/.claude, Claude Code telemetry) — cost/token only (lightweight 
 
 | Stage | Module | What it does |
 |-------|--------|--------------|
-| Ingest | `history_ingest.py` | Reads raw Codex sources into the warehouse |
-| Normalize | `history_normalize.py` | Cleans and stabilises raw rows |
-| Derive | `history_derive.py` | Builds goal, attempt, and timeline marts |
-| Compare | `history_compare.py` | Diffs derived goals against the NDJSON ledger |
+| Ingest | `history/ingest.py` | Reads raw Codex sources into the warehouse |
+| Normalize | `history/normalize.py` | Cleans and stabilises raw rows |
+| Derive | `history/derive.py` | Builds goal, attempt, and timeline marts |
+| Compare | `history/compare.py` | Diffs derived goals against the NDJSON ledger |
 
 Run in order: ingest → normalize → derive → compare.
 
@@ -294,7 +298,11 @@ Message-level OLAP fact table with token usage attributed to the nearest assista
 Retry-chain summary per thread.
 
 - Primary key: `thread_id`
-- Use for: whether the thread experienced retry pressure and which attempt was first/last
+- Key fields: `retry_count`, `has_retry_pressure`, `attempt_count`
+- **`retry_count`**: number of user messages after the first one — each is a clarifying or corrective input the user had to add before the task was done
+- **`has_retry_pressure`**: 1 if `retry_count > 0`, else 0
+- **`attempt_count`**: `retry_count + 1` — total user turns in the thread
+- Use for: whether the thread required clarification and how many rounds it took
 
 ### `derived_session_usage`
 
@@ -401,7 +409,7 @@ To add a new data source (e.g. a different agent or log format):
 
 1. Add a new ingest module that reads from the new source and writes into the same raw warehouse schema, or a new schema alongside it.
 2. Add normalize and derive stages that produce the same output table shapes (`derived_goals`, `derived_attempts`, etc.) so downstream comparison and analysis remain unchanged.
-3. The compare stage (`history_compare.py`) works against the NDJSON ledger and is source-agnostic — it does not need to change for new sources.
+3. The compare stage (`history/compare.py`) works against the NDJSON ledger and is source-agnostic — it does not need to change for new sources.
 
 The current raw table names (`raw_threads`, `raw_sessions`, etc.) are Codex-specific. New adapters should introduce their own raw table namespace rather than reusing these names.
 

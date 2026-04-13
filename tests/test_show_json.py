@@ -268,7 +268,7 @@ def test_handle_show_prints_json(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 def test_render_summary_json_history_signals_present() -> None:
-    from ai_agents_metrics.history_compare import HistorySignals
+    from ai_agents_metrics.history.compare import HistorySignals
     from ai_agents_metrics.reporting import render_summary_json
 
     data = {
@@ -310,7 +310,7 @@ def test_render_summary_json_history_signals_present() -> None:
 
 
 def test_render_summary_json_history_signals_all_projects_scope() -> None:
-    from ai_agents_metrics.history_compare import HistorySignals
+    from ai_agents_metrics.history.compare import HistorySignals
     from ai_agents_metrics.reporting import render_summary_json
 
     data = {

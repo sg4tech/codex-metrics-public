@@ -63,38 +63,38 @@ from ai_agents_metrics.git_state import (
 from ai_agents_metrics.git_state import (
     _normalize_worktree_path as _git_state_normalize_worktree_path,
 )
-from ai_agents_metrics.history_audit import (  # noqa: F401 — re-exported as cli_module attributes
+from ai_agents_metrics.history.audit import (  # noqa: F401 — re-exported as cli_module attributes
     audit_history,
     render_audit_report,
     render_audit_report_json,
 )
-from ai_agents_metrics.history_compare import (  # noqa: F401 — re-exported as cli_module attributes
+from ai_agents_metrics.history.compare import (  # noqa: F401 — re-exported as cli_module attributes
     HistorySignals,
     compare_metrics_to_history,
     read_history_signals,
     render_history_compare_report,
     render_history_compare_report_json,
 )
-from ai_agents_metrics.history_derive import (
+from ai_agents_metrics.history.derive import (
     DeriveSummary,
     render_derive_summary_json,  # noqa: F401 — re-exported as cli_module attribute
 )
-from ai_agents_metrics.history_derive import (
+from ai_agents_metrics.history.derive import (
     derive_codex_history as run_derive_codex_history,
 )
-from ai_agents_metrics.history_ingest import (
+from ai_agents_metrics.history.ingest import (
     IngestSummary,
     default_raw_warehouse_path,
     render_ingest_summary_json,  # noqa: F401 — re-exported as cli_module attribute
 )
-from ai_agents_metrics.history_ingest import (
+from ai_agents_metrics.history.ingest import (
     ingest_codex_history as run_ingest_codex_history,
 )
-from ai_agents_metrics.history_normalize import (
+from ai_agents_metrics.history.normalize import (
     NormalizeSummary,
     render_normalize_summary_json,  # noqa: F401 — re-exported as cli_module attribute
 )
-from ai_agents_metrics.history_normalize import (
+from ai_agents_metrics.history.normalize import (
     normalize_codex_history as run_normalize_codex_history,
 )
 from ai_agents_metrics.observability import record_cli_invocation_observation
@@ -1614,14 +1614,20 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             "Read thread metadata, session transcripts, telemetry events, and logs from a local "
             "agent history directory into a raw warehouse for later derivation. "
-            "Supports Codex (default, ~/.codex) and Claude Code (~/.claude)."
+            "Supports Codex (~/.codex) and Claude Code (~/.claude)."
         ),
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     ingest_parser.add_argument(
         "--source",
         choices=["codex", "claude", "all"],
         default=None,
-        help="Agent source to ingest: 'all' (default when no --source-root), 'codex' (~/.codex), or 'claude' (~/.claude)",
+        help=(
+            "Agent source to ingest (default: all):\n"
+            "  codex   — reads ~/.codex only\n"
+            "  claude  — reads ~/.claude only\n"
+            "  all     — reads both ~/.codex and ~/.claude"
+        ),
     )
     ingest_parser.add_argument(
         "--source-root",
@@ -1670,12 +1676,18 @@ def build_parser() -> argparse.ArgumentParser:
             "history-derive. Use this for the initial setup or to refresh the warehouse after new "
             "agent sessions. Equivalent to running the three stages separately."
         ),
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     history_update_parser.add_argument(
         "--source",
         choices=["codex", "claude", "all"],
         default=None,
-        help="Agent source to ingest: 'all' (default when no --source-root), 'codex' (~/.codex), or 'claude' (~/.claude)",
+        help=(
+            "Agent source to ingest (default: all):\n"
+            "  codex   — reads ~/.codex only\n"
+            "  claude  — reads ~/.claude only\n"
+            "  all     — reads both ~/.codex and ~/.claude"
+        ),
     )
     history_update_parser.add_argument(
         "--source-root",

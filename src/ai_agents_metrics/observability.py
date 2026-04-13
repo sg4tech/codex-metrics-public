@@ -237,7 +237,7 @@ def _record_event_best_effort(
             result_fit_before=result_fit_before,
             result_fit_after=result_fit_after,
         )
-    except Exception as exc:
+    except Exception as exc:  # pylint: disable=broad-exception-caught
         paths = observability_paths(metrics_path)
         fallback_payload = {
             "error": type(exc).__name__,
@@ -264,7 +264,7 @@ def _record_event_best_effort(
         )
         try:
             _append_debug_line(paths.debug_log_path, fallback_line)
-        except Exception:  # nosec B110
+        except Exception:  # nosec B110  # pylint: disable=broad-exception-caught
             pass
 
 

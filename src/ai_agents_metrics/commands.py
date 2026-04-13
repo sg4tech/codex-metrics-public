@@ -20,16 +20,16 @@ from ai_agents_metrics.domain import (
     sync_goal_attempt_entries,
 )
 from ai_agents_metrics.event_store import append_event
-from ai_agents_metrics.history_audit import (
+from ai_agents_metrics.history.audit import (
     AuditReport,
 )
-from ai_agents_metrics.history_compare import (
+from ai_agents_metrics.history.compare import (
     HistoryCompareReport,
     HistorySignals,
 )
-from ai_agents_metrics.history_derive import DeriveSummary
-from ai_agents_metrics.history_ingest import IngestSummary, default_raw_warehouse_path
-from ai_agents_metrics.history_normalize import NormalizeSummary
+from ai_agents_metrics.history.derive import DeriveSummary
+from ai_agents_metrics.history.ingest import IngestSummary, default_raw_warehouse_path
+from ai_agents_metrics.history.normalize import NormalizeSummary
 from ai_agents_metrics.observability import (
     record_goal_merge_observation,
     record_goal_mutation_observation,
@@ -712,6 +712,14 @@ def handle_history_update(args: Namespace, cli_module: CommandRuntime) -> int:
             print(f"    Imported {ingest_summary.imported_files} files, {ingest_summary.threads} threads")
         else:
             ingest_summaries = {source: _json.loads(cli_module.render_ingest_summary_json(ingest_summary))}
+
+    if not ingest_results and not warehouse_path.exists():
+        if not json_output:
+            print("No sources were ingested and no existing warehouse found — nothing to normalize.")
+        else:
+            print(_json.dumps({"ingest": ingest_summaries, "normalize": None, "derive": None}))
+        return 0
+
 
     if not json_output:
         print("==> history-normalize")
