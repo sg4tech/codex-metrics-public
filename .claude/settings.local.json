@@ -159,7 +159,9 @@
       "Bash(PYTHONPATH=src .venv/bin/lint-imports)",
       "Bash(git checkout *)",
       "Bash(git merge *)",
-      "Bash(git status)"
+      "Bash(git status)",
+      "Bash(wait)",
+      "Bash(PYTHONPATH=src .venv/bin/pylint src/ai_agents_metrics/)"
     ],
     "deny": [
       "Bash(chattr*)",
