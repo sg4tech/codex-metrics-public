@@ -10,6 +10,7 @@ from pathlib import Path
 DEFAULT_PRIVATE_REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REMOTE_NAME = "public"
 DEFAULT_BRANCH = "main"
+DEFAULT_PULL_BRANCHES = ["main", "sync"]
 DEFAULT_PR_BRANCH = "sync"
 DEFAULT_PREFIX = "oss"
 
@@ -66,6 +67,14 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Run the subtree pull instead of only printing the planned shell command.",
     )
+    pull_parser.add_argument(
+        "--branches",
+        nargs="+",
+        default=DEFAULT_PULL_BRANCHES,
+        metavar="BRANCH",
+        help=f"Branches to pull from the public remote (default: {' '.join(DEFAULT_PULL_BRANCHES)}). "
+             "Branches other than the first are skipped if not found on the remote.",
+    )
     return parser
 
 
@@ -111,6 +120,15 @@ def build_push_command(*, remote_name: str, prefix: str, pr_branch: str) -> str:
 
 def build_pull_command(*, remote_name: str, prefix: str, branch: str) -> str:
     return f"git subtree pull --prefix={prefix} {remote_name} {branch} --squash"
+
+
+def _remote_branch_exists(*, remote_name: str, branch: str, cwd: Path) -> bool:
+    result = subprocess.run(
+        ["git", "ls-remote", "--exit-code", "--heads", remote_name, branch],
+        cwd=cwd,
+        capture_output=True,
+    )
+    return result.returncode == 0
 
 
 def _run(command: list[str], *, cwd: Path) -> None:
@@ -177,12 +195,20 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "pull":
-        command = build_pull_command(remote_name=args.remote_name, prefix=args.prefix, branch=args.branch)
+        branches: list[str] = args.branches
         if args.execute:
-            _run(shlex.split(command), cwd=private_repo_root)
+            for i, branch in enumerate(branches):
+                required = i == 0
+                if not required and not _remote_branch_exists(
+                    remote_name=args.remote_name, branch=branch, cwd=private_repo_root
+                ):
+                    print(f"public-overlay-pull: branch '{branch}' not found on remote '{args.remote_name}', skipping")
+                    continue
+                _run(shlex.split(build_pull_command(remote_name=args.remote_name, prefix=args.prefix, branch=branch)), cwd=private_repo_root)
             _verify_public_boundary(private_repo_root=private_repo_root, prefix=args.prefix)
         else:
-            print(command)
+            for branch in branches:
+                print(build_pull_command(remote_name=args.remote_name, prefix=args.prefix, branch=branch))
         return 0
 
     parser.error(f"Unknown command: {args.command}")
