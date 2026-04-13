@@ -42,6 +42,7 @@ ignored_paths = [
 ]
 
 marker_ignored_paths = [
+  ".claude/settings.local.json",
   "config/security-rules.toml",
   "docs/private/**",
   "oss/tests/test_public_boundary.py",
