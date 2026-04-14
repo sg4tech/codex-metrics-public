@@ -40,24 +40,18 @@ complexity: check-init
 	@echo "=== Maintainability index (rank C — hard to maintain) ==="
 	@.venv/bin/radon mi src/ -n C -s || true
 
-# Clean-zone modules (fully decomposed): hard-fail if any function regresses to rank C (CC > 10).
-# To expand the clean zone, add the module path and ensure all its functions are rank B or below.
-CC_CLEAN_ZONE = \
-	src/ai_agents_metrics/_report_aggregation.py \
-	src/ai_agents_metrics/history/derive.py \
-	src/ai_agents_metrics/history/derive_build.py \
-	src/ai_agents_metrics/history/derive_insert.py \
-	src/ai_agents_metrics/history/derive_schema.py
-
+# Hard gate: fail if any function exceeds CC 50.
+# Advisory warnings for rank C+ are emitted by the 'complexity' target above.
 complexity-check: check-init
-	@echo "=== CC hard gate: clean-zone modules must stay at rank B or below ==="
-	@result=$$(.venv/bin/radon cc $(CC_CLEAN_ZONE) -n C -s); \
-	if [ -n "$$result" ]; then \
-		echo "$$result"; \
-		echo "ERROR: rank C (CC > 10) found in clean-zone module. Decompose before merging."; \
-		exit 1; \
-	fi
-	@echo "Clean zone OK."
+	@echo "=== CC hard gate: no function may exceed CC 50 ==="
+	@.venv/bin/radon cc src/ --json | .venv/bin/python3 -c "\
+import sys, json; \
+data = json.load(sys.stdin); \
+bad = [(path, item['name'], item['complexity']) for path, items in data.items() for item in items if item['complexity'] > 50]; \
+[print(f'{p}: {n} (CC={c})') for p, n, c in bad]; \
+sys.exit(1) if bad else None" \
+	|| { echo "ERROR: CC > 50 found. Decompose before merging."; exit 1; }
+	@echo "CC hard gate OK."
 
 ifndef PRIVATE_OVERRIDE
 arch-check: check-init

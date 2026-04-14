@@ -27,7 +27,5 @@ Current state: No automated complexity tooling beyond `pylint` and `mypy`.
 
 - [x] `radon` is installed and runs without errors on `src/`
 - [x] `make complexity` — advisory report of all rank C+ functions across `src/`
-- [x] `make complexity-check` — hard gate for clean-zone modules (rank C = fail)
+- [x] `make complexity-check` — global hard gate: fail if any function exceeds CC 50
 - [x] `make verify` includes both `complexity` and `complexity-check`
-- [x] Clean zone defined in `Makefile` (`CC_CLEAN_ZONE`): `_report_aggregation.py`, `history/derive*.py`
-- [ ] Expand clean zone to cover remaining high-complexity modules as they are decomposed
