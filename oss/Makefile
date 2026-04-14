@@ -43,13 +43,8 @@ complexity: check-init
 # Hard gate: fail if any function reaches rank F (CC > 40).
 # Advisory warnings for rank C+ are emitted by the 'complexity' target above.
 complexity-check: check-init
-	@echo "=== CC hard gate: no function may reach rank F (CC > 40) ==="
-	@result=$$(.venv/bin/radon cc src/ -n F -s); \
-	if [ -n "$$result" ]; then \
-		echo "$$result"; \
-		echo "ERROR: rank F (CC > 40) found. Decompose before merging."; \
-		exit 1; \
-	fi
+	@echo "=== CC hard gate: rank F (CC > 40) must be empty ==="
+	@.venv/bin/radon cc src/ -n F -s | grep . && exit 1 || true
 	@echo "CC hard gate OK."
 
 ifndef PRIVATE_OVERRIDE
