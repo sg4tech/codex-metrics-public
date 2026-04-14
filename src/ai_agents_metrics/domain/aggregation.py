@@ -265,6 +265,58 @@ def resolve_linked_task_reference(
     return linked_task_id
 
 
+def _compute_success_cost_metrics(successes: list[EffectiveGoalRecord]) -> dict[str, Any]:
+    success_cost_values = [t.cost_usd for t in successes if t.cost_complete and t.cost_usd is not None]
+    known_success_cost_values = [t.cost_usd_known for t in successes if t.cost_usd_known is not None]
+    complete_cps_usd = float(sum(success_cost_values)) / len(success_cost_values) if success_cost_values else None
+    cps_usd = (
+        float(sum(success_cost_values)) / len(successes)
+        if successes and len(success_cost_values) == len(successes)
+        else None
+    )
+    known_cps_usd = (
+        float(sum(known_success_cost_values)) / len(known_success_cost_values) if known_success_cost_values else None
+    )
+    return {
+        "known_cost_successes": len(known_success_cost_values),
+        "complete_cost_successes": len(success_cost_values),
+        "known_cost_per_success_usd": round_usd(known_cps_usd) if known_cps_usd is not None else None,
+        "complete_cost_per_covered_success_usd": round_usd(complete_cps_usd) if complete_cps_usd is not None else None,
+        "cost_per_success_usd": round_usd(cps_usd) if cps_usd is not None else None,
+    }
+
+
+def _compute_success_token_metrics(
+    successes: list[EffectiveGoalRecord],
+    closed_tasks: list[EffectiveGoalRecord],
+) -> dict[str, Any]:
+    success_token_values = [t.tokens_total for t in successes if t.tokens_complete and t.tokens_total is not None]
+    known_token_values = [t.tokens_total_known for t in successes if t.tokens_total_known is not None]
+    known_breakdown_values = [
+        t for t in successes
+        if t.input_tokens_known is not None and t.cached_input_tokens_known is not None and t.output_tokens_known is not None
+    ]
+    complete_cps_tokens = sum(success_token_values) / len(success_token_values) if success_token_values else None
+    cps_tokens = (
+        sum(success_token_values) / len(successes)
+        if successes and len(success_token_values) == len(successes)
+        else None
+    )
+    known_cps_tokens = sum(known_token_values) / len(known_token_values) if known_token_values else None
+    return {
+        "known_token_successes": len(known_token_values),
+        "known_token_breakdown_successes": len(known_breakdown_values),
+        "complete_token_successes": len(success_token_values),
+        "complete_token_breakdown_successes": len([t for t in successes if t.token_breakdown_complete]),
+        "model_summary_goals": len([t for t in closed_tasks if t.model is not None]),
+        "model_complete_goals": len([t for t in closed_tasks if t.model_complete]),
+        "mixed_model_goals": len([t for t in closed_tasks if t.model_complete and not t.model_consistent]),
+        "known_cost_per_success_tokens": known_cps_tokens,
+        "complete_cost_per_covered_success_tokens": complete_cps_tokens,
+        "cost_per_success_tokens": cps_tokens,
+    }
+
+
 def compute_summary_block(tasks: list[EffectiveGoalRecord]) -> dict[str, Any]:
     closed_tasks = get_closed_records(tasks)
     successes = get_successful_records(closed_tasks)
@@ -279,42 +331,6 @@ def compute_summary_block(tasks: list[EffectiveGoalRecord]) -> dict[str, Any]:
     total_tokens_raw = sum_known_numeric_values(closed_tasks, "tokens_total_known", int)
     total_tokens = int(total_tokens_raw) if total_tokens_raw is not None else 0
 
-    success_rate = (len(successes) / len(closed_tasks)) if closed_tasks else None
-    attempts_per_closed_task = (total_attempts / len(closed_tasks)) if closed_tasks else None
-
-    success_cost_values = [t.cost_usd for t in successes if t.cost_complete and t.cost_usd is not None]
-    known_success_cost_values = [t.cost_usd_known for t in successes if t.cost_usd_known is not None]
-    complete_cost_per_covered_success_usd = (
-        float(sum(success_cost_values)) / len(success_cost_values) if success_cost_values else None
-    )
-    cost_per_success_usd = (
-        float(sum(success_cost_values)) / len(successes)
-        if successes and len(success_cost_values) == len(successes)
-        else None
-    )
-    known_cost_per_success_usd = (
-        float(sum(known_success_cost_values)) / len(known_success_cost_values) if known_success_cost_values else None
-    )
-
-    success_token_values = [t.tokens_total for t in successes if t.tokens_complete and t.tokens_total is not None]
-    known_success_token_values = [t.tokens_total_known for t in successes if t.tokens_total_known is not None]
-    known_success_breakdown_values = [t for t in successes if t.input_tokens_known is not None and t.cached_input_tokens_known is not None and t.output_tokens_known is not None]
-    complete_success_breakdown_values = [t for t in successes if t.token_breakdown_complete]
-    model_summary_goals = [t for t in closed_tasks if t.model is not None]
-    model_complete_goals = [t for t in closed_tasks if t.model_complete]
-    mixed_model_goals = [t for t in closed_tasks if t.model_complete and not t.model_consistent]
-    complete_cost_per_covered_success_tokens = (
-        sum(success_token_values) / len(success_token_values) if success_token_values else None
-    )
-    cost_per_success_tokens = (
-        sum(success_token_values) / len(successes)
-        if successes and len(success_token_values) == len(successes)
-        else None
-    )
-    known_cost_per_success_tokens = (
-        sum(known_success_token_values) / len(known_success_token_values) if known_success_token_values else None
-    )
-
     return {
         "closed_tasks": len(closed_tasks),
         "successes": len(successes),
@@ -325,27 +341,10 @@ def compute_summary_block(tasks: list[EffectiveGoalRecord]) -> dict[str, Any]:
         "total_cached_input_tokens": int(total_cached_input_tokens_raw) if total_cached_input_tokens_raw is not None else 0,
         "total_output_tokens": int(total_output_tokens_raw) if total_output_tokens_raw is not None else 0,
         "total_tokens": total_tokens,
-        "success_rate": success_rate,
-        "attempts_per_closed_task": attempts_per_closed_task,
-        "known_cost_successes": len(known_success_cost_values),
-        "known_token_successes": len(known_success_token_values),
-        "known_token_breakdown_successes": len(known_success_breakdown_values),
-        "complete_cost_successes": len(success_cost_values),
-        "complete_token_successes": len(success_token_values),
-        "complete_token_breakdown_successes": len(complete_success_breakdown_values),
-        "model_summary_goals": len(model_summary_goals),
-        "model_complete_goals": len(model_complete_goals),
-        "mixed_model_goals": len(mixed_model_goals),
-        "known_cost_per_success_usd": round_usd(known_cost_per_success_usd)
-        if known_cost_per_success_usd is not None
-        else None,
-        "known_cost_per_success_tokens": known_cost_per_success_tokens,
-        "complete_cost_per_covered_success_usd": round_usd(complete_cost_per_covered_success_usd)
-        if complete_cost_per_covered_success_usd is not None
-        else None,
-        "complete_cost_per_covered_success_tokens": complete_cost_per_covered_success_tokens,
-        "cost_per_success_usd": round_usd(cost_per_success_usd) if cost_per_success_usd is not None else None,
-        "cost_per_success_tokens": cost_per_success_tokens,
+        "success_rate": (len(successes) / len(closed_tasks)) if closed_tasks else None,
+        "attempts_per_closed_task": (total_attempts / len(closed_tasks)) if closed_tasks else None,
+        **_compute_success_cost_metrics(successes),
+        **_compute_success_token_metrics(successes, closed_tasks),
     }
 
 
@@ -420,102 +419,115 @@ def recompute_summary(data: dict[str, Any]) -> None:
     data["summary"] = summary
 
 
-def normalize_legacy_metrics_data(data: dict[str, Any]) -> None:
-    if "tasks" in data and "goals" not in data:
-        tasks = data.get("tasks")
-        if isinstance(tasks, list):
-            legacy_goals: list[dict[str, Any]] = []
-            legacy_entries: list[dict[str, Any]] = []
-            for task in tasks:
-                if not isinstance(task, dict):
-                    continue
-                task_type = task.get("task_type", "product")
-                supersedes_task_id = task.get("supersedes_task_id")
-                task_id = task.get("task_id")
-                goal = {
-                    "goal_id": task_id,
-                    "title": task.get("title"),
-                    "goal_type": task_type,
-                    "supersedes_goal_id": supersedes_task_id,
-                    "status": task.get("status"),
-                    "attempts": task.get("attempts"),
-                    "started_at": task.get("started_at"),
-                    "finished_at": task.get("finished_at"),
-                    "cost_usd": task.get("cost_usd"),
-                    "input_tokens": task.get("input_tokens"),
-                    "cached_input_tokens": task.get("cached_input_tokens"),
-                    "output_tokens": task.get("output_tokens"),
-                    "tokens_total": task.get("tokens_total"),
-                    "failure_reason": task.get("failure_reason"),
-                    "notes": task.get("notes"),
-                    "agent_name": task.get("agent_name"),
-                    "result_fit": task.get("result_fit"),
-                    "model": task.get("model"),
-                }
-                legacy_goals.append(goal)
-                legacy_entries.append(
-                    {
-                        "entry_id": task_id,
-                        "goal_id": task_id,
-                        "entry_type": task_type,
-                        "status": task.get("status"),
-                        "started_at": task.get("started_at"),
-                        "finished_at": task.get("finished_at"),
-                        "cost_usd": task.get("cost_usd"),
-                        "input_tokens": task.get("input_tokens"),
-                        "cached_input_tokens": task.get("cached_input_tokens"),
-                        "output_tokens": task.get("output_tokens"),
-                        "tokens_total": task.get("tokens_total"),
-                        "failure_reason": task.get("failure_reason"),
-                        "notes": task.get("notes"),
-                        "agent_name": task.get("agent_name"),
-                        "model": task.get("model"),
-                    }
-                )
-            data["goals"] = legacy_goals
-            data["entries"] = legacy_entries
+def _migrate_legacy_tasks(data: dict[str, Any]) -> None:
+    """Convert legacy ``tasks`` list to ``goals`` + ``entries`` in-place."""
+    if "tasks" not in data or "goals" in data:
+        return
+    tasks = data.get("tasks")
+    if not isinstance(tasks, list):
+        return
+    legacy_goals: list[dict[str, Any]] = []
+    legacy_entries: list[dict[str, Any]] = []
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        task_type = task.get("task_type", "product")
+        supersedes_task_id = task.get("supersedes_task_id")
+        task_id = task.get("task_id")
+        legacy_goals.append({
+            "goal_id": task_id,
+            "title": task.get("title"),
+            "goal_type": task_type,
+            "supersedes_goal_id": supersedes_task_id,
+            "status": task.get("status"),
+            "attempts": task.get("attempts"),
+            "started_at": task.get("started_at"),
+            "finished_at": task.get("finished_at"),
+            "cost_usd": task.get("cost_usd"),
+            "input_tokens": task.get("input_tokens"),
+            "cached_input_tokens": task.get("cached_input_tokens"),
+            "output_tokens": task.get("output_tokens"),
+            "tokens_total": task.get("tokens_total"),
+            "failure_reason": task.get("failure_reason"),
+            "notes": task.get("notes"),
+            "agent_name": task.get("agent_name"),
+            "result_fit": task.get("result_fit"),
+            "model": task.get("model"),
+        })
+        legacy_entries.append({
+            "entry_id": task_id,
+            "goal_id": task_id,
+            "entry_type": task_type,
+            "status": task.get("status"),
+            "started_at": task.get("started_at"),
+            "finished_at": task.get("finished_at"),
+            "cost_usd": task.get("cost_usd"),
+            "input_tokens": task.get("input_tokens"),
+            "cached_input_tokens": task.get("cached_input_tokens"),
+            "output_tokens": task.get("output_tokens"),
+            "tokens_total": task.get("tokens_total"),
+            "failure_reason": task.get("failure_reason"),
+            "notes": task.get("notes"),
+            "agent_name": task.get("agent_name"),
+            "model": task.get("model"),
+        })
+    data["goals"] = legacy_goals
+    data["entries"] = legacy_entries
 
+
+def _normalize_goal_fields(goals: list[Any]) -> None:
+    for goal in goals:
+        if not isinstance(goal, dict):
+            continue
+        if "goal_type" not in goal:
+            goal["goal_type"] = goal.pop("task_type", "product")
+        if "goal_id" not in goal:
+            goal["goal_id"] = goal.pop("task_id")
+        if "supersedes_goal_id" not in goal:
+            goal["supersedes_goal_id"] = goal.pop("supersedes_task_id", None)
+        if "agent_name" not in goal:
+            goal["agent_name"] = None
+        if "result_fit" not in goal:
+            goal["result_fit"] = None
+        if "input_tokens" not in goal:
+            goal["input_tokens"] = None
+        if "cached_input_tokens" not in goal:
+            goal["cached_input_tokens"] = None
+        if "output_tokens" not in goal:
+            goal["output_tokens"] = None
+
+
+def _normalize_entry_fields(entries: list[Any]) -> None:
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        if "goal_id" not in entry:
+            entry["goal_id"] = entry.get("task_id")
+        if "entry_id" not in entry:
+            entry["entry_id"] = entry.get("goal_id")
+        if "entry_type" not in entry:
+            entry["entry_type"] = entry.get("task_type", "update")
+        if "agent_name" not in entry:
+            entry["agent_name"] = None
+        if "input_tokens" not in entry:
+            entry["input_tokens"] = None
+        if "cached_input_tokens" not in entry:
+            entry["cached_input_tokens"] = None
+        if "output_tokens" not in entry:
+            entry["output_tokens"] = None
+
+
+def normalize_legacy_metrics_data(data: dict[str, Any]) -> None:
+    _migrate_legacy_tasks(data)
     goals: Any = data.get("goals")
     if isinstance(goals, list):
-        for goal in goals:
-            if isinstance(goal, dict) and "goal_type" not in goal:
-                goal["goal_type"] = goal.pop("task_type", "product")
-            if isinstance(goal, dict) and "goal_id" not in goal:
-                goal["goal_id"] = goal.pop("task_id")
-            if isinstance(goal, dict) and "supersedes_goal_id" not in goal:
-                goal["supersedes_goal_id"] = goal.pop("supersedes_task_id", None)
-            if isinstance(goal, dict) and "agent_name" not in goal:
-                goal["agent_name"] = None
-            if isinstance(goal, dict) and "result_fit" not in goal:
-                goal["result_fit"] = None
-            if isinstance(goal, dict) and "input_tokens" not in goal:
-                goal["input_tokens"] = None
-            if isinstance(goal, dict) and "cached_input_tokens" not in goal:
-                goal["cached_input_tokens"] = None
-            if isinstance(goal, dict) and "output_tokens" not in goal:
-                goal["output_tokens"] = None
-
+        _normalize_goal_fields(goals)
     entries: Any = data.get("entries")
     if not isinstance(entries, list) and isinstance(goals, list):
         data["entries"] = []
         entries = data["entries"]
-
     if isinstance(entries, list):
-        for entry in entries:
-            if isinstance(entry, dict) and "goal_id" not in entry:
-                entry["goal_id"] = entry.get("task_id")
-            if isinstance(entry, dict) and "entry_id" not in entry:
-                entry["entry_id"] = entry.get("goal_id")
-            if isinstance(entry, dict) and "entry_type" not in entry:
-                entry["entry_type"] = entry.get("task_type", "update")
-            if isinstance(entry, dict) and "agent_name" not in entry:
-                entry["agent_name"] = None
-            if isinstance(entry, dict) and "input_tokens" not in entry:
-                entry["input_tokens"] = None
-            if isinstance(entry, dict) and "cached_input_tokens" not in entry:
-                entry["cached_input_tokens"] = None
-            if isinstance(entry, dict) and "output_tokens" not in entry:
-                entry["output_tokens"] = None
+        _normalize_entry_fields(entries)
 
 
 def load_metrics(path: Path) -> dict[str, Any]:
@@ -810,6 +822,78 @@ def create_goal_record(
     return new_goal
 
 
+def _apply_cost_update(
+    task: GoalRecord,
+    cost_usd_set: float | None,
+    cost_usd_add: float | None,
+    usage_cost_usd: float | None,
+    auto_cost_usd: float | None,
+) -> None:
+    if cost_usd_set is not None:
+        validate_non_negative_float(cost_usd_set, "cost_usd")
+        task.cost_usd = cost_usd_set
+    elif cost_usd_add is not None:
+        validate_non_negative_float(cost_usd_add, "cost_usd_add")
+        task.cost_usd = round_usd(float(task.cost_usd or 0.0) + cost_usd_add)
+    elif usage_cost_usd is not None:
+        task.cost_usd = round_usd(float(task.cost_usd or 0.0) + usage_cost_usd)
+    elif auto_cost_usd is not None:
+        task.cost_usd = auto_cost_usd
+
+
+def _apply_int_token_update(
+    task: GoalRecord,
+    field: str,
+    validate_name: str,
+    add_val: int | None,
+    usage_val: int | None,
+    auto_val: int | None,
+) -> None:
+    if add_val is not None:
+        validate_non_negative_int(add_val, validate_name)
+        setattr(task, field, (getattr(task, field) or 0) + add_val)
+    elif usage_val is not None:
+        setattr(task, field, (getattr(task, field) or 0) + usage_val)
+    elif auto_val is not None:
+        setattr(task, field, auto_val)
+
+
+def _apply_total_tokens_update(
+    task: GoalRecord,
+    tokens_set: int | None,
+    tokens_add: int | None,
+    usage_total_tokens: int | None,
+    auto_total_tokens: int | None,
+) -> None:
+    if tokens_set is not None:
+        validate_non_negative_int(tokens_set, "tokens")
+        task.tokens_total = tokens_set
+    elif tokens_add is not None:
+        validate_non_negative_int(tokens_add, "tokens_add")
+        task.tokens_total = (task.tokens_total or 0) + tokens_add
+    elif usage_total_tokens is not None:
+        task.tokens_total = (task.tokens_total or 0) + usage_total_tokens
+    elif auto_total_tokens is not None:
+        task.tokens_total = auto_total_tokens
+
+
+def _apply_model_update(
+    task: GoalRecord,
+    usage_model: str | None,
+    model: str | None,
+    auto_model: str | None,
+) -> None:
+    if usage_model is not None:
+        validate_model_name(usage_model)
+        task.model = usage_model
+    elif model is not None:
+        validate_model_name(model)
+        task.model = model
+    elif auto_model is not None:
+        validate_model_name(auto_model)
+        task.model = auto_model
+
+
 def apply_goal_updates(
     *,
     entries: list[dict[str, Any]],
@@ -864,71 +948,12 @@ def apply_goal_updates(
         validate_non_negative_int(attempts_delta, "attempts_delta")
         task.attempts = task.attempts + attempts_delta
 
-    if cost_usd_set is not None:
-        validate_non_negative_float(cost_usd_set, "cost_usd")
-        task.cost_usd = cost_usd_set
-    elif cost_usd_add is not None:
-        validate_non_negative_float(cost_usd_add, "cost_usd_add")
-        current_cost = task.cost_usd or 0.0
-        task.cost_usd = round_usd(float(current_cost) + cost_usd_add)
-    elif usage_cost_usd is not None:
-        current_cost = task.cost_usd or 0.0
-        task.cost_usd = round_usd(float(current_cost) + usage_cost_usd)
-    elif auto_cost_usd is not None:
-        task.cost_usd = auto_cost_usd
-
-    if input_tokens_add is not None:
-        validate_non_negative_int(input_tokens_add, "input_tokens_add")
-        current_input_tokens = task.input_tokens or 0
-        task.input_tokens = current_input_tokens + input_tokens_add
-    elif usage_input_tokens is not None:
-        current_input_tokens = task.input_tokens or 0
-        task.input_tokens = current_input_tokens + usage_input_tokens
-    elif auto_input_tokens is not None:
-        task.input_tokens = auto_input_tokens
-
-    if cached_input_tokens_add is not None:
-        validate_non_negative_int(cached_input_tokens_add, "cached_input_tokens_add")
-        current_cached_input_tokens = task.cached_input_tokens or 0
-        task.cached_input_tokens = current_cached_input_tokens + cached_input_tokens_add
-    elif usage_cached_input_tokens is not None:
-        current_cached_input_tokens = task.cached_input_tokens or 0
-        task.cached_input_tokens = current_cached_input_tokens + usage_cached_input_tokens
-    elif auto_cached_input_tokens is not None:
-        task.cached_input_tokens = auto_cached_input_tokens
-
-    if output_tokens_add is not None:
-        validate_non_negative_int(output_tokens_add, "output_tokens_add")
-        current_output_tokens = task.output_tokens or 0
-        task.output_tokens = current_output_tokens + output_tokens_add
-    elif usage_output_tokens is not None:
-        current_output_tokens = task.output_tokens or 0
-        task.output_tokens = current_output_tokens + usage_output_tokens
-    elif auto_output_tokens is not None:
-        task.output_tokens = auto_output_tokens
-
-    if tokens_set is not None:
-        validate_non_negative_int(tokens_set, "tokens")
-        task.tokens_total = tokens_set
-    elif tokens_add is not None:
-        validate_non_negative_int(tokens_add, "tokens_add")
-        current_tokens = task.tokens_total or 0
-        task.tokens_total = current_tokens + tokens_add
-    elif usage_total_tokens is not None:
-        current_tokens = task.tokens_total or 0
-        task.tokens_total = current_tokens + usage_total_tokens
-    elif auto_total_tokens is not None:
-        task.tokens_total = auto_total_tokens
-
-    if usage_model is not None:
-        validate_model_name(usage_model)
-        task.model = usage_model
-    elif model is not None:
-        validate_model_name(model)
-        task.model = model
-    elif auto_model is not None:
-        validate_model_name(auto_model)
-        task.model = auto_model
+    _apply_cost_update(task, cost_usd_set, cost_usd_add, usage_cost_usd, auto_cost_usd)
+    _apply_int_token_update(task, "input_tokens", "input_tokens_add", input_tokens_add, usage_input_tokens, auto_input_tokens)
+    _apply_int_token_update(task, "cached_input_tokens", "cached_input_tokens_add", cached_input_tokens_add, usage_cached_input_tokens, auto_cached_input_tokens)
+    _apply_int_token_update(task, "output_tokens", "output_tokens_add", output_tokens_add, usage_output_tokens, auto_output_tokens)
+    _apply_total_tokens_update(task, tokens_set, tokens_add, usage_total_tokens, auto_total_tokens)
+    _apply_model_update(task, usage_model, model, auto_model)
 
     if failure_reason is not None:
         validate_failure_reason(failure_reason)
@@ -939,7 +964,6 @@ def apply_goal_updates(
     if agent_name is not None:
         validate_agent_name(agent_name)
         task.agent_name = agent_name
-
     if notes is not None:
         task.notes = notes
     if started_at is not None:

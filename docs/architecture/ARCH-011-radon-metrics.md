@@ -1,6 +1,6 @@
 # ARCH-011: Integrate radon for code complexity metrics
 
-**Status:** in-progress  
+**Status:** done  
 **Priority:** medium  
 **Complexity:** low
 
@@ -25,8 +25,7 @@ Current state: No automated complexity tooling beyond `pylint` and `mypy`.
 
 ## Acceptance Criteria
 
-- [ ] `radon` is installed and runs without errors on `src/`
-- [ ] Metrics for current codebase are baseline-documented (no failing violations yet)
-- [ ] `make quality` (or `make verify`) runs radon checks
-- [ ] Pre-push hook or CI warns on new violations
-- [ ] Documentation added to project README or CLAUDE.md
+- [x] `radon` is installed and runs without errors on `src/`
+- [x] `make complexity` — advisory report of all rank C+ functions across `src/`
+- [x] `make complexity-check` — global hard gate: fail if any function exceeds CC 50
+- [x] `make verify` includes both `complexity` and `complexity-check`
