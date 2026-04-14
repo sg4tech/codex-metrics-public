@@ -20,7 +20,7 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 | [ARCH-010](ARCH-010-bandit-security-scan.md) | Integrate bandit security scanner into verify | medium | low | done |
 | [ARCH-011](ARCH-011-radon-metrics.md) | Integrate radon for code complexity metrics | medium | low | in-progress |
 | [ARCH-012](ARCH-012-import-linter.md) | Integrate import-linter for architectural boundary enforcement | medium | low | done |
-| [ARCH-013](ARCH-013-decompose-high-complexity-functions.md) | Decompose high-complexity orchestrator functions (derive_codex_history, aggregate_report_data) | high | high | open |
+| [ARCH-013](ARCH-013-decompose-high-complexity-functions.md) | Decompose high-complexity orchestrator functions (derive_codex_history, aggregate_report_data) | high | high | done |
 | [ARCH-014](ARCH-014-extract-usage-resolution-from-cli.md) | Extract usage resolution functions out of cli.py (eliminate lazy circular imports) | medium | medium | open |
 | [ARCH-015](ARCH-015-sqlalchemy-migration.md) | Migrate from raw sqlite3 to SQLAlchemy Core | medium | high | planned |
 
