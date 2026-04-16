@@ -191,7 +191,9 @@ const DATA = {DATA_JSON};
 
 // ── series toggle state ───────────────────────────────────────────────────────
 
-const seriesToggles = { c1: [true, true, true], c3: [true, true, true] };
+// Chart 3's series count depends on how many distinct models appear in the
+// data, so c3 toggles are initialized dynamically in render().
+const seriesToggles = { c1: [true, true, true], c3: [] };
 
 function toggleSeries(chartId, idx) {
   const t = seriesToggles[chartId];
@@ -210,8 +212,9 @@ function redrawStackedChart(chartId) {
   } else if (chartId === 'c3') {
     renderC3Legend();
     const pfx = d.chart3_mode === 'cost' ? '$' : '';
-    drawStackedBar('c3', d.buckets, [d.chart3_input, d.chart3_cached, d.chart3_output],
-      ['#3b82f6', '#10b981', '#8b5cf6'], true, pfx, seriesToggles.c3);
+    const sArr = (d.chart3_series || []).map(s => s.values);
+    const cArr = (d.chart3_series || []).map(s => s.color);
+    drawStackedBar('c3', d.buckets, sArr, cArr, true, pfx, seriesToggles.c3);
   }
 }
 
@@ -683,12 +686,9 @@ function renderC1Legend() {
 }
 
 function renderC3Legend() {
-  const cost = DATA.chart3_mode === 'cost';
-  const labels = cost
-    ? [['#3b82f6','Input cost'],['#10b981','Cached cost'],['#8b5cf6','Output cost']]
-    : [['#3b82f6','Input'],['#10b981','Cached'],['#8b5cf6','Output']];
+  const series = DATA.chart3_series || [];
   const leg = document.getElementById('c3-legend');
-  if (leg) leg.innerHTML = labels.map(([c, l], i) => makeLegendItem(c, l, 'c3', i)).join('');
+  if (leg) leg.innerHTML = series.map((s, i) => makeLegendItem(s.color, s.name, 'c3', i)).join('');
 }
 
 function renderChart3Meta() {
@@ -697,10 +697,9 @@ function renderChart3Meta() {
   const title = document.getElementById('c3-title');
   const sub = document.getElementById('c3-subtitle');
   const src = DATA.chart3_source === 'warehouse' ? ' \u00b7 source: history' : '';
-  if (title) title.textContent = cost ? 'Token Cost Breakdown' : 'Tokens Spent';
-  if (sub) sub.textContent = cost
-    ? 'USD per ' + gran + ' \u00b7 input \u00b7 cached \u00b7 output' + src
-    : 'Input \u00b7 Cached input \u00b7 Output per ' + gran + src;
+  if (title) title.textContent = cost ? 'Cost by Model' : 'Tokens by Model';
+  if (sub) sub.textContent = (cost ? 'USD per ' + gran : 'Tokens per ' + gran) +
+    ' \u00b7 stacked by model' + src;
   renderC3Legend();
 }
 
@@ -720,6 +719,12 @@ function renderChart2Meta() {
 
 function render() {
   const d = DATA;
+  // Initialize c3 toggles once to match the number of model series; preserve
+  // user toggles on window-resize re-renders.
+  const c3Len = (d.chart3_series || []).length;
+  if (seriesToggles.c3.length !== c3Len) {
+    seriesToggles.c3 = new Array(c3Len).fill(true);
+  }
   renderSummary();
   renderSectionHeaders();
   renderChart2Meta();
@@ -728,7 +733,9 @@ function render() {
   drawStackedBar('c1', d.buckets, [d.chart1_product, d.chart1_meta, d.chart1_retro], ['#22c55e', '#94a3b8', '#f59e0b'], false, '', seriesToggles.c1);
   drawCombo('c2', d.buckets, d.chart2_bar, d.chart2_line, '#f97316', '#ef4444', d.chart2_source === 'warehouse');
   const c3Prefix = d.chart3_mode === 'cost' ? '$' : '';
-  drawStackedBar('c3', d.buckets, [d.chart3_input, d.chart3_cached, d.chart3_output], ['#3b82f6', '#10b981', '#8b5cf6'], true, c3Prefix, seriesToggles.c3);
+  const c3Values = (d.chart3_series || []).map(s => s.values);
+  const c3Colors = (d.chart3_series || []).map(s => s.color);
+  drawStackedBar('c3', d.buckets, c3Values, c3Colors, true, c3Prefix, seriesToggles.c3);
   drawLine('c4', d.chart4_buckets, d.chart4_values, '#8b5cf6');
 }
 

@@ -48,24 +48,76 @@ def _apply_token_pricing(
     return float(inp), float(cac), float(out)
 
 
+# ── model-series color palette ────────────────────────────────────────────────
+
+# Deterministic palette used when stacking chart-3 by model.
+# Models are assigned colors in sorted order so the same model always gets the
+# same color across runs and across charts.
+_MODEL_COLOR_PALETTE: tuple[str, ...] = (
+    "#3b82f6",  # blue
+    "#8b5cf6",  # purple
+    "#10b981",  # green
+    "#f59e0b",  # amber
+    "#ef4444",  # red
+    "#14b8a6",  # teal
+    "#f97316",  # orange
+    "#ec4899",  # pink
+)
+_MODEL_UNKNOWN_COLOR = "#94a3b8"  # slate
+_MODEL_UNKNOWN_LABEL = "unknown"
+
+
+def _assign_model_colors(models: list[str]) -> dict[str, str]:
+    """Assign a stable color per model name; 'unknown' always gets slate."""
+    known = sorted(m for m in models if m != _MODEL_UNKNOWN_LABEL)
+    colors = {m: _MODEL_COLOR_PALETTE[i % len(_MODEL_COLOR_PALETTE)] for i, m in enumerate(known)}
+    if _MODEL_UNKNOWN_LABEL in models:
+        colors[_MODEL_UNKNOWN_LABEL] = _MODEL_UNKNOWN_COLOR
+    return colors
+
+
+def _build_chart3_series(
+    per_model: dict[str, dict[str, float]],
+    buckets: list[str],
+) -> list[dict[str, Any]]:
+    """Turn a {model → bucket → value} map into chart-3 series, sorted by total desc.
+
+    Known models come first (highest total first); 'unknown' is always pinned last.
+    """
+    totals = {m: sum(vals.values()) for m, vals in per_model.items()}
+    known = sorted(
+        (m for m in per_model if m != _MODEL_UNKNOWN_LABEL),
+        key=lambda m: (-totals[m], m),
+    )
+    order = known + ([_MODEL_UNKNOWN_LABEL] if _MODEL_UNKNOWN_LABEL in per_model else [])
+    colors = _assign_model_colors(list(per_model.keys()))
+    return [
+        {
+            "name": m,
+            "values": [round(per_model[m].get(b, 0.0), 4) for b in buckets],
+            "color": colors[m],
+        }
+        for m in order
+    ]
+
+
 # ── warehouse-level aggregators ───────────────────────────────────────────────
 
 
-def _aggregate_warehouse_tokens(
+def _aggregate_warehouse_tokens_by_model(
     rows: list[tuple[str, str | None, int, int, int]],
     buckets: list[str],
     gran: str,
     pricing: dict[str, dict[str, float | None]] | None,
-) -> tuple[list[float], list[float], list[float]]:
-    """Map per-thread warehouse token data into chart buckets.
+) -> dict[str, dict[str, float]]:
+    """Map per-thread warehouse token data into {model → bucket → total value}.
 
-    Returns *(inp_vals, cac_vals, out_vals)* indexed by bucket position.
-    Uses *pricing* to compute cost values when pricing is available.
+    In cost mode (pricing present), rows for unknown models are dropped (we
+    can't compute USD). In token mode, unknown-model rows accumulate under
+    the reserved ``'unknown'`` key so nothing is silently lost.
     """
     bucket_set = set(buckets)
-    c3_inp: dict[str, float] = dict.fromkeys(buckets, 0.0)
-    c3_cac: dict[str, float] = dict.fromkeys(buckets, 0.0)
-    c3_out: dict[str, float] = dict.fromkeys(buckets, 0.0)
+    per_model: dict[str, dict[str, float]] = {}
 
     for ts, model, inp, cac, out in rows:
         dt = _parse_date(ts)
@@ -76,16 +128,11 @@ def _aggregate_warehouse_tokens(
             continue
         applied = _apply_token_pricing(inp, cac, out, model, pricing)
         if applied is None:
-            continue
-        c3_inp[bk] += applied[0]
-        c3_cac[bk] += applied[1]
-        c3_out[bk] += applied[2]
+            continue  # cost mode + unknown model → skip
+        key = (model or "").strip() or _MODEL_UNKNOWN_LABEL
+        per_model.setdefault(key, dict.fromkeys(buckets, 0.0))[bk] += sum(applied)
 
-    return (
-        [round(c3_inp[b], 4) for b in buckets],
-        [round(c3_cac[b], 4) for b in buckets],
-        [round(c3_out[b], 4) for b in buckets],
-    )
+    return per_model
 
 
 def _aggregate_warehouse_retry(
@@ -132,9 +179,7 @@ class _GoalSeries:  # pylint: disable=too-many-instance-attributes
     c1_retro: dict[str, int]
     c2_retry: dict[str, int]
     c2_attempts: dict[str, list[int]]
-    c3_inp: dict[str, float]
-    c3_cac: dict[str, float]
-    c3_out: dict[str, float]
+    c3_by_model: dict[str, dict[str, float]]
     c4: dict[str, list[float]] = field(default_factory=dict)
     success_count: int = 0
     known_cost_successes: list[float] = field(default_factory=list)
@@ -143,16 +188,13 @@ class _GoalSeries:  # pylint: disable=too-many-instance-attributes
 
 def _empty_goal_series(buckets: list[str]) -> _GoalSeries:
     z_int = dict.fromkeys(buckets, 0)
-    z_float = dict.fromkeys(buckets, 0.0)
     return _GoalSeries(
         c1_product=z_int.copy(),
         c1_meta=z_int.copy(),
         c1_retro=z_int.copy(),
         c2_retry=z_int.copy(),
         c2_attempts={b: [] for b in buckets},
-        c3_inp=z_float.copy(),
-        c3_cac=z_float.copy(),
-        c3_out=z_float.copy(),
+        c3_by_model={},
     )
 
 
@@ -264,9 +306,8 @@ def _accumulate_goals(
 
         applied = _apply_token_pricing(inp_tok, cac_tok, out_tok, model, pricing)
         if applied is not None:
-            series.c3_inp[bk] += applied[0]
-            series.c3_cac[bk] += applied[1]
-            series.c3_out[bk] += applied[2]
+            key = model or _MODEL_UNKNOWN_LABEL
+            series.c3_by_model.setdefault(key, dict.fromkeys(buckets, 0.0))[bk] += sum(applied)
 
         if g.get("cost_usd") is not None:
             cost = float(g["cost_usd"])
@@ -345,17 +386,12 @@ def _build_chart3(
     buckets: list[str],
     gran: str,
     pricing: dict[str, dict[str, float | None]] | None,
-) -> tuple[list[float], list[float], list[float], str]:
-    """Return chart-3 (token/cost usage) series and its data source label."""
+) -> tuple[list[dict[str, Any]], str]:
+    """Return chart-3 (token/cost usage) series (stacked by model) and its source label."""
     if warehouse_tokens:
-        inp, cac, out = _aggregate_warehouse_tokens(warehouse_tokens, buckets, gran, pricing)
-        return inp, cac, out, "warehouse"
-    return (
-        [round(series.c3_inp[b], 4) for b in buckets],
-        [round(series.c3_cac[b], 4) for b in buckets],
-        [round(series.c3_out[b], 4) for b in buckets],
-        "ledger",
-    )
+        per_model = _aggregate_warehouse_tokens_by_model(warehouse_tokens, buckets, gran, pricing)
+        return _build_chart3_series(per_model, buckets), "warehouse"
+    return _build_chart3_series(series.c3_by_model, buckets), "ledger"
 
 
 def _compute_ledger_date_range(
@@ -416,10 +452,8 @@ def aggregate_report_data(
         "chart2_line": chart2[1],
         "chart2_source": chart2[2],
         "chart3_mode": "cost" if pricing else "tokens",
-        "chart3_source": chart3[3],
-        "chart3_input": chart3[0],
-        "chart3_cached": chart3[1],
-        "chart3_output": chart3[2],
+        "chart3_source": chart3[1],
+        "chart3_series": chart3[0],
         "chart4_buckets": c4.buckets,
         "chart4_values": c4.values,
         "ledger_date_from": ledger_date_from,
@@ -451,9 +485,7 @@ def _empty_data() -> dict[str, Any]:
         "chart2_source": "ledger",
         "chart3_mode": "tokens",
         "chart3_source": "ledger",
-        "chart3_input": [],
-        "chart3_cached": [],
-        "chart3_output": [],
+        "chart3_series": [],
         "chart4_buckets": [],
         "chart4_values": [],
         "ledger_date_from": None,

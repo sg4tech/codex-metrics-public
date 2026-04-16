@@ -24,7 +24,7 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 | [ARCH-014](ARCH-014-extract-usage-resolution-from-cli.md) | Extract usage resolution functions out of cli.py (eliminate lazy circular imports) | medium | medium | open |
 | [ARCH-015](ARCH-015-sqlalchemy-migration.md) | Migrate from raw sqlite3 to SQLAlchemy Core | medium | high | planned |
 | [ARCH-016](ARCH-016-propagate-model-to-derived-tables.md) | Propagate model to all derived tables | medium | low | done |
-| [ARCH-017](ARCH-017-html-report-dimensions.md) | Add provider and model dimensions to HTML report | high | medium | open |
+| [ARCH-017](ARCH-017-html-report-dimensions.md) | Add provider and model dimensions to HTML report | high | medium | done |
 
 ## Recommended order
 
