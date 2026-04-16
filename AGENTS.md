@@ -156,7 +156,8 @@ python -m pytest tests/public/test_metrics_cli.py
 Prefer the repository's canonical local validation entrypoint when available:
 
 ```bash
-make verify
+make verify-fast   # lint + typecheck + tests (~55s) — use during iteration
+make verify        # full suite incl. bandit, pylint, complexity, build-check (~1.5min) — use before committing
 ```
 
 Local validation reminders:

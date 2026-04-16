@@ -1,4 +1,4 @@
-.PHONY: init check-init remind-task lint typecheck test verify build-check security bandit complexity complexity-check arch-check pylint-check verify-public-boundary setup-hooks dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke public-overlay-status public-overlay-bootstrap public-overlay-verify public-overlay-push public-overlay-pull sync-bootstrap-policy
+.PHONY: init check-init remind-task lint typecheck test verify verify-fast build-check security bandit complexity complexity-check arch-check pylint-check verify-public-boundary setup-hooks dev-refresh-local package package-standalone package-refresh-local package-refresh-global live-usage-smoke public-overlay-status public-overlay-bootstrap public-overlay-verify public-overlay-push public-overlay-pull sync-bootstrap-policy
 
 PYTHON3 ?= python3
 
@@ -62,6 +62,8 @@ pylint-check: check-init
 	./.venv/bin/pylint src/ --disable=all --enable=E0401,E0602,E1101,E1120,W0102,W0611,W0612,W0718,W1203,R0401,C0302 --ignore=$(PYLINT_IGNORE)
 	@echo "=== Pylint tier 2: complexity warnings (advisory) ==="
 	@.venv/bin/pylint src/ --disable=all --enable=R0912,R0913,R0914,R0915,R0902,W0401,C0411 --ignore=$(PYLINT_IGNORE) || true
+
+verify-fast: check-init lint typecheck test
 
 verify: check-init remind-task sync-bootstrap-policy lint security bandit typecheck test build-check complexity complexity-check arch-check pylint-check
 
