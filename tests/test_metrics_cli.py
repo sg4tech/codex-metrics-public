@@ -28,7 +28,7 @@ from ai_agents_metrics.usage_backends import ClaudeUsageBackend, select_usage_ba
 from ai_agents_metrics.usage_backends import resolve_usage_window as resolve_backend_usage_window
 
 
-def build_cmd(*args: str) -> list[str]:
+def _build_subprocess_cmd(*args: str) -> list[str]:
     script = str(SCRIPT)
     if os.environ.get("CODEX_SUBPROCESS_COVERAGE") == "1":
         script = str(ABS_SCRIPT)
@@ -46,7 +46,7 @@ def build_cmd(*args: str) -> list[str]:
     return [sys.executable, script, *args]
 
 
-def run_cmd(
+def _run_cmd_subprocess(
     tmp_path: Path,
     *args: str,
     extra_env: dict[str, str] | None = None,
@@ -56,7 +56,7 @@ def run_cmd(
         env["COVERAGE_FILE"] = str(WORKSPACE_ROOT / ".coverage")
     if extra_env is not None:
         env.update(extra_env)
-    cmd = build_cmd(*args)
+    cmd = _build_subprocess_cmd(*args)
     return subprocess.run(
         cmd,
         cwd=tmp_path,
@@ -65,6 +65,17 @@ def run_cmd(
         check=False,
         env=env,
     )
+
+
+def run_cmd(
+    tmp_path: Path,
+    *args: str,
+    extra_env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    if os.environ.get("CODEX_SUBPROCESS_COVERAGE") == "1":
+        return _run_cmd_subprocess(tmp_path, *args, extra_env=extra_env)
+    from conftest import run_cli_inprocess
+    return run_cli_inprocess(tmp_path, *args, extra_env=extra_env)
 
 
 def run_module_cmd(
@@ -393,16 +404,22 @@ def create_codex_session_usage_sources(
 
 @pytest.fixture
 def repo(tmp_path: Path) -> Path:
+    (tmp_path / "src").mkdir(parents=True, exist_ok=True)
     (tmp_path / "scripts").mkdir(parents=True, exist_ok=True)
     (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
     (tmp_path / "metrics").mkdir(parents=True, exist_ok=True)
     (tmp_path / "pricing").mkdir(parents=True, exist_ok=True)
 
-    script_target = tmp_path / "scripts" / "metrics_cli.py"
-    script_target.write_text(ABS_SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
-    shutil.copytree(ABS_SRC, tmp_path / "src")
     pricing_target = tmp_path / "pricing" / "model_pricing.json"
     pricing_target.write_text(PRICING.read_text(encoding="utf-8"), encoding="utf-8")
+    # Script shim is cheap to copy and needed by subprocess-based tests
+    # (install-self, bootstrap wrapper, script_shim_exposes_cli_version, run_module_cmd).
+    script_target = tmp_path / "scripts" / "metrics_cli.py"
+    script_target.write_text(ABS_SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
+
+    # Full src copy only needed when subprocess must import the package from tmp.
+    if os.environ.get("CODEX_SUBPROCESS_COVERAGE") == "1":
+        shutil.copytree(ABS_SRC, tmp_path / "src", dirs_exist_ok=True)
 
     subprocess.run(["git", "init"], cwd=tmp_path, text=True, capture_output=True, check=True)
     subprocess.run(["git", "config", "user.email", "codex@example.com"], cwd=tmp_path, text=True, capture_output=True, check=True)
@@ -733,7 +750,7 @@ def test_install_self_creates_launcher_in_target_dir(repo: Path) -> None:
         str(ABS_SCRIPT.resolve()),
     }
 
-    result = run_cmd(repo, "install-self", "--target-dir", str(install_dir))
+    result = _run_cmd_subprocess(repo, "install-self", "--target-dir", str(install_dir))
 
     assert result.returncode == 0, result.stderr
     installed_path = install_dir / "ai-agents-metrics"
@@ -756,7 +773,7 @@ def test_install_self_replaces_existing_target(repo: Path) -> None:
         str(ABS_SCRIPT.resolve()),
     }
 
-    result = run_cmd(repo, "install-self", "--target-dir", str(install_dir))
+    result = _run_cmd_subprocess(repo, "install-self", "--target-dir", str(install_dir))
 
     assert result.returncode == 0, result.stderr
     installed_text = installed_path.read_text(encoding="utf-8")
@@ -780,7 +797,7 @@ def test_module_install_self_creates_module_launcher(repo: Path) -> None:
 
 def test_install_self_skips_path_warning_when_target_dir_is_already_on_path(repo: Path) -> None:
     install_dir = repo / "bin"
-    result = run_cmd(repo, "install-self", "--target-dir", str(install_dir), extra_env={"PATH": f"{install_dir}{os.pathsep}{os.environ.get('PATH', '')}"})
+    result = _run_cmd_subprocess(repo, "install-self", "--target-dir", str(install_dir), extra_env={"PATH": f"{install_dir}{os.pathsep}{os.environ.get('PATH', '')}"})
 
     assert result.returncode == 0, result.stderr
     assert "Warning:" not in result.stdout
@@ -790,7 +807,7 @@ def test_install_self_can_write_shell_profile(repo: Path) -> None:
     install_dir = repo / "bin"
     fake_home = repo / "home"
 
-    result = run_cmd(
+    result = _run_cmd_subprocess(
         repo,
         "install-self",
         "--target-dir",
@@ -813,8 +830,8 @@ def test_install_self_write_shell_profile_is_idempotent(repo: Path) -> None:
     fake_home = repo / "home"
     extra_env = {"HOME": str(fake_home), "SHELL": "/bin/zsh", "PATH": "/usr/bin:/bin"}
 
-    first_result = run_cmd(repo, "install-self", "--target-dir", str(install_dir), "--write-shell-profile", extra_env=extra_env)
-    second_result = run_cmd(repo, "install-self", "--target-dir", str(install_dir), "--write-shell-profile", extra_env=extra_env)
+    first_result = _run_cmd_subprocess(repo, "install-self", "--target-dir", str(install_dir), "--write-shell-profile", extra_env=extra_env)
+    second_result = _run_cmd_subprocess(repo, "install-self", "--target-dir", str(install_dir), "--write-shell-profile", extra_env=extra_env)
 
     assert first_result.returncode == 0, first_result.stderr
     assert second_result.returncode == 0, second_result.stderr
@@ -831,10 +848,10 @@ def test_install_self_warns_when_active_virtualenv_shadows_global_install(repo: 
     shadowing_command.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
     shadowing_command.chmod(0o755)
 
-    first_result = run_cmd(repo, "install-self", "--target-dir", str(install_dir))
+    first_result = _run_cmd_subprocess(repo, "install-self", "--target-dir", str(install_dir))
     assert first_result.returncode == 0, first_result.stderr
 
-    second_result = run_cmd(
+    second_result = _run_cmd_subprocess(
         repo,
         "install-self",
         "--target-dir",
@@ -1104,7 +1121,7 @@ def test_bootstrap_can_target_claude_instructions_file(repo: Path) -> None:
 
 
 def test_bootstrap_wrapper_runs_from_repo_root_even_when_invoked_from_other_cwd(repo: Path, tmp_path: Path) -> None:
-    result = run_cmd(repo, "bootstrap")
+    result = _run_cmd_subprocess(repo, "bootstrap")
     assert result.returncode == 0, result.stderr
 
     wrapper_path = repo / "tools" / "ai-agents-metrics"
@@ -1456,7 +1473,7 @@ def test_parallel_auto_id_creates_distinct_goals(repo: Path) -> None:
         second_env["COVERAGE_FILE"] = str(WORKSPACE_ROOT / ".coverage")
 
     first_process = subprocess.Popen(
-        build_cmd("update", "--title", "Parallel A", "--task-type", "product"),
+        _build_subprocess_cmd("update", "--title", "Parallel A", "--task-type", "product"),
         cwd=repo,
         text=True,
         stdout=subprocess.PIPE,
@@ -1464,7 +1481,7 @@ def test_parallel_auto_id_creates_distinct_goals(repo: Path) -> None:
         env=first_env,
     )
     second_process = subprocess.Popen(
-        build_cmd("update", "--title", "Parallel B", "--task-type", "product"),
+        _build_subprocess_cmd("update", "--title", "Parallel B", "--task-type", "product"),
         cwd=repo,
         text=True,
         stdout=subprocess.PIPE,
@@ -3038,7 +3055,7 @@ def test_cli_smoke_preserves_current_workflow_roundtrip(repo: Path) -> None:
 
 
 def test_script_shim_exposes_cli_version(repo: Path) -> None:
-    result = run_cmd(repo, "--version")
+    result = _run_cmd_subprocess(repo, "--version")
 
     assert result.returncode == 0, result.stderr
     output = result.stdout.strip()
