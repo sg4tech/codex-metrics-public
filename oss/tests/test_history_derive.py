@@ -5,8 +5,6 @@ import shutil
 import sqlite3
 import subprocess
 from pathlib import Path
-from typing import Any
-
 import pytest
 from test_history_ingest import (
     create_claude_history_source_root,
@@ -223,21 +221,42 @@ def test_derive_codex_history_builds_analysis_marts(repo: Path) -> None:
 
 def test_dominant_model_picks_most_frequent() -> None:
     from ai_agents_metrics.history.derive_insert import _dominant_model
+    from ai_agents_metrics.history.normalize import NormalizedUsageEventRow
 
-    rows: list[dict[str, Any]] = [
-        {"model": "claude-sonnet-4-6"},
-        {"model": "claude-sonnet-4-6"},
-        {"model": "claude-haiku-4-5"},
+    _STUB: NormalizedUsageEventRow = {
+        "usage_event_id": "", "thread_id": None, "session_path": "",
+        "source_path": "", "event_index": 0, "timestamp": None,
+        "input_tokens": None, "cache_creation_input_tokens": None,
+        "cached_input_tokens": None, "output_tokens": None,
+        "reasoning_output_tokens": None, "total_tokens": None,
+        "model": None, "raw_json": "{}",
+    }
+    rows: list[NormalizedUsageEventRow] = [
+        {**_STUB, "model": "claude-sonnet-4-6"},
+        {**_STUB, "model": "claude-sonnet-4-6"},
+        {**_STUB, "model": "claude-haiku-4-5"},
     ]
-    assert _dominant_model(rows) == "claude-sonnet-4-6"  # type: ignore[arg-type]
+    assert _dominant_model(rows) == "claude-sonnet-4-6"
 
 
 def test_dominant_model_returns_none_when_empty() -> None:
     from ai_agents_metrics.history.derive_insert import _dominant_model
+    from ai_agents_metrics.history.normalize import NormalizedUsageEventRow
 
+    _STUB: NormalizedUsageEventRow = {
+        "usage_event_id": "", "thread_id": None, "session_path": "",
+        "source_path": "", "event_index": 0, "timestamp": None,
+        "input_tokens": None, "cache_creation_input_tokens": None,
+        "cached_input_tokens": None, "output_tokens": None,
+        "reasoning_output_tokens": None, "total_tokens": None,
+        "model": None, "raw_json": "{}",
+    }
     assert _dominant_model([]) is None
-    rows: list[dict[str, Any]] = [{"model": None}, {"model": ""}]
-    assert _dominant_model(rows) is None  # type: ignore[arg-type]
+    rows: list[NormalizedUsageEventRow] = [
+        {**_STUB, "model": None},
+        {**_STUB, "model": ""},
+    ]
+    assert _dominant_model(rows) is None
 
 
 def test_derive_codex_history_is_idempotent_on_rerun(repo: Path) -> None:
