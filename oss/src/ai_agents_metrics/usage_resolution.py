@@ -491,7 +491,6 @@ def resolve_usage_session_window(
             total_cached_input_tokens += cached_input_tokens
             total_output_tokens += output_tokens
             total_tokens += int(last_usage.get("total_tokens", input_tokens + cached_input_tokens + output_tokens))
-            total_tokens += 0
             if reasoning_tokens > 0 and "total_tokens" not in last_usage:
                 total_tokens += reasoning_tokens
             tokens_found = True
