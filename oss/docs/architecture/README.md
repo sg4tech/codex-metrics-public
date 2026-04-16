@@ -23,6 +23,7 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 | [ARCH-013](ARCH-013-decompose-high-complexity-functions.md) | Decompose high-complexity orchestrator functions (derive_codex_history, aggregate_report_data) | high | high | done |
 | [ARCH-014](ARCH-014-extract-usage-resolution-from-cli.md) | Extract usage resolution functions out of cli.py (eliminate lazy circular imports) | medium | medium | open |
 | [ARCH-015](ARCH-015-sqlalchemy-migration.md) | Migrate from raw sqlite3 to SQLAlchemy Core | medium | high | planned |
+| [ARCH-016](ARCH-016-propagate-model-to-derived-tables.md) | Propagate model to all derived tables | medium | low | planned |
 
 ## Recommended order
 
@@ -39,3 +40,4 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 11. **ARCH-013** — high priority; `derive_codex_history` (CC=85) and `aggregate_report_data` (CC=70) are untestable monoliths; decompose before further growth
 12. **ARCH-014** — medium priority; lazy `cli` imports in `usage_backends` and `commands` are a circular dep workaround; unblock import-linter contract after fix
 13. **ARCH-015** — medium priority; replace raw sqlite3 SQL strings with SQLAlchemy Core for safer, composable queries as complexity grows
+14. **ARCH-016** — medium priority; model is in `normalized_usage_events` but missing from `derived_session_usage`, `derived_attempts`, and always NULL in `derived_goals`; prerequisite for H-039 warehouse export
