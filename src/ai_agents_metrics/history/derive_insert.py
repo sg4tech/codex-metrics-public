@@ -182,15 +182,20 @@ def _insert_message_facts(
 
 
 def _dominant_model(usage_rows: list[NormalizedUsageEventRow]) -> str | None:
-    """Return the most frequently used model across usage events, or None."""
+    """Return the most frequently used model across usage events, or None.
+
+    On a tie, the lexicographically first model name wins (deterministic).
+    """
     counts: dict[str, int] = {}
     for r in usage_rows:
         m = r["model"]
-        if isinstance(m, str) and m.strip():
-            counts[m.strip()] = counts.get(m.strip(), 0) + 1
+        if isinstance(m, str):
+            cleaned = m.strip()
+            if cleaned:
+                counts[cleaned] = counts.get(cleaned, 0) + 1
     if not counts:
         return None
-    return max(counts, key=counts.get)  # type: ignore[arg-type]
+    return max(counts, key=lambda k: (counts[k], k))
 
 
 @dataclass(frozen=True)
