@@ -1330,8 +1330,20 @@ def upsert_task(
     return task_dict
 
 
+def _detect_module_prog() -> str | None:
+    """Return a human-readable prog name when invoked as ``python -m ai_agents_metrics``."""
+    import os
+
+    argv0 = sys.argv[0] if sys.argv else ""
+    if os.path.basename(argv0) == "__main__.py":
+        py = f"python{sys.version_info.major}.{sys.version_info.minor}"
+        return f"{py} -m ai_agents_metrics"
+    return None
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
+        prog=_detect_module_prog(),
         description="Analyze your AI agent work history, track spending, and optimize your workflow. Point it at your history files and see retry pressure, token cost, and session timeline — no manual setup required.",
         epilog=(
             "Examples:\n"

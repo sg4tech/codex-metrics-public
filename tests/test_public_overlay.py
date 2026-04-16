@@ -87,9 +87,11 @@ def test_public_overlay_push_execute_runs_verify_then_push(tmp_path: Path, monke
 
     assert calls[0][0][0].endswith("/.venv/bin/python")
     assert calls[0][0][-2:] == ["--rules-path", str(private_repo_root / "oss" / "config" / "public-boundary-rules.toml")]
-    assert calls[1][0] == ["git", "subtree", "push", "--prefix=oss", "public", "sync"]
+    assert calls[1][0] == ["git", "subtree", "pull", "--prefix=oss", "public", "main", "--squash"]
+    assert calls[2][0] == ["git", "subtree", "push", "--prefix=oss", "public", "sync"]
     assert calls[0][1] == private_repo_root
     assert calls[1][1] == private_repo_root
+    assert calls[2][1] == private_repo_root
 
 
 def test_public_overlay_mirror_includes_security_verify_and_rules() -> None:

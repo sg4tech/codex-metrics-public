@@ -173,6 +173,10 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     existing_projects = {row[1] for row in conn.execute("PRAGMA table_info(derived_projects)").fetchall()}
     if "parent_project_cwd" not in existing_projects:
         conn.execute("ALTER TABLE derived_projects ADD COLUMN parent_project_cwd TEXT")
+    for table in ("derived_session_usage", "derived_attempts"):
+        existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+        if "model" not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN model TEXT")
 
 
 def _clear_derived_tables(conn: sqlite3.Connection) -> None:

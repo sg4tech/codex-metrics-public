@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import shutil
 import sqlite3
 import subprocess
@@ -17,15 +18,17 @@ ABS_SRC = WORKSPACE_ROOT / "src"
 
 @pytest.fixture
 def repo(tmp_path: Path) -> Path:
-    (tmp_path / "scripts").mkdir(parents=True, exist_ok=True)
     (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
     (tmp_path / "metrics").mkdir(parents=True, exist_ok=True)
     (tmp_path / "pricing").mkdir(parents=True, exist_ok=True)
 
-    script_target = tmp_path / "scripts" / "metrics_cli.py"
-    script_target.write_text(ABS_SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
-    shutil.copytree(ABS_SRC, tmp_path / "src")
+    if os.environ.get("CODEX_SUBPROCESS_COVERAGE") == "1":
+        (tmp_path / "scripts").mkdir(parents=True, exist_ok=True)
+        script_target = tmp_path / "scripts" / "metrics_cli.py"
+        script_target.write_text(ABS_SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
+        shutil.copytree(ABS_SRC, tmp_path / "src")
 
+    (tmp_path / ".gitkeep").write_text("", encoding="utf-8")
     subprocess.run(["git", "init"], cwd=tmp_path, text=True, capture_output=True, check=True)
     subprocess.run(["git", "config", "user.email", "codex@example.com"], cwd=tmp_path, text=True, capture_output=True, check=True)
     subprocess.run(["git", "config", "user.name", "Codex"], cwd=tmp_path, text=True, capture_output=True, check=True)

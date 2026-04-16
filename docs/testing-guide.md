@@ -15,14 +15,15 @@
 
 ## Summary
 
-Tests are split into two styles: unit tests (direct import) and end-to-end tests (subprocess). The canonical entry point for all checks is `make verify`. Every mutating command should have three test buckets: happy path, invalid-state rejection, and summary consistency.
+Tests are split into two styles: unit tests (direct import) and CLI integration tests (in-process by default, subprocess for coverage mode). The canonical entry points are `make verify-fast` (iteration) and `make verify` (pre-commit). Every mutating command should have three test buckets: happy path, invalid-state rejection, and summary consistency.
 
 ---
 
 ## Quick start
 
 ```bash
-make verify          # lint + typecheck + tests (run this before every commit)
+make verify-fast     # lint + typecheck + tests (~55s) — use during iteration
+make verify          # full suite incl. bandit, pylint, complexity (~1.5min) — before committing
 make test            # pytest only
 make lint            # ruff only
 make typecheck       # mypy only
@@ -58,7 +59,7 @@ CODEX_SUBPROCESS_COVERAGE=1 make test
 
 | Test file | Covers |
 |-----------|--------|
-| `test_metrics_cli.py` | CLI end-to-end via subprocess |
+| `test_metrics_cli.py` | CLI integration (in-process, subprocess for a few tests) |
 | `test_metrics_domain.py` | Domain logic (unit) |
 | `test_workflow_fsm.py` | State machine transitions |
 | `test_history_{ingest,normalize,derive,compare,audit}.py` | Pipeline stages |
@@ -73,9 +74,9 @@ CODEX_SUBPROCESS_COVERAGE=1 make test
 
 ## conftest.py
 
-`conftest.py` is empty (only the `from __future__ import annotations` header). No shared fixtures are needed at the top level.
+`conftest.py` provides `run_cli_inprocess()` — an in-process CLI runner that calls `main()` directly with captured stdout/stderr and temporary `os.chdir()`. This eliminates Python startup overhead (~0.5s per subprocess call) and makes tests ~18x faster than the previous subprocess-based approach.
 
-The former `unlock_tmp_path_immutability` autouse fixture was removed when the OS-level immutability guard (`chflags uchg`) was replaced by the append-only event log. `tmp_path` cleanup now works without intervention.
+Tests use `run_cli_inprocess()` by default and fall back to real subprocess when `CODEX_SUBPROCESS_COVERAGE=1` is set.
 
 ---
 
@@ -108,21 +109,26 @@ def test_something(input: str, expected: bool) -> None:
     ...
 ```
 
-### 2. End-to-end tests via subprocess
+### 2. CLI integration tests (in-process)
 
-For CLI commands. Use `tmp_path` as an isolated repo root.
-
-Helper functions defined in `test_metrics_cli.py` (reused across test files):
+For CLI commands. Use `tmp_path` as an isolated repo root. Tests call the CLI in-process by default via `run_cli_inprocess()` from `conftest.py`:
 
 ```python
-# Run via legacy script
+# Default: in-process call (fast, ~0.01s per invocation)
 def run_cmd(tmp_path: Path, *args: str, extra_env=None) -> subprocess.CompletedProcess[str]:
     ...
 
-# Run via python -m ai_agents_metrics (primary path)
+# Subprocess: only for tests that need real process isolation
+# (install-self, bootstrap wrapper, script shim, parallel lock)
+def _run_cmd_subprocess(tmp_path: Path, *args: str, extra_env=None) -> subprocess.CompletedProcess[str]:
+    ...
+
+# Module entrypoint: tests python -m ai_agents_metrics (always subprocess)
 def run_module_cmd(tmp_path: Path, *args: str, extra_env=None) -> subprocess.CompletedProcess[str]:
     ...
 ```
+
+A per-test timeout of 5 seconds is enforced via `pytest-timeout` (`pyproject.toml`). Any new test exceeding this limit should use in-process execution or be investigated for unnecessary overhead.
 
 End-to-end test pattern:
 
