@@ -627,6 +627,7 @@ function renderSummary() {
   const stats = [
     { value: s.total_closed,                                       label: 'Goals closed' },
     { value: s.success_count + ' (' + s.success_rate_pct + '%)',   label: 'Successes' },
+    { value: s.total_cost_usd != null ? '$' + s.total_cost_usd : 'n/a', label: 'Total cost' },
     { value: s.avg_cost_usd != null ? '$' + s.avg_cost_usd : 'n/a', label: 'Avg cost / success' },
     { value: trendText, label: 'Cost trend', color: trendColor },
   ];

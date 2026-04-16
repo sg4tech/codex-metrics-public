@@ -138,6 +138,7 @@ class _GoalSeries:  # pylint: disable=too-many-instance-attributes
     c4: dict[str, list[float]] = field(default_factory=dict)
     success_count: int = 0
     known_cost_successes: list[float] = field(default_factory=list)
+    total_known_cost_usd: float = 0.0
 
 
 def _empty_goal_series(buckets: list[str]) -> _GoalSeries:
@@ -267,10 +268,12 @@ def _accumulate_goals(
             series.c3_cac[bk] += applied[1]
             series.c3_out[bk] += applied[2]
 
-        if status == "success" and g.get("cost_usd") is not None:
+        if g.get("cost_usd") is not None:
             cost = float(g["cost_usd"])
-            series.c4.setdefault(bk, []).append(cost)
-            series.known_cost_successes.append(cost)
+            series.total_known_cost_usd += cost
+            if status == "success":
+                series.c4.setdefault(bk, []).append(cost)
+                series.known_cost_successes.append(cost)
 
     return series
 
@@ -427,6 +430,7 @@ def aggregate_report_data(
             "total_closed": total,
             "success_count": series.success_count,
             "success_rate_pct": round(100 * series.success_count / total, 1) if total else None,
+            "total_cost_usd": round(series.total_known_cost_usd, 2) if series.total_known_cost_usd else None,
             "avg_cost_usd": _avg_cost_usd(series.known_cost_successes),
             "cost_trend": _compute_cost_trend(c4.pairs),
             "date_from": earliest.strftime("%Y-%m-%d"),
