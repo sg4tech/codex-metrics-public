@@ -24,7 +24,6 @@ During a task, run `git pull` again before writing new code if significant time 
 - `AGENTS.md`
 - `docs/ai-agents-metrics-policy.md`
 - `docs/private/task-lifecycle.md`
-- `docs/private/local-linear-setup.md`
 
 The rules in `docs/ai-agents-metrics-policy.md` are mandatory and are part of this repository's operating instructions.
 
@@ -56,11 +55,9 @@ The following docs exist for reference — consult them as needed, not on every 
 
 ## Core working style
 
-- For engineering work, treat Linear as the source of truth for intake and traceability: create or update the relevant Linear issue before writing code, capture the requirements and acceptance criteria there, and work only through that issue.
-- Any change to `src/` or `tests/` requires an open metrics goal and a Linear issue. This is a hard gate — not a guideline. It does not matter how the task started (explicit instruction, conversational question, observation). If files in those directories are about to change, intake must happen first.
-- For Linear-driven engineering work, use `docs/private/task-lifecycle.md` as the working workflow guide and `docs/private/local-linear-setup.md` as the repo-specific team/status reference.
-- Standalone retrospective work is explicitly exempt from the Linear-first intake rule. Log the retrospective in `docs/private/retros/`, track it as `goal_type=retro`, and do not create a Linear issue unless the user explicitly asks to connect it to delivery work.
-- Commit subjects for engineering work must match `CODEX-123: summary`; when a change is intentionally not tied to a Linear issue, use the explicit `NO-TASK: summary` prefix instead. Retrospective-only commits must use `NO-TASK: summary`.
+- Any change to `src/` or `tests/` requires an open metrics goal (`./tools/ai-agents-metrics start-task`). This is a hard gate — not a guideline. It does not matter how the task started (explicit instruction, conversational question, observation). If files in those directories are about to change, a goal must be open first.
+- Standalone retrospective work is explicitly exempt from this gate. Log the retrospective in `docs/private/retros/`, track it as `goal_type=retro`.
+- Commit subjects must use `NO-TASK: summary` (the commit-msg hook enforces this format). For architecture or categorized tasks, include the task ID in the description: `NO-TASK: ARCH-014 extract usage resolution`. Retrospective-only commits must also use `NO-TASK: summary`.
 - During module splits or structural refactors, preserve the existing import/export surface until a breaking change is explicitly intended and validated.
 - Treat shim modules, entrypoints, and re-exported symbols that are exercised by tests or automation as part of the compatibility contract, not as disposable implementation details.
 - For workflow and lifecycle changes, prefer an explicit state machine over scattered guard checks; write or update the state/event matrix tests before changing behavior.
@@ -153,10 +150,22 @@ python -m pytest tests/public/test_metrics_cli.py
 ./tools/ai-agents-metrics show
 ```
 
-Prefer the repository's canonical local validation entrypoint when available:
+### Validation order during implementation
+
+Validate in layers — use the lightest tool that answers the question:
+
+| Step | Command | When |
+|------|---------|------|
+| Import works | `python3 -c "import ai_agents_metrics.cli"` | after adding/moving a module |
+| Lint | `ruff check <file>` or `ruff check <file> --fix` | after each edit |
+| Type check | `mypy src/ai_agents_metrics/<file>.py` | after type-relevant changes |
+| Import contracts | `lint-imports` | after import restructuring |
+| One test module | `pytest tests/test_X.py -x -q` | after changing logic |
+
+Run `make verify` or `make verify-fast` **once only**, as the final gate before committing. Do not use them as intermediate diagnostic tools — each run costs 55s–1.5min and repeats all layers from scratch.
 
 ```bash
-make verify-fast   # lint + typecheck + tests (~55s) — use during iteration
+make verify-fast   # lint + typecheck + tests (~55s) — final gate before commit
 make verify        # full suite incl. bandit, pylint, complexity, build-check (~1.5min) — use before committing
 ```
 
