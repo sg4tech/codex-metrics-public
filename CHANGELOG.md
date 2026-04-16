@@ -4,6 +4,19 @@ All notable changes to `ai-agents-metrics` will be recorded here.
 
 ## Unreleased
 
+### Changed
+
+- `render-html`: Chart 3 now stacks by model (one color per model, deterministic palette, unknown pinned last in slate) instead of by input/cached/output tokens — answers "where is my money going?" directly (ARCH-017)
+- `render-html`: summary strip gained a "Total Cost" card (sum across all closed goals, success + fail) between Successes and Avg Cost / Success (ARCH-017)
+
+### Fixed
+
+- `python -m ai_agents_metrics --version` now displays `python3.X -m ai_agents_metrics <version>` instead of `__main__.py <version>`
+
+### Internal
+
+- `model` column propagated to `derived_session_usage`, `derived_attempts`, and `derived_goals` during derive; unlocks per-model cost analysis without joining back to `normalized_usage_events` (ARCH-016)
+
 ## 0.1.5 (2026-04-13)
 
 ### Fixed

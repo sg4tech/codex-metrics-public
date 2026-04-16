@@ -2,7 +2,7 @@
 
 **Priority:** high
 **Complexity:** medium
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -68,6 +68,21 @@ When all goals fall in one day/week, charts show a single bar with no trend. No 
 8. **Section-level provider split**: duplicate the Session History section per provider (one for Claude, one for Codex), each with its own Chart 2 (Retries) and Chart 3 (Tokens/Cost). This keeps charts simple while enabling provider comparison.
 
 9. **Provider badge on summary cards**: when multiple providers exist, show which provider contributed to each stat.
+
+## Agreed priority
+
+After ROI review, only these two items are planned; the rest are deferred or dropped:
+
+1. **Total Cost card** (Phase 1, item 1) — ✅ done in commit `25ed0ad`, tests in `2a92f78`
+2. **Chart 3 by model** (Phase 2, item 5) — ✅ done; replaces input/cached/output stack with per-model stack (deterministic colors, unknown model pinned last, warehouse cost mode drops unknown rows)
+
+Deferred (low marginal ROI):
+- Chart 3 fallback (Phase 1, item 2) — dropped; inconsistency is not a real pain point yet
+- Cost Trend "n/a" explanation (Phase 1, item 3) — cosmetic
+- Single-bucket banner (Phase 1, item 4) — obvious from context
+- Model breakdown line in summary (Phase 2, item 6) — duplicates Chart 3 by model
+- Chart 4 by model (Phase 2, item 7) — Chart 3 by model already covers 80% of insight
+- Provider sections (Phase 3) — hold until we have data on real multi-provider usage
 
 ## Dependencies
 
