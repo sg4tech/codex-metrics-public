@@ -2,7 +2,7 @@
 
 **Priority:** high
 **Complexity:** medium
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -74,7 +74,7 @@ When all goals fall in one day/week, charts show a single bar with no trend. No 
 After ROI review, only these two items are planned; the rest are deferred or dropped:
 
 1. **Total Cost card** (Phase 1, item 1) — ✅ done in commit `25ed0ad`, tests in `2a92f78`
-2. **Chart 3 by model** (Phase 2, item 5) — after ARCH-016; most actionable cost dimension
+2. **Chart 3 by model** (Phase 2, item 5) — ✅ done; replaces input/cached/output stack with per-model stack (deterministic colors, unknown model pinned last, warehouse cost mode drops unknown rows)
 
 Deferred (low marginal ROI):
 - Chart 3 fallback (Phase 1, item 2) — dropped; inconsistency is not a real pain point yet

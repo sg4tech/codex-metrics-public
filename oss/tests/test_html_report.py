@@ -5,7 +5,7 @@ from datetime import datetime
 
 from ai_agents_metrics._report_aggregation import (
     _aggregate_warehouse_retry,
-    _aggregate_warehouse_tokens,
+    _aggregate_warehouse_tokens_by_model,
     aggregate_report_data,
 )
 from ai_agents_metrics._report_buckets import _bucket_key, _make_buckets, _monday_of, _parse_date
@@ -24,6 +24,7 @@ def _goal(
     cached_input_tokens: int | None = None,
     output_tokens: int | None = None,
     goal_type: str = "product",
+    model: str | None = None,
 ) -> dict:
     return {
         "goal_id": "g1",
@@ -42,6 +43,7 @@ def _goal(
         "notes": None,
         "agent_name": None,
         "result_fit": None,
+        "model": model,
     }
 
 
@@ -164,7 +166,9 @@ def test_retry_pressure_chart2():
     assert result["chart2_line"][idx] == 2.0
 
 
-def test_token_aggregation():
+def test_token_aggregation_stacked_by_model():
+    # Two goals without explicit model land in the "unknown" bucket.
+    # Total tokens = (100+50+30) + (200+0+80) = 460.
     goals = [
         _goal(
             status="success",
@@ -183,9 +187,53 @@ def test_token_aggregation():
     ]
     result = aggregate_report_data(goals, days=None)
     idx = result["buckets"].index("2026-01-15")
-    assert result["chart3_input"][idx] == 300
-    assert result["chart3_cached"][idx] == 50
-    assert result["chart3_output"][idx] == 110
+    series = result["chart3_series"]
+    assert len(series) == 1
+    assert series[0]["name"] == "unknown"
+    assert series[0]["values"][idx] == 460
+
+
+def test_token_aggregation_separates_models():
+    goals = [
+        _goal(status="success", finished_at="2026-01-15T10:00:00+00:00",
+              model="claude-sonnet-4-6", input_tokens=100, cached_input_tokens=50, output_tokens=30),
+        _goal(status="success", finished_at="2026-01-15T11:00:00+00:00",
+              model="claude-opus-4-6",   input_tokens=200, cached_input_tokens=0,  output_tokens=80),
+    ]
+    result = aggregate_report_data(goals, days=None)
+    idx = result["buckets"].index("2026-01-15")
+    series = {s["name"]: s for s in result["chart3_series"]}
+    assert series["claude-sonnet-4-6"]["values"][idx] == 180
+    assert series["claude-opus-4-6"]["values"][idx] == 280
+    # Opus has a larger total, so it sorts first.
+    assert result["chart3_series"][0]["name"] == "claude-opus-4-6"
+
+
+def test_chart3_series_assigns_distinct_colors():
+    goals = [
+        _goal(status="success", finished_at="2026-01-15T10:00:00+00:00",
+              model="a", input_tokens=10, cached_input_tokens=0, output_tokens=0),
+        _goal(status="success", finished_at="2026-01-15T11:00:00+00:00",
+              model="b", input_tokens=20, cached_input_tokens=0, output_tokens=0),
+    ]
+    result = aggregate_report_data(goals, days=None)
+    colors = [s["color"] for s in result["chart3_series"]]
+    assert len(set(colors)) == len(colors)
+    # Unknown is reserved for unnamed models only; neither "a" nor "b" is unknown.
+    assert "#94a3b8" not in colors
+
+
+def test_chart3_pins_unknown_last():
+    goals = [
+        _goal(status="success", finished_at="2026-01-15T10:00:00+00:00",
+              input_tokens=1_000_000, cached_input_tokens=0, output_tokens=0),  # unknown
+        _goal(status="success", finished_at="2026-01-15T11:00:00+00:00",
+              model="a", input_tokens=10, cached_input_tokens=0, output_tokens=0),
+    ]
+    result = aggregate_report_data(goals, days=None)
+    names = [s["name"] for s in result["chart3_series"]]
+    # Even though "unknown" has the larger total, it must sort to the end.
+    assert names == ["a", "unknown"]
 
 
 def test_cost_per_success_excludes_null_cost():
@@ -376,43 +424,63 @@ def test_empty_data_has_chart3_source():
     assert data["chart3_source"] == "ledger"
 
 
-# ── _aggregate_warehouse_tokens ───────────────────────────────────────────────
+# ── _aggregate_warehouse_tokens_by_model ──────────────────────────────────────
 
 
 def test_aggregate_warehouse_tokens_daily_no_pricing():
+    # No pricing → accumulate raw tokens (input + cached + output) per bucket per model.
     buckets = ["2026-03-31", "2026-04-01", "2026-04-02"]
     rows = [
         ("2026-03-31T10:00:00.000Z", "gpt-5.4", 1000, 500, 200),
         ("2026-04-01T12:00:00.000Z", "gpt-5.4", 2000, 0, 400),
     ]
-    inp, cac, out = _aggregate_warehouse_tokens(rows, buckets, "day", None)
-    assert inp == [1000, 2000, 0]
-    assert cac == [500, 0, 0]
-    assert out == [200, 400, 0]
+    per_model = _aggregate_warehouse_tokens_by_model(rows, buckets, "day", None)
+    assert list(per_model.keys()) == ["gpt-5.4"]
+    values = per_model["gpt-5.4"]
+    assert values["2026-03-31"] == 1700  # 1000 + 500 + 200
+    assert values["2026-04-01"] == 2400  # 2000 + 0 + 400
+    assert values["2026-04-02"] == 0
 
 
 def test_aggregate_warehouse_tokens_daily_with_pricing():
     buckets = ["2026-04-01"]
     rows = [("2026-04-01T10:00:00.000Z", "claude-sonnet-4-6", 1_000_000, 0, 1_000_000)]
     pricing = {"claude-sonnet-4-6": {"input_per_million_usd": 3.0, "cached_input_per_million_usd": 0.3, "output_per_million_usd": 15.0}}
-    inp, cac, out = _aggregate_warehouse_tokens(rows, buckets, "day", pricing)
-    assert inp == [3.0]
-    assert cac == [0.0]
-    assert out == [15.0]
+    per_model = _aggregate_warehouse_tokens_by_model(rows, buckets, "day", pricing)
+    # 3.0 (input) + 0 (cached) + 15.0 (output) = 18.0 USD
+    assert per_model["claude-sonnet-4-6"]["2026-04-01"] == 18.0
 
 
 def test_aggregate_warehouse_tokens_skips_out_of_range():
     buckets = ["2026-04-01"]
     rows = [("2026-03-15T10:00:00.000Z", None, 9999, 0, 0)]  # outside bucket range
-    inp, cac, out = _aggregate_warehouse_tokens(rows, buckets, "day", None)
-    assert inp == [0]
+    per_model = _aggregate_warehouse_tokens_by_model(rows, buckets, "day", None)
+    assert per_model == {}
 
 
 def test_aggregate_warehouse_tokens_skips_bad_timestamps():
     buckets = ["2026-04-01"]
     rows = [("not-a-date", None, 500, 0, 100)]
-    inp, cac, out = _aggregate_warehouse_tokens(rows, buckets, "day", None)
-    assert inp == [0]
+    per_model = _aggregate_warehouse_tokens_by_model(rows, buckets, "day", None)
+    assert per_model == {}
+
+
+def test_aggregate_warehouse_tokens_cost_mode_drops_unknown_model():
+    # Unknown-model rows are dropped in cost mode — can't compute USD without pricing.
+    buckets = ["2026-04-01"]
+    rows = [("2026-04-01T10:00:00.000Z", None, 1_000_000, 0, 0)]
+    pricing = {"claude-sonnet-4-6": {"input_per_million_usd": 3.0}}
+    per_model = _aggregate_warehouse_tokens_by_model(rows, buckets, "day", pricing)
+    assert per_model == {}
+
+
+def test_aggregate_warehouse_tokens_token_mode_keeps_unknown_model():
+    # Without pricing, unknown-model rows accumulate under the reserved 'unknown' key
+    # so total tokens aren't silently dropped.
+    buckets = ["2026-04-01"]
+    rows = [("2026-04-01T10:00:00.000Z", None, 100, 50, 30)]
+    per_model = _aggregate_warehouse_tokens_by_model(rows, buckets, "day", None)
+    assert per_model == {"unknown": {"2026-04-01": 180.0}}
 
 
 # ── aggregate_report_data with warehouse_tokens ───────────────────────────────
@@ -424,9 +492,10 @@ def test_aggregate_report_data_warehouse_tokens_overrides_ledger():
     wt = [("2026-01-15T10:00:00.000Z", None, 100, 50, 30)]
     data = aggregate_report_data(goals, None, warehouse_tokens=wt)
     assert data["chart3_source"] == "warehouse"
-    assert data["chart3_input"] == [100]
-    assert data["chart3_cached"] == [50]
-    assert data["chart3_output"] == [30]
+    # Warehouse-only data → one 'unknown' series = 100 + 50 + 30 = 180
+    assert len(data["chart3_series"]) == 1
+    assert data["chart3_series"][0]["name"] == "unknown"
+    assert data["chart3_series"][0]["values"] == [180.0]
 
 
 def test_aggregate_report_data_ledger_source_when_no_warehouse_tokens():
@@ -451,7 +520,7 @@ def test_aggregate_report_data_warehouse_tokens_only_no_goals():
     wt = [("2026-04-01T10:00:00.000Z", None, 300, 100, 50)]
     data = aggregate_report_data([], None, warehouse_tokens=wt)
     assert data["chart3_source"] == "warehouse"
-    assert data["chart3_input"] == [300]
+    assert data["chart3_series"][0]["values"] == [450.0]  # 300 + 100 + 50
 
 
 # ── render smoke test ─────────────────────────────────────────────────────────
