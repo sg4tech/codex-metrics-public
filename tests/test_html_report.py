@@ -523,6 +523,29 @@ def test_aggregate_report_data_warehouse_tokens_only_no_goals():
     assert data["chart3_series"][0]["values"] == [450.0]  # 300 + 100 + 50
 
 
+def test_aggregate_report_data_warehouse_tokens_separates_models():
+    """Warehouse path must split chart3_series by model and sort by total desc.
+
+    Parallels test_token_aggregation_separates_models for the ledger path —
+    guards against a regression where warehouse aggregation would collapse
+    all rows under a single series.
+    """
+    wt = [
+        ("2026-04-01T10:00:00.000Z", "claude-sonnet-4-6", 100, 50, 30),  # total 180
+        ("2026-04-01T11:00:00.000Z", "claude-opus-4-6",   200, 0,  80),  # total 280
+    ]
+    data = aggregate_report_data([], None, warehouse_tokens=wt)
+    assert data["chart3_source"] == "warehouse"
+    names = [s["name"] for s in data["chart3_series"]]
+    # Opus has the larger total, so it sorts first.
+    assert names == ["claude-opus-4-6", "claude-sonnet-4-6"]
+    by_name = {s["name"]: s for s in data["chart3_series"]}
+    assert by_name["claude-sonnet-4-6"]["values"] == [180.0]
+    assert by_name["claude-opus-4-6"]["values"] == [280.0]
+    # Distinct colors assigned from the palette.
+    assert by_name["claude-sonnet-4-6"]["color"] != by_name["claude-opus-4-6"]["color"]
+
+
 # ── render smoke test ─────────────────────────────────────────────────────────
 
 
