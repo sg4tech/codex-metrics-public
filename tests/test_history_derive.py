@@ -5,6 +5,7 @@ import shutil
 import sqlite3
 import subprocess
 from pathlib import Path
+from typing import Any
 
 import pytest
 from test_history_ingest import (
@@ -195,13 +196,48 @@ def test_derive_codex_history_builds_analysis_marts(repo: Path) -> None:
         assert assistant_message["total_tokens"] == 165
 
         usage_slice = conn.execute(
-            "SELECT usage_event_count, total_tokens, first_usage_at, last_usage_at FROM derived_session_usage WHERE session_path LIKE ?",
+            "SELECT usage_event_count, total_tokens, first_usage_at, last_usage_at, model FROM derived_session_usage WHERE session_path LIKE ?",
             ("%rollout-3.jsonl",),
         ).fetchone()
         assert usage_slice["usage_event_count"] == 0
         assert usage_slice["total_tokens"] is None
         assert usage_slice["first_usage_at"] is None
         assert usage_slice["last_usage_at"] is None
+        assert usage_slice["model"] is None  # no usage events → no model
+
+        # model propagation: thread-1 has no model in usage events (Codex fixture
+        # token_count lacks info.model), so derived_goals.model falls back to
+        # thread-level metadata ("gpt-5.4-mini").
+        goal_1 = conn.execute(
+            "SELECT model FROM derived_goals WHERE thread_id = ?", ("thread-1",)
+        ).fetchone()
+        assert goal_1["model"] == "gpt-5.4-mini"
+
+        # derived_attempts should carry model from session usage (None for Codex)
+        attempt_with_usage = conn.execute(
+            "SELECT model FROM derived_attempts WHERE session_path LIKE ?",
+            ("%rollout-1.jsonl",),
+        ).fetchone()
+        assert attempt_with_usage["model"] is None  # Codex fixture has no model in token_count
+
+
+def test_dominant_model_picks_most_frequent() -> None:
+    from ai_agents_metrics.history.derive_insert import _dominant_model
+
+    rows: list[dict[str, Any]] = [
+        {"model": "claude-sonnet-4-6"},
+        {"model": "claude-sonnet-4-6"},
+        {"model": "claude-haiku-4-5"},
+    ]
+    assert _dominant_model(rows) == "claude-sonnet-4-6"  # type: ignore[arg-type]
+
+
+def test_dominant_model_returns_none_when_empty() -> None:
+    from ai_agents_metrics.history.derive_insert import _dominant_model
+
+    assert _dominant_model([]) is None
+    rows: list[dict[str, Any]] = [{"model": None}, {"model": ""}]
+    assert _dominant_model(rows) is None  # type: ignore[arg-type]
 
 
 def test_derive_codex_history_is_idempotent_on_rerun(repo: Path) -> None:
@@ -515,6 +551,13 @@ def test_derive_claude_history_populates_cache_creation_tokens(repo: Path) -> No
         assert usage["cached_input_tokens"] == 200
         assert usage["output_tokens"] == 50
         assert usage["total_tokens"] == 360
+        assert usage["model"] == "claude-sonnet-4-6"
+
+        # model propagated to goal and attempt
+        goal = conn.execute("SELECT model FROM derived_goals").fetchone()
+        assert goal["model"] == "claude-sonnet-4-6"
+        attempt = conn.execute("SELECT model FROM derived_attempts").fetchone()
+        assert attempt["model"] == "claude-sonnet-4-6"
 
 
 # ---------------------------------------------------------------------------

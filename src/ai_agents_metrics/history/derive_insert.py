@@ -181,6 +181,18 @@ def _insert_message_facts(
 # ── attempts and session usage ────────────────────────────────────────────────
 
 
+def _dominant_model(usage_rows: list[NormalizedUsageEventRow]) -> str | None:
+    """Return the most frequently used model across usage events, or None."""
+    counts: dict[str, int] = {}
+    for r in usage_rows:
+        m = r["model"]
+        if isinstance(m, str) and m.strip():
+            counts[m.strip()] = counts.get(m.strip(), 0) + 1
+    if not counts:
+        return None
+    return max(counts, key=counts.get)  # type: ignore[arg-type]
+
+
 @dataclass(frozen=True)
 class _SessionTokenSums:
     inp: int | None
@@ -192,6 +204,7 @@ class _SessionTokenSums:
     count: int
     first_at: str | None
     last_at: str | None
+    model: str | None
 
 
 def _session_usage_timestamps(
@@ -217,6 +230,7 @@ def _compute_session_token_sums(
         count=len(usage_rows),
         first_at=first_at,
         last_at=last_at,
+        model=_dominant_model(usage_rows),
     )
 
 
@@ -244,8 +258,9 @@ def _insert_attempt_row(
         INSERT INTO derived_attempts (
             attempt_id, thread_id, source_path, session_path, attempt_index,
             session_timestamp, cwd, source, model_provider, cli_version, originator,
-            event_count, message_count, usage_event_count, first_event_at, last_event_at, raw_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            event_count, message_count, usage_event_count, first_event_at, last_event_at,
+            model, raw_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             _derived_attempt_id(thread_id, session_row["session_path"]),
@@ -264,6 +279,7 @@ def _insert_attempt_row(
             sums.count,
             _normalize_timestamp(session_row["first_event_at"]),
             _normalize_timestamp(session_row["last_event_at"]),
+            sums.model,
             session_row["raw_json"],
         ),
     )
@@ -283,8 +299,8 @@ def _insert_session_usage_row(
             session_usage_id, thread_id, source_path, session_path, attempt_index,
             usage_event_count, input_tokens, cache_creation_input_tokens,
             cached_input_tokens, output_tokens, reasoning_output_tokens,
-            total_tokens, first_usage_at, last_usage_at, raw_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            total_tokens, first_usage_at, last_usage_at, model, raw_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             _session_usage_id(session_path),
@@ -301,6 +317,7 @@ def _insert_session_usage_row(
             sums.total,
             sums.first_at,
             sums.last_at,
+            sums.model,
             json.dumps(
                 {
                     "thread_id": thread_id,
@@ -313,6 +330,7 @@ def _insert_session_usage_row(
                     "output_tokens": sums.out,
                     "reasoning_output_tokens": sums.reasoning,
                     "total_tokens": sums.total,
+                    "model": sums.model,
                 },
                 ensure_ascii=False,
                 sort_keys=True,
@@ -353,6 +371,7 @@ def _insert_goal_and_retry_chain(
 ) -> None:
     attempt_count = max(len(sorted_sessions), 1)
     retry_count = max(attempt_count - 1, 0)
+    goal_model = _dominant_model(thread_usage_events) or thread_row["model"]
     conn.execute(
         """
         INSERT INTO derived_goals (
@@ -367,7 +386,7 @@ def _insert_goal_and_retry_chain(
             thread_row["source_path"],
             thread_row["cwd"],
             thread_row["model_provider"],
-            thread_row["model"],
+            goal_model,
             thread_row["title"],
             thread_row["archived"],
             thread_row["session_count"],
