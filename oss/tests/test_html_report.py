@@ -341,6 +341,29 @@ def test_summary_fields_populated():
     assert s["date_to"] == "2026-01-16"
 
 
+def test_summary_total_cost_sums_all_closed_goals_including_fails():
+    # Total cost should include cost from failed goals, unlike avg_cost which
+    # covers successes only. This is the real "how much did I spend?" signal.
+    goals = [
+        _goal(status="success", finished_at="2026-01-15T10:00:00+00:00", cost_usd=5.0),
+        _goal(status="fail",    finished_at="2026-01-16T10:00:00+00:00", cost_usd=3.0),
+        _goal(status="success", finished_at="2026-01-17T10:00:00+00:00", cost_usd=2.5),
+    ]
+    result = aggregate_report_data(goals, days=None)
+    s = result["summary"]
+    assert s["total_cost_usd"] == 10.5  # 5.0 + 3.0 + 2.5
+    assert s["avg_cost_usd"] == 3.75  # (5.0 + 2.5) / 2 successes
+
+
+def test_summary_total_cost_is_none_when_no_cost_data():
+    goals = [
+        _goal(status="success", finished_at="2026-01-15T10:00:00+00:00", cost_usd=None),
+        _goal(status="fail",    finished_at="2026-01-16T10:00:00+00:00", cost_usd=None),
+    ]
+    result = aggregate_report_data(goals, days=None)
+    assert result["summary"]["total_cost_usd"] is None
+
+
 def test_empty_data_has_chart2_source():
     from ai_agents_metrics._report_aggregation import _empty_data
     data = _empty_data()
