@@ -15,14 +15,14 @@
 
 ## Summary
 
-Tests are split into two styles: unit tests (direct import) and CLI integration tests (in-process by default, subprocess for coverage mode). The canonical entry points are `make verify-fast` (iteration) and `make verify` (pre-commit). Every mutating command should have three test buckets: happy path, invalid-state rejection, and summary consistency.
+Tests are split into two styles: unit tests (direct import) and CLI integration tests (in-process by default, subprocess for coverage mode). The canonical entry points are `make verify-fast` and `make verify` (both are final-gate commands before committing — not intermediate diagnostic tools). Every mutating command should have three test buckets: happy path, invalid-state rejection, and summary consistency.
 
 ---
 
 ## Quick start
 
 ```bash
-make verify-fast     # lint + typecheck + tests (~55s) — use during iteration
+make verify-fast     # lint + typecheck + tests (~55s) — final gate before commit
 make verify          # full suite incl. bandit, pylint, complexity (~1.5min) — before committing
 make test            # pytest only
 make lint            # ruff only
