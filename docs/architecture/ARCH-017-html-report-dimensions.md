@@ -69,6 +69,21 @@ When all goals fall in one day/week, charts show a single bar with no trend. No 
 
 9. **Provider badge on summary cards**: when multiple providers exist, show which provider contributed to each stat.
 
+## Agreed priority
+
+After ROI review, only these three items are planned; the rest are deferred or dropped:
+
+1. **Total Cost card** (Phase 1, item 1) — ✅ done in commit `25ed0ad`, tests in `2a92f78`
+2. **Chart 3 fallback** (Phase 1, item 2) — next; closes the $0-vs-real-cost contradiction
+3. **Chart 3 by model** (Phase 2, item 5) — after ARCH-016; most actionable cost dimension
+
+Deferred (low marginal ROI):
+- Cost Trend "n/a" explanation (Phase 1, item 3) — cosmetic
+- Single-bucket banner (Phase 1, item 4) — obvious from context
+- Model breakdown line in summary (Phase 2, item 6) — duplicates Chart 3 by model
+- Chart 4 by model (Phase 2, item 7) — Chart 3 by model already covers 80% of insight
+- Provider sections (Phase 3) — hold until we have data on real multi-provider usage
+
 ## Dependencies
 
 - Phase 2 depends on **ARCH-016** (model propagated to derived tables) for warehouse-sourced charts.
