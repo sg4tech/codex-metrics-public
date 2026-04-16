@@ -200,7 +200,7 @@ Regenerate the optional markdown report (opt-in, requires manual tracking bootst
 ai-agents-metrics render-report
 ```
 
-Generate a self-contained interactive HTML report with four trend charts (goal types, retry pressure, token cost, cost per success):
+Generate a self-contained interactive HTML report with four trend charts (goal types, retry pressure, cost stacked by model, cost per success) and a summary strip showing total cost, success rate, and cost trend:
 
 ```bash
 ai-agents-metrics render-html
