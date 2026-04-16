@@ -100,6 +100,21 @@ New entries should follow the format below. Add entries as decisions are made or
 
 ---
 
+## Chart 3 stacks by model instead of by token category
+
+**Context:** Chart 3 originally stacked input / cached-input / output tokens (or cost). Product QA (ARCH-017) showed this answered "what share is cached?" — a token-composition question — rather than "where is my money going?" — the primary cost-tracking question for a user running multiple models at different prices (e.g. Opus vs Sonnet).
+
+**Decision:** Chart 3 now stacks one series per model. Colors are assigned deterministically from a fixed 8-color palette sorted by model name, so the same model always gets the same color across runs. The reserved "unknown" bucket is pinned last in slate.
+
+**Trade-offs:**
+- The token-composition view is no longer directly visible. It can be reconstructed from the warehouse if ever needed.
+- In cost mode (pricing available), rows with unknown models are dropped from the chart — we cannot compute USD without pricing. In token mode (no pricing), unknown-model rows accumulate under "unknown" so nothing is silently lost.
+- Legend remains clickable, letting users isolate a single model.
+
+**Why this works:** Model breakdown is the actionable cost dimension for agent-assisted workflows. ARCH-016 populated `model` on every warehouse table, making this chart trustworthy from the first render.
+
+---
+
 ## html_report.py split into four focused modules
 
 **Context:** `html_report.py` grew to 1084 lines as the HTML template, aggregation logic, date helpers, and public API accumulated in one file. Diffs and code review were impractical; the ~730-line template string dominated the file.
