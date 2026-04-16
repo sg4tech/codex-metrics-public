@@ -1,6 +1,6 @@
 # ARCH-014: Extract usage resolution functions out of cli.py
 
-**Status:** open  
+**Status:** done  
 **Priority:** medium  
 **Complexity:** medium
 
@@ -38,7 +38,7 @@ The circular dependency also prevents adding an import-linter contract that enfo
 
 ## Acceptance Criteria
 
-- [ ] No lazy `cli` imports remain in `usage_backends.py` or `commands.py`
-- [ ] `make verify` passes without regressions
-- [ ] New import-linter contract added and passing: `usage_backends` must not import `cli`
-- [ ] `PRICING_JSON_PATH` and `load_pricing` live outside `cli.py`
+- [x] No lazy `cli` imports remain in `usage_backends.py` or `commands.py`
+- [x] `make verify` passes without regressions
+- [x] New import-linter contract added and passing: `usage_backends` must not import `cli`
+- [x] `PRICING_JSON_PATH` and `load_pricing` live outside `cli.py` (in `usage_resolution.py`)

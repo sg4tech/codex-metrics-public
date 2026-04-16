@@ -1134,7 +1134,7 @@ def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:
     # Load model pricing for token-cost breakdown in chart 3.
     pricing: dict[str, dict[str, float | None]] | None = None
     try:
-        from ai_agents_metrics.cli import PRICING_JSON_PATH, load_pricing
+        from ai_agents_metrics.usage_resolution import PRICING_JSON_PATH, load_pricing
         pricing = load_pricing(PRICING_JSON_PATH)
     except Exception:
         pricing = None

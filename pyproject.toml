@@ -154,6 +154,21 @@ layers = [
     "ai_agents_metrics.history.ingest",
 ]
 
+[[tool.importlinter.contracts]]
+name = "usage_backends must not import from cli"
+type = "forbidden"
+source_modules = ["ai_agents_metrics.usage_backends"]
+forbidden_modules = ["ai_agents_metrics.cli"]
+
+[[tool.importlinter.contracts]]
+name = "usage_resolution must not import from cli or usage_backends"
+type = "forbidden"
+source_modules = ["ai_agents_metrics.usage_resolution"]
+forbidden_modules = [
+    "ai_agents_metrics.cli",
+    "ai_agents_metrics.usage_backends",
+]
+
 [tool.pylint.main]
 # cli.py, commands.py, history/ingest.py are known oversized files tracked as
 # architectural debt (ARCH). They are excluded here so the check guards new code

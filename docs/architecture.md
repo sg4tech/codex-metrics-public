@@ -119,7 +119,8 @@ Codex state/logs (SQLite)
 
 | File | Role |
 |------|------|
-| `usage_backends.py` | `UsageBackend` Protocol with `ClaudeUsageBackend` and `UnknownUsageBackend` implementations; resolves token/cost windows |
+| `usage_resolution.py` | Pricing data loading, usage event parsing, cost computation, and window resolution logic for Claude and Codex sessions |
+| `usage_backends.py` | `UsageBackend` Protocol with `ClaudeUsageBackend` and `UnknownUsageBackend` implementations; delegates window resolution to `usage_resolution` |
 | `git_hooks.py` | Implements commit-msg validation and pre-push security scanning logic |
 | `commit_message.py` | Validates commit subject format (`CODEX-123:` / `NO-TASK:`) |
 | `public_boundary.py` | Verifies files against TOML-configured inclusion/exclusion rules |

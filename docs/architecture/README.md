@@ -21,7 +21,7 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 | [ARCH-011](ARCH-011-radon-metrics.md) | Integrate radon for code complexity metrics | medium | low | done |
 | [ARCH-012](ARCH-012-import-linter.md) | Integrate import-linter for architectural boundary enforcement | medium | low | done |
 | [ARCH-013](ARCH-013-decompose-high-complexity-functions.md) | Decompose high-complexity orchestrator functions (derive_codex_history, aggregate_report_data) | high | high | done |
-| [ARCH-014](ARCH-014-extract-usage-resolution-from-cli.md) | Extract usage resolution functions out of cli.py (eliminate lazy circular imports) | medium | medium | open |
+| [ARCH-014](ARCH-014-extract-usage-resolution-from-cli.md) | Extract usage resolution functions out of cli.py (eliminate lazy circular imports) | medium | medium | done |
 | [ARCH-015](ARCH-015-sqlalchemy-migration.md) | Migrate from raw sqlite3 to SQLAlchemy Core | medium | high | planned |
 | [ARCH-016](ARCH-016-propagate-model-to-derived-tables.md) | Propagate model to all derived tables | medium | low | done |
 | [ARCH-017](ARCH-017-html-report-dimensions.md) | Add provider and model dimensions to HTML report | high | medium | done |

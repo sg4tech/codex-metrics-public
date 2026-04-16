@@ -5,6 +5,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
+from ai_agents_metrics.usage_resolution import (
+    resolve_claude_usage_window,
+    resolve_codex_usage_window,
+)
+
 
 @dataclass(frozen=True)
 class UsageWindow:
@@ -185,9 +190,7 @@ class ClaudeUsageBackend:
         thread_id: str | None = None,
         # thread_id is unused for Claude; lookup is by cwd directory, not thread row.
     ) -> UsageWindow:
-        from ai_agents_metrics import cli as cli_module
-
-        cost_usd, total_tokens, input_tokens, cached_input_tokens, output_tokens, model_name = cli_module.resolve_claude_usage_window(
+        cost_usd, total_tokens, input_tokens, cached_input_tokens, output_tokens, model_name = resolve_claude_usage_window(
             claude_root=state_path,
             cwd=cwd,
             started_at=started_at,
@@ -219,9 +222,7 @@ class CodexUsageBackend:
         pricing_path: Path,
         thread_id: str | None = None,
     ) -> UsageWindow:
-        from ai_agents_metrics import cli as cli_module
-
-        cost_usd, total_tokens, input_tokens, cached_input_tokens, output_tokens, model_name = cli_module.resolve_codex_usage_window(
+        cost_usd, total_tokens, input_tokens, cached_input_tokens, output_tokens, model_name = resolve_codex_usage_window(
             state_path=state_path,
             logs_path=logs_path,
             cwd=cwd,
