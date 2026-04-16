@@ -168,12 +168,17 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "push":
-        command = build_push_command(remote_name=args.remote_name, prefix=args.prefix, pr_branch=args.pr_branch)
+        pull_command = build_pull_command(remote_name=args.remote_name, prefix=args.prefix, branch=args.branch)
+        push_command = build_push_command(remote_name=args.remote_name, prefix=args.prefix, pr_branch=args.pr_branch)
         if args.execute:
             _verify_public_boundary(private_repo_root=private_repo_root, prefix=args.prefix)
-            _run(shlex.split(command), cwd=private_repo_root)
+            print(f"pulling public/{args.branch} before push...")
+            _run(shlex.split(pull_command), cwd=private_repo_root)
+            _run(shlex.split(push_command), cwd=private_repo_root)
         else:
-            print(command)
+            print("# pull first to avoid merge conflicts on the PR")
+            print(pull_command)
+            print(push_command)
         return 0
 
     if args.command == "pull":
