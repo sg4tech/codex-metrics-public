@@ -61,6 +61,13 @@ from ai_agents_metrics.history.audit import (  # noqa: F401 — re-exported as c
     render_audit_report,
     render_audit_report_json,
 )
+from ai_agents_metrics.history.classify import (
+    ClassifySummary,
+    render_classify_summary_json,  # noqa: F401 — re-exported as cli_module attribute
+)
+from ai_agents_metrics.history.classify import (
+    classify_codex_history as run_classify_codex_history,
+)
 from ai_agents_metrics.history.compare import (  # noqa: F401 — re-exported as cli_module attributes
     HistorySignals,
     compare_metrics_to_history,
@@ -183,6 +190,10 @@ def normalize_codex_history(warehouse_path: Path) -> NormalizeSummary:
 
 def derive_codex_history(warehouse_path: Path) -> DeriveSummary:
     return run_derive_codex_history(warehouse_path=warehouse_path)
+
+
+def classify_codex_history(warehouse_path: Path) -> ClassifySummary:
+    return run_classify_codex_history(warehouse_path=warehouse_path)
 
 
 def verify_public_boundary(*, repo_root: Path, rules_path: Path) -> PublicBoundaryReport:
@@ -979,6 +990,28 @@ def build_parser() -> argparse.ArgumentParser:
         help="SQLite warehouse path that already contains raw imported data",
     )
 
+    classify_parser = subparsers.add_parser(
+        "history-classify",
+        help="Classify agent session kinds (main vs subagent) from normalized history",
+        description=(
+            "Read the normalized warehouse populated by history-normalize and write "
+            "derived_session_kinds — a deterministic, filename-based classification of "
+            "each session file as 'main' or 'subagent'. Required before history-derive "
+            "to avoid subagent-aliased retry counts (see oss/docs/findings/F-001)."
+        ),
+    )
+    classify_parser.add_argument(
+        "--warehouse-path",
+        default=str(RAW_WAREHOUSE_PATH),
+        help="SQLite warehouse path that already contains normalized agent history",
+    )
+    classify_parser.add_argument(
+        "--json",
+        action="store_true",
+        default=False,
+        help="Output summary as JSON",
+    )
+
     derive_parser = subparsers.add_parser(
         "history-derive",
         help="Derive analysis marts from normalized agent history",
@@ -1473,6 +1506,9 @@ def main() -> int:
 
     if args.command == "history-normalize":
         return commands.handle_normalize_codex_history(args, sys.modules[__name__])
+
+    if args.command == "history-classify":
+        return commands.handle_classify_codex_history(args, sys.modules[__name__])
 
     if args.command == "history-derive":
         return commands.handle_derive_codex_history(args, sys.modules[__name__])

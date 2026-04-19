@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from ai_agents_metrics import commands
+from ai_agents_metrics.history.classify import ClassifySummary, render_classify_summary_json
 from ai_agents_metrics.history.derive import DeriveSummary, render_derive_summary_json
 from ai_agents_metrics.history.ingest import IngestSummary, render_ingest_summary_json
 from ai_agents_metrics.history.normalize import NormalizeSummary, render_normalize_summary_json
@@ -49,6 +50,17 @@ def _make_normalize_summary(warehouse: str = "/warehouse.sqlite") -> NormalizeSu
     )
 
 
+def _make_classify_summary(warehouse: str = "/warehouse.sqlite") -> ClassifySummary:
+    return ClassifySummary(
+        warehouse_path=Path(warehouse),
+        classifier_version="v1-test0000",
+        sessions_total=4,
+        main_sessions=2,
+        subagent_sessions=2,
+        unknown_sessions=0,
+    )
+
+
 def _make_derive_summary(warehouse: str = "/warehouse.sqlite") -> DeriveSummary:
     return DeriveSummary(
         warehouse_path=Path(warehouse),
@@ -69,10 +81,12 @@ class _FakeRuntime:
         ingest_summary: IngestSummary,
         normalize_summary: NormalizeSummary,
         derive_summary: DeriveSummary,
+        classify_summary: ClassifySummary | None = None,
     ) -> None:
         self.ingest_summary = ingest_summary
         self.normalize_summary = normalize_summary
         self.derive_summary = derive_summary
+        self.classify_summary = classify_summary or _make_classify_summary()
 
     def metrics_mutation_lock(self, metrics_path: Path):
         return nullcontext()
@@ -86,6 +100,10 @@ class _FakeRuntime:
         assert warehouse_path == Path("/warehouse.sqlite")
         return self.normalize_summary
 
+    def classify_codex_history(self, warehouse_path: Path) -> ClassifySummary:
+        assert warehouse_path == Path("/warehouse.sqlite")
+        return self.classify_summary
+
     def derive_codex_history(self, warehouse_path: Path) -> DeriveSummary:
         assert warehouse_path == Path("/warehouse.sqlite")
         return self.derive_summary
@@ -95,6 +113,9 @@ class _FakeRuntime:
 
     def render_normalize_summary_json(self, summary: NormalizeSummary) -> str:
         return render_normalize_summary_json(summary)
+
+    def render_classify_summary_json(self, summary: ClassifySummary) -> str:
+        return render_classify_summary_json(summary)
 
     def render_derive_summary_json(self, summary: DeriveSummary) -> str:
         return render_derive_summary_json(summary)
@@ -109,10 +130,12 @@ class _FakeRuntimeMultiSource:
         ingest_summaries_by_source: dict[str, IngestSummary],
         normalize_summary: NormalizeSummary,
         derive_summary: DeriveSummary,
+        classify_summary: ClassifySummary | None = None,
     ) -> None:
         self.ingest_summaries_by_source = ingest_summaries_by_source
         self.normalize_summary = normalize_summary
         self.derive_summary = derive_summary
+        self.classify_summary = classify_summary or _make_classify_summary()
         self.ingested_sources: list[str] = []
 
     def metrics_mutation_lock(self, metrics_path: Path):
@@ -125,6 +148,9 @@ class _FakeRuntimeMultiSource:
     def normalize_codex_history(self, warehouse_path: Path) -> NormalizeSummary:
         return self.normalize_summary
 
+    def classify_codex_history(self, warehouse_path: Path) -> ClassifySummary:
+        return self.classify_summary
+
     def derive_codex_history(self, warehouse_path: Path) -> DeriveSummary:
         return self.derive_summary
 
@@ -133,6 +159,9 @@ class _FakeRuntimeMultiSource:
 
     def render_normalize_summary_json(self, summary: NormalizeSummary) -> str:
         return render_normalize_summary_json(summary)
+
+    def render_classify_summary_json(self, summary: ClassifySummary) -> str:
+        return render_classify_summary_json(summary)
 
     def render_derive_summary_json(self, summary: DeriveSummary) -> str:
         return render_derive_summary_json(summary)
@@ -199,6 +228,7 @@ def test_history_update_happy_path(capsys: pytest.CaptureFixture[str]) -> None:
     out = capsys.readouterr().out
     assert "==> history-ingest" in out
     assert "==> history-normalize" in out
+    assert "==> history-classify" in out
     assert "==> history-derive" in out
     assert "Done." in out
 
@@ -217,6 +247,7 @@ def test_history_update_json_output(capsys: pytest.CaptureFixture[str]) -> None:
     payload = json.loads(capsys.readouterr().out)
     assert payload["ingest"]["codex"]["threads"] == 3
     assert payload["normalize"]["usage_events"] == 6
+    assert payload["classify"]["main_sessions"] == 2
     assert payload["derive"]["retry_chains"] == 6
 
 
@@ -254,6 +285,7 @@ def test_history_update_no_source_reads_both(
     assert "==> history-ingest (codex)" in out
     assert "==> history-ingest (claude)" in out
     assert "==> history-normalize" in out
+    assert "==> history-classify" in out
     assert "==> history-derive" in out
     assert "Done." in out
 

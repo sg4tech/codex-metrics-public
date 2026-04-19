@@ -156,6 +156,24 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS derived_session_kinds (
+            session_path TEXT PRIMARY KEY,
+            thread_id TEXT,
+            source_path TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            classifier_version TEXT NOT NULL,
+            classified_at TEXT NOT NULL,
+            raw_json TEXT NOT NULL
+        )
+        """
+    )
+    existing_goal_columns = {row[1] for row in conn.execute("PRAGMA table_info(derived_goals)").fetchall()}
+    if "main_attempt_count" not in existing_goal_columns:
+        conn.execute("ALTER TABLE derived_goals ADD COLUMN main_attempt_count INTEGER")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_session_kinds_thread_id ON derived_session_kinds(thread_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_session_kinds_kind ON derived_session_kinds(kind)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_goals_cwd ON derived_goals(cwd)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_attempts_thread_id ON derived_attempts(thread_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_derived_timeline_thread_id ON derived_timeline_events(thread_id)")
@@ -187,3 +205,7 @@ def _clear_derived_tables(conn: sqlite3.Connection) -> None:
     conn.execute("DELETE FROM derived_retry_chains")
     conn.execute("DELETE FROM derived_session_usage")
     conn.execute("DELETE FROM derived_projects")
+
+
+def _clear_derived_session_kinds(conn: sqlite3.Connection) -> None:
+    conn.execute("DELETE FROM derived_session_kinds")

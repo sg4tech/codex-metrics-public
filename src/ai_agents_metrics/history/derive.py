@@ -78,6 +78,22 @@ def _sort_sessions(thread_sessions: list[Any]) -> list[Any]:
     )
 
 
+def _fetch_session_kinds(conn: sqlite3.Connection) -> dict[str, str] | None:
+    """Return {session_path: kind} from derived_session_kinds, or None if unclassified.
+
+    None is returned both when the table is missing (pre-H-040 warehouse schema) and
+    when it exists but is empty (classify stage has not run for this warehouse yet).
+    Downstream code treats None as "main_attempt_count unknown" rather than zero.
+    """
+    try:
+        rows = conn.execute("SELECT session_path, kind FROM derived_session_kinds").fetchall()
+    except sqlite3.OperationalError:
+        return None
+    if not rows:
+        return None
+    return {row["session_path"]: row["kind"] for row in rows}
+
+
 @dataclass(frozen=True)
 class DeriveSummary:
     warehouse_path: Path
@@ -122,6 +138,8 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                 "Warehouse schema is incompatible with this version of codex-metrics; "
                 "run history-normalize first"
             ) from exc
+
+        session_kinds = _fetch_session_kinds(conn)
 
         (
             sessions_by_thread,
@@ -169,7 +187,13 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
                 _ensure_project_stats(project_stats, project_cwd) if project_cwd is not None else None,
             )
             _insert_goal_and_retry_chain(
-                conn, thread_id, thread_row, sorted_sessions, thread_usage_events, timeline_items
+                conn,
+                thread_id,
+                thread_row,
+                sorted_sessions,
+                thread_usage_events,
+                timeline_items,
+                session_kinds=session_kinds,
             )
             goals += 1
             attempts += len(sorted_sessions)

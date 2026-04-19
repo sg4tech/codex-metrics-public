@@ -373,18 +373,29 @@ def _insert_goal_and_retry_chain(
     sorted_sessions: list[NormalizedSessionRow],
     thread_usage_events: list[NormalizedUsageEventRow],
     timeline_items: list[dict[str, Any]],
+    session_kinds: dict[str, str] | None = None,
 ) -> None:
     attempt_count = max(len(sorted_sessions), 1)
     retry_count = max(attempt_count - 1, 0)
     goal_model = _dominant_model(thread_usage_events) or thread_row["model"]
+    # main_attempt_count: number of sessions classified as 'main' per H-040.
+    # Distinguishes user retries from subagent spawns — see docs/findings/F-001.
+    # None when classify stage has not run (e.g. pre-H-040 warehouses).
+    main_attempt_count: int | None
+    if session_kinds is None:
+        main_attempt_count = None
+    else:
+        main_attempt_count = sum(
+            1 for row in sorted_sessions if session_kinds.get(row["session_path"]) == "main"
+        )
     conn.execute(
         """
         INSERT INTO derived_goals (
             thread_id, source_path, cwd, model_provider, model, title, archived,
-            session_count, attempt_count, retry_count, message_count,
-            usage_event_count, log_count, timeline_event_count, first_seen_at,
-            last_seen_at, raw_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            session_count, attempt_count, retry_count, main_attempt_count,
+            message_count, usage_event_count, log_count, timeline_event_count,
+            first_seen_at, last_seen_at, raw_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             thread_id,
@@ -397,6 +408,7 @@ def _insert_goal_and_retry_chain(
             thread_row["session_count"],
             attempt_count,
             retry_count,
+            main_attempt_count,
             thread_row["message_count"],
             len(thread_usage_events),
             thread_row["log_count"],
