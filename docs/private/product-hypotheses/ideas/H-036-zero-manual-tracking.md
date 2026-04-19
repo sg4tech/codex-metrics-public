@@ -1,9 +1,14 @@
 ---
 id: H-036
 title: Fully automatic session-based tracking may replace manual start/finish entirely
-status: idea
+status: confirmed
 created: 2026-04-11
+confirmed: 2026-04-18
 ---
+
+**2026-04-18 — Confirmed as product direction.** Founder's terminal decision: "я точно ничего руками ставить не буду" (will never hand-tag anything). Any user-visible metric must be derivable from history files alone. `events.ndjson` is retained as the tool's internal self-observation log (agent dogfood), but nothing user-facing reads from it. `start-task` / `finish-task` stay as agent-workflow gates inside this repo, not as product features. See `docs/private/product-strategy.md` amendment 2026-04-18 (final lock).
+
+The hypothesis is confirmed as *direction*. Accuracy of LLM-based session clustering and goal-boundary detection is still open and is the next implementation question.
 
 ## Hypothesis
 

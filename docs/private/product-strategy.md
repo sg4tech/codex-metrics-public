@@ -192,6 +192,49 @@ Founder confirmed there are specific people ready to receive the tool, but does 
 
 ---
 
+---
+
+## Amendment — 2026-04-18 (final lock for this session)
+
+After the gap diagnosis above, the founder made the terminal set of decisions that close open questions in Sections 4–9. These are not hypotheses; they are locked until explicitly revisited.
+
+### Locked decisions
+
+1. **Product thesis (replaces Section 6 candidates A/B/C/D):** the tool exists to answer **"which AI-collaboration practices statistically correlate with better outcomes for this user"** — personal A/B testing of AI workflow (retrospectives, QA-pass, code review, model choice, etc.). Opening question: *"do retrospectives actually help?"*. Candidate A (attention-cost), B (retry rate), C (failure modes) are deprecated; they may return later as derivative narratives under this thesis.
+
+2. **Practice-tagging mechanism (Option B):** practices are detected by an LLM classifier over normalized session messages. **The founder will not hand-tag anything, ever.** Any product path that requires human classification is rejected on arrival.
+
+3. **Manual-tracking layer (supersedes H-011, H-016, H-022, confirms H-036):**
+   - `events.ndjson` is **retained** as the tool's internal self-observation log (agent dogfood).
+   - `start-task` / `finish-task` / `update` are **not product features**. They exist only as agent-internal workflow gates inside this repo.
+   - **No user-facing reports or graphs are built on top of `events.ndjson`.** All user-facing analytics come from the history pipeline (warehouse) plus the practice classifier.
+
+4. **Primary agents:** Claude Code + Codex, both. Agent-agnostic support is not optional — it is the default (H-010 confirmed behaviorally).
+
+5. **User-visible deliverables the founder wants (not ranked):**
+   - Beautiful cost/usage graphs sliced by project
+   - Ability to ask the tool deeper questions about past work ("did retros help?")
+
+### What this invalidates
+
+- The four-week GTM plan in Section 7 remains paused. No launch activity until the tool produces at least one practice-effectiveness finding the founder would personally share.
+- "Hero artifact" (Section 7, Week 1) is redefined from "HTML report the founder would retweet" to "one slicing that answers a practice-effectiveness question with visible statistical caveats."
+- Week 1 investigation scope (current): fix/document history-extraction pipeline so warehouse numbers are trustworthy before a practice classifier is built on top of unreliable base metrics.
+
+### Known-broken in base metrics (2026-04-18)
+
+Preliminary audit of `src/ai_agents_metrics/history/` found four concerns the founder flagged plus one critical bug:
+
+1. Goal/attempt heuristic is trivial (1 session-file = 1 attempt, 1 thread = 1 goal; no semantic understanding). Works but opaque — needs plain-language explainer.
+2. `failure_reason` is dead-wired in the warehouse (no column; populated only via manual `finish-task fail`). Under Option B this becomes an LLM-classifier output.
+3. **[CRITICAL] `derive_insert.py:247–251` — project-level token aggregation silently treats missing token data as 0**, deflating per-thread averages without surfacing coverage gaps.
+4. Multi-model sessions (Claude + Codex mixed) are collapsed to a single "dominant" model with lexicographic tiebreaker — cost misattribution risk on this user's primary workflow.
+5. No warehouse-level cost field; cost computed separately in `usage_backends.py` from pricing tables, stored only in NDJSON. Cost numbers in reports are one abstraction removed from audit.
+
+Full audit to be written up in `docs/private/extraction-explained.md`.
+
+---
+
 ## Related docs
 
 - `oss/docs/product-framing.md` — product definition, JTBD, primary-user model

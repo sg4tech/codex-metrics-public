@@ -13,7 +13,7 @@ Working product and metrics hypotheses that are not yet fully confirmed belong i
 
 The primary entry point is your existing conversation history files — no manual instrumentation required to get value. Point the tool at your `~/.codex` or `~/.claude` directory and it will show you what happened, what it cost, and where the friction is.
 
-For users who want to add explicit goal boundaries, outcome judgements, and failure reasons on top of the history layer, a manual tracking workflow is available as an opt-in enhancement.
+All user-facing analysis is derived from the history pipeline. The tool never asks users to hand-tag sessions, open/close tasks manually, or mark outcomes by hand. A minimal internal event log exists for the tool's own dogfood use inside this repository but is not part of the user-facing surface.
 
 It is not a general analytics platform and not a public SaaS product.
 
@@ -67,7 +67,7 @@ In this framing:
 The following product truths are already confirmed:
 
 - the primary value proposition is history extraction: give us your agent history files, get insights with no manual setup
-- manual tracking is an opt-in enhancement layer, not the primary or required flow
+- zero manual tracking is the product direction: no user-facing command requires a human to tag, open, or close anything
 - the primary analytical user is the AI agent that reads metrics and produces synthesis
 - the human user is the receiver of final synthesized conclusions, not the main reader of raw metrics
 - quality, speed, and cost all matter
@@ -75,8 +75,8 @@ The following product truths are already confirmed:
 - economics means cost, token usage, and waste control together
 - the product should help decide whether workflow changes actually work and what should be changed again
 - the public product contract should stay agent-agnostic by default, even when telemetry or runtime adapters are provider-specific underneath
-- the canonical metrics store is the append-only `metrics/events.ndjson` event log, with replayed in-memory state derived at runtime
-- fast time-to-public-release is strategically important, so public packaging, repository-boundary safety, onboarding, and discoverability are first-order product concerns for the next phase
+- the canonical user-facing data source is the history warehouse (derived from raw `~/.codex` and `~/.claude` session files). `metrics/events.ndjson` is retained inside this repository as an internal agent-workflow log; it is not the user-facing data source.
+- internal validation of the tool's usefulness to its own author is the current strategic priority; the public-release push is paused until the tool produces at least one concrete workflow-analysis finding that would be worth sharing
 
 The following product questions are still intentionally open and should be treated as active hypotheses until better evidence exists:
 
@@ -93,14 +93,6 @@ The following product questions are still intentionally open and should be treat
 3. Run `ai-agents-metrics show` to see what happened: sessions, retry pressure, token cost, and timeline.
 4. Have an AI agent read the analysis and explain whether quality, speed, and cost are in a good state.
 5. Deliver that analysis to the human sponsor rather than raw metric interpretation.
-
-### Opt-in enhancement — manual tracking
-
-For users who want richer signal — explicit goal boundaries, outcome judgements (`result_fit`), and classified failure reasons — manual tracking is available on top of the history layer:
-
-1. Open a goal with `start-task` before starting work.
-2. Close it with `finish-task` when done, setting `success` or `fail` and a failure reason if applicable.
-3. `show` will combine the ledger and the history warehouse into a unified view.
 
 ## Core Decisions Supported
 
@@ -225,24 +217,15 @@ That means:
 
 Current release priority:
 
-- near-term work should prefer the fastest safe path to a public release over lower-leverage internal polish, unless the internal work directly unlocks or de-risks that public release
+- near-term work should prioritize internal validation — making the base metrics trustworthy and producing at least one workflow-analysis finding on the author's own history. Public-release work is paused until that lands.
 
-## One-Month Success
+## Near-term success
 
-In one month, success should look like:
+Success is measured by whether the tool answers a real workflow question for its own author before it is offered to anyone else. Concretely:
 
-- the reusable core is publicly releasable without leaking internal-only material
-- the public entry surface explains what the product is, how to install it, and why it is useful
-- the framing remains stable around agent-first analysis value
-- the metrics help an agent decide whether a workflow change improved quality, speed, and cost
+- base metrics (cost, tokens, retry pressure, model attribution) are auditable and known to be correct on the author's own data
+- the tool produces at least one clear finding about the author's AI-workflow — for example, whether a specific practice tends to coincide with lower cost or fewer retries
 - quality signals are trusted more than intuition alone
 - cost visibility is good enough to spot obviously wasteful patterns
 
-## One-Quarter Success
-
-In one quarter, success should look like:
-
-- the tool is routinely used by agents to judge real workflow changes
-- the resulting analyses can point to concrete workflow changes that improved quality, speed, and cost
-- token and cost waste are being reduced without hurting result quality
-- the system is helping protect engineering profit, not just describe engineering history
+Public-release-readiness, polished onboarding, and distribution are explicitly downstream of the above and not yet scheduled.
