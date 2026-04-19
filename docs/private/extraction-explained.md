@@ -118,6 +118,25 @@ This is **partial** data. Most development happens on a second machine. Before a
 
 ---
 
+## 7b. Retry pressure is structurally zero on warehouse-full (2026-04-19)
+
+Descriptive practice-pass on `~/ai-agents-metrics-data/warehouse-full.sqlite` (160 threads total, Claude + Codex, 3.85B tokens) confirmed that `derived_goals.attempt_count > 1` is not driven by user retries at all.
+
+| Dimension | Result |
+|---|---|
+| Claude threads with `main_sessions > 1` (filename = UUID, not `agent-*`) | **0 / 88** |
+| Codex threads with `sessions > 1` (no subagent mechanism) | **0 / 72** |
+| Warehouse-wide threads with `main_attempt_count > 1` | **0 / 160** |
+| Claude threads with `subagent_sessions > 0` | 37 / 88 (one thread up to 17 subagents) |
+
+All `attempt_count > 1` in `derived_goals` is Claude subagent spawning mis-counted as retries. On Codex the column is always 1.
+
+**Analytical consequence:** "retry pressure" as an outcome variable has zero variance on current data and cannot be used to measure practice effectiveness. H-015 step 6 ("do retrospectives correlate with fewer retries?") is not a testable claim on this dataset. Any downstream analysis that treats `attempt_count` or `retry_count` as a retry proxy without the H-040 structural correction will produce noise; with the correction, the signal is still zero.
+
+**Second confound flagged in the same pass:** thread-level splits "practice-present vs practice-absent" are dominated by task size. Threads with a `code-review:code-review` or `pr-review-toolkit:code-reviewer` event have 20× more total tokens and 22× longer duration than threads without. Discovery (`Explore` agent): 5× tokens, 17× duration. This is a size confound, not an efficiency signal. Any future practice-effectiveness analysis needs within-thread, matched-pair, or time-trend methodology — not naive split comparison.
+
+---
+
 ## 8. How this feeds the central product thesis
 
 The warehouse gives you **structure** (threads, sessions, tokens, timestamps, messages) but no **semantics** (what was this thread about? was this a retro? did the user ask for a QA pass?).
