@@ -57,7 +57,31 @@ All four need more methodology than a split comparison. All four still need enou
 - **The naive split is still useful descriptively** — "18 of 88 threads used code-review, here's what those threads look like" is honest. It is not "code-review causes this."
 - **N=1-developer data is structurally unable to support effectiveness claims at the thread level** without matched-pair or within-thread methodology. We had hoped to avoid that; we can't.
 
+## Size-matched reanalysis (addendum, 2026-04-19)
+
+After shipping the `derived_practice_events` table (Agent + Skill `tool_use` extractor), we re-ran the split on a larger warehouse — 160 threads instead of 88 — with size buckets by message count.
+
+| Size bucket (messages) | n_with | n_without | median total tokens with | median total tokens without | ratio |
+|---|---:|---:|---:|---:|---:|
+| XS (≤20) | 9 | 35 | 1.1M | 0.4M | **2.9×** |
+| S (21–50) | 10 | 31 | 6.6M | 2.6M | **2.5×** |
+| M (51–100) | 7 | 17 | 20.0M | 7.9M | **2.5×** |
+| L (101–200) | 10 | 21 | 43.3M | 18.8M | **2.3×** |
+| XL (>200) | 10 | 10 | 115.3M | 102.2M | **1.1×** |
+
+Two things happen when you size-match:
+
+1. **The 20× gap collapses to ~2.5×** across XS–L buckets and to ~1.1× at XL — so most of the naive gap was task-size, as hypothesized.
+2. **A ~2.5× gap persists after size-matching.** That is not zero. It decomposes into:
+   - **Subagent-token share:** for practice-present threads, subagent sessions contribute a median 21.6% (mean 24.7%, max 83.6%) of total tokens. Subagent spawns are literally what `Agent` does, so this component is definitional, not an "inefficiency."
+   - **Heavier main sessions:** main-session tokens/message is still ~1.37× higher for practice-present threads (M+L bucket, 177k vs 129k). Practice-using threads appear to carry more context per turn — review subagents feed back structured findings that the main session has to read.
+
+So the honest statement is: **same-size threads that invoke practices spend ~2.5× more tokens, about half of which is the subagent overhead the practice itself creates, and about half is heavier main-session context-per-turn.** The XL bucket's 1.1× ratio hints that at large thread sizes this overhead saturates — but n=10/10 is too small to claim that.
+
+**This still is not an effectiveness measurement.** We have controlled for thread size, not for task difficulty or outcome quality. "Did the practice produce a better result?" remains unanswered here; all we have shown is "size-matching does not explain the gap away."
+
 ## Related
 
+- Practice distribution descriptive: [F-005](F-005-practice-distribution.md)
 - Rework-based follow-up: [F-004](F-004-rework-signal-exists-but-n-too-small.md)
 - Subagent-aliasing context: [F-001](F-001-claude-retries-are-subagents.md)

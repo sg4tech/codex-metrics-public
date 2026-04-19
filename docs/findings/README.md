@@ -10,8 +10,9 @@ All numbers are verifiable: the pipeline is deterministic and the warehouse sche
 |---|---------|-----------------|
 | [F-001](F-001-claude-retries-are-subagents.md) | 100% of Claude "retries" are subagent spawns, not user retries | 160 / 160 threads have `main_attempt_count = 1` |
 | [F-002](F-002-claude-user-role-is-not-human.md) | Claude's `role='user'` is mostly not human-typed | 86.7% of `role='user'` events are `tool_result` or template |
-| [F-003](F-003-practice-split-is-size-confounded.md) | Naive practice-effectiveness split is size-confounded | 20× token gap, 22× duration gap between "with code-review" and "without" |
+| [F-003](F-003-practice-split-is-size-confounded.md) | Naive practice-effectiveness split is size-confounded | 20× naive gap collapses to ~2.5× after size-matching; half is subagent overhead |
 | [F-004](F-004-rework-signal-exists-but-n-too-small.md) | Cross-thread file-rework signal is detectable but N=66 too small for claims | 61% of implementation threads have a rework follow-up; practice effect is within noise |
+| [F-005](F-005-practice-distribution.md) | Discovery and commit-automation dominate real AI-coding practice usage | 29% of threads use any practice; discovery=39% of events, code_review=14% |
 
 ## Status
 
