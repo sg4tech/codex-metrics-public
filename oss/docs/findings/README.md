@@ -14,6 +14,7 @@ All numbers are verifiable: the pipeline is deterministic and the warehouse sche
 | [F-004](F-004-rework-signal-exists-but-n-too-small.md) | Cross-thread file-rework signal is detectable but N=66 too small for claims | 61% of implementation threads have a rework follow-up; practice effect is within noise |
 | [F-005](F-005-practice-distribution.md) | Discovery and commit-automation dominate real AI-coding practice usage | 29% of threads use any practice; discovery=39% of events, code_review=14% |
 | [F-006](F-006-retros-describe-meta-tooling.md) | AI-agent retros overwhelmingly describe meta-tooling failures, not code failures | 58% of 59 retros land in 4 meta-tooling themes (packaging, lifecycle, policy, data) |
+| [F-007](F-007-practice-within-thread-compression.md) | Within-thread, messages near a practice event use half the tokens of messages far from any practice | median 2.05× gap; 23 / 28 threads show effect; subagent context-compression mechanism |
 
 ## Status
 

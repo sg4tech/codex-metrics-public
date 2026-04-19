@@ -62,6 +62,7 @@ Running this pipeline against a single developer's 6-month history (3.85B tokens
 | [F-004](docs/findings/F-004-rework-signal-exists-but-n-too-small.md) | Cross-thread file-rework signal is detectable but N=66 too small for effectiveness claims | 61% of implementation threads have a rework follow-up within 30 days |
 | [F-005](docs/findings/F-005-practice-distribution.md) | Discovery and commit-automation dominate real AI-coding practice usage | 29% of threads use any practice; discovery=39% of events, code_review=14% |
 | [F-006](docs/findings/F-006-retros-describe-meta-tooling.md) | AI-agent retros overwhelmingly describe meta-tooling failures, not code failures | 58% of 59 retros land in 4 meta-tooling themes (packaging, lifecycle, policy, data) |
+| [F-007](docs/findings/F-007-practice-within-thread-compression.md) | Within-thread, messages near a practice event use half the tokens of messages far from any practice | median 2.05× gap; 23 / 28 threads show effect; subagent context-compression mechanism |
 
 Full index: [docs/findings/README.md](docs/findings/README.md).
 
