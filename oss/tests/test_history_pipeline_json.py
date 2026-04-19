@@ -71,6 +71,7 @@ def _make_derive_summary(warehouse: str = "/warehouse.sqlite") -> DeriveSummary:
         retry_chains=6,
         message_facts=7,
         session_usage=8,
+        token_covered_sessions=6,
     )
 
 

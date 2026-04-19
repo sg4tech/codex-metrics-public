@@ -38,6 +38,9 @@ _EMPTY_PROJECT_STATS: dict[str, Any] = {
     "timeline_event_count": 0, "input_tokens": 0,
     "cache_creation_input_tokens": 0, "cached_input_tokens": 0,
     "output_tokens": 0, "total_tokens": 0,
+    "input_tokens_covered_sessions": 0,
+    "output_tokens_covered_sessions": 0,
+    "total_tokens_covered_sessions": 0,
     "first_seen_at": None, "last_seen_at": None,
 }
 
@@ -104,6 +107,7 @@ class DeriveSummary:
     retry_chains: int
     message_facts: int
     session_usage: int
+    token_covered_sessions: int
 
 
 def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
@@ -202,6 +206,10 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
         projects = _insert_projects(conn, project_stats)
         conn.commit()
 
+    token_covered_sessions = sum(
+        s["total_tokens_covered_sessions"] for s in project_stats.values()
+    )
+
     return DeriveSummary(
         warehouse_path=warehouse_path,
         projects=projects,
@@ -211,6 +219,7 @@ def derive_codex_history(*, warehouse_path: Path) -> DeriveSummary:
         retry_chains=retry_chains,
         message_facts=message_facts,
         session_usage=session_usage,
+        token_covered_sessions=token_covered_sessions,
     )
 
 
@@ -224,4 +233,5 @@ def render_derive_summary_json(summary: DeriveSummary) -> str:
         "retry_chains": summary.retry_chains,
         "message_facts": summary.message_facts,
         "session_usage": summary.session_usage,
+        "token_covered_sessions": summary.token_covered_sessions,
     })

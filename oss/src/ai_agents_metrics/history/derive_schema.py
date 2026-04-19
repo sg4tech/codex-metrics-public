@@ -150,6 +150,9 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
             cached_input_tokens INTEGER,
             output_tokens INTEGER,
             total_tokens INTEGER,
+            input_tokens_covered_sessions INTEGER NOT NULL DEFAULT 0,
+            output_tokens_covered_sessions INTEGER NOT NULL DEFAULT 0,
+            total_tokens_covered_sessions INTEGER NOT NULL DEFAULT 0,
             first_seen_at TEXT,
             last_seen_at TEXT,
             raw_json TEXT NOT NULL
@@ -213,6 +216,9 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     existing_projects = {row[1] for row in conn.execute("PRAGMA table_info(derived_projects)").fetchall()}
     if "parent_project_cwd" not in existing_projects:
         conn.execute("ALTER TABLE derived_projects ADD COLUMN parent_project_cwd TEXT")
+    for _col in ("input_tokens_covered_sessions", "output_tokens_covered_sessions", "total_tokens_covered_sessions"):
+        if _col not in existing_projects:
+            conn.execute(f"ALTER TABLE derived_projects ADD COLUMN {_col} INTEGER NOT NULL DEFAULT 0")
     for table in ("derived_session_usage", "derived_attempts"):
         existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
         if "model" not in existing:

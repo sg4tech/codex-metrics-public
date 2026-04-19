@@ -128,6 +128,8 @@ def test_derive_codex_history_builds_analysis_marts(repo: Path) -> None:
     assert "Retry chains: 2" in result.stdout
     assert "Message facts: 5" in result.stdout
     assert "Session usage: 3" in result.stdout
+    # rollout-1 has token data; rollout-3 and rollout-2 have none → 1/3 covered
+    assert "Token coverage: 1/3 sessions" in result.stdout
 
     with sqlite3.connect(warehouse_path) as conn:
         conn.row_factory = sqlite3.Row
@@ -221,6 +223,26 @@ def test_derive_codex_history_builds_analysis_marts(repo: Path) -> None:
             ("%rollout-1.jsonl",),
         ).fetchone()
         assert attempt_with_usage["model"] is None  # Codex fixture has no model in token_count
+
+        # --- token coverage columns ---
+        # thread-1 project: rollout-1 (covered) + rollout-3 (no usage) → 1/2 covered
+        proj_thread1 = conn.execute(
+            "SELECT total_tokens, total_tokens_covered_sessions, input_tokens_covered_sessions "
+            "FROM derived_projects WHERE project_cwd = ?",
+            (str(source_root),),
+        ).fetchone()
+        assert proj_thread1["total_tokens"] == 165  # only rollout-1 contributes
+        assert proj_thread1["total_tokens_covered_sessions"] == 1
+        assert proj_thread1["input_tokens_covered_sessions"] == 1
+
+        # thread-2 project: rollout-2 has no usage events → 0/1 covered
+        proj_thread2 = conn.execute(
+            "SELECT total_tokens, total_tokens_covered_sessions "
+            "FROM derived_projects WHERE project_cwd != ?",
+            (str(source_root),),
+        ).fetchone()
+        assert proj_thread2["total_tokens"] is None
+        assert proj_thread2["total_tokens_covered_sessions"] == 0
 
 
 def test_dominant_model_picks_most_frequent() -> None:
@@ -634,3 +656,79 @@ def test_derive_merges_worktree_into_parent_project(repo: Path) -> None:
             # parent_project_cwd must be set and must not contain the worktree marker
             assert row["parent_project_cwd"] is not None
             assert "/.claude/worktrees/" not in row["parent_project_cwd"]
+
+
+# ---------------------------------------------------------------------------
+# _update_project_stats — unit tests for coverage tracking
+# ---------------------------------------------------------------------------
+
+def _make_stats() -> dict:
+    return {
+        "input_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "input_tokens_covered_sessions": 0,
+        "output_tokens_covered_sessions": 0,
+        "total_tokens_covered_sessions": 0,
+    }
+
+
+def _make_sums(**kwargs):
+    from ai_agents_metrics.history.derive_insert import _SessionTokenSums
+    defaults = dict(
+        inp=None, cac_create=None, cac=None, out=None, reasoning=None,
+        total=None, count=0, first_at=None, last_at=None, model=None,
+    )
+    defaults.update(kwargs)
+    return _SessionTokenSums(**defaults)
+
+
+def test_update_project_stats_all_none_leaves_totals_and_coverage_unchanged() -> None:
+    """A session with all-None token sums must not increment sums or coverage counters."""
+    from ai_agents_metrics.history.derive_insert import _update_project_stats
+
+    stats = _make_stats()
+    _update_project_stats(stats, _make_sums())  # all fields are None
+
+    assert stats["input_tokens"] == 0
+    assert stats["cache_creation_input_tokens"] == 0
+    assert stats["output_tokens"] == 0
+    assert stats["total_tokens"] == 0
+    assert stats["input_tokens_covered_sessions"] == 0
+    assert stats["output_tokens_covered_sessions"] == 0
+    assert stats["total_tokens_covered_sessions"] == 0
+
+
+def test_update_project_stats_known_values_accumulate_and_increment_coverage() -> None:
+    """A session with known token values must accumulate into sums and increment coverage."""
+    from ai_agents_metrics.history.derive_insert import _update_project_stats
+
+    stats = _make_stats()
+    _update_project_stats(stats, _make_sums(inp=100, cac_create=None, cac=10, out=50, total=165))
+
+    assert stats["input_tokens"] == 100
+    assert stats["cache_creation_input_tokens"] == 0  # cac_create was None — not incremented
+    assert stats["cached_input_tokens"] == 10
+    assert stats["output_tokens"] == 50
+    assert stats["total_tokens"] == 165
+    assert stats["input_tokens_covered_sessions"] == 1
+    assert stats["output_tokens_covered_sessions"] == 1
+    assert stats["total_tokens_covered_sessions"] == 1
+
+
+def test_update_project_stats_mixed_sessions_accumulate_correctly() -> None:
+    """Two calls: one covered, one not. Sums and coverage must reflect only the covered session."""
+    from ai_agents_metrics.history.derive_insert import _update_project_stats
+
+    stats = _make_stats()
+    _update_project_stats(stats, _make_sums(inp=200, out=80, total=280))  # covered
+    _update_project_stats(stats, _make_sums())                             # not covered (no usage)
+
+    assert stats["input_tokens"] == 200
+    assert stats["output_tokens"] == 80
+    assert stats["total_tokens"] == 280
+    assert stats["input_tokens_covered_sessions"] == 1
+    assert stats["output_tokens_covered_sessions"] == 1
+    assert stats["total_tokens_covered_sessions"] == 1

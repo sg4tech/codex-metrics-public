@@ -700,6 +700,7 @@ def handle_derive_codex_history(args: Namespace, cli_module: CommandRuntime) -> 
         print(f"Retry chains: {summary.retry_chains}")
         print(f"Message facts: {summary.message_facts}")
         print(f"Session usage: {summary.session_usage}")
+        print(f"Token coverage: {summary.token_covered_sessions}/{summary.session_usage} sessions")
     return 0
 
 

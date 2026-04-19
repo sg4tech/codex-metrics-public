@@ -228,3 +228,22 @@ Recomputed automatically on every `load_metrics` call. Do not edit manually.
 **Cost:** rounded to 6 decimal places via `round_usd`.
 
 > For the full set of validation rules that apply to these fields, see [data-invariants.md](data-invariants.md).
+
+---
+
+## Warehouse: derived_projects token coverage columns
+
+The `derived_projects` table (Layer 4 aggregate in the history warehouse) holds per-project rollups of session token counts. Because some sessions have no usage events at all, raw token sums must be accompanied by coverage denominators so consumers can distinguish "zero tokens" from "no data".
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `input_tokens` | INTEGER \| NULL | Sum of input tokens across sessions that had usage data. NULL if no sessions had usage data. |
+| `output_tokens` | INTEGER \| NULL | Sum of output tokens across covered sessions. NULL if uncovered. |
+| `total_tokens` | INTEGER \| NULL | Sum of total tokens across covered sessions. NULL if uncovered. |
+| `input_tokens_covered_sessions` | INTEGER | Count of sessions that contributed a non-NULL `input_tokens` sum. 0 if no session had usage data. |
+| `output_tokens_covered_sessions` | INTEGER | Count of sessions that contributed a non-NULL `output_tokens` sum. |
+| `total_tokens_covered_sessions` | INTEGER | Count of sessions that contributed a non-NULL `total_tokens` sum. |
+
+**Usage pattern:** To compute a meaningful per-session token average, use `total_tokens / total_tokens_covered_sessions` rather than `total_tokens / attempt_count`. Sessions without usage data are excluded from both the numerator and denominator.
+
+**raw_json:** All six fields above are included in `derived_projects.raw_json` for downstream consumers that do not query the warehouse directly.
