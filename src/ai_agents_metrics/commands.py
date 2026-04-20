@@ -704,6 +704,36 @@ def handle_derive_codex_history(args: Namespace, cli_module: CommandRuntime) -> 
     return 0
 
 
+def _print_empty_history_guidance(source: str) -> None:
+    """Print actionable next steps when no agent history is found on first run.
+
+    Called from ``handle_history_update`` when the default-location scan
+    finds no Codex or Claude Code history files. The tool's core value
+    proposition is extracting signals from these history files — a fresh
+    user seeing a terse "nothing to normalize" line does not know whether
+    the tool is broken, whether their history is in the wrong place, or
+    whether they need to generate some agent activity first.
+    """
+    claude_dir = Path.home() / ".claude"
+    codex_dir = Path.home() / ".codex"
+    print()
+    print("No agent history was found at the default locations:")
+    if source in ("all", "claude"):
+        print(f"  - Claude Code: {claude_dir} (not found)")
+    if source in ("all", "codex"):
+        print(f"  - Codex:       {codex_dir} (not found)")
+    print()
+    print("What to try next:")
+    print("  1. If you have not yet used Claude Code or Codex on this machine,")
+    print("     start an agent session first, then rerun `ai-agents-metrics history-update`.")
+    print("  2. If your agent history is in a non-default location, point to it:")
+    print("       ai-agents-metrics history-update --claude-root /path/to/.claude")
+    print("       ai-agents-metrics history-update --codex-state-path /path/to/.codex")
+    print("  3. To scan only one source at a time:")
+    print("       ai-agents-metrics history-update --source claude")
+    print("       ai-agents-metrics history-update --source codex")
+
+
 def handle_history_update(args: Namespace, cli_module: CommandRuntime) -> int:
     """Run the full history pipeline: ingest → normalize → derive."""
     import json as _json
@@ -740,7 +770,7 @@ def handle_history_update(args: Namespace, cli_module: CommandRuntime) -> int:
 
     if not ingest_results and not warehouse_path.exists():
         if not json_output:
-            print("No sources were ingested and no existing warehouse found — nothing to normalize.")
+            _print_empty_history_guidance(source)
         else:
             print(_json.dumps({"ingest": ingest_summaries, "normalize": None, "derive": None}))
         return 0

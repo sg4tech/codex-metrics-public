@@ -318,3 +318,82 @@ def test_history_update_no_source_one_missing(
     assert "==> history-ingest (codex)" in out
     assert "[skipped:" in out  # claude skipped message
     assert "==> history-normalize" in out
+
+
+def test_history_update_empty_guidance_lists_default_paths_and_next_steps(
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When nothing is ingested and no warehouse exists, print actionable next steps.
+
+    Replaces the prior terse "nothing to normalize" message, which left a fresh
+    user without any indication of whether the tool was broken, misconfigured,
+    or simply looking at the wrong place.
+    """
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
+    # Neither ~/.codex nor ~/.claude exists.
+
+    runtime = _FakeRuntimeMultiSource(
+        ingest_summaries_by_source={},  # empty → no sources ingested
+        normalize_summary=_make_normalize_summary(),
+        derive_summary=_make_derive_summary(),
+    )
+    missing_warehouse = tmp_path / "does-not-exist.sqlite"
+    result = commands.handle_history_update(
+        Namespace(
+            source=None,
+            source_root=None,
+            warehouse_path=str(missing_warehouse),
+            json=False,
+        ),
+        runtime,
+    )
+    assert result == 0
+    out = capsys.readouterr().out
+
+    # Old terse message must be gone — it actively misled fresh users.
+    assert "nothing to normalize" not in out
+    # New guidance must name the default paths and list concrete next steps.
+    assert "No agent history was found" in out
+    assert str(tmp_path / ".claude") in out
+    assert str(tmp_path / ".codex") in out
+    assert "--claude-root" in out
+    assert "--codex-state-path" in out
+    assert "--source claude" in out
+    assert "--source codex" in out
+
+
+def test_history_update_empty_guidance_json_mode_stays_terse(
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """JSON output must not include the human-facing guidance block.
+
+    Machine-readable consumers need a stable JSON shape; the guidance text
+    is strictly a human-UX concern for the terminal path.
+    """
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
+
+    runtime = _FakeRuntimeMultiSource(
+        ingest_summaries_by_source={},
+        normalize_summary=_make_normalize_summary(),
+        derive_summary=_make_derive_summary(),
+    )
+    missing_warehouse = tmp_path / "does-not-exist.sqlite"
+    result = commands.handle_history_update(
+        Namespace(
+            source=None,
+            source_root=None,
+            warehouse_path=str(missing_warehouse),
+            json=True,
+        ),
+        runtime,
+    )
+    assert result == 0
+    out = capsys.readouterr().out
+
+    assert "No agent history was found" not in out
+    payload = json.loads(out)
+    assert payload == {"ingest": {}, "normalize": None, "derive": None}
