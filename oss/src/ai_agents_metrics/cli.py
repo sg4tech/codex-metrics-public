@@ -665,24 +665,44 @@ def _detect_module_prog() -> str | None:
     return None
 
 
+#: Commands that are registered and fully functional but are hidden from the
+#: top-level ``--help`` subparser listing to keep the first-time user experience
+#: scannable. They are still discoverable via ``<cmd> --help`` and are listed
+#: by name in the parser epilog so users know they exist.
+_HIDDEN_FROM_TOPLEVEL_HELP: frozenset[str] = frozenset({
+    # Pipeline stages — users run the composite `history-update` instead.
+    "history-ingest", "history-normalize", "history-classify", "history-derive",
+    # Audit / debug — niche, not primary flow.
+    "history-audit", "history-compare", "audit-cost-coverage", "derive-retro-timeline",
+    # Manual-tracking adjuncts — the trio start/continue/finish covers the primary path.
+    "update", "ensure-active-task", "sync-usage", "sync-codex-usage",
+    # Maintenance / low-level.
+    "init", "merge-tasks", "render-report", "verify-public-boundary", "security",
+})
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=_detect_module_prog(),
         description="Analyze your AI agent work history, track spending, and optimize your workflow. Point it at your history files and see retry pressure, token cost, and session timeline — no manual setup required.",
         epilog=(
+            "Additional commands (run `<command> --help` for details):\n"
+            "  Manual tracking:   update, ensure-active-task, sync-usage, sync-codex-usage\n"
+            "  History pipeline:  history-ingest, history-normalize, history-classify,\n"
+            "                     history-derive\n"
+            "  Audit / debug:     history-audit, history-compare, audit-cost-coverage,\n"
+            "                     derive-retro-timeline\n"
+            "  Maintenance:       init, merge-tasks, render-report,\n"
+            "                     verify-public-boundary, security\n"
+            "\n"
             "Examples:\n"
+            "  %(prog)s history-update\n"
+            "  %(prog)s show\n"
+            "  %(prog)s render-html --output /tmp/report.html\n"
+            "  %(prog)s bootstrap --target-dir /path/to/repo --dry-run\n"
             "  %(prog)s start-task --title \"Add CSV import\" --task-type product\n"
             "  %(prog)s continue-task --task-id 2026-03-29-001 --notes \"Retry after validation failure\"\n"
             "  %(prog)s finish-task --task-id 2026-03-29-001 --status success --notes \"Validated\"\n"
-            "  %(prog)s update --title \"Add CSV import\" --task-type product --attempts-delta 1\n"
-            "  %(prog)s update --task-id 2026-03-29-001 --status success --notes \"Validated\"\n"
-            "  %(prog)s update --task-id 2026-03-29-002 --title \"Retry CSV import\" --task-type product --supersedes-task-id 2026-03-29-001 --status success\n"
-            "  %(prog)s ensure-active-task\n"
-            "  %(prog)s history-ingest --source-root ~/.codex\n"
-            "  %(prog)s history-normalize\n"
-            "  %(prog)s history-derive\n"
-            "  %(prog)s audit-cost-coverage\n"
-            "  %(prog)s sync-usage\n"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -691,7 +711,13 @@ def build_parser() -> argparse.ArgumentParser:
         action="version",
         version=f"%(prog)s {__version__}",
     )
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers = parser.add_subparsers(
+        dest="command",
+        required=True,
+        # A short placeholder keeps the `usage:` header readable — argparse
+        # would otherwise dump all 26 choice names in a single unwrapped blob.
+        metavar="<command>",
+    )
 
     init_parser = subparsers.add_parser(
         "init",
@@ -1187,6 +1213,17 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="N",
         help="Limit the time window to the last N days",
     )
+
+    # Hide advanced / pipeline-internal commands from the top-level `--help`
+    # listing without unregistering them. The commands remain callable and
+    # `<cmd> --help` still renders their per-command help. The epilog lists
+    # them by name so users know they exist. This mutates a private argparse
+    # attribute (stable across Py 3.9–3.13) because argparse has no public API
+    # to mark a subparser as hidden after creation.
+    subparsers._choices_actions = [  # noqa: SLF001
+        act for act in subparsers._choices_actions
+        if act.dest not in _HIDDEN_FROM_TOPLEVEL_HELP
+    ]
 
     return parser
 
