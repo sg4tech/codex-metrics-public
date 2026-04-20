@@ -1216,6 +1216,71 @@ def test_task_workflow_help_does_not_expose_provider_specific_flags(repo: Path) 
     assert "--usage-source" not in result.stdout
 
 
+def test_top_level_help_hides_advanced_commands_from_subparser_list(repo: Path) -> None:
+    """First-time users should see a short primary-flow listing, not 26 commands.
+
+    Advanced / pipeline-stage / legacy commands stay fully callable and are
+    listed by name in the epilog — just not in the main subparser block that
+    argparse renders under `positional arguments`.
+    """
+    result = run_cmd(repo, "--help")
+    assert result.returncode == 0
+
+    # Usage header must not dump every command name — argparse does this by
+    # default with `{init,bootstrap,install-self,...}` which is the wall we're
+    # trying to avoid. A `<command>` metavar keeps it readable.
+    first_line = result.stdout.splitlines()[0]
+    assert "<command>" in first_line
+    assert "init,bootstrap" not in first_line
+
+    # Split on the epilog header so we can inspect the subparser listing block
+    # independently of the grouped name-dump in the epilog.
+    subparser_block, _, epilog_block = result.stdout.partition(
+        "Additional commands (run `<command> --help` for details):"
+    )
+    assert epilog_block, "epilog with grouped command list must be present"
+
+    # Primary-flow commands must be in the subparser listing (visible).
+    for primary in ("history-update", "show", "render-html", "bootstrap",
+                    "start-task", "continue-task", "finish-task",
+                    "install-self", "completion"):
+        assert primary in subparser_block, f"{primary} must appear in the primary-flow listing"
+
+    # Hidden commands must NOT appear in the subparser block (to keep it short),
+    # but MUST appear by name in the epilog (so users can still discover them).
+    hidden = [
+        "init", "update", "ensure-active-task",
+        "history-ingest", "history-normalize", "history-classify", "history-derive",
+        "history-audit", "history-compare", "audit-cost-coverage",
+        "derive-retro-timeline", "sync-usage", "sync-codex-usage",
+        "merge-tasks", "render-report", "verify-public-boundary", "security",
+    ]
+    for cmd in hidden:
+        # Not in subparser block's "positional arguments" section.
+        # (A hidden command's *name* may still appear as a substring of a
+        # visible command, e.g. "history-update" contains no hidden command.
+        # We assert absence with a line-start-indentation match used by
+        # argparse for subparser entries: four spaces + name.)
+        entry = f"    {cmd}"
+        assert entry not in subparser_block, f"{cmd} must be hidden from the subparser listing"
+        # Present in epilog grouping.
+        assert cmd in epilog_block, f"{cmd} must be listed by name in the epilog"
+
+
+def test_hidden_advanced_commands_remain_callable(repo: Path) -> None:
+    """Hiding from --help must not disable the commands themselves.
+
+    Each hidden command must still respond to `<cmd> --help` with its own
+    per-command help text and exit cleanly.
+    """
+    for cmd in ("history-ingest", "history-normalize", "history-derive",
+                "audit-cost-coverage", "sync-usage", "update",
+                "ensure-active-task", "render-report"):
+        result = run_cmd(repo, cmd, "--help")
+        assert result.returncode == 0, f"{cmd} --help must exit 0; stderr={result.stderr!r}"
+        assert "usage:" in result.stdout, f"{cmd} --help must print usage"
+
+
 def test_completion_bash_outputs_completion_function(repo: Path) -> None:
     result = run_cmd(repo, "completion", "bash")
 
@@ -2996,7 +3061,11 @@ def test_help_includes_goal_language_and_examples(repo: Path) -> None:
     assert finish_help.returncode == 0, finish_help.stderr
     assert ensure_help.returncode == 0, ensure_help.stderr
     assert "Analyze your AI agent work history" in result.stdout
-    assert "Create or update a goal record" in result.stdout
+    # `update` is intentionally hidden from the top-level subparser listing
+    # to keep first-time --help scannable, but must still be discoverable by
+    # name in the grouped epilog and must still work via `update --help`.
+    assert "update" in result.stdout  # appears in the "Manual tracking" epilog group
+    assert "Manual tracking:" in result.stdout
     assert "start-task" in result.stdout
     assert "continue-task" in result.stdout
     assert "finish-task" in result.stdout
