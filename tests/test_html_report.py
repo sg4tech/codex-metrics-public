@@ -844,3 +844,37 @@ def test_pricing_file_has_claude_opus_4_7():
     for field in ("input_per_million_usd", "cached_input_per_million_usd",
                   "cache_creation_per_million_usd", "output_per_million_usd"):
         assert entry.get(field) is not None, f"missing {field}"
+
+
+# ── HTML template pins (guard against regression on canvas-drawing code) ─────
+
+
+def test_smartmax_cap_has_rawmax_floor():
+    """smartMax cap must be floored at rawMax/5 so that sparse data with a
+    near-zero median never produces a cap >5× below rawMax.
+
+    Regression bug (2026-04-20): ledger cost data with many zero-buckets had
+    median ~$1.36 vs rawMax $120.91 — old cap `median*2.5` = $3.4 made every
+    non-outlier bar indistinguishable (24× off-scale). New floor clamps
+    cap ≥ rawMax/5 so outliers are at most 5× above the visible axis.
+    """
+    from ai_agents_metrics._report_template import _HTML_TEMPLATE
+    # Pin the exact formula so that a future well-intentioned "simplification"
+    # cannot silently revert this fix.
+    assert "Math.max(median * 2.5, rawMax / 5)" in _HTML_TEMPLATE
+
+
+def test_drawline_stacks_overlapping_outlier_labels():
+    """Chart 4 outlier labels stack across multiple y-levels when adjacent
+    outliers would otherwise collide horizontally.
+
+    Regression bug (2026-04-20): `$147.70 $140.62` on consecutive days
+    rendered on the same y-coordinate, labels visually touching.
+    """
+    from ai_agents_metrics._report_template import _HTML_TEMPLATE
+    # Marker variables for the stacking loop; presence pins the algorithm.
+    assert "outlierRowEdges" in _HTML_TEMPLATE
+    assert "OUTLIER_LABEL_LINE_HEIGHT" in _HTML_TEMPLATE
+    assert "OUTLIER_LABEL_MAX_LEVELS" in _HTML_TEMPLATE
+    # Top margin bumps up when clipped to fit stacked labels.
+    assert "clipped ? 36 : 20" in _HTML_TEMPLATE

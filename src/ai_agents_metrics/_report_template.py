@@ -285,6 +285,10 @@ function niceMax(v) {
 
 // Returns { max, clipped, threshold } — clips Y axis when outliers skew scale.
 // Uses median as the baseline: if max > 4× median, the top values are outliers.
+// The cap is floored at rawMax/5 so that on skewed distributions (a low
+// median with a very large rawMax) the cap never ends up >5× below rawMax —
+// that failure mode produced 24×-off-scale bars on real ledger cost data,
+// rendering every non-outlier bar indistinguishable.
 function smartMax(values) {
   const valid = values.filter(v => v != null).sort((a, b) => a - b);
   if (!valid.length) return { max: 1, clipped: false };
@@ -293,7 +297,7 @@ function smartMax(values) {
   const mid = Math.floor(valid.length / 2);
   const median = valid.length % 2 ? valid[mid] : (valid[mid - 1] + valid[mid]) / 2;
   if (median > 0 && rawMax > 4 * median) {
-    const cap = niceMax(median * 2.5);
+    const cap = niceMax(Math.max(median * 2.5, rawMax / 5));
     return { max: cap, clipped: true, threshold: cap };
   }
   return { max: niceMax(rawMax), clipped: false };
@@ -551,13 +555,16 @@ function drawLine(id, labels, values, color) {
   const { ctx, w, h } = setupCanvas(id);
   if (!labels.length || values.every(v => v === null)) { drawEmpty(ctx, w, h); return; }
 
-  const ML = 56, MR = 16, MT = 20, MB = 68;
+  const { max: maxVal, clipped, threshold } = smartMax(values);
+
+  // When clipped, reserve extra top margin so outlier labels can stack up
+  // to 3 rows without being cut off by the canvas edge (MT - 2*12 = MT-24).
+  const ML = 56, MR = 16, MB = 68;
+  const MT = clipped ? 36 : 20;
   const cw = w - ML - MR, ch = h - MT - MB;
   const n = labels.length;
   const gap = cw / n;
   const step = Math.max(1, Math.ceil(n / 12));
-
-  const { max: maxVal, clipped, threshold } = smartMax(values);
 
   drawYGrid(ctx, ML, MT, cw, ch, maxVal, 4);
   drawAxes(ctx, ML, MT, cw, ch);
@@ -612,7 +619,14 @@ function drawLine(id, labels, values, color) {
   }
   ctx.stroke();
 
-  // Dots + labels
+  // Dots + labels — outlier labels stack across up to 3 vertical rows when
+  // adjacent outliers would otherwise overlap horizontally. Diamonds stay
+  // anchored at the clip line regardless of label stacking level.
+  const outlierRowEdges = []; // per-level right-edge of last-drawn label
+  const OUTLIER_LABEL_LINE_HEIGHT = 12;
+  const OUTLIER_LABEL_MAX_LEVELS = 3;
+  // Set font once so measureText() below uses the same metrics as fillText().
+  ctx.font = 'bold 10px system-ui';
   for (let i = 0; i < n; i++) {
     const v = values[i];
     if (v === null) continue;
@@ -622,7 +636,19 @@ function drawLine(id, labels, values, color) {
     const y = MT + ch - (clamped / maxVal) * ch;
 
     if (isOutlier) {
-      // Draw outlier as a diamond marker at clip boundary
+      const label = '$' + fmt(v);
+      const labelW = ctx.measureText(label).width;
+      const labelLeft = x - labelW / 2;
+      let L = 0;
+      while (L < outlierRowEdges.length && outlierRowEdges[L] > labelLeft) L++;
+      // Cap levels: beyond the canvas-safe maximum, wrap back to level 0 and
+      // accept some overlap rather than drawing off-canvas.
+      if (L >= OUTLIER_LABEL_MAX_LEVELS) L = 0;
+      if (L === outlierRowEdges.length) outlierRowEdges.push(0);
+      outlierRowEdges[L] = x + labelW / 2 + 4; // 4px horizontal padding
+      const labelY = MT - L * OUTLIER_LABEL_LINE_HEIGHT;
+
+      // Diamond marker — anchored to the clip line, unaffected by stacking.
       ctx.fillStyle = '#fca5a5';
       ctx.strokeStyle = '#ef4444';
       ctx.lineWidth = 1.5;
@@ -631,10 +657,9 @@ function drawLine(id, labels, values, color) {
       ctx.lineTo(x, MT + 14); ctx.lineTo(x - 5, MT + 8);
       ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#dc2626';
-      ctx.font = 'bold 10px system-ui';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
-      ctx.fillText('$' + fmt(v), x, MT);
+      ctx.fillText(label, x, labelY);
     } else {
       ctx.fillStyle = '#fff';
       ctx.beginPath();
