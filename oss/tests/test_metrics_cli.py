@@ -1216,6 +1216,19 @@ def test_task_workflow_help_does_not_expose_provider_specific_flags(repo: Path) 
     assert "--usage-source" not in result.stdout
 
 
+def test_render_html_exposes_warehouse_path_flag(repo: Path) -> None:
+    """render-html must accept --warehouse-path so users can point the
+    report at a custom warehouse (cross-machine imports, alternate
+    locations). commands.handle_render_html already reads the flag via
+    getattr fallback; the argparser gap left it as dead code until
+    goal 2026-04-20-008.
+    """
+    result = run_cmd(repo, "render-html", "--help")
+
+    assert result.returncode == 0
+    assert "--warehouse-path" in result.stdout
+
+
 def test_top_level_help_hides_advanced_commands_from_subparser_list(repo: Path) -> None:
     """First-time users should see a short primary-flow listing, not 26 commands.
 

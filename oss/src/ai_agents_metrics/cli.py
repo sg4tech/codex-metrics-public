@@ -1213,6 +1213,13 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="N",
         help="Limit the time window to the last N days",
     )
+    # Default is empty so handle_render_html falls back to the
+    # metrics-path-adjacent default warehouse (derived per call in commands.py).
+    render_html_parser.add_argument(
+        "--warehouse-path",
+        default="",
+        help="SQLite warehouse path (default: derived from --metrics-path)",
+    )
 
     # Hide advanced / pipeline-internal commands from the top-level `--help`
     # listing without unregistering them. The commands remain callable and
