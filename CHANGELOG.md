@@ -4,18 +4,30 @@ All notable changes to `ai-agents-metrics` will be recorded here.
 
 ## Unreleased
 
+## 0.2.0 (2026-04-20)
+
+### Added
+
+- `history-classify` command: new pipeline stage between `history-normalize` and `history-derive` that runs a deterministic classifier over raw session data. Writes structural session-kind labels (main vs subagent) and practice-event rows to the warehouse. Automatically invoked by `history-update` (H-040)
+- `derived_practice_events` table: one row per Agent `tool_use` / Skill invocation / slash-command detected in session transcripts, with `practice_name`, `practice_family`, and source coordinates. Enables per-skill analysis of token compression and practice usage patterns (H-040 Phase 2)
+- "Findings from real data" section in README linking eight reproducible findings (F-001..F-008) derived from 6 months of Claude Code + Codex history: subagent-aliased retries, `role='user'` pollution, size-confounded practice splits, within-thread compression, per-skill compression ranking
+- `docs/warehouse-layering.md`: rules for what each warehouse layer (`raw_*` / `normalized_*` / classified `derived_*` / aggregate `derived_*`) is allowed to contain — source of truth for layer-boundary decisions
+
 ### Changed
 
+- `show` history-signals block now reports structural retry pressure (`main_attempt > 1` count) and subagent spawn count instead of the naive file-per-attempt ratio. The old ratio conflated user retries with internal delegation — see F-001
 - `render-html`: Chart 3 now stacks by model (one color per model, deterministic palette, unknown pinned last in slate) instead of by input/cached/output tokens — answers "where is my money going?" directly (ARCH-017)
 - `render-html`: summary strip gained a "Total Cost" card (sum across all closed goals, success + fail) between Successes and Avg Cost / Success (ARCH-017)
 
 ### Fixed
 
+- Project-level token aggregation no longer silently emits zeros when a project has usage events but no derived attempts — `derived_projects` coverage invariant corrected to a one-way relation
 - `python -m ai_agents_metrics --version` now displays `python3.X -m ai_agents_metrics <version>` instead of `__main__.py <version>`
 
 ### Internal
 
 - `model` column propagated to `derived_session_usage`, `derived_attempts`, and `derived_goals` during derive; unlocks per-model cost analysis without joining back to `normalized_usage_events` (ARCH-016)
+- `history/` subpackage gains `classify.py`; `derive.py`, `derive_schema.py`, `derive_insert.py` updated to consume classified inputs
 
 ## 0.1.5 (2026-04-13)
 
