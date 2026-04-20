@@ -1229,6 +1229,19 @@ def test_render_html_exposes_warehouse_path_flag(repo: Path) -> None:
     assert "--warehouse-path" in result.stdout
 
 
+def test_render_html_exposes_cwd_override_flag(repo: Path) -> None:
+    """render-html must accept --cwd to override the warehouse cwd filter.
+    Without this, a cross-machine warehouse (e.g. a Mac import queried on
+    Linux) is functionally invisible — the filter `WHERE cwd = Path.cwd()`
+    never matches the stored absolute paths. Paired with --warehouse-path
+    (2026-04-20-008) this closes the cross-machine query gap.
+    """
+    result = run_cmd(repo, "render-html", "--help")
+
+    assert result.returncode == 0
+    assert "--cwd" in result.stdout
+
+
 def test_top_level_help_hides_advanced_commands_from_subparser_list(repo: Path) -> None:
     """First-time users should see a short primary-flow listing, not 26 commands.
 

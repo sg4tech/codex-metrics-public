@@ -1220,6 +1220,17 @@ def build_parser() -> argparse.ArgumentParser:
         default="",
         help="SQLite warehouse path (default: derived from --metrics-path)",
     )
+    render_html_parser.add_argument(
+        "--cwd",
+        default="",
+        metavar="PATH",
+        help=(
+            "Override the cwd used to filter warehouse rows (default: the "
+            "current process cwd). Use this to query a cross-machine "
+            "warehouse — e.g. --cwd /Users/viktor/PhpstormProjects/hhsave "
+            "when rendering on Linux against a Mac-imported warehouse."
+        ),
+    )
 
     # Hide advanced / pipeline-internal commands from the top-level `--help`
     # listing without unregistering them. The commands remain callable and

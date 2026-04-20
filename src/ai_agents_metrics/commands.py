@@ -1154,7 +1154,11 @@ def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:
     warehouse_retry: dict[str, dict[str, int]] | None = None
     warehouse_tokens: list[tuple[str, str | None, int, int, int]] | None = None
     warehouse_practice: list[tuple[str, str, int]] | None = None
-    cwd = str(Path.cwd())
+    # --cwd override supports cross-machine warehouses (e.g. an imported Mac
+    # snapshot queried on Linux) where Path.cwd() would never match the
+    # stored paths. Empty override falls back to the real process cwd.
+    _cwd_arg = getattr(args, "cwd", "") or ""
+    cwd = _cwd_arg if _cwd_arg else str(Path.cwd())
     _warehouse_arg = getattr(args, "warehouse_path", "") or ""
     warehouse_path = Path(_warehouse_arg) if _warehouse_arg else None
     if warehouse_path is None or not warehouse_path.is_file():
