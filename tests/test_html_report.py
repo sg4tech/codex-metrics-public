@@ -628,3 +628,99 @@ def test_embedded_js_is_valid_syntax(tmp_path):
     assert result.returncode == 0, (
         f"node --check failed — embedded JS has a syntax error:\n{result.stderr}"
     )
+
+
+# ── chart 5: practice-event distribution ──────────────────────────────────────
+
+
+def test_chart5_empty_when_no_practice_rows():
+    result = aggregate_report_data([_goal()], days=None)
+    c5 = result["chart5"]
+    assert c5["labels"] == []
+    assert c5["total_events"] == 0
+    assert c5["source"] == "none"
+
+
+def test_chart5_aggregates_by_name_and_kind():
+    rows = [
+        ("Explore", "Agent", 13),
+        ("code-reviewer", "Agent", 4),
+        ("commit", "Skill", 8),
+        ("code-review:code-review", "Skill", 6),
+    ]
+    result = aggregate_report_data(
+        [_goal()], days=None, warehouse_practice=rows,
+    )
+    c5 = result["chart5"]
+    assert c5["source"] == "warehouse"
+    assert c5["total_events"] == 31
+    assert c5["shown_events"] == 31
+    # Sorted by total count desc: Explore (13), commit (8), code-review... (6), code-reviewer (4)
+    assert c5["labels"] == ["Explore", "commit", "code-review:code-review", "code-reviewer"]
+    assert c5["agent"] == [13, 0, 0, 4]
+    assert c5["skill"] == [0, 8, 6, 0]
+    assert c5["other"] == [0, 0, 0, 0]
+
+
+def test_chart5_folds_multiple_kinds_for_same_name():
+    """A practice name appearing under multiple source_kinds folds into per-kind buckets."""
+    rows = [
+        ("discovery", "Agent", 5),
+        ("discovery", "Skill", 2),
+        ("discovery", "unknown_kind", 1),
+    ]
+    result = aggregate_report_data(
+        [_goal()], days=None, warehouse_practice=rows,
+    )
+    c5 = result["chart5"]
+    assert c5["labels"] == ["discovery"]
+    assert c5["agent"] == [5]
+    assert c5["skill"] == [2]
+    assert c5["other"] == [1]
+    assert c5["total_events"] == 8
+
+
+def test_chart5_truncates_to_top_n_and_records_long_tail():
+    """Only top-15 names render; the remainder is surfaced via total vs shown."""
+    rows = [
+        (f"skill_{i:02d}", "Skill", 20 - i)  # 20, 19, ..., 1
+        for i in range(20)
+    ]
+    result = aggregate_report_data(
+        [_goal()], days=None, warehouse_practice=rows,
+    )
+    c5 = result["chart5"]
+    assert len(c5["labels"]) == 15
+    # Top-15 by count = skill_00..skill_14 with counts 20..6
+    assert c5["labels"][0] == "skill_00"
+    assert c5["labels"][-1] == "skill_14"
+    assert c5["shown_events"] == sum(range(6, 21))  # 6+7+...+20
+    assert c5["total_events"] == sum(range(1, 21))  # 1+2+...+20
+    assert c5["total_events"] > c5["shown_events"]
+
+
+def test_chart5_ignores_blank_name_and_zero_count():
+    rows = [
+        ("Explore", "Agent", 3),
+        ("", "Agent", 99),      # blank name — skip
+        ("phantom", "Skill", 0),  # zero count — skip
+        (None, "Agent", 5),     # None name — skip
+    ]
+    result = aggregate_report_data(
+        [_goal()], days=None, warehouse_practice=rows,  # type: ignore[arg-type]
+    )
+    c5 = result["chart5"]
+    assert c5["labels"] == ["Explore"]
+    assert c5["total_events"] == 3
+
+
+def test_chart5_present_in_empty_data_path():
+    """Warehouse-only practice data must survive even when goals produce no buckets."""
+    rows = [("Explore", "Agent", 2)]
+    # No goals at all → date range is empty → _empty_data path
+    result = aggregate_report_data([], days=None, warehouse_practice=rows)
+    c5 = result["chart5"]
+    # chart5 still aggregates, independent of the goals-date bucket logic
+    assert c5["labels"] == ["Explore"]
+    assert c5["total_events"] == 2
+    assert c5["source"] == "warehouse"

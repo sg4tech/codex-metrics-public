@@ -186,6 +186,18 @@ _HTML_TEMPLATE = """\
 
 </div>
 
+<div id="sh-practice" class="section-header"></div>
+<div class="grid" id="grid-practice">
+
+  <div class="card" id="c5-card" style="grid-column: 1 / -1;">
+    <h2>Practice Events by Name</h2>
+    <p class="subtitle" id="c5-subtitle"></p>
+    <canvas id="c5" height="280"></canvas>
+    <div class="legend" id="c5-legend"></div>
+  </div>
+
+</div>
+
 <script>
 const DATA = {DATA_JSON};
 
@@ -671,6 +683,32 @@ function renderSectionHeaders() {
       '<span class="src-badge history">warehouse</span>' +
       '<p>' + range + '</p>';
   }
+
+  const practiceEl = document.getElementById('sh-practice');
+  const practiceCard = document.getElementById('c5-card');
+  const practiceGrid = document.getElementById('grid-practice');
+  const c5 = d.chart5 || {};
+  if (practiceEl) {
+    if (c5.source === 'warehouse' && (c5.labels || []).length) {
+      const shown = c5.shown_events || 0;
+      const total = c5.total_events || 0;
+      const omitted = Math.max(0, total - shown);
+      const omittedNote = omitted > 0
+        ? ' \u00b7 ' + omitted + ' events in ' + ((c5.labels || []).length >= 15 ? 'long tail' : 'other names') + ' not shown'
+        : '';
+      practiceEl.innerHTML =
+        '<h3>Practice Events</h3>' +
+        '<span class="src-badge history">warehouse</span>' +
+        '<p>' + total + ' events across ' + (c5.labels || []).length + ' names' + omittedNote + '</p>';
+      if (practiceCard) practiceCard.style.display = '';
+      if (practiceGrid) practiceGrid.style.display = '';
+    } else {
+      // Hide the whole section when there are no practice events to show.
+      practiceEl.innerHTML = '';
+      if (practiceCard) practiceCard.style.display = 'none';
+      if (practiceGrid) practiceGrid.style.display = 'none';
+    }
+  }
 }
 
 // ── render all ───────────────────────────────────────────────────────────────
@@ -701,6 +739,46 @@ function renderChart3Meta() {
   if (sub) sub.textContent = (cost ? 'USD per ' + gran : 'Tokens per ' + gran) +
     ' \u00b7 stacked by model' + src;
   renderC3Legend();
+}
+
+// Chart 5 palette — agent/skill/other. Green for Agent (subagent spawn),
+// blue for Skill (scripted workflow), slate for the "other" bucket.
+const C5_COLORS = ['#22c55e', '#3b82f6', '#94a3b8'];
+const C5_LABELS = ['Agent', 'Skill', 'Other'];
+
+function renderChart5() {
+  const c5 = DATA.chart5 || {};
+  const labels = c5.labels || [];
+  if (!labels.length) return;
+
+  const sub = document.getElementById('c5-subtitle');
+  if (sub) {
+    sub.textContent = 'Top ' + labels.length + ' practice names by count \u00b7 stacked by kind \u00b7 source: history';
+  }
+
+  const leg = document.getElementById('c5-legend');
+  if (leg) {
+    // Only show legend items for kinds that actually have data so the legend
+    // doesn't mislead on a Skill-only or Agent-only dataset.
+    const totals = [
+      (c5.agent || []).reduce((a, b) => a + b, 0),
+      (c5.skill || []).reduce((a, b) => a + b, 0),
+      (c5.other || []).reduce((a, b) => a + b, 0),
+    ];
+    const items = [];
+    for (let i = 0; i < C5_LABELS.length; i++) {
+      if (totals[i] > 0) {
+        items.push('<div class="legend-item"><div class="legend-dot" style="background:' +
+          C5_COLORS[i] + '"></div>' + C5_LABELS[i] + ' (' + totals[i] + ')</div>');
+      }
+    }
+    leg.innerHTML = items.join('');
+  }
+
+  const series = [c5.agent || [], c5.skill || [], c5.other || []];
+  // Chart 5 is not toggleable — pass a tri-state "all visible" array to keep
+  // drawStackedBar's toggle-aware path happy.
+  drawStackedBar('c5', labels, series, C5_COLORS, false, '', [true, true, true]);
 }
 
 function renderChart2Meta() {
@@ -737,6 +815,7 @@ function render() {
   const c3Colors = (d.chart3_series || []).map(s => s.color);
   drawStackedBar('c3', d.buckets, c3Values, c3Colors, true, c3Prefix, seriesToggles.c3);
   drawLine('c4', d.chart4_buckets, d.chart4_values, '#8b5cf6');
+  renderChart5();
 }
 
 window.addEventListener('load', render);

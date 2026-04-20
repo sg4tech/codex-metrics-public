@@ -101,6 +101,101 @@ def _build_chart3_series(
     ]
 
 
+# ── practice-event kinds for chart 5 ─────────────────────────────────────────
+
+# Limit chart 5 to the top N most-frequent practice names to keep the bar chart
+# readable. A long-tail count is surfaced in the summary line.
+_CHART5_TOP_N = 15
+
+# Source-kind normalization: raw values from derive_classify map into three
+# display buckets. Agents (subagent spawns) carry the main compression signal;
+# Skills are scripted workflows; everything else falls into "other" so we never
+# silently drop rows.
+_CHART5_AGENT_KINDS = frozenset({"Agent", "agent", "agent_spawn", "subagent"})
+_CHART5_SKILL_KINDS = frozenset({"Skill", "skill", "skill_invocation"})
+
+
+def _chart5_kind_bucket(source_kind: str) -> str:
+    """Map a raw ``source_kind`` to one of ``agent`` / ``skill`` / ``other``."""
+    if source_kind in _CHART5_AGENT_KINDS:
+        return "agent"
+    if source_kind in _CHART5_SKILL_KINDS:
+        return "skill"
+    return "other"
+
+
+def _aggregate_practice_distribution(
+    rows: list[tuple[str, str, int]] | None,
+) -> dict[str, Any]:
+    """Aggregate ``(practice_name, source_kind, count)`` into chart-5 series.
+
+    Returns a dict with:
+    - ``labels`` — top-N practice names, sorted by total count desc
+    - ``agent`` / ``skill`` / ``other`` — per-label counts for each kind bucket
+    - ``total_events`` — total practice events across *all* names
+    - ``shown_events`` — total events represented by the shown top-N bars
+    - ``source`` — ``"warehouse"`` when rows were provided, ``"none"`` otherwise
+
+    The three-bucket stack keeps the chart honest when derive_classify emits
+    kinds we don't yet recognize — they land in ``other`` rather than being
+    silently dropped.
+    """
+    if not rows:
+        return _empty_practice_chart()
+
+    # Fold (name, kind) pairs into per-name buckets. Inputs may arrive with
+    # multiple rows per name if the warehouse distinguishes kinds in its
+    # GROUP BY; this layer is robust to that either way.
+    per_name: dict[str, dict[str, int]] = {}
+    total_events = 0
+    for practice_name, source_kind, count in rows:
+        if not practice_name or count <= 0:
+            continue
+        bucket = _chart5_kind_bucket(source_kind or "")
+        entry = per_name.setdefault(practice_name, {"agent": 0, "skill": 0, "other": 0})
+        entry[bucket] += count
+        total_events += count
+
+    if not per_name:
+        return _empty_practice_chart()
+
+    # Order by total count desc, break ties alphabetically for determinism.
+    ordered = sorted(
+        per_name.items(),
+        key=lambda kv: (-(kv[1]["agent"] + kv[1]["skill"] + kv[1]["other"]), kv[0]),
+    )
+    top = ordered[:_CHART5_TOP_N]
+
+    labels = [name for name, _ in top]
+    agent = [vals["agent"] for _, vals in top]
+    skill = [vals["skill"] for _, vals in top]
+    other = [vals["other"] for _, vals in top]
+    shown_events = sum(agent) + sum(skill) + sum(other)
+
+    return {
+        "labels": labels,
+        "agent": agent,
+        "skill": skill,
+        "other": other,
+        "total_events": total_events,
+        "shown_events": shown_events,
+        "source": "warehouse",
+    }
+
+
+def _empty_practice_chart() -> dict[str, Any]:
+    """Return the chart-5 shape used when no practice-event rows are available."""
+    return {
+        "labels": [],
+        "agent": [],
+        "skill": [],
+        "other": [],
+        "total_events": 0,
+        "shown_events": 0,
+        "source": "none",
+    }
+
+
 # ── warehouse-level aggregators ───────────────────────────────────────────────
 
 
@@ -417,6 +512,7 @@ def aggregate_report_data(
     warehouse_retry: dict[str, dict[str, int]] | None = None,
     warehouse_tokens: list[tuple[str, str | None, int, int, int]] | None = None,
     pricing: dict[str, dict[str, float | None]] | None = None,
+    warehouse_practice: list[tuple[str, str, int]] | None = None,
 ) -> dict[str, Any]:
     """Bucket closed goals into chart-ready series.
 
@@ -430,8 +526,12 @@ def aggregate_report_data(
     parsed = _parse_closed_goals(closed)
     dates = _collect_chart_dates(parsed, warehouse_tokens)
 
+    chart5 = _aggregate_practice_distribution(warehouse_practice)
+
     if not dates:
-        return _empty_data()
+        empty = _empty_data()
+        empty["chart5"] = chart5
+        return empty
 
     earliest, latest, gran, buckets = _determine_granularity(dates)
     series = _accumulate_goals(parsed, buckets, gran, pricing)
@@ -456,6 +556,7 @@ def aggregate_report_data(
         "chart3_series": chart3[0],
         "chart4_buckets": c4.buckets,
         "chart4_values": c4.values,
+        "chart5": chart5,
         "ledger_date_from": ledger_date_from,
         "ledger_date_to": ledger_date_to,
         "history_date_from": earliest.strftime("%Y-%m-%d"),
@@ -488,6 +589,7 @@ def _empty_data() -> dict[str, Any]:
         "chart3_series": [],
         "chart4_buckets": [],
         "chart4_values": [],
+        "chart5": _empty_practice_chart(),
         "ledger_date_from": None,
         "ledger_date_to": None,
         "history_date_from": None,

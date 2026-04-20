@@ -1119,6 +1119,7 @@ def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:
     # Load retry and token data from warehouse when available.
     warehouse_retry: dict[str, dict[str, int]] | None = None
     warehouse_tokens: list[tuple[str, str | None, int, int, int]] | None = None
+    warehouse_practice: list[tuple[str, str, int]] | None = None
     _warehouse_arg = getattr(args, "warehouse_path", "") or ""
     warehouse_path = Path(_warehouse_arg) if _warehouse_arg else None
     if warehouse_path is None or not warehouse_path.is_file():
@@ -1151,6 +1152,16 @@ def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:
                     "GROUP BY dg.thread_id",
                     (cwd,),
                 ).fetchall()
+                # Practice-event distribution, scoped to the current cwd via
+                # the goals table so foreign repos' events don't bleed in.
+                practice_rows = conn.execute(
+                    "SELECT pe.practice_name, pe.source_kind, COUNT(*) "
+                    "FROM derived_practice_events pe "
+                    "JOIN derived_goals dg ON dg.thread_id = pe.thread_id "
+                    "WHERE dg.cwd = ? "
+                    "GROUP BY pe.practice_name, pe.source_kind",
+                    (cwd,),
+                ).fetchall()
             by_day: dict[str, dict[str, int]] = {}
             for last_seen_at, retry_count in retry_rows:
                 day = last_seen_at[:10]
@@ -1163,6 +1174,10 @@ def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:
             warehouse_tokens = [
                 (last_seen_at, model, inp, cac, out)
                 for last_seen_at, model, inp, cac, out in token_rows
+            ]
+            warehouse_practice = [
+                (name, source_kind, count)
+                for name, source_kind, count in practice_rows
             ]
         except (sqlite3.Error, OSError):
             pass  # warehouse unavailable or schema mismatch — fall back to ledger
@@ -1180,6 +1195,7 @@ def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:
         warehouse_retry=warehouse_retry,
         warehouse_tokens=warehouse_tokens,
         pricing=pricing,
+        warehouse_practice=warehouse_practice,
     )
     generated_at = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     html = render_html_report(chart_data, generated_at)
@@ -1188,5 +1204,10 @@ def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:
     output_path.write_text(html, encoding="utf-8")
     retry_src = "warehouse" if warehouse_retry is not None else "ledger"
     token_src = "warehouse" if warehouse_tokens is not None else "ledger"
-    print(f"Rendered HTML report: {output_path} (retry: {retry_src}, tokens: {token_src})")
+    practice_n = sum(c for _, _, c in warehouse_practice) if warehouse_practice else 0
+    practice_src = f"warehouse ({practice_n} events)" if warehouse_practice else "none"
+    print(
+        f"Rendered HTML report: {output_path} "
+        f"(retry: {retry_src}, tokens: {token_src}, practice: {practice_src})"
+    )
     return 0
