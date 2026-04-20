@@ -39,3 +39,15 @@ Thanks for helping improve `ai-agents-metrics`.
 ## Commit Messages
 
 Use short, descriptive commit messages. Keep them focused on one change.
+
+## Releasing
+
+Publishing to PyPI is automated via GitHub Actions. To release a new version:
+
+1. Merge all changes to `main`.
+2. Create and push a tag: `git tag v0.x.y && git push public v0.x.y`
+3. The publish workflow triggers on the tag and pushes to PyPI via Trusted
+   Publishing — no credentials required locally.
+
+The standalone binary is built with `make package-standalone`; the resulting
+`dist/standalone/ai-agents-metrics` is self-contained.
