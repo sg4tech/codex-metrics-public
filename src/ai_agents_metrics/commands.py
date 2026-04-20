@@ -1168,8 +1168,15 @@ def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:
     if warehouse_state.get("status") == "ok" and warehouse_path.is_file():
         try:
             with sqlite3.connect(warehouse_path) as conn:
+                # Use main_attempt_count (H-040 classifier) to distinguish real
+                # main-agent retries from subagent Task() spawns, which also
+                # produce separate session JSONL files and would otherwise
+                # inflate retry_count. COALESCE treats unclassified rows as
+                # single-attempt (conservative — no false retry signal).
                 retry_rows = conn.execute(
-                    "SELECT last_seen_at, retry_count FROM derived_goals "
+                    "SELECT last_seen_at, "
+                    "  COALESCE(main_attempt_count, 1) as main_attempts "
+                    "FROM derived_goals "
                     "WHERE cwd = ? AND last_seen_at IS NOT NULL",
                     (cwd,),
                 ).fetchall()
@@ -1202,12 +1209,12 @@ def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:
                     (cwd,),
                 ).fetchall()
             by_day: dict[str, dict[str, int]] = {}
-            for last_seen_at, retry_count in retry_rows:
+            for last_seen_at, main_attempts in retry_rows:
                 day = last_seen_at[:10]
                 if day not in by_day:
                     by_day[day] = {"threads": 0, "retry_threads": 0}
                 by_day[day]["threads"] += 1
-                if retry_count and retry_count > 0:
+                if main_attempts and main_attempts > 1:
                     by_day[day]["retry_threads"] += 1
             warehouse_retry = by_day
             warehouse_tokens = [

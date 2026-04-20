@@ -447,8 +447,11 @@ function drawStackedBar(id, labels, series, colors, useSmartMax, labelPrefix, to
 
 function drawCombo(id, labels, barValues, lineValues, barColor, lineColor, linePct, suppressNoRetriesMessage) {
   const { ctx, w, h } = setupCanvas(id);
-  const allVals = [...barValues, ...lineValues.filter(v => v !== null)];
-  if (!labels.length || allVals.every(v => !v)) { drawEmpty(ctx, w, h); return; }
+  // Only treat an empty-label or no-non-null-line case as "No data available".
+  // An all-zero retry signal is real data (every thread completed without a
+  // retry) and must render so the green "no retries" plaque can appear.
+  const lineHasData = lineValues.some(v => v !== null);
+  if (!labels.length || !lineHasData) { drawEmpty(ctx, w, h); return; }
   // Only surface the "No retries" green message when it reflects a real signal
   // (warehouse source + all bars empty). Suppress under any warehouse fallback
   // state to avoid a false positive on the ledger path where attempt_count
@@ -532,7 +535,13 @@ function drawCombo(id, labels, barValues, lineValues, barColor, lineColor, lineP
   drawXLabels(ctx, labels, ML, MT, cw, ch, step);
 
   if (noRetries) {
-    const msg = 'No retries — all goals completed on first attempt';
+    // Message is source-specific: for warehouse, "main session" disambiguates
+    // from subagent spawns (which are filtered out upstream). For ledger,
+    // "attempt" keeps parity with the ledger-side legend.
+    const warehouseSource = DATA.chart2_source === 'warehouse';
+    const msg = warehouseSource
+      ? 'No main-agent retries \u2014 every task completed in a single main session'
+      : 'No retries \u2014 all goals completed on first attempt';
     ctx.font = '11px system-ui';
     const msgW = ctx.measureText(msg).width;
     const px = ML + cw / 2 - msgW / 2 - 8;
@@ -867,10 +876,10 @@ function renderChart2Meta() {
   const sub = document.getElementById('c2-subtitle');
   const leg = document.getElementById('c2-legend');
   if (sub) sub.textContent = warehouse
-    ? 'Threads requiring >1 session (bars) \u00b7 retry rate % (line) \u00b7 source: history'
+    ? 'Threads needing >1 main-agent session (bars) \u00b7 retry rate % (line) \u00b7 subagent spawns excluded \u00b7 source: history'
     : 'Goals requiring >1 attempt (bars) \u00b7 avg attempts per closed goal (line) \u00b7 source: ledger';
   if (leg) leg.innerHTML = warehouse
-    ? '<div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>Retry threads</div>' +
+    ? '<div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>Main-agent retry threads</div>' +
       '<div class="legend-item"><div class="legend-dot" style="background:#ef4444;border-radius:50%"></div>Retry rate % (line)</div>'
     : '<div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>Goals with retries</div>' +
       '<div class="legend-item"><div class="legend-dot" style="background:#ef4444;border-radius:50%"></div>Avg attempts (line)</div>';

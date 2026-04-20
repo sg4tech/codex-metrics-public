@@ -878,3 +878,53 @@ def test_drawline_stacks_overlapping_outlier_labels():
     assert "OUTLIER_LABEL_MAX_LEVELS" in _HTML_TEMPLATE
     # Top margin bumps up when clipped to fit stacked labels.
     assert "clipped ? 36 : 20" in _HTML_TEMPLATE
+
+
+# ── retry-pressure semantics (main_attempt_count, not subagent-aliased) ──────
+
+
+def test_retry_pressure_uses_main_attempt_count_sql():
+    """Chart 2 SQL must read main_attempt_count (H-040 classifier), not the
+    raw retry_count which aliases subagent spawns as retries on Claude data.
+
+    Regression bug (2026-04-20): on 22 local threads, retry_count>0 showed
+    40.9% 'retry pressure' while main_attempt_count>1 showed 0% — the chart
+    was reading subagent-usage growth as quality degradation. SQL change
+    must survive refactors.
+    """
+    from ai_agents_metrics import commands as commands_module
+    commands_py = Path(commands_module.__file__).read_text()
+    # Pin the exact formulation so a later "simplification" cannot revert it.
+    assert "COALESCE(main_attempt_count, 1)" in commands_py
+    # And the downstream check must compare to 1 (main_attempts > 1 = retry).
+    assert "main_attempts > 1" in commands_py
+
+
+def test_retry_pressure_subtitle_disambiguates_from_subagents():
+    """Chart 2 subtitle must say 'main-agent session' and 'subagent spawns
+    excluded' so the human reader does not confuse this signal with total
+    session-file count (which would include Task() subagent spawns)."""
+    from ai_agents_metrics._report_template import _HTML_TEMPLATE
+    assert "main-agent session" in _HTML_TEMPLATE
+    assert "subagent spawns excluded" in _HTML_TEMPLATE
+    assert "Main-agent retry threads" in _HTML_TEMPLATE
+
+
+def test_retry_pressure_no_retries_message_is_source_specific():
+    """The green 'no retries' plaque text changes by source so it accurately
+    reflects the metric: warehouse-source measures main-agent sessions,
+    ledger-source measures goal-level attempt count."""
+    from ai_agents_metrics._report_template import _HTML_TEMPLATE
+    assert "No main-agent retries" in _HTML_TEMPLATE
+    assert "every task completed in a single main session" in _HTML_TEMPLATE
+    # Ledger path keeps its legacy wording.
+    assert "No retries — all goals completed on first attempt" in _HTML_TEMPLATE
+
+
+def test_retry_chart_renders_when_all_rates_are_zero():
+    """When the retry signal is genuinely zero (all threads completed in a
+    single main session), the chart should still render so the no-retries
+    plaque can appear. Previously all-zero was conflated with 'no data'."""
+    from ai_agents_metrics._report_template import _HTML_TEMPLATE
+    # The empty-state guard must not trigger on all-zero line values.
+    assert "const lineHasData = lineValues.some(v => v !== null)" in _HTML_TEMPLATE
