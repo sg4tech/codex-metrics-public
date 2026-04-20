@@ -15,12 +15,7 @@ AI is writing more of your code. You still don't know:
 
 `ai-agents-metrics` extracts these signals from your existing Claude Code or Codex history — no manual setup required. Point it at your history files and see what's happening: retry pressure, token cost, session timeline. For richer tracking, add explicit goal boundaries and outcome labels on top.
 
-<!--
-Reserved slot for a report screenshot. Drop a PNG into docs/images/report-preview.png
-(1200×630 or similar wide aspect for good link-unfurl previews) and uncomment:
-
-![HTML report preview](docs/images/report-preview.png)
--->
+![HTML report preview — 5 charts over 25 goals, 243 practice events, 16 days](docs/images/report-preview.png)
 
 > **Running this on 6 months of Claude Code + Codex history (3.85B tokens, 160 threads) surfaced:**
 >

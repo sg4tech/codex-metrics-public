@@ -5,20 +5,26 @@ that appear in link unfurls (Twitter, Slack, Reddit, GitHub repo cards).
 
 ## report-preview.png — how to (re)generate
 
-The slot reserved at the top of the main README expects a screenshot of a
-rendered HTML report, ideally showing a chart with real data.
+Screenshot of a rendered HTML report. Shown at the top of the main README.
 
-1. Generate a report from your own warehouse:
+Regenerate with `shot-scraper` (headless Chromium wrapper):
 
-       ai-agents-metrics render-html --output /tmp/report.html
+```bash
+# One-time setup (pipx + system libs for headless Chrome):
+pipx install shot-scraper
+shot-scraper install
+# On Ubuntu 24.04, if Chromium complains about missing .so files, install:
+#   sudo apt-get install -y libatk1.0-0t64 libatk-bridge2.0-0t64 \
+#     libatspi2.0-0t64 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+#     libgbm1 libasound2t64 libcups2t64 libnss3 libnspr4
 
-2. Open `/tmp/report.html` in a browser at ~1200px viewport width.
+# Then, from the repo root:
+ai-agents-metrics render-html --output /tmp/report.html
+shot-scraper /tmp/report.html \
+  --output oss/docs/images/report-preview.png \
+  --width 1200 --height 1600 --wait 1500
+```
 
-3. Screenshot the page (or a key chart). Recommended dimensions for
-   link-unfurl previews: **1200 × 630 px** (Twitter/OG standard).
-
-4. Save to `docs/images/report-preview.png`.
-
-5. Uncomment the `![HTML report preview](...)` line in the root README.
-
-There is no committed default image — each release can ship a fresh one.
+Dimensions: 1200 × 1600 captures the full report (summary strip + 5 charts).
+For a 1200 × 630 OG-card variant (link-unfurl preview on Twitter/Slack), add
+`--selector "#sh-ledger"` with a tighter height to grab just the fold.
