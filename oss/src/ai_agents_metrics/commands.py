@@ -1249,7 +1249,7 @@ def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:
     pricing: dict[str, dict[str, float | None]] | None = None
     try:
         pricing = _cli_module.load_effective_pricing(cwd=Path.cwd())
-    except Exception:  # pylint: disable=broad-exception-caught  # load_effective_pricing can fail for many reasons (missing file, bad JSON, schema mismatch); pricing is optional so fall back silently
+    except (OSError, ValueError):
         pricing = None
 
     chart_data = aggregate_report_data(

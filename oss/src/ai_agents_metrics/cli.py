@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-# pylint: disable=unused-import  # This module re-exports symbols for downstream consumers (# noqa: F401 blocks ruff; this blocks pylint)
 # pylint: disable=too-many-lines  # cli.py is a router/dispatcher/shim that will shrink as commands are extracted; tracked as a separate splitting task
 from __future__ import annotations
 
 import argparse
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone  # noqa: F401
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -14,10 +12,7 @@ from typing import Any
 from ai_agents_metrics import __version__
 from ai_agents_metrics.bootstrap import bootstrap_project as run_bootstrap_project
 from ai_agents_metrics.completion import render_completion
-from ai_agents_metrics.cost_audit import (
-    CostAuditReport,
-    render_cost_audit_report_json,  # noqa: F401 — re-exported as cli_module attribute
-)
+from ai_agents_metrics.cost_audit import CostAuditReport
 from ai_agents_metrics.domain import (
     ALLOWED_FAILURE_REASONS,
     ALLOWED_RESULT_FITS,
@@ -39,7 +34,7 @@ from ai_agents_metrics.domain import (
     load_metrics,
     next_goal_id,
     now_utc_iso,
-    recompute_summary,  # noqa: F401 — re-exported as cli_module attribute
+    recompute_summary,
     resolve_linked_task_reference,
     round_usd,
     sync_goal_attempt_entries,
@@ -58,68 +53,39 @@ from ai_agents_metrics.git_state import (
 from ai_agents_metrics.git_state import (
     _normalize_worktree_path as _git_state_normalize_worktree_path,
 )
-from ai_agents_metrics.history.audit import (  # noqa: F401 — re-exported as cli_module attributes
-    audit_history,
-    render_audit_report,
-    render_audit_report_json,
-)
-from ai_agents_metrics.history.classify import (
-    ClassifySummary,
-    render_classify_summary_json,  # noqa: F401 — re-exported as cli_module attribute
-)
+from ai_agents_metrics.history.classify import ClassifySummary
 from ai_agents_metrics.history.classify import (
     classify_codex_history as run_classify_codex_history,
 )
-from ai_agents_metrics.history.compare import (  # noqa: F401 — re-exported as cli_module attributes
-    HistorySignals,
-    compare_metrics_to_history,
-    read_history_signals,
-    render_history_compare_report,
-    render_history_compare_report_json,
-)
-from ai_agents_metrics.history.derive import (
-    DeriveSummary,
-    render_derive_summary_json,  # noqa: F401 — re-exported as cli_module attribute
-)
+from ai_agents_metrics.history.derive import DeriveSummary
 from ai_agents_metrics.history.derive import (
     derive_codex_history as run_derive_codex_history,
 )
 from ai_agents_metrics.history.ingest import (
     IngestSummary,
     default_raw_warehouse_path,
-    render_ingest_summary_json,  # noqa: F401 — re-exported as cli_module attribute
 )
 from ai_agents_metrics.history.ingest import (
     ingest_codex_history as run_ingest_codex_history,
 )
-from ai_agents_metrics.history.normalize import (
-    NormalizeSummary,
-    render_normalize_summary_json,  # noqa: F401 — re-exported as cli_module attribute
-)
+from ai_agents_metrics.history.normalize import NormalizeSummary
 from ai_agents_metrics.history.normalize import (
     normalize_codex_history as run_normalize_codex_history,
 )
 from ai_agents_metrics.observability import record_cli_invocation_observation
-from ai_agents_metrics.pricing_runtime import (  # noqa: F401 — re-exported as cli_module attributes
-    load_effective_pricing,
-    resolve_effective_pricing_path,
+
+# These two are not used in this module directly; they are re-exported so that
+# scripts/metrics_cli.py (which does globals().update(vars(cli))) exposes them
+# as MODULE.xxx in test_metrics_domain.py.  Remove once tests import directly.
+from ai_agents_metrics.pricing_runtime import (  # pylint: disable=unused-import
+    load_effective_pricing,  # noqa: F401
+    resolve_effective_pricing_path,  # noqa: F401
 )
-from ai_agents_metrics.public_boundary import (
-    PublicBoundaryReport,
-)
+from ai_agents_metrics.public_boundary import PublicBoundaryReport
 from ai_agents_metrics.public_boundary import (
     verify_public_boundary as run_verify_public_boundary,
 )
-from ai_agents_metrics.reporting import (
-    generate_report_md,
-    print_summary,  # noqa: F401 — re-exported as cli_module attribute
-    render_summary_json,  # noqa: F401 — re-exported as cli_module attribute
-)
-from ai_agents_metrics.retro_timeline import (  # noqa: F401 — re-exported as cli_module attributes
-    derive_retro_timeline,
-    render_retro_timeline_report,
-    render_retro_timeline_report_json,
-)
+from ai_agents_metrics.reporting import generate_report_md
 from ai_agents_metrics.security import (
     SecurityReport,
     render_security_report,
@@ -127,10 +93,7 @@ from ai_agents_metrics.security import (
 from ai_agents_metrics.security import (
     verify_security as run_verify_security,
 )
-from ai_agents_metrics.storage import (
-    atomic_write_text,
-    metrics_mutation_lock,  # noqa: F401 — re-exported as cli_module attribute
-)
+from ai_agents_metrics.storage import atomic_write_text
 from ai_agents_metrics.usage_backends import (
     ClaudeUsageBackend,
     UsageBackend,
@@ -139,18 +102,16 @@ from ai_agents_metrics.usage_backends import (
 from ai_agents_metrics.usage_backends import (
     resolve_usage_window as resolve_backend_usage_window,
 )
-from ai_agents_metrics.usage_resolution import (  # noqa: F401 — re-exported as cli_module attributes
-    PRICING_JSON_PATH,
-    USAGE_FIELD_PATTERNS,
-    compute_event_cost_usd,
+
+# parse_usage_event, resolve_codex_usage_window, resolve_pricing_path are not used here directly;
+# re-exported for scripts/metrics_cli.py → MODULE surface accessed by tests. Remove once tests import directly.
+from ai_agents_metrics.usage_resolution import (  # pylint: disable=unused-import
     find_usage_thread_id,
     load_pricing,
-    parse_usage_event,
-    resolve_codex_session_usage_window,
-    resolve_codex_usage_window,
+    parse_usage_event,  # noqa: F401
+    resolve_codex_usage_window,  # noqa: F401
     resolve_pricing_model_alias,
-    resolve_pricing_path,
-    resolve_usage_session_window,
+    resolve_pricing_path,  # noqa: F401
 )
 from ai_agents_metrics.workflow_fsm import (
     WorkflowEvent,
