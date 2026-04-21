@@ -219,15 +219,18 @@ forbidden_modules = ["ai_agents_metrics.cli"]
 
 [tool.pylint."messages control"]
 disable = "all"
-# Tier 1 — hard-fail (build-blocking):
+# Both tiers now hard-fail (build-blocking). See docs/architecture/ARCH-020 for
+# the rationale and the per-file `# pylint: disable=...` annotations used on
+# canonical data schemas and CLI-contract boundary functions.
+# Tier 1 — correctness / file-size gates:
 #   E0401 import-error, E0602 undefined-variable, E1101 no-member, E1120 no-value-for-argument
 #   W0102 dangerous-default-value, W0611 unused-import, W0612 unused-variable,
 #   W0718 broad-exception-caught, W1203 logging-fstring-interpolation
 #   R0401 cyclic-import, C0302 too-many-lines
-# Tier 2 — soft complexity warnings (advisory, non-blocking via || true in Makefile):
+# Tier 2 — complexity gates (thresholds in [tool.pylint.design] below):
 #   R0912 too-many-branches, R0913 too-many-arguments, R0914 too-many-locals,
-#   R0915 too-many-statements, R0902 too-many-instance-attributes, W0401 wildcard-import
-#   C0411 wrong-import-order
+#   R0915 too-many-statements, R0902 too-many-instance-attributes,
+#   W0401 wildcard-import, C0411 wrong-import-order
 enable = [
     "E0401",
     "E0602",

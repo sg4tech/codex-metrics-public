@@ -27,6 +27,7 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 | [ARCH-017](ARCH-017-html-report-dimensions.md) | Add provider and model dimensions to HTML report | high | medium | done |
 | [ARCH-018](ARCH-018-layer-separation-cleanup.md) | Honor layer separation — move interpretation out of raw_* tables | medium | medium | open |
 | [ARCH-019](ARCH-019-global-pylint-rollout.md) | Globally enable pylint across the whole project | medium | medium | done |
+| [ARCH-020](ARCH-020-tier2-pylint-gating.md) | Promote Tier 2 pylint complexity rules to hard-fail | medium | medium | done |
 
 ## Recommended order
 
@@ -47,3 +48,4 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 15. **ARCH-017** — high priority; HTML report has no provider/model breakdown — the most actionable cost dimensions are invisible; Phase 1 (total cost, Chart 3 fallback, UX polish) has no deps; Phase 2 (model breakdown) depends on ARCH-016
 16. **ARCH-018** — medium priority; `raw_messages` / `raw_token_usage` / `raw_session_events` parse source payload into typed fields, violating the Layer 1 byte-perfect rule defined in `warehouse-layering.md`; replace with `raw_events` + unparsed payload, move typing to existing `normalized_*` tables
 17. **ARCH-019** — medium priority; `pylint` exists but still excludes major modules and only enforces a selective subset of rules; define and execute a staged rollout to make full-project `pylint` practical
+18. **ARCH-020** — medium priority; Tier 2 complexity rules were advisory after ARCH-019; promote them to hard-fail so `make verify` blocks complexity regression (64 starting findings resolved via params dataclasses, decomposition, and scoped inline disables on canonical data schemas and CLI-contract boundaries)

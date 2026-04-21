@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines  # domain/aggregation bundles goal/entry/summary aggregation and update application; splitting per stage is a tracked future task
 from __future__ import annotations
 
 from datetime import datetime, timedelta

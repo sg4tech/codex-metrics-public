@@ -56,10 +56,10 @@ sync-bootstrap-policy:
 	@test -r src/ai_agents_metrics/data/bootstrap_codex_metrics_policy.md || { echo "ERROR: bootstrap policy not found (expected symlink to docs/)"; exit 1; }
 
 pylint-check: check-init
-	@echo "=== Pylint tier 1: hard-fail rules (all modules) ==="
+	@echo "=== Pylint tier 1: correctness / file-size gates (all modules) ==="
 	./.venv/bin/pylint src/ --disable=all --enable=E0401,E0602,E1101,E1120,W0102,W0611,W0612,W0718,W1203,R0401,C0302
-	@echo "=== Pylint tier 2: complexity warnings (advisory) ==="
-	@.venv/bin/pylint src/ --disable=all --enable=R0912,R0913,R0914,R0915,R0902,W0401,C0411 || true
+	@echo "=== Pylint tier 2: complexity gates (all modules) ==="
+	./.venv/bin/pylint src/ --disable=all --enable=R0912,R0913,R0914,R0915,R0902,W0401,C0411
 
 verify-fast: check-init lint typecheck test
 
