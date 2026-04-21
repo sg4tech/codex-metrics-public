@@ -4,6 +4,28 @@ All notable changes to `ai-agents-metrics` will be recorded here.
 
 ## Unreleased
 
+## 0.2.2 (2026-04-21)
+
+### Added
+
+- `claude-opus-4-7` pricing entry in `model_pricing.json` ($5/$0.5/$6.25/$25 per MTok — same family as 4.6). Previously, opus-4-7 usage was silently dropped from `render-html` Chart 3 "Cost by Model" even though it counted toward the summary total — ~34% of the author's cost was missing from the chart
+- `render-html` warehouse-state callout: when the warehouse file is absent, schema-outdated, or has zero rows matching the current project, the HTML now shows an amber banner above Session History with the actionable hint `Run: ai-agents-metrics history-update`. Four detected states (`ok` / `missing_file` / `schema_outdated` / `empty_for_cwd`) map to specific messages
+- `render-html --warehouse-path PATH` flag exposed (was read via `getattr` fallback but never registered in the parser, effectively dead code); brings render-html in line with the 8 other warehouse-consuming subcommands
+- `render-html --cwd PATH` override: replaces `Path.cwd()` for warehouse filtering. Enables queries against cross-machine warehouses (e.g. a Mac-imported snapshot queried on Linux, where absolute paths otherwise never match)
+
+### Changed
+
+- Chart 2 "Retry Pressure" now reads `main_attempt_count` (H-040 classifier) instead of raw `retry_count`, so Claude subagent spawns are no longer counted as main-agent retries. On pre-fix data, `retry_count > 0` flagged 40.9% of threads as "under retry pressure" while the H-040-corrected signal was 0% — the chart was reading subagent-usage growth as quality degradation. Subtitle, legend, and the green "no retries" plaque updated to say "main-agent session" / "subagent spawns excluded" so the semantics are explicit
+- User-visible product brand renamed from "Codex Metrics" to "AI Agents Metrics" across HTML report title/H1, CLI `show` header, markdown report header, `bootstrap` scaffold, and the packaged-policy section of AGENTS.md. The `codex-metrics` CLI entrypoint alias stays in `pyproject.toml` for backward compatibility; references to the OpenAI Codex agent (`--source=codex`, `~/.codex`) are unchanged
+
+### Fixed
+
+- `render-html` Chart 3 "Cost by Model" Y-axis no longer compresses bars to 24× below their true values on skewed cost distributions. The `smartMax` clip cap is now floored at `rawMax/5`, so outliers are at most 5× above the visible axis and non-outlier bars remain distinguishable
+- `render-html` Chart 4 outlier labels now stack across up to 3 vertical rows when adjacent outliers would otherwise overlap horizontally. Top margin reserves the vertical space; diamonds stay anchored at the clip line
+- `render-html` Session History badge is source-aware: reads `WAREHOUSE` only when both Chart 2 and Chart 3 are warehouse-sourced, `LEDGER` otherwise. Previously the badge was hard-coded to `WAREHOUSE` even when the underlying data had silently fallen back to ledger
+- `render-html` Chart 2 no longer shows "No data available" when the retry signal is genuinely zero — the empty-state guard now distinguishes "no buckets / no data" from "all values are a real zero". A real all-zero retry pattern renders with the green "no retries" plaque instead of being hidden
+- `render-html` no longer displays a false-positive "No retries" green plaque when Chart 2 data fell back to the ledger source; the plaque only renders on warehouse-sourced signals where it reflects a real main-agent retry measurement
+
 ## 0.2.1 (2026-04-20)
 
 ### Added
