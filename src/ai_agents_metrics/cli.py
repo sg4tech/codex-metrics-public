@@ -98,6 +98,10 @@ from ai_agents_metrics.history.normalize import (
     normalize_codex_history as run_normalize_codex_history,
 )
 from ai_agents_metrics.observability import record_cli_invocation_observation
+from ai_agents_metrics.pricing_runtime import (  # noqa: F401 — re-exported as cli_module attributes
+    load_effective_pricing,
+    resolve_effective_pricing_path,
+)
 from ai_agents_metrics.public_boundary import (
     PublicBoundaryReport,
 )
@@ -138,12 +142,10 @@ from ai_agents_metrics.usage_resolution import (  # noqa: F401 — re-exported a
     USAGE_FIELD_PATTERNS,
     compute_event_cost_usd,
     find_usage_thread_id,
-    load_effective_pricing,
     load_pricing,
     parse_usage_event,
     resolve_codex_session_usage_window,
     resolve_codex_usage_window,
-    resolve_effective_pricing_path,
     resolve_pricing_model_alias,
     resolve_pricing_path,
     resolve_usage_session_window,
