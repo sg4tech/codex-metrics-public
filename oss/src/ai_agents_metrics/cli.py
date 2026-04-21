@@ -1243,6 +1243,17 @@ def build_parser() -> argparse.ArgumentParser:
         if act.dest not in _HIDDEN_FROM_TOPLEVEL_HELP
     ]
 
+    # Hide advanced / pipeline-internal commands from the top-level `--help`
+    # listing without unregistering them. The commands remain callable and
+    # `<cmd> --help` still renders their per-command help. The epilog lists
+    # them by name so users know they exist. This mutates a private argparse
+    # attribute (stable across Py 3.9–3.13) because argparse has no public API
+    # to mark a subparser as hidden after creation.
+    subparsers._choices_actions = [  # noqa: SLF001
+        act for act in subparsers._choices_actions
+        if act.dest not in _HIDDEN_FROM_TOPLEVEL_HELP
+    ]
+
     return parser
 
 
