@@ -1,3 +1,4 @@
+"""Derive before/after product-metric windows around retrospective events."""
 from __future__ import annotations
 
 import json

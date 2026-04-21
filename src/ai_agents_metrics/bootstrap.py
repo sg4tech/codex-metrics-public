@@ -1,3 +1,4 @@
+"""Repository scaffolding: metrics artifact, policy doc, and instructions-file block."""
 from __future__ import annotations
 
 import os

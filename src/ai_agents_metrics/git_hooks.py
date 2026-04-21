@@ -1,3 +1,4 @@
+"""Installers and checkers for the project-managed git hooks under .githooks/."""
 from __future__ import annotations
 
 import argparse

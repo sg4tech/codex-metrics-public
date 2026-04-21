@@ -1,3 +1,4 @@
+"""SQL schema for derived_* tables consumed by later analysis stages."""
 from __future__ import annotations
 
 import sqlite3

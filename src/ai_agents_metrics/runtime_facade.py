@@ -1,3 +1,4 @@
+"""Orchestration facade: the concrete ``CommandRuntime`` used by CLI command handlers."""
 from __future__ import annotations
 
 from decimal import Decimal

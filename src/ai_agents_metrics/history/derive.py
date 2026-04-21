@@ -1,3 +1,4 @@
+"""Derive stage: normalized rows → goals, attempts, timelines, retry chains."""
 from __future__ import annotations
 
 import json

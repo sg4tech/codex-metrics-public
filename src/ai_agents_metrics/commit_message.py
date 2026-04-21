@@ -1,3 +1,4 @@
+"""Commit-message validator enforcing the ``NO-TASK:`` / ``ARCH-NNN:`` format."""
 from __future__ import annotations
 
 import re

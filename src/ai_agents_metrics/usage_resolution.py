@@ -1,3 +1,4 @@
+"""Usage-window resolvers: Codex SQLite/SSE logs and Claude JSONL telemetry."""
 from __future__ import annotations
 
 import json

@@ -1,3 +1,4 @@
+"""Index-building and row-fetch helpers for the derive stage."""
 from __future__ import annotations
 
 import sqlite3

@@ -1,3 +1,4 @@
+"""Pricing-file loading and model-alias resolution for token→USD conversion."""
 from __future__ import annotations
 
 from pathlib import Path

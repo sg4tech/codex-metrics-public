@@ -1,3 +1,4 @@
+"""Dataclass ↔ ndjson-dict conversion for the canonical goal/entry records."""
 from __future__ import annotations
 
 from datetime import datetime

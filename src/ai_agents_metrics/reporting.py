@@ -1,3 +1,4 @@
+"""Operator-facing summary and markdown-report rendering for metrics data."""
 from __future__ import annotations
 
 import json

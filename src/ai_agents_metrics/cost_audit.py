@@ -1,3 +1,4 @@
+"""Audit which closed product goals have missing/partial cost coverage and why."""
 from __future__ import annotations
 
 import json

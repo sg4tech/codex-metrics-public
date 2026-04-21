@@ -1,3 +1,4 @@
+"""Normalize stage: raw_* warehouse rows → normalized_* analysis-friendly tables."""
 from __future__ import annotations
 
 import hashlib

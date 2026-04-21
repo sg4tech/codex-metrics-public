@@ -1,3 +1,4 @@
+"""Staged-file security scanner: secrets, private keys, dangerous patterns."""
 from __future__ import annotations
 
 import ast

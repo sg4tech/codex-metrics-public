@@ -1,3 +1,4 @@
+"""Ingest stage: ~/.codex and ~/.claude on-disk history → raw_* warehouse tables."""
 # pylint: disable=too-many-lines  # ingest.py handles all history ingestion stages; split into sub-stages is a tracked future task
 from __future__ import annotations
 
