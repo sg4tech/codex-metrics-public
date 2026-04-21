@@ -19,6 +19,11 @@ class _FakeRuntime:
     def __init__(self, report: CostAuditReport) -> None:
         self.report = report
 
+    def resolve_effective_pricing_path(self, *, cwd: Path, pricing_path: Path | None = None) -> Path:
+        assert cwd == Path.cwd()
+        assert pricing_path == Path("/pricing.json")
+        return Path("/pricing.json")
+
     def audit_cost_coverage(
         self,
         data: dict[str, object],

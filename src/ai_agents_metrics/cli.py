@@ -98,6 +98,10 @@ from ai_agents_metrics.history.normalize import (
     normalize_codex_history as run_normalize_codex_history,
 )
 from ai_agents_metrics.observability import record_cli_invocation_observation
+from ai_agents_metrics.pricing_runtime import (  # noqa: F401 — re-exported as cli_module attributes
+    load_effective_pricing,
+    resolve_effective_pricing_path,
+)
 from ai_agents_metrics.public_boundary import (
     PublicBoundaryReport,
 )
@@ -1530,66 +1534,66 @@ def _record_cli_invocation(args: argparse.Namespace) -> None:
 
 
 def main() -> int:
-    from ai_agents_metrics import commands
+    from ai_agents_metrics import commands, runtime_facade
 
     parser = build_parser()
     args = parser.parse_args()
     _record_cli_invocation(args)
 
     if args.command == "init":
-        return commands.handle_init(args, sys.modules[__name__])
+        return commands.handle_init(args, runtime_facade)
 
     if args.command == "show":
-        return commands.handle_show(args, sys.modules[__name__])
+        return commands.handle_show(args, runtime_facade)
 
     if args.command == "bootstrap":
-        return commands.handle_bootstrap(args, sys.modules[__name__])
+        return commands.handle_bootstrap(args, runtime_facade)
 
     if args.command == "install-self":
-        return commands.handle_install_self(args, sys.modules[__name__])
+        return commands.handle_install_self(args, runtime_facade)
 
     if args.command == "completion":
         print(render_completion(build_parser(), args.shell), end="")
         return 0
 
     if args.command == "start-task":
-        return commands.handle_start_task(args, sys.modules[__name__])
+        return commands.handle_start_task(args, runtime_facade)
 
     if args.command == "continue-task":
-        return commands.handle_continue_task(args, sys.modules[__name__])
+        return commands.handle_continue_task(args, runtime_facade)
 
     if args.command == "finish-task":
-        return commands.handle_finish_task(args, sys.modules[__name__])
+        return commands.handle_finish_task(args, runtime_facade)
 
     if args.command == "history-audit":
-        return commands.handle_audit_history(args, sys.modules[__name__])
+        return commands.handle_audit_history(args, runtime_facade)
 
     if args.command == "history-compare":
-        return commands.handle_compare_metrics_to_history(args, sys.modules[__name__])
+        return commands.handle_compare_metrics_to_history(args, runtime_facade)
 
     if args.command == "history-ingest":
-        return commands.handle_ingest_codex_history(args, sys.modules[__name__])
+        return commands.handle_ingest_codex_history(args, runtime_facade)
 
     if args.command == "history-normalize":
-        return commands.handle_normalize_codex_history(args, sys.modules[__name__])
+        return commands.handle_normalize_codex_history(args, runtime_facade)
 
     if args.command == "history-classify":
-        return commands.handle_classify_codex_history(args, sys.modules[__name__])
+        return commands.handle_classify_codex_history(args, runtime_facade)
 
     if args.command == "history-derive":
-        return commands.handle_derive_codex_history(args, sys.modules[__name__])
+        return commands.handle_derive_codex_history(args, runtime_facade)
 
     if args.command == "history-update":
-        return commands.handle_history_update(args, sys.modules[__name__])
+        return commands.handle_history_update(args, runtime_facade)
 
     if args.command == "derive-retro-timeline":
-        return commands.handle_derive_retro_timeline(args, sys.modules[__name__])
+        return commands.handle_derive_retro_timeline(args, runtime_facade)
 
     if args.command == "audit-cost-coverage":
-        return commands.handle_audit_cost_coverage(args, sys.modules[__name__])
+        return commands.handle_audit_cost_coverage(args, runtime_facade)
 
     if args.command == "verify-public-boundary":
-        return commands.handle_verify_public_boundary(args, sys.modules[__name__])
+        return commands.handle_verify_public_boundary(args, runtime_facade)
 
     if args.command == "security":
         report = security(
@@ -1600,25 +1604,25 @@ def main() -> int:
         return 0 if not report.findings else 1
 
     if args.command == "ensure-active-task":
-        return commands.handle_ensure_active_task(args, sys.modules[__name__])
+        return commands.handle_ensure_active_task(args, runtime_facade)
 
     if args.command == "sync-usage":
-        return commands.handle_sync_usage(args, sys.modules[__name__])
+        return commands.handle_sync_usage(args, runtime_facade)
 
     if args.command == "sync-codex-usage":
-        return commands.handle_sync_codex_usage(args, sys.modules[__name__])
+        return commands.handle_sync_codex_usage(args, runtime_facade)
 
     if args.command == "merge-tasks":
-        return commands.handle_merge_tasks(args, sys.modules[__name__])
+        return commands.handle_merge_tasks(args, runtime_facade)
 
     if args.command == "render-report":
-        return commands.handle_render_report(args, sys.modules[__name__])
+        return commands.handle_render_report(args, runtime_facade)
 
     if args.command == "render-html":
-        return commands.handle_render_html(args, sys.modules[__name__])
+        return commands.handle_render_html(args, runtime_facade)
 
     if args.command == "update":
-        return commands.handle_update(args, sys.modules[__name__])
+        return commands.handle_update(args, runtime_facade)
 
     parser.error("Unknown command")
     return 2

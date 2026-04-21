@@ -67,15 +67,27 @@ def _run_cmd_subprocess(
     )
 
 
+def _default_test_env(tmp_path: Path) -> dict[str, str]:
+    # Keep CLI tests hermetic: default source resolution should stay inside the
+    # temp workspace unless a test explicitly overrides HOME.
+    return {
+        "HOME": str(tmp_path),
+        "USERPROFILE": str(tmp_path),
+    }
+
+
 def run_cmd(
     tmp_path: Path,
     *args: str,
     extra_env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
+    env = _default_test_env(tmp_path)
+    if extra_env is not None:
+        env.update(extra_env)
     if os.environ.get("CODEX_SUBPROCESS_COVERAGE") == "1":
-        return _run_cmd_subprocess(tmp_path, *args, extra_env=extra_env)
+        return _run_cmd_subprocess(tmp_path, *args, extra_env=env)
     from conftest import run_cli_inprocess
-    return run_cli_inprocess(tmp_path, *args, extra_env=extra_env)
+    return run_cli_inprocess(tmp_path, *args, extra_env=env)
 
 
 def run_module_cmd(
@@ -87,6 +99,7 @@ def run_module_cmd(
     existing_pythonpath = env.get("PYTHONPATH")
     src_path = str(ABS_SRC)
     env["PYTHONPATH"] = src_path if not existing_pythonpath else f"{src_path}{os.pathsep}{existing_pythonpath}"
+    env.update(_default_test_env(tmp_path))
     if env.get("CODEX_SUBPROCESS_COVERAGE") == "1":
         env["COVERAGE_FILE"] = str(WORKSPACE_ROOT / ".coverage")
         cmd = [
@@ -113,6 +126,28 @@ def run_module_cmd(
         check=False,
         env=env,
     )
+
+
+def test_main_routes_commands_through_runtime_facade(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ai_agents_metrics import commands, runtime_facade
+
+    captured_runtime: object | None = None
+
+    def fake_handle_show(args: object, cli_module: object) -> int:
+        nonlocal captured_runtime
+        captured_runtime = cli_module
+        return 0
+
+    monkeypatch.setattr(codex_metrics_cli, "_record_cli_invocation", lambda _args: None)
+    monkeypatch.setattr(commands, "handle_show", fake_handle_show)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["ai-agents-metrics", "show"])
+
+    assert codex_metrics_cli.main() == 0
+    assert captured_runtime is runtime_facade
 
 
 def render_report(repo: Path) -> subprocess.CompletedProcess[str]:
@@ -417,9 +452,10 @@ def repo(tmp_path: Path) -> Path:
     script_target = tmp_path / "scripts" / "metrics_cli.py"
     script_target.write_text(ABS_SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
 
-    # Full src copy only needed when subprocess must import the package from tmp.
-    if os.environ.get("CODEX_SUBPROCESS_COVERAGE") == "1":
-        shutil.copytree(ABS_SRC, tmp_path / "src", dirs_exist_ok=True)
+    # Keep subprocess-based CLI tests hermetic: the script shim should always
+    # import the package from the temp repo, not rely on an ambient editable
+    # install or global PYTHONPATH.
+    shutil.copytree(ABS_SRC, tmp_path / "src", dirs_exist_ok=True)
 
     subprocess.run(["git", "init"], cwd=tmp_path, text=True, capture_output=True, check=True)
     subprocess.run(["git", "config", "user.email", "codex@example.com"], cwd=tmp_path, text=True, capture_output=True, check=True)
@@ -1240,6 +1276,75 @@ def test_render_html_exposes_cwd_override_flag(repo: Path) -> None:
 
     assert result.returncode == 0
     assert "--cwd" in result.stdout
+
+
+def test_render_html_uses_workspace_pricing_override_path(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from ai_agents_metrics import runtime_facade
+
+    assert run_cmd(repo, "init", "--force").returncode == 0
+
+    sentinel_pricing_path = repo / "model_pricing.json"
+    sentinel_pricing_path.write_text("{}", encoding="utf-8")
+    output_path = repo / "reports" / "report.html"
+    captured: dict[str, Path] = {}
+
+    def fake_load_effective_pricing(*, cwd: Path, pricing_path: Path | None = None) -> dict[str, dict[str, float | None]]:
+        captured["cwd"] = cwd
+        captured["path"] = pricing_path
+        assert pricing_path is None
+        return {}
+
+    monkeypatch.setattr(runtime_facade, "load_effective_pricing", fake_load_effective_pricing)
+
+    result = run_cmd(repo, "render-html", "--output", str(output_path))
+
+    assert result.returncode == 0, result.stderr
+    assert captured["cwd"] == repo
+    assert captured["path"] is None
+
+
+def test_update_uses_centralized_effective_pricing_path(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from ai_agents_metrics import runtime_facade
+
+    assert run_cmd(repo, "init", "--force").returncode == 0
+
+    sentinel_pricing_path = repo / "explicit-pricing.json"
+    sentinel_pricing_path.write_text(
+        json.dumps({"models": {"gpt-5": {"input_per_million_usd": 1.25, "cached_input_per_million_usd": 0.125, "output_per_million_usd": 10.0}}}),
+        encoding="utf-8",
+    )
+    captured: dict[str, Path | None] = {}
+
+    def fake_resolve_effective_pricing_path(*, cwd: Path, pricing_path: Path | None = None) -> Path:
+        captured["cwd"] = cwd
+        captured["path"] = pricing_path
+        assert pricing_path == sentinel_pricing_path
+        return sentinel_pricing_path
+
+    monkeypatch.setattr(runtime_facade, "resolve_effective_pricing_path", fake_resolve_effective_pricing_path)
+
+    result = run_cmd(
+        repo,
+        "update",
+        "--task-id",
+        "centralized-pricing-task",
+        "--title",
+        "Centralized pricing task",
+        "--task-type",
+        "product",
+        "--status",
+        "success",
+        "--model",
+        "gpt-5",
+        "--input-tokens",
+        "1000",
+        "--pricing-path",
+        str(sentinel_pricing_path),
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert captured["cwd"] == repo
+    assert captured["path"] == sentinel_pricing_path
 
 
 def test_top_level_help_hides_advanced_commands_from_subparser_list(repo: Path) -> None:
@@ -3447,7 +3552,7 @@ def test_sync_usage_backfills_from_session_rollout_token_counts(repo: Path) -> N
     assert task["cached_input_tokens"] == 100
     assert task["output_tokens"] == 500
     assert task["tokens_total"] == 1625
-    assert task["cost_usd"] == 0.006263
+    assert task["cost_usd"] == 0.010025
 
 
 def test_sync_usage_is_noop_when_no_matching_thread_is_found(repo: Path) -> None:

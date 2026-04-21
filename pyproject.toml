@@ -169,6 +169,49 @@ forbidden_modules = [
     "ai_agents_metrics.usage_backends",
 ]
 
+[[tool.importlinter.contracts]]
+name = "Package modules must not import cli outside the entrypoint shim"
+type = "forbidden"
+source_modules = [
+    "ai_agents_metrics._report_aggregation",
+    "ai_agents_metrics._report_buckets",
+    "ai_agents_metrics._report_template",
+    "ai_agents_metrics._version",
+    "ai_agents_metrics.bootstrap",
+    "ai_agents_metrics.commands",
+    "ai_agents_metrics.commit_message",
+    "ai_agents_metrics.completion",
+    "ai_agents_metrics.cost_audit",
+    "ai_agents_metrics.event_store",
+    "ai_agents_metrics.file_immutability",
+    "ai_agents_metrics.git_hooks",
+    "ai_agents_metrics.git_state",
+    "ai_agents_metrics.html_report",
+    "ai_agents_metrics.observability",
+    "ai_agents_metrics.pricing_runtime",
+    "ai_agents_metrics.public_boundary",
+    "ai_agents_metrics.redaction",
+    "ai_agents_metrics.reporting",
+    "ai_agents_metrics.retro_timeline",
+    "ai_agents_metrics.runtime_facade",
+    "ai_agents_metrics.security",
+    "ai_agents_metrics.storage",
+    "ai_agents_metrics.usage_backends",
+    "ai_agents_metrics.usage_resolution",
+    "ai_agents_metrics.workflow_fsm",
+    "ai_agents_metrics.history.audit",
+    "ai_agents_metrics.history.classify",
+    "ai_agents_metrics.history.compare",
+    "ai_agents_metrics.history.compare_store",
+    "ai_agents_metrics.history.derive",
+    "ai_agents_metrics.history.derive_build",
+    "ai_agents_metrics.history.derive_insert",
+    "ai_agents_metrics.history.derive_schema",
+    "ai_agents_metrics.history.ingest",
+    "ai_agents_metrics.history.normalize",
+]
+forbidden_modules = ["ai_agents_metrics.cli"]
+
 [tool.pylint.main]
 # cli.py, commands.py, history/ingest.py are known oversized files tracked as
 # architectural debt (ARCH). They are excluded here so the check guards new code
