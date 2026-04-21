@@ -150,6 +150,31 @@ def test_main_routes_commands_through_runtime_facade(
     assert captured_runtime is runtime_facade
 
 
+def test_main_passes_runtime_facade_to_every_command_handler() -> None:
+    """Static contract: every ``commands.handle_*`` call in ``cli.main()`` must
+    receive the ``runtime_facade`` module, not ``sys.modules[__name__]``.
+
+    Catches the regression where a new subcommand is added but still dispatched
+    via the legacy ``sys.modules[__name__]`` path.
+    """
+    import inspect
+    import re
+
+    source = inspect.getsource(codex_metrics_cli.main)
+
+    assert "sys.modules[__name__]" not in source, (
+        "cli.main() must route through runtime_facade, not sys.modules[__name__]"
+    )
+
+    handler_calls = re.findall(r"commands\.handle_\w+\(\s*args,\s*(\w+)\s*\)", source)
+    assert handler_calls, "expected commands.handle_* dispatch calls in cli.main()"
+
+    offenders = [runtime for runtime in handler_calls if runtime != "runtime_facade"]
+    assert not offenders, (
+        f"these commands.handle_* calls do not pass runtime_facade: {offenders}"
+    )
+
+
 def render_report(repo: Path) -> subprocess.CompletedProcess[str]:
     return run_cmd(repo, "render-report")
 

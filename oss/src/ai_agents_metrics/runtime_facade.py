@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 from ai_agents_metrics.bootstrap import bootstrap_project as run_bootstrap_project
 from ai_agents_metrics.cost_audit import (
@@ -144,6 +144,7 @@ __all__ = [
     "CODEX_LOGS_PATH",
     "CODEX_STATE_PATH",
     "EVENTS_NDJSON_PATH",
+    "GoalUsageResolution",
     "METRICS_JSON_PATH",
     "PRICING_JSON_PATH",
     "RAW_WAREHOUSE_PATH",
@@ -384,6 +385,29 @@ def bootstrap_project(
     return result.messages
 
 
+class GoalUsageResolution(NamedTuple):
+    """Named return type for :func:`resolve_goal_usage_updates`.
+
+    Subclassing ``NamedTuple`` preserves the existing positional tuple contract
+    (e.g. ``*_, detected = resolve_goal_usage_updates(...)``) while giving
+    internal callers attribute access so mypy flags field-order mistakes.
+    """
+
+    usage_cost_usd: float | None
+    usage_total_tokens: int | None
+    usage_input_tokens: int | None
+    usage_cached_input_tokens: int | None
+    usage_output_tokens: int | None
+    usage_model: str | None
+    auto_cost_usd: float | None
+    auto_total_tokens: int | None
+    auto_input_tokens: int | None
+    auto_cached_input_tokens: int | None
+    auto_output_tokens: int | None
+    auto_model: str | None
+    detected_agent_name: str | None
+
+
 def resolve_goal_usage_updates(
     *,
     task: GoalRecord,
@@ -404,21 +428,7 @@ def resolve_goal_usage_updates(
     started_at: str | None,
     finished_at: str | None,
     claude_root: Path = CLAUDE_ROOT,
-) -> tuple[
-    float | None,
-    int | None,
-    int | None,
-    int | None,
-    int | None,
-    str | None,
-    float | None,
-    int | None,
-    int | None,
-    int | None,
-    int | None,
-    str | None,
-    str | None,
-]:
+) -> GoalUsageResolution:
     explicit_cost_fields_used = cost_usd_add is not None or cost_usd_set is not None
     explicit_token_fields_used = tokens_add is not None or tokens_set is not None
 
@@ -502,20 +512,20 @@ def resolve_goal_usage_updates(
             if task.agent_name is None:
                 detected_agent_name = window.backend_name
 
-    return (
-        usage_cost_usd,
-        usage_total_tokens,
-        usage_input_tokens,
-        usage_cached_input_tokens,
-        usage_output_tokens,
-        usage_model,
-        auto_cost_usd,
-        auto_total_tokens,
-        auto_input_tokens,
-        auto_cached_input_tokens,
-        auto_output_tokens,
-        auto_model,
-        detected_agent_name,
+    return GoalUsageResolution(
+        usage_cost_usd=usage_cost_usd,
+        usage_total_tokens=usage_total_tokens,
+        usage_input_tokens=usage_input_tokens,
+        usage_cached_input_tokens=usage_cached_input_tokens,
+        usage_output_tokens=usage_output_tokens,
+        usage_model=usage_model,
+        auto_cost_usd=auto_cost_usd,
+        auto_total_tokens=auto_total_tokens,
+        auto_input_tokens=auto_input_tokens,
+        auto_cached_input_tokens=auto_cached_input_tokens,
+        auto_output_tokens=auto_output_tokens,
+        auto_model=auto_model,
+        detected_agent_name=detected_agent_name,
     )
 
 
@@ -581,21 +591,7 @@ def upsert_task(
         task_index = len(tasks) - 1
 
     task = goal_from_dict(tasks[task_index])
-    (
-        usage_cost_usd,
-        usage_total_tokens,
-        usage_input_tokens,
-        usage_cached_input_tokens,
-        usage_output_tokens,
-        usage_model,
-        auto_cost_usd,
-        auto_total_tokens,
-        auto_input_tokens,
-        auto_cached_input_tokens,
-        auto_output_tokens,
-        auto_model,
-        detected_agent_name,
-    ) = resolve_goal_usage_updates(
+    resolution = resolve_goal_usage_updates(
         task=task,
         usage_backend=usage_backend,
         cost_usd_add=cost_usd_add,
@@ -630,22 +626,22 @@ def upsert_task(
         output_tokens_add=None,
         tokens_add=tokens_add,
         tokens_set=tokens_set,
-        usage_cost_usd=usage_cost_usd,
-        usage_input_tokens=usage_input_tokens,
-        usage_cached_input_tokens=usage_cached_input_tokens,
-        usage_output_tokens=usage_output_tokens,
-        usage_total_tokens=usage_total_tokens,
-        auto_cost_usd=auto_cost_usd,
-        auto_input_tokens=auto_input_tokens,
-        auto_cached_input_tokens=auto_cached_input_tokens,
-        auto_output_tokens=auto_output_tokens,
-        auto_total_tokens=auto_total_tokens,
+        usage_cost_usd=resolution.usage_cost_usd,
+        usage_input_tokens=resolution.usage_input_tokens,
+        usage_cached_input_tokens=resolution.usage_cached_input_tokens,
+        usage_output_tokens=resolution.usage_output_tokens,
+        usage_total_tokens=resolution.usage_total_tokens,
+        auto_cost_usd=resolution.auto_cost_usd,
+        auto_input_tokens=resolution.auto_input_tokens,
+        auto_cached_input_tokens=resolution.auto_cached_input_tokens,
+        auto_output_tokens=resolution.auto_output_tokens,
+        auto_total_tokens=resolution.auto_total_tokens,
         model=model,
-        usage_model=usage_model,
-        auto_model=auto_model,
+        usage_model=resolution.usage_model,
+        auto_model=resolution.auto_model,
         failure_reason=failure_reason,
         notes=notes,
-        agent_name=detected_agent_name,
+        agent_name=resolution.detected_agent_name,
         started_at=started_at,
         finished_at=finished_at,
         result_fit=result_fit,

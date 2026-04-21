@@ -4,6 +4,10 @@ All notable changes to `ai-agents-metrics` will be recorded here.
 
 ## Unreleased
 
+### Changed
+
+- Removed the implicit `gpt-5.4` → `gpt-5` / `gpt-5.4-mini` → `gpt-5-mini` alias from `resolve_pricing_model_alias`. `gpt-5.4*` models now have their own entries in the bundled `model_pricing.json` with correct pricing ($2.5/$15 per MTok input/output, vs the old aliased $1.25/$10). **User impact:** if you have a custom workspace `model_pricing.json` that predates this release and lacks `gpt-5.4*` entries, Codex `gpt-5.4` sessions will no longer resolve a price — `cost_usd` falls back to `None` instead of being computed against `gpt-5` rates. Fix: copy the new entries from the bundled file, or delete your override and let the bundled pricing be used
+
 ## 0.2.2 (2026-04-21)
 
 ### Added
