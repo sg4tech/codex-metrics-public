@@ -67,15 +67,27 @@ def _run_cmd_subprocess(
     )
 
 
+def _default_test_env(tmp_path: Path) -> dict[str, str]:
+    # Keep CLI tests hermetic: default source resolution should stay inside the
+    # temp workspace unless a test explicitly overrides HOME.
+    return {
+        "HOME": str(tmp_path),
+        "USERPROFILE": str(tmp_path),
+    }
+
+
 def run_cmd(
     tmp_path: Path,
     *args: str,
     extra_env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
+    env = _default_test_env(tmp_path)
+    if extra_env is not None:
+        env.update(extra_env)
     if os.environ.get("CODEX_SUBPROCESS_COVERAGE") == "1":
-        return _run_cmd_subprocess(tmp_path, *args, extra_env=extra_env)
+        return _run_cmd_subprocess(tmp_path, *args, extra_env=env)
     from conftest import run_cli_inprocess
-    return run_cli_inprocess(tmp_path, *args, extra_env=extra_env)
+    return run_cli_inprocess(tmp_path, *args, extra_env=env)
 
 
 def run_module_cmd(
@@ -87,6 +99,7 @@ def run_module_cmd(
     existing_pythonpath = env.get("PYTHONPATH")
     src_path = str(ABS_SRC)
     env["PYTHONPATH"] = src_path if not existing_pythonpath else f"{src_path}{os.pathsep}{existing_pythonpath}"
+    env.update(_default_test_env(tmp_path))
     if env.get("CODEX_SUBPROCESS_COVERAGE") == "1":
         env["COVERAGE_FILE"] = str(WORKSPACE_ROOT / ".coverage")
         cmd = [
