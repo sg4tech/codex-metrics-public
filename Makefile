@@ -19,6 +19,11 @@ build-check:
 arch-check:
 	PYTHONPATH=src ./.venv/bin/lint-imports --config oss/pyproject.toml
 
+# Override: pylint auto-discovery skips the pyproject.toml in oss/ when it is
+# invoked from the private root, so pass the config path explicitly.
+pylint-check:
+	./.venv/bin/pylint --rcfile=oss/pyproject.toml src/
+
 # When run from the private repo, check the oss/ subtree specifically
 public-overlay-verify:
 	./.venv/bin/python -m codex_metrics verify-public-boundary --repo-root oss --rules-path oss/config/public-boundary-rules.toml
