@@ -218,63 +218,49 @@ forbidden_modules = ["ai_agents_metrics.cli"]
 # carry per-file pylint: disable comments for C0302 (too-many-lines) until those files are split.
 
 [tool.pylint."messages control"]
-disable = "all"
-# All three tiers hard-fail (build-blocking). See docs/architecture/ARCH-020
-# and ARCH-021 for the per-file `# pylint: disable=...` rationale on canonical
-# data schemas, CLI-contract boundary functions, and architecturally-required
-# lazy imports.
-# Tier 1 — correctness / file-size gates:
-#   E0401 import-error, E0602 undefined-variable, E1101 no-member, E1120 no-value-for-argument
-#   W0102 dangerous-default-value, W0611 unused-import, W0612 unused-variable,
-#   W0718 broad-exception-caught, W1203 logging-fstring-interpolation
-#   R0401 cyclic-import, C0302 too-many-lines
-# Tier 2 — complexity gates (thresholds in [tool.pylint.design] below):
-#   R0912 too-many-branches, R0913 too-many-arguments, R0914 too-many-locals,
-#   R0915 too-many-statements, R0902 too-many-instance-attributes,
-#   W0401 wildcard-import, C0411 wrong-import-order
-# Tier 3 — code-quality gates:
-#   W0404 reimported, W0621 redefined-outer-name, W1510 subprocess-run-check,
-#   R1721 unnecessary-comprehension, R0916 too-many-boolean-expressions,
-#   C0325 superfluous-parens, R0917 too-many-positional-arguments,
-#   C0415 import-outside-toplevel, W0613 unused-argument,
-#   C0301 line-too-long (max-line-length=250),
-#   R0904 too-many-public-methods, W0212 protected-access,
-#   R0801 duplicate-code (min-similarity-lines=40)
-# Explicitly excluded (see ARCH-021): C0114/C0115/C0116 (docstring-per-private-
-# helper busywork), R0903 (fires on @dataclass), R0911 (fires on cli.main
-# dispatch chain).
-enable = [
-    "E0401",
-    "E0602",
-    "E1101",
-    "E1120",
-    "W0102",
-    "W0611",
-    "W0612",
-    "W0718",
-    "W1203",
-    "R0401",
-    "C0302",
-    "R0912",
-    "R0913",
-    "R0914",
-    "R0915",
-    "R0902",
-    "W0401",
-    "C0411",
-    "W0404",
-    "W0621",
-    "W1510",
-    "R1721",
-    "R0916",
-    "C0325",
-    "R0917",
-    "C0415",
-    "W0613",
-    "C0301",
-    "R0904",
-    "W0212",
-    "R0801",
+# Pylint runs with its full default rule set. Thresholds for the complexity
+# family (R09xx) live in [tool.pylint.design]; line-length, docstring, and
+# similarity knobs live in their dedicated sections below.
+#
+# The `disable` list below enumerates the rules we deliberately keep off,
+# each with a reason. See docs/architecture/ARCH-019..ARCH-022 for the
+# history of how this list was curated and the per-file inline disables
+# that cover canonical data schemas, CLI-contract boundary functions, and
+# architecturally-required lazy imports.
+disable = [
+    # Docstring-per-private-helper busywork; documentation lives in markdown
+    # guides under docs/ and in the CLI --help surface.
+    "missing-module-docstring",     # C0114
+    "missing-class-docstring",      # C0115
+    "missing-function-docstring",   # C0116
+    # Fires on every @dataclass and Protocol — wrong signal for this codebase.
+    "too-few-public-methods",       # R0903
+    # Fires on the intentional cli.main dispatch chain that
+    # test_main_passes_runtime_facade_to_every_command_handler enforces.
+    "too-many-return-statements",   # R0911
+    # Locally-disabled / suppressed-message informational notes — we keep
+    # inline disables deliberately and don't want the meta-warnings.
+    "locally-disabled",             # I0011
+    "suppressed-message",           # I0020
+    "use-symbolic-message-instead", # I0023
+    # Naming policy is enforced by ruff + domain-specific rules; pylint's
+    # default conventions collide with our _private_helper naming.
+    "invalid-name",                 # C0103
+    # Import-linter and our own [tool.importlinter] contracts cover layer
+    # boundaries and cyclic risk; pylint's noisier import-order rules would
+    # just duplicate that signal.
+    "ungrouped-imports",            # C0412
+    # Line-ending policy is handled by ruff/pre-commit; pylint flags every
+    # LF line on Windows checkouts otherwise.
+    "unnecessary-lambda-assignment", # C3001 — legitimate in adapters
+    # Allow implicit inheritance from object (Python 3 default).
+    "useless-object-inheritance",   # R0205
+    # Broad-except caught by W0718 which we DO enable; bare-except (W0702)
+    # is covered by ruff E722.
+    "bare-except",                  # W0702
+    # TODO/FIXME markers are intentionally kept in code for tracked debt;
+    # they're captured in docs/architecture/*.md follow-up sections.
+    "fixme",                        # W0511
 ]
 
 [tool.pylint.design]
