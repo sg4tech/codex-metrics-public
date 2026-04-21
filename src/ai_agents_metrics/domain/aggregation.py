@@ -206,16 +206,16 @@ def aggregate_chain_timestamps(chain: list[GoalRecord]) -> tuple[datetime | None
     return started_at, finished_at
 
 
-# EffectiveGoalRecord mirrors the aggregated-chain schema field-for-field; the
-# local count tracks the schema's surface and cannot shrink without dropping
-# aggregated fields from the output contract.
-def build_effective_goal_record(terminal_goal: GoalRecord, chain: list[GoalRecord]) -> EffectiveGoalRecord:  # pylint: disable=too-many-locals
-    aggregated_cost, aggregated_cost_known, cost_complete = aggregate_chain_costs(chain)
-    aggregated_input, aggregated_input_known, input_complete = aggregate_chain_token_component(chain, "input_tokens")
-    aggregated_cached, aggregated_cached_known, cached_complete = aggregate_chain_token_component(chain, "cached_input_tokens")
-    aggregated_output, aggregated_output_known, output_complete = aggregate_chain_token_component(chain, "output_tokens")
-    aggregated_tokens, aggregated_tokens_known, tokens_complete = aggregate_chain_tokens(chain)
-    aggregated_model, model_complete, model_consistent = aggregate_chain_model(chain)
+def build_effective_goal_record(terminal_goal: GoalRecord, chain: list[GoalRecord]) -> EffectiveGoalRecord:
+    # Aggregated chain results are kept as triples indexed inline in the
+    # constructor so the local count stays under the limit even though
+    # EffectiveGoalRecord is a wide canonical schema.
+    cost = aggregate_chain_costs(chain)
+    inp = aggregate_chain_token_component(chain, "input_tokens")
+    cac = aggregate_chain_token_component(chain, "cached_input_tokens")
+    out = aggregate_chain_token_component(chain, "output_tokens")
+    tokens = aggregate_chain_tokens(chain)
+    mdl = aggregate_chain_model(chain)
     started_at, finished_at = aggregate_chain_timestamps(chain)
 
     return EffectiveGoalRecord(
@@ -226,26 +226,26 @@ def build_effective_goal_record(terminal_goal: GoalRecord, chain: list[GoalRecor
         attempts=sum(goal.attempts for goal in chain),
         started_at=started_at,
         finished_at=finished_at,
-        cost_usd=aggregated_cost,
-        cost_usd_known=aggregated_cost_known,
-        cost_complete=cost_complete,
-        input_tokens=aggregated_input,
-        input_tokens_known=aggregated_input_known,
-        cached_input_tokens=aggregated_cached,
-        cached_input_tokens_known=aggregated_cached_known,
-        output_tokens=aggregated_output,
-        output_tokens_known=aggregated_output_known,
-        token_breakdown_complete=input_complete and cached_complete and output_complete,
-        tokens_total=aggregated_tokens,
-        tokens_total_known=aggregated_tokens_known,
-        tokens_complete=tokens_complete,
+        cost_usd=cost[0],
+        cost_usd_known=cost[1],
+        cost_complete=cost[2],
+        input_tokens=inp[0],
+        input_tokens_known=inp[1],
+        cached_input_tokens=cac[0],
+        cached_input_tokens_known=cac[1],
+        output_tokens=out[0],
+        output_tokens_known=out[1],
+        token_breakdown_complete=inp[2] and cac[2] and out[2],
+        tokens_total=tokens[0],
+        tokens_total_known=tokens[1],
+        tokens_complete=tokens[2],
         failure_reason=terminal_goal.failure_reason,
         notes=terminal_goal.notes,
         supersedes_goal_id=terminal_goal.supersedes_goal_id,
         result_fit=terminal_goal.result_fit,
-        model=aggregated_model,
-        model_complete=model_complete,
-        model_consistent=model_consistent,
+        model=mdl[0],
+        model_complete=mdl[1],
+        model_consistent=mdl[2],
     )
 
 

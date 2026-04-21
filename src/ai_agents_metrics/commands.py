@@ -4,9 +4,11 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import sqlite3
 import stat
 import sys
 from argparse import Namespace
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Protocol
@@ -1174,20 +1176,21 @@ def handle_render_report(args: Namespace, cli_module: CommandRuntime) -> int:
     return 0
 
 
+@dataclass(frozen=True)
+class _WarehouseRenderRows:
+    retry: dict[str, dict[str, int]] | None = None
+    tokens: list[tuple[str, str | None, int, int, int]] | None = None
+    practice: list[tuple[str, str, int]] | None = None
+
+
 def _load_render_html_warehouse_rows(
     warehouse_path: Path, cwd: str
-) -> tuple[
-    dict[str, dict[str, int]] | None,
-    list[tuple[str, str | None, int, int, int]] | None,
-    list[tuple[str, str, int]] | None,
-]:
+) -> _WarehouseRenderRows:
     """Read retry/token/practice rows from the warehouse; return three-way Nones on error.
 
     The queries pin to the given cwd so cross-repo rows don't bleed in. See
     `handle_render_html` for the ledger-fallback rationale.
     """
-    import sqlite3  # pylint: disable=import-outside-toplevel
-
     try:
         with sqlite3.connect(warehouse_path) as conn:
             # Use main_attempt_count (H-040 classifier) to distinguish real
@@ -1231,7 +1234,7 @@ def _load_render_html_warehouse_rows(
                 (cwd,),
             ).fetchall()
     except (sqlite3.Error, OSError):
-        return None, None, None
+        return _WarehouseRenderRows()
 
     by_day: dict[str, dict[str, int]] = {}
     for last_seen_at, main_attempts in retry_rows:
@@ -1241,9 +1244,11 @@ def _load_render_html_warehouse_rows(
         by_day[day]["threads"] += 1
         if main_attempts and main_attempts > 1:
             by_day[day]["retry_threads"] += 1
-    warehouse_tokens = list(token_rows)
-    warehouse_practice = list(practice_rows)
-    return by_day, warehouse_tokens, warehouse_practice
+    return _WarehouseRenderRows(
+        retry=by_day,
+        tokens=list(token_rows),
+        practice=list(practice_rows),
+    )
 
 
 def _safe_load_effective_pricing(
@@ -1273,54 +1278,43 @@ def _resolve_render_html_cwd_and_warehouse(args: Namespace, metrics_path: Path) 
     return cwd, warehouse_path
 
 
-def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:  # pylint: disable=too-many-locals
-    # Already decomposed into _resolve_render_html_cwd_and_warehouse,
-    # _load_render_html_warehouse_rows, _safe_load_effective_pricing, and
-    # _render_html_source_message. The remaining locals are the invocation
-    # surface (args, imports, metrics/output paths, warehouse triple, chart
-    # data, rendered html) that further extraction would obscure.
+def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:
     metrics_path = Path(args.metrics_path)
     output_path = Path(args.output)
-    days: int | None = args.days
-
     data = load_metrics(metrics_path)
-    goals: list[dict] = data.get("goals", [])
 
-    warehouse_retry: dict[str, dict[str, int]] | None = None
-    warehouse_tokens: list[tuple[str, str | None, int, int, int]] | None = None
-    warehouse_practice: list[tuple[str, str, int]] | None = None
     cwd, warehouse_path = _resolve_render_html_cwd_and_warehouse(args, metrics_path)
     warehouse_state = check_warehouse_state(warehouse_path, cwd)
     # Only query warehouse when it will actually yield usable rows. An empty
     # empty_for_cwd path would otherwise produce "warehouse-source" charts
     # with all-zero values, conflicting with the ledger-fallback badge and
     # callout shown to the user.
-    if warehouse_state.get("status") == "ok" and warehouse_path.is_file():
-        warehouse_retry, warehouse_tokens, warehouse_practice = (
-            _load_render_html_warehouse_rows(warehouse_path, cwd)
-        )
-
-    # Model pricing for token-cost breakdown in chart 3; None if unavailable.
-    pricing = _safe_load_effective_pricing(_cli_module)
+    warehouse_rows = (
+        _load_render_html_warehouse_rows(warehouse_path, cwd)
+        if warehouse_state.get("status") == "ok" and warehouse_path.is_file()
+        else _WarehouseRenderRows()
+    )
 
     chart_data = aggregate_report_data(
-        goals, days,
-        warehouse_retry=warehouse_retry,
-        warehouse_tokens=warehouse_tokens,
-        pricing=pricing,
-        warehouse_practice=warehouse_practice,
+        data.get("goals", []),
+        args.days,
+        warehouse_retry=warehouse_rows.retry,
+        warehouse_tokens=warehouse_rows.tokens,
+        pricing=_safe_load_effective_pricing(_cli_module),
+        warehouse_practice=warehouse_rows.practice,
         warehouse_state=warehouse_state,
     )
-    generated_at = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    html = render_html_report(chart_data, generated_at)
+    html = render_html_report(
+        chart_data, datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")
     print(_render_html_source_message(
         output_path,
-        warehouse_retry=warehouse_retry,
-        warehouse_tokens=warehouse_tokens,
-        warehouse_practice=warehouse_practice,
+        warehouse_retry=warehouse_rows.retry,
+        warehouse_tokens=warehouse_rows.tokens,
+        warehouse_practice=warehouse_rows.practice,
         warehouse_state=warehouse_state,
     ))
     return 0
