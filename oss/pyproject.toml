@@ -219,9 +219,10 @@ forbidden_modules = ["ai_agents_metrics.cli"]
 
 [tool.pylint."messages control"]
 disable = "all"
-# Both tiers now hard-fail (build-blocking). See docs/architecture/ARCH-020 for
-# the rationale and the per-file `# pylint: disable=...` annotations used on
-# canonical data schemas and CLI-contract boundary functions.
+# All three tiers hard-fail (build-blocking). See docs/architecture/ARCH-020
+# and ARCH-021 for the per-file `# pylint: disable=...` rationale on canonical
+# data schemas, CLI-contract boundary functions, and architecturally-required
+# lazy imports.
 # Tier 1 — correctness / file-size gates:
 #   E0401 import-error, E0602 undefined-variable, E1101 no-member, E1120 no-value-for-argument
 #   W0102 dangerous-default-value, W0611 unused-import, W0612 unused-variable,
@@ -231,6 +232,12 @@ disable = "all"
 #   R0912 too-many-branches, R0913 too-many-arguments, R0914 too-many-locals,
 #   R0915 too-many-statements, R0902 too-many-instance-attributes,
 #   W0401 wildcard-import, C0411 wrong-import-order
+# Tier 3 — code-quality gates:
+#   W0404 reimported, W0621 redefined-outer-name, W1510 subprocess-run-check,
+#   R1721 unnecessary-comprehension, R0916 too-many-boolean-expressions,
+#   C0325 superfluous-parens, R0917 too-many-positional-arguments,
+#   C0415 import-outside-toplevel, W0613 unused-argument,
+#   C0301 line-too-long (max-line-length=250)
 enable = [
     "E0401",
     "E0602",
@@ -250,6 +257,16 @@ enable = [
     "R0902",
     "W0401",
     "C0411",
+    "W0404",
+    "W0621",
+    "W1510",
+    "R1721",
+    "R0916",
+    "C0325",
+    "R0917",
+    "C0415",
+    "W0613",
+    "C0301",
 ]
 
 [tool.pylint.design]
@@ -259,3 +276,6 @@ max-locals = 20
 max-branches = 15
 max-statements = 60
 max-attributes = 10
+
+[tool.pylint.format]
+max-line-length = 250

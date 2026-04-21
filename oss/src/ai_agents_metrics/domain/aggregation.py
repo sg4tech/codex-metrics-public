@@ -535,6 +535,10 @@ def normalize_legacy_metrics_data(data: dict[str, Any]) -> None:
 
 
 def load_metrics(path: Path) -> dict[str, Any]:
+    # Lazy by contract: the "Domain layer must not import from CLI or
+    # orchestration" import-linter rule treats event_store as infrastructure
+    # that is only reached at runtime, not a module-level domain dependency.
+    # pylint: disable-next=import-outside-toplevel
     from ai_agents_metrics.event_store import replay_events
 
     goals_list, entries_list = replay_events(path)
@@ -852,6 +856,7 @@ def _apply_int_token_update(
     task: GoalRecord,
     field: str,
     validate_name: str,
+    *,
     add_val: int | None,
     usage_val: int | None,
     auto_val: int | None,
@@ -960,9 +965,18 @@ def apply_goal_updates(  # pylint: disable=too-many-arguments,too-many-locals
         task.attempts = task.attempts + attempts_delta
 
     _apply_cost_update(task, cost_usd_set, cost_usd_add, usage_cost_usd, auto_cost_usd)
-    _apply_int_token_update(task, "input_tokens", "input_tokens_add", input_tokens_add, usage_input_tokens, auto_input_tokens)
-    _apply_int_token_update(task, "cached_input_tokens", "cached_input_tokens_add", cached_input_tokens_add, usage_cached_input_tokens, auto_cached_input_tokens)
-    _apply_int_token_update(task, "output_tokens", "output_tokens_add", output_tokens_add, usage_output_tokens, auto_output_tokens)
+    _apply_int_token_update(
+        task, "input_tokens", "input_tokens_add",
+        add_val=input_tokens_add, usage_val=usage_input_tokens, auto_val=auto_input_tokens,
+    )
+    _apply_int_token_update(
+        task, "cached_input_tokens", "cached_input_tokens_add",
+        add_val=cached_input_tokens_add, usage_val=usage_cached_input_tokens, auto_val=auto_cached_input_tokens,
+    )
+    _apply_int_token_update(
+        task, "output_tokens", "output_tokens_add",
+        add_val=output_tokens_add, usage_val=usage_output_tokens, auto_val=auto_output_tokens,
+    )
     _apply_total_tokens_update(task, tokens_set, tokens_add, usage_total_tokens, auto_total_tokens)
     _apply_model_update(task, usage_model, model, auto_model)
 
@@ -983,6 +997,23 @@ def apply_goal_updates(  # pylint: disable=too-many-arguments,too-many-locals
         task.finished_at = parse_iso_datetime_flexible(finished_at, "finished_at")
 
 
+def _needs_goal_window_nudge(task: GoalRecord) -> bool:
+    """True when a closed product goal has a zero-duration window and no usage.
+
+    The caller widens `started_at` by one second so the window covers the real
+    work and automatic usage recovery has a non-empty interval to look at.
+    """
+    return (
+        task.goal_type == "product"
+        and task.status in {"success", "fail"}
+        and task.cost_usd is None
+        and task.tokens_total is None
+        and task.started_at is not None
+        and task.finished_at is not None
+        and task.started_at == task.finished_at
+    )
+
+
 def finalize_goal_update(task: GoalRecord) -> None:
     if task.status in {"success", "fail"} and task.attempts == 0:
         task.attempts = 1
@@ -991,16 +1022,8 @@ def finalize_goal_update(task: GoalRecord) -> None:
         if task.started_at is not None and finished_dt < task.started_at:
             finished_dt = task.started_at
         task.finished_at = finished_dt
-    if (
-        task.goal_type == "product"
-        and task.status in {"success", "fail"}
-        and task.cost_usd is None
-        and task.tokens_total is None
-        and task.started_at is not None
-        and task.finished_at is not None
-    ):
-        if task.started_at == task.finished_at:
-            task.started_at = task.started_at - timedelta(seconds=1)
+    if _needs_goal_window_nudge(task) and task.started_at is not None:
+        task.started_at = task.started_at - timedelta(seconds=1)
     if task.status == "success":
         task.failure_reason = None
 

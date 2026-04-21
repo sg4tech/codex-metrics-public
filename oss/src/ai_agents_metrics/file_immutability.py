@@ -58,7 +58,7 @@ class FileImmutabilityBackend:
         finally:
             if locked:
                 with contextlib.suppress(subprocess.CalledProcessError, OSError):
-                    subprocess.run([*unlock_command, tmp_path], capture_output=True)
+                    subprocess.run([*unlock_command, tmp_path], capture_output=True, check=False)
             with contextlib.suppress(OSError):
                 os.unlink(tmp_path)
 

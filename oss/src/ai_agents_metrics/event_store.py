@@ -17,6 +17,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from ai_agents_metrics.domain.time_utils import now_utc_iso
+
 EVENT_TYPES: frozenset[str] = frozenset(
     {
         "goal_started",
@@ -59,8 +61,6 @@ def append_event(
         raise ValueError(f"Unknown event type: {event_type!r}. Must be one of {sorted(EVENT_TYPES)}")
 
     if ts is None:
-        from ai_agents_metrics.domain.time_utils import now_utc_iso
-
         ts = now_utc_iso()
 
     event: dict[str, Any] = {"event_type": event_type, "ts": ts}

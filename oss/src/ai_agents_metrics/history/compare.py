@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
@@ -414,8 +415,6 @@ def render_history_compare_report(report: HistoryCompareReport) -> str:
 
 
 def render_history_compare_report_json(report: HistoryCompareReport) -> str:
-    import json
-
     def _scope(s: WarehouseScopeSummary) -> dict[str, object]:
         return {
             "projects": s.projects,

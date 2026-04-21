@@ -205,7 +205,12 @@ def _process_thread(
 
     counters.timeline_events += _insert_timeline_events(conn, thread_id, timeline_items)
     counters.message_facts += _insert_message_facts(
-        conn, thread_id, thread_row, thread_messages, thread_sessions, message_usage_groups
+        conn,
+        thread_id=thread_id,
+        thread_row=thread_row,
+        thread_messages=thread_messages,
+        thread_sessions=thread_sessions,
+        message_usage_groups=message_usage_groups,
     )
 
     sorted_sessions = _sort_sessions(thread_sessions)
@@ -218,11 +223,11 @@ def _process_thread(
     )
     _insert_goal_and_retry_chain(
         conn,
-        thread_id,
-        thread_row,
-        sorted_sessions,
-        thread_usage_events,
-        timeline_items,
+        thread_id=thread_id,
+        thread_row=thread_row,
+        sorted_sessions=sorted_sessions,
+        thread_usage_events=thread_usage_events,
+        timeline_items=timeline_items,
         session_kinds=session_kinds,
     )
     counters.goals += 1
