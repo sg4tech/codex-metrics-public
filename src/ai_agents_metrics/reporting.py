@@ -392,7 +392,7 @@ def generate_report_md(data: dict[str, Any]) -> str:
     recommendations = build_agent_recommendations(summary, product_quality)
 
     lines: list[str] = [
-        "# Codex Metrics",
+        "# AI Agents Metrics",
         "",
     ]
     lines.extend(_product_quality_lines(product_quality))
@@ -579,7 +579,7 @@ def print_summary(data: dict[str, Any], history_signals: HistorySignals | None =
     summary = data["summary"]
     product_quality = build_product_quality_summary(data)
     recommendations = build_agent_recommendations(summary, product_quality)
-    print("Codex Metrics Summary")
+    print("AI Agents Metrics Summary")
     print("Product quality:")
     print(f"Closed product goals: {product_quality.closed_product_goals}")
     print(

@@ -452,7 +452,7 @@ def test_init_creates_files(repo: Path) -> None:
     render_result = render_report(repo)
     assert render_result.returncode == 0, render_result.stderr
     report = report_path.read_text(encoding="utf-8")
-    assert "Codex Metrics" in report
+    assert "AI Agents Metrics" in report
     assert "_No goals recorded yet._" in report
 
 
@@ -1214,6 +1214,32 @@ def test_task_workflow_help_does_not_expose_provider_specific_flags(repo: Path) 
     assert result.returncode == 0
     assert "--agent" not in result.stdout
     assert "--usage-source" not in result.stdout
+
+
+def test_render_html_exposes_warehouse_path_flag(repo: Path) -> None:
+    """render-html must accept --warehouse-path so users can point the
+    report at a custom warehouse (cross-machine imports, alternate
+    locations). commands.handle_render_html already reads the flag via
+    getattr fallback; the argparser gap left it as dead code until
+    goal 2026-04-20-008.
+    """
+    result = run_cmd(repo, "render-html", "--help")
+
+    assert result.returncode == 0
+    assert "--warehouse-path" in result.stdout
+
+
+def test_render_html_exposes_cwd_override_flag(repo: Path) -> None:
+    """render-html must accept --cwd to override the warehouse cwd filter.
+    Without this, a cross-machine warehouse (e.g. a Mac import queried on
+    Linux) is functionally invisible — the filter `WHERE cwd = Path.cwd()`
+    never matches the stored absolute paths. Paired with --warehouse-path
+    (2026-04-20-008) this closes the cross-machine query gap.
+    """
+    result = run_cmd(repo, "render-html", "--help")
+
+    assert result.returncode == 0
+    assert "--cwd" in result.stdout
 
 
 def test_top_level_help_hides_advanced_commands_from_subparser_list(repo: Path) -> None:
@@ -2598,7 +2624,7 @@ def test_show_command(repo: Path) -> None:
     assert run_cmd(repo, "init").returncode == 0
     result = run_cmd(repo, "show")
     assert result.returncode == 0
-    assert "Codex Metrics Summary" in result.stdout
+    assert "AI Agents Metrics Summary" in result.stdout
     assert "Product quality:" in result.stdout
     assert "Reviewed result fit: 0/0 closed product goals" in result.stdout
     assert "Agent recommendations:" in result.stdout

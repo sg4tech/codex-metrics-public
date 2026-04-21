@@ -1213,6 +1213,35 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="N",
         help="Limit the time window to the last N days",
     )
+    # Default is empty so handle_render_html falls back to the
+    # metrics-path-adjacent default warehouse (derived per call in commands.py).
+    render_html_parser.add_argument(
+        "--warehouse-path",
+        default="",
+        help="SQLite warehouse path (default: derived from --metrics-path)",
+    )
+    render_html_parser.add_argument(
+        "--cwd",
+        default="",
+        metavar="PATH",
+        help=(
+            "Override the cwd used to filter warehouse rows (default: the "
+            "current process cwd). Use this to query a cross-machine "
+            "warehouse — e.g. --cwd /Users/viktor/PhpstormProjects/hhsave "
+            "when rendering on Linux against a Mac-imported warehouse."
+        ),
+    )
+
+    # Hide advanced / pipeline-internal commands from the top-level `--help`
+    # listing without unregistering them. The commands remain callable and
+    # `<cmd> --help` still renders their per-command help. The epilog lists
+    # them by name so users know they exist. This mutates a private argparse
+    # attribute (stable across Py 3.9–3.13) because argparse has no public API
+    # to mark a subparser as hidden after creation.
+    subparsers._choices_actions = [  # noqa: SLF001
+        act for act in subparsers._choices_actions
+        if act.dest not in _HIDDEN_FROM_TOPLEVEL_HELP
+    ]
 
     # Hide advanced / pipeline-internal commands from the top-level `--help`
     # listing without unregistering them. The commands remain callable and

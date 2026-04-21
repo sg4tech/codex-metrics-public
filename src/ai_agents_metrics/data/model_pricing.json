@@ -2,7 +2,7 @@
   "source_url": "https://platform.openai.com/docs/pricing/",
   "source_checked_at": "2026-03-29",
   "claude_source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
-  "claude_source_checked_at": "2026-04-09",
+  "claude_source_checked_at": "2026-04-20",
   "models": {
     "gpt-5.2": {
       "input_per_million_usd": 1.75,
@@ -78,6 +78,12 @@
       "input_per_million_usd": 0.15,
       "cached_input_per_million_usd": 0.075,
       "output_per_million_usd": 0.6
+    },
+    "claude-opus-4-7": {
+      "input_per_million_usd": 5.0,
+      "cached_input_per_million_usd": 0.5,
+      "cache_creation_per_million_usd": 6.25,
+      "output_per_million_usd": 25.0
     },
     "claude-opus-4-6": {
       "input_per_million_usd": 5.0,

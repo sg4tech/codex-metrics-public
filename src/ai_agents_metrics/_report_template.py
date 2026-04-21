@@ -1,4 +1,4 @@
-"""Self-contained HTML template for the Codex Metrics report.
+"""Self-contained HTML template for the AI Agents Metrics report.
 
 The template is a single string with four substitution placeholders:
 - ``{DATA_JSON}``        — serialised report data dict (JSON)
@@ -16,7 +16,7 @@ _HTML_TEMPLATE = """\
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Codex Metrics Report</title>
+<title>AI Agents Metrics Report</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -139,11 +139,33 @@ _HTML_TEMPLATE = """\
   }
   .src-badge.ledger { background: #f1f5f9; color: #64748b; }
   .src-badge.history { background: #f0fdf4; color: #15803d; }
+
+  /* warehouse-state callout */
+  .callout {
+    margin: 0 0 18px;
+    padding: 10px 14px;
+    background: #fef3c7;
+    border-left: 3px solid #f59e0b;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #78350f;
+    line-height: 1.5;
+  }
+  .callout strong { font-weight: 600; }
+  .callout code {
+    background: #fde68a;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-weight: 600;
+    color: #78350f;
+  }
+  .callout:empty { display: none; }
 </style>
 </head>
 <body>
 <header>
-  <h1>Codex Metrics</h1>
+  <h1>AI Agents Metrics</h1>
   <p>Generated {GENERATED_AT} &nbsp;·&nbsp; {GRANULARITY_LABEL}</p>
 </header>
 
@@ -168,6 +190,7 @@ _HTML_TEMPLATE = """\
 </div>
 
 <div id="sh-history" class="section-header"></div>
+<div class="callout" id="warehouse-callout"></div>
 <div class="grid">
 
   <div class="card">
@@ -262,6 +285,10 @@ function niceMax(v) {
 
 // Returns { max, clipped, threshold } — clips Y axis when outliers skew scale.
 // Uses median as the baseline: if max > 4× median, the top values are outliers.
+// The cap is floored at rawMax/5 so that on skewed distributions (a low
+// median with a very large rawMax) the cap never ends up >5× below rawMax —
+// that failure mode produced 24×-off-scale bars on real ledger cost data,
+// rendering every non-outlier bar indistinguishable.
 function smartMax(values) {
   const valid = values.filter(v => v != null).sort((a, b) => a - b);
   if (!valid.length) return { max: 1, clipped: false };
@@ -270,7 +297,7 @@ function smartMax(values) {
   const mid = Math.floor(valid.length / 2);
   const median = valid.length % 2 ? valid[mid] : (valid[mid - 1] + valid[mid]) / 2;
   if (median > 0 && rawMax > 4 * median) {
-    const cap = niceMax(median * 2.5);
+    const cap = niceMax(Math.max(median * 2.5, rawMax / 5));
     return { max: cap, clipped: true, threshold: cap };
   }
   return { max: niceMax(rawMax), clipped: false };
@@ -418,11 +445,18 @@ function drawStackedBar(id, labels, series, colors, useSmartMax, labelPrefix, to
 
 // ── chart 2: combo bar + line ────────────────────────────────────────────────
 
-function drawCombo(id, labels, barValues, lineValues, barColor, lineColor, linePct) {
+function drawCombo(id, labels, barValues, lineValues, barColor, lineColor, linePct, suppressNoRetriesMessage) {
   const { ctx, w, h } = setupCanvas(id);
-  const allVals = [...barValues, ...lineValues.filter(v => v !== null)];
-  if (!labels.length || allVals.every(v => !v)) { drawEmpty(ctx, w, h); return; }
-  const noRetries = barValues.every(v => !v);
+  // Only treat an empty-label or no-non-null-line case as "No data available".
+  // An all-zero retry signal is real data (every thread completed without a
+  // retry) and must render so the green "no retries" plaque can appear.
+  const lineHasData = lineValues.some(v => v !== null);
+  if (!labels.length || !lineHasData) { drawEmpty(ctx, w, h); return; }
+  // Only surface the "No retries" green message when it reflects a real signal
+  // (warehouse source + all bars empty). Suppress under any warehouse fallback
+  // state to avoid a false positive on the ledger path where attempt_count
+  // increments only when the user manually calls continue-task.
+  const noRetries = !suppressNoRetriesMessage && barValues.every(v => !v);
 
   const ML = 48, MR = 48, MT = 12, MB = 68;
   const cw = w - ML - MR, ch = h - MT - MB;
@@ -501,7 +535,13 @@ function drawCombo(id, labels, barValues, lineValues, barColor, lineColor, lineP
   drawXLabels(ctx, labels, ML, MT, cw, ch, step);
 
   if (noRetries) {
-    const msg = 'No retries — all goals completed on first attempt';
+    // Message is source-specific: for warehouse, "main session" disambiguates
+    // from subagent spawns (which are filtered out upstream). For ledger,
+    // "attempt" keeps parity with the ledger-side legend.
+    const warehouseSource = DATA.chart2_source === 'warehouse';
+    const msg = warehouseSource
+      ? 'No main-agent retries \u2014 every task completed in a single main session'
+      : 'No retries \u2014 all goals completed on first attempt';
     ctx.font = '11px system-ui';
     const msgW = ctx.measureText(msg).width;
     const px = ML + cw / 2 - msgW / 2 - 8;
@@ -524,13 +564,16 @@ function drawLine(id, labels, values, color) {
   const { ctx, w, h } = setupCanvas(id);
   if (!labels.length || values.every(v => v === null)) { drawEmpty(ctx, w, h); return; }
 
-  const ML = 56, MR = 16, MT = 20, MB = 68;
+  const { max: maxVal, clipped, threshold } = smartMax(values);
+
+  // When clipped, reserve extra top margin so outlier labels can stack up
+  // to 3 rows without being cut off by the canvas edge (MT - 2*12 = MT-24).
+  const ML = 56, MR = 16, MB = 68;
+  const MT = clipped ? 36 : 20;
   const cw = w - ML - MR, ch = h - MT - MB;
   const n = labels.length;
   const gap = cw / n;
   const step = Math.max(1, Math.ceil(n / 12));
-
-  const { max: maxVal, clipped, threshold } = smartMax(values);
 
   drawYGrid(ctx, ML, MT, cw, ch, maxVal, 4);
   drawAxes(ctx, ML, MT, cw, ch);
@@ -585,7 +628,14 @@ function drawLine(id, labels, values, color) {
   }
   ctx.stroke();
 
-  // Dots + labels
+  // Dots + labels — outlier labels stack across up to 3 vertical rows when
+  // adjacent outliers would otherwise overlap horizontally. Diamonds stay
+  // anchored at the clip line regardless of label stacking level.
+  const outlierRowEdges = []; // per-level right-edge of last-drawn label
+  const OUTLIER_LABEL_LINE_HEIGHT = 12;
+  const OUTLIER_LABEL_MAX_LEVELS = 3;
+  // Set font once so measureText() below uses the same metrics as fillText().
+  ctx.font = 'bold 10px system-ui';
   for (let i = 0; i < n; i++) {
     const v = values[i];
     if (v === null) continue;
@@ -595,7 +645,19 @@ function drawLine(id, labels, values, color) {
     const y = MT + ch - (clamped / maxVal) * ch;
 
     if (isOutlier) {
-      // Draw outlier as a diamond marker at clip boundary
+      const label = '$' + fmt(v);
+      const labelW = ctx.measureText(label).width;
+      const labelLeft = x - labelW / 2;
+      let L = 0;
+      while (L < outlierRowEdges.length && outlierRowEdges[L] > labelLeft) L++;
+      // Cap levels: beyond the canvas-safe maximum, wrap back to level 0 and
+      // accept some overlap rather than drawing off-canvas.
+      if (L >= OUTLIER_LABEL_MAX_LEVELS) L = 0;
+      if (L === outlierRowEdges.length) outlierRowEdges.push(0);
+      outlierRowEdges[L] = x + labelW / 2 + 4; // 4px horizontal padding
+      const labelY = MT - L * OUTLIER_LABEL_LINE_HEIGHT;
+
+      // Diamond marker — anchored to the clip line, unaffected by stacking.
       ctx.fillStyle = '#fca5a5';
       ctx.strokeStyle = '#ef4444';
       ctx.lineWidth = 1.5;
@@ -604,10 +666,9 @@ function drawLine(id, labels, values, color) {
       ctx.lineTo(x, MT + 14); ctx.lineTo(x - 5, MT + 8);
       ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#dc2626';
-      ctx.font = 'bold 10px system-ui';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
-      ctx.fillText('$' + fmt(v), x, MT);
+      ctx.fillText(label, x, labelY);
     } else {
       ctx.fillStyle = '#fff';
       ctx.beginPath();
@@ -678,10 +739,14 @@ function renderSectionHeaders() {
   const historyEl = document.getElementById('sh-history');
   if (historyEl) {
     const range = dateRange(d.history_date_from, d.history_date_to);
+    // Badge reflects the actual source of chart 2 & 3. If either fell back to
+    // ledger, the section is not truly warehouse-sourced and must say so.
+    const bothWarehouse = d.chart2_source === 'warehouse' && d.chart3_source === 'warehouse';
+    const badge = bothWarehouse
+      ? '<span class="src-badge history">warehouse</span>'
+      : '<span class="src-badge ledger">ledger</span>';
     historyEl.innerHTML =
-      '<h3>Session History</h3>' +
-      '<span class="src-badge history">warehouse</span>' +
-      '<p>' + range + '</p>';
+      '<h3>Session History</h3>' + badge + '<p>' + range + '</p>';
   }
 
   const practiceEl = document.getElementById('sh-practice');
@@ -781,15 +846,40 @@ function renderChart5() {
   drawStackedBar('c5', labels, series, C5_COLORS, false, '', [true, true, true]);
 }
 
+function renderWarehouseCallout() {
+  const el = document.getElementById('warehouse-callout');
+  if (!el) return;
+  const state = DATA.warehouse_state || { status: 'ok' };
+  const messages = {
+    missing_file: {
+      title: 'No history warehouse yet.',
+      body: 'Session History and Practice Events are missing until you extract agent history.',
+    },
+    schema_outdated: {
+      title: 'Warehouse schema is outdated.',
+      body: 'Re-deriving the history pipeline will refresh tables and surface missing charts.',
+    },
+    empty_for_cwd: {
+      title: 'Warehouse has no data for this project yet.',
+      body: 'Session History and Practice Events fall back to ledger-only signals (partial).',
+    },
+  };
+  const m = messages[state.status];
+  if (!m) { el.innerHTML = ''; return; }
+  el.innerHTML =
+    '<strong>\u26a0 ' + m.title + '</strong> ' + m.body +
+    ' &nbsp;Run: <code>ai-agents-metrics history-update</code>';
+}
+
 function renderChart2Meta() {
   const warehouse = DATA.chart2_source === 'warehouse';
   const sub = document.getElementById('c2-subtitle');
   const leg = document.getElementById('c2-legend');
   if (sub) sub.textContent = warehouse
-    ? 'Threads requiring >1 session (bars) \u00b7 retry rate % (line) \u00b7 source: history'
+    ? 'Threads needing >1 main-agent session (bars) \u00b7 retry rate % (line) \u00b7 subagent spawns excluded \u00b7 source: history'
     : 'Goals requiring >1 attempt (bars) \u00b7 avg attempts per closed goal (line) \u00b7 source: ledger';
   if (leg) leg.innerHTML = warehouse
-    ? '<div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>Retry threads</div>' +
+    ? '<div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>Main-agent retry threads</div>' +
       '<div class="legend-item"><div class="legend-dot" style="background:#ef4444;border-radius:50%"></div>Retry rate % (line)</div>'
     : '<div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>Goals with retries</div>' +
       '<div class="legend-item"><div class="legend-dot" style="background:#ef4444;border-radius:50%"></div>Avg attempts (line)</div>';
@@ -805,11 +895,13 @@ function render() {
   }
   renderSummary();
   renderSectionHeaders();
+  renderWarehouseCallout();
   renderChart2Meta();
   renderChart3Meta();
   renderC1Legend();
   drawStackedBar('c1', d.buckets, [d.chart1_product, d.chart1_meta, d.chart1_retro], ['#22c55e', '#94a3b8', '#f59e0b'], false, '', seriesToggles.c1);
-  drawCombo('c2', d.buckets, d.chart2_bar, d.chart2_line, '#f97316', '#ef4444', d.chart2_source === 'warehouse');
+  const whStatus = (d.warehouse_state && d.warehouse_state.status) || 'ok';
+  drawCombo('c2', d.buckets, d.chart2_bar, d.chart2_line, '#f97316', '#ef4444', d.chart2_source === 'warehouse', whStatus !== 'ok');
   const c3Prefix = d.chart3_mode === 'cost' ? '$' : '';
   const c3Values = (d.chart3_series || []).map(s => s.values);
   const c3Colors = (d.chart3_series || []).map(s => s.color);

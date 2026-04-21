@@ -68,7 +68,7 @@ def render_agents_block(
     del report_path
     return (
         f"{START_MARKER}\n"
-        "## Codex Metrics\n\n"
+        "## AI Agents Metrics\n\n"
         "### Read first\n\n"
         "Before starting or continuing any engineering task, always read:\n\n"
         f"- `{instructions_filename}`\n"

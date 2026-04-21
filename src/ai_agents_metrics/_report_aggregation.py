@@ -513,6 +513,7 @@ def aggregate_report_data(
     warehouse_tokens: list[tuple[str, str | None, int, int, int]] | None = None,
     pricing: dict[str, dict[str, float | None]] | None = None,
     warehouse_practice: list[tuple[str, str, int]] | None = None,
+    warehouse_state: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Bucket closed goals into chart-ready series.
 
@@ -527,10 +528,12 @@ def aggregate_report_data(
     dates = _collect_chart_dates(parsed, warehouse_tokens)
 
     chart5 = _aggregate_practice_distribution(warehouse_practice)
+    state = warehouse_state or {"status": "ok"}
 
     if not dates:
         empty = _empty_data()
         empty["chart5"] = chart5
+        empty["warehouse_state"] = state
         return empty
 
     earliest, latest, gran, buckets = _determine_granularity(dates)
@@ -561,6 +564,7 @@ def aggregate_report_data(
         "ledger_date_to": ledger_date_to,
         "history_date_from": earliest.strftime("%Y-%m-%d"),
         "history_date_to": latest.strftime("%Y-%m-%d"),
+        "warehouse_state": state,
         "summary": {
             "total_closed": total,
             "success_count": series.success_count,
@@ -594,5 +598,6 @@ def _empty_data() -> dict[str, Any]:
         "ledger_date_to": None,
         "history_date_from": None,
         "history_date_to": None,
+        "warehouse_state": {"status": "ok"},
         "summary": None,
     }

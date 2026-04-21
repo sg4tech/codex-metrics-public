@@ -1,7 +1,11 @@
 """Tests for html_report: aggregation logic and render smoke checks."""
 from __future__ import annotations
 
+import sqlite3
 from datetime import datetime
+from pathlib import Path
+
+import pytest
 
 from ai_agents_metrics._report_aggregation import (
     _aggregate_warehouse_retry,
@@ -9,7 +13,7 @@ from ai_agents_metrics._report_aggregation import (
     aggregate_report_data,
 )
 from ai_agents_metrics._report_buckets import _bucket_key, _make_buckets, _monday_of, _parse_date
-from ai_agents_metrics.html_report import render_html_report
+from ai_agents_metrics.html_report import check_warehouse_state, render_html_report
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -555,7 +559,7 @@ def test_render_html_returns_string_with_key_markers():
     data = _empty_data()
     html = render_html_report(data, "2026-01-15 12:00 UTC")
     assert "<!DOCTYPE html>" in html
-    assert "Codex Metrics" in html
+    assert "AI Agents Metrics" in html
     assert "2026-01-15 12:00 UTC" in html
     assert "DATA" in html
 
@@ -600,7 +604,6 @@ def test_embedded_js_is_valid_syntax(tmp_path):
     import shutil
     import subprocess
 
-    import pytest
 
     node = shutil.which("node")
     if node is None:
@@ -724,3 +727,204 @@ def test_chart5_present_in_empty_data_path():
     assert c5["labels"] == ["Explore"]
     assert c5["total_events"] == 2
     assert c5["source"] == "warehouse"
+
+
+# ── warehouse-state detection ────────────────────────────────────────────────
+
+
+def _build_warehouse(path: Path, *, include_practice_table: bool = True,
+                    goals_cwd: str | None = None) -> None:
+    """Create a minimal warehouse fixture for state-check tests."""
+    with sqlite3.connect(path) as conn:
+        conn.execute(
+            "CREATE TABLE derived_goals ("
+            "thread_id TEXT, cwd TEXT, last_seen_at TEXT, retry_count INTEGER, model TEXT"
+            ")"
+        )
+        if include_practice_table:
+            conn.execute(
+                "CREATE TABLE derived_practice_events ("
+                "thread_id TEXT, practice_name TEXT, source_kind TEXT"
+                ")"
+            )
+        if goals_cwd is not None:
+            conn.execute(
+                "INSERT INTO derived_goals VALUES (?, ?, ?, ?, ?)",
+                ("t1", goals_cwd, "2026-04-20T00:00:00Z", 0, "claude-sonnet-4-6"),
+            )
+        conn.commit()
+
+
+def test_warehouse_state_missing_file(tmp_path: Path):
+    state = check_warehouse_state(tmp_path / "nonexistent.db", "/home/me/proj")
+    assert state == {"status": "missing_file"}
+
+
+def test_warehouse_state_schema_outdated_missing_practice_table(tmp_path: Path):
+    db = tmp_path / "wh.db"
+    _build_warehouse(db, include_practice_table=False, goals_cwd="/home/me/proj")
+    assert check_warehouse_state(db, "/home/me/proj") == {"status": "schema_outdated"}
+
+
+def test_warehouse_state_schema_outdated_no_goals_table(tmp_path: Path):
+    db = tmp_path / "wh.db"
+    with sqlite3.connect(db) as conn:
+        conn.execute("CREATE TABLE foo (x INTEGER)")
+    assert check_warehouse_state(db, "/home/me/proj") == {"status": "schema_outdated"}
+
+
+def test_warehouse_state_empty_for_cwd(tmp_path: Path):
+    db = tmp_path / "wh.db"
+    _build_warehouse(db, goals_cwd="/Users/other/mac-project")
+    assert check_warehouse_state(db, "/home/me/proj") == {"status": "empty_for_cwd"}
+
+
+def test_warehouse_state_ok(tmp_path: Path):
+    db = tmp_path / "wh.db"
+    _build_warehouse(db, goals_cwd="/home/me/proj")
+    assert check_warehouse_state(db, "/home/me/proj") == {"status": "ok"}
+
+
+def test_warehouse_state_sql_error_treated_as_outdated(tmp_path: Path):
+    # Non-sqlite bytes — sqlite3.connect will open fine but any query will raise.
+    db = tmp_path / "wh.db"
+    db.write_bytes(b"this is not a sqlite database file")
+    assert check_warehouse_state(db, "/home/me/proj") == {"status": "schema_outdated"}
+
+
+def test_aggregate_report_data_includes_warehouse_state():
+    result = aggregate_report_data(
+        [_goal()],
+        days=None,
+        warehouse_state={"status": "empty_for_cwd"},
+    )
+    assert result["warehouse_state"] == {"status": "empty_for_cwd"}
+
+
+def test_aggregate_report_data_defaults_warehouse_state_to_ok():
+    # Not passing warehouse_state should default to status=ok (back-compat with
+    # earlier call sites).
+    result = aggregate_report_data([_goal()], days=None)
+    assert result["warehouse_state"] == {"status": "ok"}
+
+
+def test_aggregate_report_data_warehouse_state_on_empty_path():
+    # Empty-data path (no closed goals) also carries warehouse_state through.
+    result = aggregate_report_data(
+        [],
+        days=None,
+        warehouse_state={"status": "missing_file"},
+    )
+    assert result["warehouse_state"] == {"status": "missing_file"}
+
+
+def test_render_html_includes_warehouse_callout_wiring():
+    # Smoke: the rendered HTML should embed the warehouse_state into DATA so
+    # the client-side renderWarehouseCallout() can surface it.
+    data = aggregate_report_data(
+        [_goal(cost_usd=1.0, input_tokens=10, cached_input_tokens=0, output_tokens=5)],
+        days=None,
+        warehouse_state={"status": "empty_for_cwd"},
+    )
+    html = render_html_report(data, "2026-04-20 12:00 UTC")
+    assert "renderWarehouseCallout" in html
+    assert '"warehouse_state":' in html
+    assert "empty_for_cwd" in html
+    assert 'id="warehouse-callout"' in html
+
+
+def test_pricing_file_has_claude_opus_4_7():
+    """Guard against regression: opus-4-7 was silently dropped from chart 3
+    when absent from the pricing file (P0-4, 2026-04-20). Keep it here."""
+    from ai_agents_metrics.usage_resolution import PRICING_JSON_PATH, load_pricing
+    pricing = load_pricing(PRICING_JSON_PATH)
+    assert "claude-opus-4-7" in pricing
+    entry = pricing["claude-opus-4-7"]
+    # Sanity — all four price fields present and non-null.
+    for field in ("input_per_million_usd", "cached_input_per_million_usd",
+                  "cache_creation_per_million_usd", "output_per_million_usd"):
+        assert entry.get(field) is not None, f"missing {field}"
+
+
+# ── HTML template pins (guard against regression on canvas-drawing code) ─────
+
+
+def test_smartmax_cap_has_rawmax_floor():
+    """smartMax cap must be floored at rawMax/5 so that sparse data with a
+    near-zero median never produces a cap >5× below rawMax.
+
+    Regression bug (2026-04-20): ledger cost data with many zero-buckets had
+    median ~$1.36 vs rawMax $120.91 — old cap `median*2.5` = $3.4 made every
+    non-outlier bar indistinguishable (24× off-scale). New floor clamps
+    cap ≥ rawMax/5 so outliers are at most 5× above the visible axis.
+    """
+    from ai_agents_metrics._report_template import _HTML_TEMPLATE
+    # Pin the exact formula so that a future well-intentioned "simplification"
+    # cannot silently revert this fix.
+    assert "Math.max(median * 2.5, rawMax / 5)" in _HTML_TEMPLATE
+
+
+def test_drawline_stacks_overlapping_outlier_labels():
+    """Chart 4 outlier labels stack across multiple y-levels when adjacent
+    outliers would otherwise collide horizontally.
+
+    Regression bug (2026-04-20): `$147.70 $140.62` on consecutive days
+    rendered on the same y-coordinate, labels visually touching.
+    """
+    from ai_agents_metrics._report_template import _HTML_TEMPLATE
+    # Marker variables for the stacking loop; presence pins the algorithm.
+    assert "outlierRowEdges" in _HTML_TEMPLATE
+    assert "OUTLIER_LABEL_LINE_HEIGHT" in _HTML_TEMPLATE
+    assert "OUTLIER_LABEL_MAX_LEVELS" in _HTML_TEMPLATE
+    # Top margin bumps up when clipped to fit stacked labels.
+    assert "clipped ? 36 : 20" in _HTML_TEMPLATE
+
+
+# ── retry-pressure semantics (main_attempt_count, not subagent-aliased) ──────
+
+
+def test_retry_pressure_uses_main_attempt_count_sql():
+    """Chart 2 SQL must read main_attempt_count (H-040 classifier), not the
+    raw retry_count which aliases subagent spawns as retries on Claude data.
+
+    Regression bug (2026-04-20): on 22 local threads, retry_count>0 showed
+    40.9% 'retry pressure' while main_attempt_count>1 showed 0% — the chart
+    was reading subagent-usage growth as quality degradation. SQL change
+    must survive refactors.
+    """
+    from ai_agents_metrics import commands as commands_module
+    commands_py = Path(commands_module.__file__).read_text()
+    # Pin the exact formulation so a later "simplification" cannot revert it.
+    assert "COALESCE(main_attempt_count, 1)" in commands_py
+    # And the downstream check must compare to 1 (main_attempts > 1 = retry).
+    assert "main_attempts > 1" in commands_py
+
+
+def test_retry_pressure_subtitle_disambiguates_from_subagents():
+    """Chart 2 subtitle must say 'main-agent session' and 'subagent spawns
+    excluded' so the human reader does not confuse this signal with total
+    session-file count (which would include Task() subagent spawns)."""
+    from ai_agents_metrics._report_template import _HTML_TEMPLATE
+    assert "main-agent session" in _HTML_TEMPLATE
+    assert "subagent spawns excluded" in _HTML_TEMPLATE
+    assert "Main-agent retry threads" in _HTML_TEMPLATE
+
+
+def test_retry_pressure_no_retries_message_is_source_specific():
+    """The green 'no retries' plaque text changes by source so it accurately
+    reflects the metric: warehouse-source measures main-agent sessions,
+    ledger-source measures goal-level attempt count."""
+    from ai_agents_metrics._report_template import _HTML_TEMPLATE
+    assert "No main-agent retries" in _HTML_TEMPLATE
+    assert "every task completed in a single main session" in _HTML_TEMPLATE
+    # Ledger path keeps its legacy wording.
+    assert "No retries — all goals completed on first attempt" in _HTML_TEMPLATE
+
+
+def test_retry_chart_renders_when_all_rates_are_zero():
+    """When the retry signal is genuinely zero (all threads completed in a
+    single main session), the chart should still render so the no-retries
+    plaque can appear. Previously all-zero was conflated with 'no data'."""
+    from ai_agents_metrics._report_template import _HTML_TEMPLATE
+    # The empty-state guard must not trigger on all-zero line values.
+    assert "const lineHasData = lineValues.some(v => v !== null)" in _HTML_TEMPLATE
