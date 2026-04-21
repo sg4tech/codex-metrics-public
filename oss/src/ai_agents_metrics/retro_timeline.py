@@ -12,8 +12,11 @@ from ai_agents_metrics.domain import EffectiveGoalRecord, build_effective_goals,
 from ai_agents_metrics.reporting import format_pct, format_usd
 
 
+# RetroTimelineEvent / RetroMetricWindow / RetroWindowDelta are canonical
+# SQL row schemas whose fields map 1:1 to warehouse tables defined in
+# `_ensure_schema`. Restructuring would desync the dataclass from SQL.
 @dataclass(frozen=True)
-class RetroTimelineEvent:
+class RetroTimelineEvent:  # pylint: disable=too-many-instance-attributes
     retro_event_id: str
     message_id: str
     thread_id: str | None
@@ -32,7 +35,7 @@ class RetroTimelineEvent:
 
 
 @dataclass(frozen=True)
-class RetroMetricWindow:
+class RetroMetricWindow:  # pylint: disable=too-many-instance-attributes
     window_id: str
     retro_event_id: str
     window_side: str
@@ -56,7 +59,7 @@ class RetroMetricWindow:
 
 
 @dataclass(frozen=True)
-class RetroWindowDelta:
+class RetroWindowDelta:  # pylint: disable=too-many-instance-attributes
     retro_event_id: str
     window_strategy: str
     window_size: int

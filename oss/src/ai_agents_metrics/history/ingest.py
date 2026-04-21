@@ -16,8 +16,11 @@ _RAW_WAREHOUSE_DIRNAME_LEGACY = ".codex-metrics"
 RAW_WAREHOUSE_FILENAME = "warehouse.db"
 
 
+# IngestSummary is a canonical count-and-path record shown in ingest reports.
+# Each field corresponds to a surfaced counter, so grouping into nested
+# structs would break reporting output.
 @dataclass(frozen=True)
-class IngestSummary:
+class IngestSummary:  # pylint: disable=too-many-instance-attributes
     source_root: Path
     warehouse_path: Path
     scanned_files: int

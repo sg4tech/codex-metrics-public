@@ -7,6 +7,7 @@ from typing import Any, NamedTuple
 
 from ai_agents_metrics.bootstrap import bootstrap_project as run_bootstrap_project
 from ai_agents_metrics.cost_audit import (
+    CostAuditContext,
     CostAuditReport,
     render_cost_audit_report_json,
 )
@@ -810,14 +811,16 @@ def audit_cost_coverage(
 
     return build_cost_report(
         data,
-        pricing_path=pricing_path,
-        codex_state_path=codex_state_path,
-        codex_logs_path=codex_logs_path,
-        claude_root=claude_root,
-        cwd=cwd,
-        codex_thread_id=codex_thread_id,
-        find_thread_id=find_usage_thread_id,
-        resolve_usage_window=resolve_cost_audit_usage_window,
+        context=CostAuditContext(
+            pricing_path=pricing_path,
+            codex_state_path=codex_state_path,
+            codex_logs_path=codex_logs_path,
+            claude_root=claude_root,
+            cwd=cwd,
+            codex_thread_id=codex_thread_id,
+            find_thread_id=find_usage_thread_id,
+            resolve_usage_window=resolve_cost_audit_usage_window,
+        ),
     )
 
 

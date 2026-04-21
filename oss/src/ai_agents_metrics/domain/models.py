@@ -19,8 +19,11 @@ ALLOWED_FAILURE_REASONS = {
 ALLOWED_RESULT_FITS = {"exact_fit", "partial_fit", "miss"}
 
 
+# GoalRecord / AttemptEntryRecord / EffectiveGoalRecord mirror the canonical
+# ndjson goal and attempt schemas field-for-field. Splitting them into nested
+# structures would break dict round-tripping used throughout the codebase.
 @dataclass
-class GoalRecord:
+class GoalRecord:  # pylint: disable=too-many-instance-attributes
     goal_id: str
     title: str
     goal_type: str
@@ -42,7 +45,7 @@ class GoalRecord:
 
 
 @dataclass
-class AttemptEntryRecord:
+class AttemptEntryRecord:  # pylint: disable=too-many-instance-attributes
     entry_id: str
     goal_id: str
     entry_type: str
@@ -62,7 +65,7 @@ class AttemptEntryRecord:
 
 
 @dataclass
-class EffectiveGoalRecord:
+class EffectiveGoalRecord:  # pylint: disable=too-many-instance-attributes
     goal_id: str
     title: str
     goal_type: str

@@ -171,8 +171,11 @@ class HistoryCompareFinding:
     message: str
 
 
+# HistoryCompareReport aggregates counts and summaries over the ledger and
+# warehouse side-by-side. Each field is surfaced directly in rendered output,
+# so grouping into nested structs would break the report contract.
 @dataclass(frozen=True)
-class HistoryCompareReport:
+class HistoryCompareReport:  # pylint: disable=too-many-instance-attributes
     metrics_path: Path
     warehouse_path: Path
     cwd: Path
