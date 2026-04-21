@@ -1,6 +1,6 @@
 # ARCH-019: Globally enable pylint across the whole project
 
-**Status:** planned  
+**Status:** done  
 **Priority:** medium  
 **Complexity:** medium
 
@@ -18,28 +18,40 @@ The goal of this task is not "turn on every rule immediately." The goal is to ma
 
 ## Implementation
 
-1. Inventory the current blockers to full-project `pylint`:
-   - excluded modules
-   - warning classes that are mostly signal vs mostly noise
-   - findings that belong in `ruff`, `mypy`, or `import-linter` instead
-2. Split the rule set into:
-   - hard-fail rules that should gate `verify`
-   - advisory rules that should report but not block
-3. Create a staged rollout plan for currently excluded modules:
-   - define the order
-   - define the minimal cleanup needed per module
-   - avoid mixing this with unrelated refactors
-4. Reduce or document the highest-noise findings that would make global enablement impractical
-5. Update docs and verification targets so the intended end state is explicit
+The `pylint-check` target now runs across the entire `src/` tree without any `--ignore` exclusions.
+
+### What was blocking global coverage
+
+| File | Violation | Resolution |
+|------|-----------|------------|
+| `cli.py` | W0611 unused-import | `# pylint: disable=unused-import` at module level — these are intentional re-exports already marked `# noqa: F401` for ruff; pylint does not honour `noqa` so an explicit disable is needed |
+| `cli.py` | C0302 too-many-lines (1640) | `# pylint: disable=too-many-lines` — cli.py is a router/dispatcher/shim; splitting into per-command modules is a separate future task |
+| `commands.py` | C0302 too-many-lines (1277) | `# pylint: disable=too-many-lines` — commands.py bundles all CLI command implementations; splitting is a tracked future task |
+| `commands.py` | W0718 broad-exception-caught | `# pylint: disable=broad-exception-caught` inline — pricing load is optional fallback; broad catch is intentional |
+| `history/ingest.py` | C0302 too-many-lines (1075) | `# pylint: disable=too-many-lines` — ingest.py handles all history ingestion stages; splitting into sub-stages is a tracked future task |
+
+### Rule tiers
+
+**Tier 1 — hard-fail (gates `verify`):**  
+`E0401,E0602,E1101,E1120,W0102,W0611,W0612,W0718,W1203,R0401,C0302`
+
+These rules catch real bugs and architectural violations (missing imports, undefined names, unused imports, method signature mismatches, mutable defaults, circular imports, file-size gate).
+
+**Tier 2 — advisory (reported but does not block):**  
+`R0912,R0913,R0914,R0915,R0902,W0401,C0411`
+
+These rules surface complexity and style findings that are useful signal but currently produce many false positives in large data-centric modules. They are reported with `|| true` to inform without blocking.
+
+### Next steps to improve coverage further
+
+- **C0302 suppressions** can be removed when the three large files are split into smaller modules. This work is tracked but not yet scheduled.
+- **Tier 2 advisory findings** are high in count across the codebase; a future task could triage them and promote stable signal rules to tier 1.
 
 ## Acceptance Criteria
 
-- [ ] Current `pylint` exclusions and their rationale are explicitly inventoried
-- [ ] Hard-fail vs advisory `pylint` rules are documented
-- [ ] There is a staged rollout plan for currently excluded modules
-- [ ] The next concrete unblocker for global `pylint` is identified
-- [ ] Repo docs reflect the intended target state
-- [ ] End state is one of:
-  - [ ] full-project `pylint` is enabled in `verify`
-  - [ ] a documented staged rollout exists and the repository is aligned to it
-
+- [x] Current `pylint` exclusions and their rationale are explicitly inventoried
+- [x] Hard-fail vs advisory `pylint` rules are documented
+- [x] There is a staged rollout plan for currently excluded modules
+- [x] The next concrete unblocker for global `pylint` is identified
+- [x] Repo docs reflect the intended target state
+- [x] End state: full-project `pylint` is enabled in `verify`
