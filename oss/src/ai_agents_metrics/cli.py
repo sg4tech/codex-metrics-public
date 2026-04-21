@@ -8,7 +8,13 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from ai_agents_metrics import __version__
+# runtime_facade and commands used only to be lazy-imported inside main/
+# merge_tasks/delegate wrappers to avoid pulling the orchestration graph
+# into the cli re-export shim (scripts/metrics_cli.py). In practice every
+# cli entry already imports most of the orchestration transitively, and
+# runtime_facade does not import cli (enforced by import-linter), so the
+# lazy pattern costs more in ceremony than it saves in startup time.
+from ai_agents_metrics import __version__, commands, runtime_facade
 from ai_agents_metrics.bootstrap import (
     BootstrapCallbacks,
     BootstrapPaths,
@@ -180,8 +186,6 @@ def build_active_task_warning(data: dict[str, Any], cwd: Path) -> str | None:
 def ensure_active_task(data: dict[str, Any], cwd: Path) -> ActiveTaskResolution:
     # Delegates to runtime_facade (same body, kept as a re-exported surface
     # for scripts/metrics_cli.py and tests).
-    from ai_agents_metrics import runtime_facade  # pylint: disable=import-outside-toplevel
-
     return runtime_facade.ensure_active_task(data, cwd)
 
 
@@ -196,8 +200,6 @@ def resolve_usage_costs(
     explicit_token_fields_used: bool,
 ) -> tuple[float | None, int | None, int | None, int | None, int | None, str | None]:
     # Delegates to runtime_facade (same body).
-    from ai_agents_metrics import runtime_facade  # pylint: disable=import-outside-toplevel
-
     return runtime_facade.resolve_usage_costs(
         pricing_path=pricing_path,
         model=model,
@@ -301,11 +303,6 @@ def resolve_goal_usage_updates(  # pylint: disable=too-many-arguments
     str | None,
     str | None,
 ]:
-    # Lazy: hoisting runtime_facade to module top would pull the full
-    # orchestration import graph into every cli import (scripts/metrics_cli.py
-    # re-exports cli's public surface).
-    from ai_agents_metrics import runtime_facade  # pylint: disable=import-outside-toplevel
-
     return runtime_facade.resolve_goal_usage_updates(
         task=task,
         usage_backend=usage_backend,
@@ -362,10 +359,6 @@ def upsert_task(  # pylint: disable=too-many-arguments,too-many-locals
     claude_root: Path = CLAUDE_ROOT,
     usage_backend: UsageBackend | None = None,
 ) -> dict[str, Any]:
-    # Lazy import keeps the cli re-export shim from pulling the full
-    # orchestration graph; see resolve_goal_usage_updates above.
-    from ai_agents_metrics import runtime_facade  # pylint: disable=import-outside-toplevel
-
     return runtime_facade.upsert_task(
         data=data,
         task_id=task_id,
@@ -1006,9 +999,6 @@ def sync_usage(
     usage_backend: UsageBackend | None = None,
     claude_root: Path = CLAUDE_ROOT,
 ) -> int:
-    # Lazy import — cli re-export shim; same pattern as resolve_goal_usage_updates.
-    from ai_agents_metrics import runtime_facade  # pylint: disable=import-outside-toplevel
-
     return runtime_facade.sync_usage(
         data=data,
         cwd=cwd,
@@ -1098,12 +1088,6 @@ def merge_tasks(data: dict[str, Any], keep_task_id: str, drop_task_id: str) -> d
     # Delegate to the decomposed facade implementation (same behaviour) to avoid
     # duplicating the branch-heavy body; cli.merge_tasks is preserved as a
     # re-exported surface for scripts/metrics_cli.py and test_metrics_domain.py.
-    # Lazy import: hoisting runtime_facade to module top would pull every
-    # orchestration dependency into the cli import graph, which the
-    # re-export shim in scripts/metrics_cli.py is specifically designed to
-    # avoid.
-    from ai_agents_metrics import runtime_facade  # pylint: disable=import-outside-toplevel
-
     return runtime_facade.merge_tasks(data, keep_task_id, drop_task_id)
 
 
@@ -1146,15 +1130,6 @@ def _handle_security(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
-    # Lazy by design: main() is only reached when the CLI is actually invoked.
-    # Hoisting commands+runtime_facade would pull the full orchestration graph
-    # into every import of this module (e.g. the re-export shim in
-    # scripts/metrics_cli.py).
-    from ai_agents_metrics import (  # pylint: disable=import-outside-toplevel
-        commands,
-        runtime_facade,
-    )
-
     parser = build_parser()
     args = parser.parse_args()
     _record_cli_invocation(args)
