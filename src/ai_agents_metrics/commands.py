@@ -59,7 +59,11 @@ from ai_agents_metrics.workflow_fsm import (
 )
 
 
-class CommandRuntime(Protocol):
+# CommandRuntime aggregates the entire runtime surface that handle_* command
+# functions depend on. 40 methods reflect the breadth of operations the CLI
+# dispatches, not an architectural issue. Splitting would fragment the single
+# type hint each handler uses, without reducing coupling.
+class CommandRuntime(Protocol):  # pylint: disable=too-many-public-methods
     def init_files(self, metrics_path: Path, report_path: Path | None, force: bool = False) -> None: ...
     # pylint: disable-next=too-many-arguments
     def bootstrap_project(

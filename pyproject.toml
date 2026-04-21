@@ -237,7 +237,12 @@ disable = "all"
 #   R1721 unnecessary-comprehension, R0916 too-many-boolean-expressions,
 #   C0325 superfluous-parens, R0917 too-many-positional-arguments,
 #   C0415 import-outside-toplevel, W0613 unused-argument,
-#   C0301 line-too-long (max-line-length=250)
+#   C0301 line-too-long (max-line-length=250),
+#   R0904 too-many-public-methods, W0212 protected-access,
+#   R0801 duplicate-code (min-similarity-lines=40)
+# Explicitly excluded (see ARCH-021): C0114/C0115/C0116 (docstring-per-private-
+# helper busywork), R0903 (fires on @dataclass), R0911 (fires on cli.main
+# dispatch chain).
 enable = [
     "E0401",
     "E0602",
@@ -267,6 +272,9 @@ enable = [
     "C0415",
     "W0613",
     "C0301",
+    "R0904",
+    "W0212",
+    "R0801",
 ]
 
 [tool.pylint.design]
@@ -279,3 +287,6 @@ max-attributes = 10
 
 [tool.pylint.format]
 max-line-length = 250
+
+[tool.pylint.similarities]
+min-similarity-lines = 40

@@ -29,6 +29,7 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 | [ARCH-019](ARCH-019-global-pylint-rollout.md) | Globally enable pylint across the whole project | medium | medium | done |
 | [ARCH-020](ARCH-020-tier2-pylint-gating.md) | Promote Tier 2 pylint complexity rules to hard-fail | medium | medium | done |
 | [ARCH-021](ARCH-021-tier3-pylint-gating.md) | Promote Tier 3 pylint code-quality rules to hard-fail | medium | low-medium | done |
+| [ARCH-022](ARCH-022-tier3-pylint-followup.md) | Tier 3 follow-up — R0904/W0212/R0801 gating + explicit R0903/R0911 skip | medium | medium | done |
 
 ## Recommended order
 
@@ -51,3 +52,4 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 17. **ARCH-019** — medium priority; `pylint` exists but still excludes major modules and only enforces a selective subset of rules; define and execute a staged rollout to make full-project `pylint` practical
 18. **ARCH-020** — medium priority; Tier 2 complexity rules were advisory after ARCH-019; promote them to hard-fail so `make verify` blocks complexity regression (64 starting findings resolved via params dataclasses, decomposition, and scoped inline disables on canonical data schemas and CLI-contract boundaries)
 19. **ARCH-021** — medium priority; curate the remaining default pylint rules into a Tier 3 set that catches real code-quality issues (reimported, subprocess-run-check, unnecessary-comprehension, kwonly conversion, lazy-import justification) while deliberately skipping style-policy noise (docstring-per-helper, line-too-long at 100); promoted to hard-fail alongside Tier 1 and Tier 2
+20. **ARCH-022** — medium priority; re-review the five rules parked by ARCH-021. Promote R0904/W0212/R0801 to hard-fail (eliminate cli ↔ runtime_facade duplication at source, narrow-scope inline disables for argparse private API and `CommandRuntime` Protocol breadth). Explicitly keep R0903/R0911 excluded (false positives on `@dataclass` and `cli.main` dispatch).

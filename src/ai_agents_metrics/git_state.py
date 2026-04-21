@@ -20,6 +20,16 @@ class StartedWorkReport:
     git_available: bool
 
 
+@dataclass(frozen=True)
+class ActiveTaskResolution:
+    """Outcome of ensure_active_task — shared between cli.py and runtime_facade."""
+
+    status: str
+    goal_id: str | None
+    message: str
+    started_work_report: StartedWorkReport | None = None
+
+
 def _run_git(cwd: Path, *args: str) -> str | None:
     try:
         result = subprocess.run(

@@ -5,8 +5,6 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from dataclasses import dataclass
-from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -32,25 +30,12 @@ from ai_agents_metrics.domain import (
     ALLOWED_STATUSES,
     ALLOWED_TASK_TYPES,
     GoalRecord,
-    apply_goal_updates,
-    create_goal_record,
     default_metrics,
-    finalize_goal_update,
-    get_task_index,
-    goal_from_dict,
-    goal_to_dict,
     load_metrics,
-    next_goal_id,
-    now_utc_iso,
     recompute_summary,
-    resolve_linked_task_reference,
-    round_usd,
-    sync_goal_attempt_entries,
-    validate_goal_record,
-    validate_non_negative_int,
 )
 from ai_agents_metrics.git_state import (
-    StartedWorkReport,
+    ActiveTaskResolution,
     detect_started_work,
 )
 from ai_agents_metrics.git_state import (
@@ -109,14 +94,16 @@ from ai_agents_metrics.usage_backends import (
     resolve_usage_window as resolve_backend_usage_window,
 )
 
-# parse_usage_event, resolve_codex_usage_window, resolve_pricing_path are not used here directly;
-# re-exported for scripts/metrics_cli.py → MODULE surface accessed by tests. Remove once tests import directly.
+# parse_usage_event, resolve_codex_usage_window, resolve_pricing_path,
+# load_pricing, resolve_pricing_model_alias are not used here directly;
+# re-exported for scripts/metrics_cli.py → MODULE surface accessed by tests.
+# Remove once tests import directly.
 from ai_agents_metrics.usage_resolution import (  # pylint: disable=unused-import
     find_usage_thread_id,
-    load_pricing,
+    load_pricing,  # noqa: F401
     parse_usage_event,  # noqa: F401
     resolve_codex_usage_window,  # noqa: F401
-    resolve_pricing_model_alias,
+    resolve_pricing_model_alias,  # noqa: F401
     resolve_pricing_path,  # noqa: F401
 )
 from ai_agents_metrics.workflow_fsm import (
@@ -143,14 +130,6 @@ def _normalize_worktree_path(path_text: str) -> str:
 
 def _is_meaningful_worktree_path(path_text: str) -> bool:
     return _git_state_is_meaningful_worktree_path(path_text)
-
-
-@dataclass(frozen=True)
-class ActiveTaskResolution:
-    status: str
-    goal_id: str | None
-    message: str
-    started_work_report: StartedWorkReport | None = None
 
 
 def ingest_codex_history(source_root: Path, warehouse_path: Path, source: str = "codex") -> IngestSummary:
@@ -199,50 +178,12 @@ def build_active_task_warning(data: dict[str, Any], cwd: Path) -> str | None:
 
 
 def ensure_active_task(data: dict[str, Any], cwd: Path) -> ActiveTaskResolution:
-    report = detect_started_work(cwd)
-    resolution = resolve_workflow_resolution(data, cwd, WorkflowEvent.ENSURE_ACTIVE_TASK)
-    decision = resolution.decision
-    active_goals = get_active_goals(data)
-    if active_goals and decision.action == "no_op":
-        active_ids = ", ".join(goal["goal_id"] for goal in active_goals)
-        active_goal = active_goals[0]
-        return ActiveTaskResolution(
-            status="existing",
-            goal_id=active_goal["goal_id"] if len(active_goals) == 1 else None,
-            message=f"Active goal already exists: {active_ids}",
-        )
-    if decision.action == "no_op":
-        return ActiveTaskResolution(
-            status="not_needed",
-            goal_id=None,
-            message=decision.message,
-            started_work_report=report,
-        )
+    # Delegates to runtime_facade (same body, kept as a re-exported surface
+    # for scripts/metrics_cli.py and tests).
+    from ai_agents_metrics import runtime_facade  # pylint: disable=import-outside-toplevel
 
-    tasks: list[dict[str, Any]] = data["goals"]
-    new_task_id = next_goal_id(tasks)
-    new_goal = create_goal_record(
-        tasks=tasks,
-        task_id=new_task_id,
-        title="Recover active task for in-progress repository work",
-        task_type="meta",
-        linked_task_id=None,
-        started_at=now_utc_iso(),
-        model=None,
-    )
-    new_goal.notes = (
-        "Auto-recovered because repository work was detected before task bookkeeping started. "
-        f"Detected changes: {', '.join(report.changed_paths[:5]) if report.changed_paths else 'none'}"
-    )
-    goal_dict = goal_to_dict(new_goal)
-    tasks[-1] = goal_dict
-    validate_goal_record(goal_dict)
-    return ActiveTaskResolution(
-        status="created",
-        goal_id=new_task_id,
-        message=f"Created recovery goal {new_task_id}",
-        started_work_report=report,
-    )
+    return runtime_facade.ensure_active_task(data, cwd)
+
 
 def resolve_usage_costs(
     *,
@@ -254,42 +195,18 @@ def resolve_usage_costs(
     explicit_cost_fields_used: bool,
     explicit_token_fields_used: bool,
 ) -> tuple[float | None, int | None, int | None, int | None, int | None, str | None]:
-    usage_fields_used = any(value is not None for value in (input_tokens, cached_input_tokens, output_tokens))
-    if model is None and not usage_fields_used:
-        return None, None, None, None, None, None
-    if model is None:
-        raise ValueError("model is required when usage token flags are provided")
-    if not usage_fields_used:
-        raise ValueError("At least one usage token field is required when model is provided")
-    if explicit_cost_fields_used or explicit_token_fields_used:
-        raise ValueError("model-based usage pricing cannot be combined with explicit cost/token flags")
+    # Delegates to runtime_facade (same body).
+    from ai_agents_metrics import runtime_facade  # pylint: disable=import-outside-toplevel
 
-    input_tokens_value = input_tokens or 0
-    cached_input_tokens_value = cached_input_tokens or 0
-    output_tokens_value = output_tokens or 0
-    validate_non_negative_int(input_tokens_value, "input_tokens")
-    validate_non_negative_int(cached_input_tokens_value, "cached_input_tokens")
-    validate_non_negative_int(output_tokens_value, "output_tokens")
-
-    pricing = load_pricing(pricing_path)
-    pricing_model = resolve_pricing_model_alias(model, pricing)
-    if pricing_model is None:
-        raise ValueError(f"Unknown model: {model!r} — not found in pricing file {pricing_path}")
-    model_pricing = pricing[pricing_model]
-    cached_rate = model_pricing["cached_input_per_million_usd"]
-    if cached_input_tokens_value > 0 and cached_rate is None:
-        raise ValueError(f"Model {model} does not support cached input pricing")
-
-    input_cost = Decimal(str(model_pricing["input_per_million_usd"])) * Decimal(input_tokens_value) / Decimal(1_000_000)
-    cached_input_cost = Decimal("0")
-    if cached_rate is not None:
-        cached_input_cost = Decimal(str(cached_rate)) * Decimal(cached_input_tokens_value) / Decimal(1_000_000)
-    output_cost = Decimal(str(model_pricing["output_per_million_usd"])) * Decimal(output_tokens_value) / Decimal(1_000_000)
-    total_cost = round_usd(input_cost + cached_input_cost + output_cost)
-    total_tokens = input_tokens_value + cached_input_tokens_value + output_tokens_value
-    return total_cost, total_tokens, input_tokens_value, cached_input_tokens_value, output_tokens_value, model
-
-
+    return runtime_facade.resolve_usage_costs(
+        pricing_path=pricing_path,
+        model=model,
+        input_tokens=input_tokens,
+        cached_input_tokens=cached_input_tokens,
+        output_tokens=output_tokens,
+        explicit_cost_fields_used=explicit_cost_fields_used,
+        explicit_token_fields_used=explicit_token_fields_used,
+    )
 
 
 def save_report(path: Path, data: dict[str, Any]) -> None:
@@ -345,9 +262,11 @@ def bootstrap_project(
 
 
 
-# Mirrors runtime_facade.resolve_goal_usage_updates; the wide kwargs surface
-# reflects the CLI update contract (manual/usage/auto sources kept distinct).
-def resolve_goal_usage_updates(  # pylint: disable=too-many-arguments,too-many-locals
+# Delegates to runtime_facade.resolve_goal_usage_updates; cli.resolve_goal_usage_updates
+# is preserved as a re-exported surface for scripts/metrics_cli.py and tests that
+# import it via `cli_module.resolve_goal_usage_updates`. The return NamedTuple from
+# runtime_facade is a tuple subclass so positional destructuring still works.
+def resolve_goal_usage_updates(  # pylint: disable=too-many-arguments
     *,
     task: GoalRecord,
     usage_backend: UsageBackend | None = None,
@@ -382,113 +301,30 @@ def resolve_goal_usage_updates(  # pylint: disable=too-many-arguments,too-many-l
     str | None,
     str | None,
 ]:
-    explicit_cost_fields_used = cost_usd_add is not None or cost_usd_set is not None
-    explicit_token_fields_used = tokens_add is not None or tokens_set is not None
+    # Lazy: hoisting runtime_facade to module top would pull the full
+    # orchestration import graph into every cli import (scripts/metrics_cli.py
+    # re-exports cli's public surface).
+    from ai_agents_metrics import runtime_facade  # pylint: disable=import-outside-toplevel
 
-    # Determine effective agent from stored value; detection happens via actual telemetry data below.
-    effective_agent_name = task.agent_name
-    detected_agent_name: str | None = None
-
-    # Select primary backend.
-    # For goals with a stored agent_name, route directly to the correct backend.
-    # For goals without a stored agent_name, use the Codex backend (existing detection via SQLite),
-    # then fall back to Claude if Codex returns no data (see below).
-    if usage_backend is not None:
-        resolved_usage_backend: UsageBackend = usage_backend
-        usage_state_path = codex_state_path
-    elif effective_agent_name == "claude":
-        resolved_usage_backend = ClaudeUsageBackend()
-        usage_state_path = claude_root
-    else:
-        resolved_usage_backend = select_usage_backend(codex_state_path, cwd, codex_thread_id)
-        usage_state_path = codex_state_path
-
-    usage_cost_usd, usage_total_tokens, usage_input_tokens, usage_cached_input_tokens, usage_output_tokens, usage_model = resolve_usage_costs(
-        pricing_path=pricing_path,
+    return runtime_facade.resolve_goal_usage_updates(
+        task=task,
+        usage_backend=usage_backend,
+        cost_usd_add=cost_usd_add,
+        cost_usd_set=cost_usd_set,
+        tokens_add=tokens_add,
+        tokens_set=tokens_set,
         model=model,
         input_tokens=input_tokens,
         cached_input_tokens=cached_input_tokens,
         output_tokens=output_tokens,
-        explicit_cost_fields_used=explicit_cost_fields_used,
-        explicit_token_fields_used=explicit_token_fields_used,
-    )
-
-    auto_cost_usd, auto_total_tokens, auto_input_tokens, auto_cached_input_tokens, auto_output_tokens, auto_model = (
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    )
-    if usage_cost_usd is None and usage_total_tokens is None:
-        task_started_at = task.started_at.isoformat() if task.started_at is not None else None
-        task_finished_at = task.finished_at.isoformat() if task.finished_at is not None else None
-        window = resolve_backend_usage_window(
-            resolved_usage_backend,
-            state_path=usage_state_path,
-            logs_path=codex_logs_path,
-            cwd=cwd,
-            started_at=started_at if started_at is not None else task_started_at,
-            finished_at=finished_at if finished_at is not None else task_finished_at,
-            pricing_path=pricing_path,
-            thread_id=codex_thread_id,
-        )
-        auto_cost_usd = window.cost_usd
-        auto_total_tokens = window.total_tokens
-        auto_input_tokens = window.input_tokens
-        auto_cached_input_tokens = window.cached_input_tokens
-        auto_output_tokens = window.output_tokens
-        auto_model = window.model_name
-
-        # If the primary backend returned nothing and no agent_name is stored,
-        # try Claude as a fallback.  This handles mixed-agent repos correctly:
-        # rather than guessing at start time (file-presence heuristic), we let
-        # the actual telemetry data decide which agent ran this goal.
-        if (
-            auto_cost_usd is None
-            and auto_total_tokens is None
-            and effective_agent_name is None
-            and usage_backend is None
-        ):
-            claude_window = resolve_backend_usage_window(
-                ClaudeUsageBackend(),
-                state_path=claude_root,
-                logs_path=codex_logs_path,
-                cwd=cwd,
-                started_at=started_at if started_at is not None else task_started_at,
-                finished_at=finished_at if finished_at is not None else task_finished_at,
-                pricing_path=pricing_path,
-                thread_id=None,
-            )
-            if claude_window.cost_usd is not None or claude_window.total_tokens is not None:
-                window = claude_window
-                auto_cost_usd = window.cost_usd
-                auto_total_tokens = window.total_tokens
-                auto_input_tokens = window.input_tokens
-                auto_cached_input_tokens = window.cached_input_tokens
-                auto_output_tokens = window.output_tokens
-                auto_model = window.model_name
-
-        if auto_cost_usd is not None or auto_total_tokens is not None:
-            # Write agent_name only when it is a fresh discovery (not already stored).
-            if task.agent_name is None:
-                detected_agent_name = window.backend_name
-
-    return (
-        usage_cost_usd,
-        usage_total_tokens,
-        usage_input_tokens,
-        usage_cached_input_tokens,
-        usage_output_tokens,
-        usage_model,
-        auto_cost_usd,
-        auto_total_tokens,
-        auto_input_tokens,
-        auto_cached_input_tokens,
-        auto_output_tokens,
-        auto_model,
-        detected_agent_name,
+        pricing_path=pricing_path,
+        codex_state_path=codex_state_path,
+        codex_logs_path=codex_logs_path,
+        codex_thread_id=codex_thread_id,
+        cwd=cwd,
+        started_at=started_at,
+        finished_at=finished_at,
+        claude_root=claude_root,
     )
 
 
@@ -526,113 +362,41 @@ def upsert_task(  # pylint: disable=too-many-arguments,too-many-locals
     claude_root: Path = CLAUDE_ROOT,
     usage_backend: UsageBackend | None = None,
 ) -> dict[str, Any]:
-    tasks: list[dict[str, Any]] = data["goals"]
-    entries: list[dict[str, Any]] = data["entries"]
-    creating_new_task = task_id is None
-    if task_id is not None:
-        creating_new_task = get_task_index(tasks, task_id) is None
-    elif title is None and task_type is None:
-        raise ValueError("task_id is required when updating an existing task")
-    if task_id is None:
-        task_id = next_goal_id(tasks)
+    # Lazy import keeps the cli re-export shim from pulling the full
+    # orchestration graph; see resolve_goal_usage_updates above.
+    from ai_agents_metrics import runtime_facade  # pylint: disable=import-outside-toplevel
 
-    task_index = get_task_index(tasks, task_id)
-    linked_task_id = resolve_linked_task_reference(
-        tasks=tasks,
-        continuation_of=continuation_of,
-        supersedes_task_id=supersedes_task_id,
-        creating_new_task=creating_new_task,
-    )
-
-    if task_index is None:
-        create_goal_record(
-            tasks=tasks,
-            task_id=task_id,
-            title=title,
-            task_type=task_type,
-            linked_task_id=linked_task_id,
-            started_at=started_at,
-            model=model,
-        )
-        task_index = len(tasks) - 1
-
-    task = goal_from_dict(tasks[task_index])
-    (
-        usage_cost_usd,
-        usage_total_tokens,
-        usage_input_tokens,
-        usage_cached_input_tokens,
-        usage_output_tokens,
-        usage_model,
-        auto_cost_usd,
-        auto_total_tokens,
-        auto_input_tokens,
-        auto_cached_input_tokens,
-        auto_output_tokens,
-        auto_model,
-        detected_agent_name,
-    ) = (
-        resolve_goal_usage_updates(
-            task=task,
-            usage_backend=usage_backend,
-            cost_usd_add=cost_usd_add,
-            cost_usd_set=cost_usd_set,
-            tokens_add=tokens_add,
-            tokens_set=tokens_set,
-            model=model,
-            input_tokens=input_tokens,
-            cached_input_tokens=cached_input_tokens,
-            output_tokens=output_tokens,
-            pricing_path=pricing_path,
-            codex_state_path=codex_state_path,
-            codex_logs_path=codex_logs_path,
-            codex_thread_id=codex_thread_id,
-            cwd=cwd,
-            started_at=started_at,
-            finished_at=finished_at,
-            claude_root=claude_root,
-        )
-    )
-    apply_goal_updates(
-        entries=entries,
-        task=task,
+    return runtime_facade.upsert_task(
+        data=data,
+        task_id=task_id,
         title=title,
         task_type=task_type,
+        continuation_of=continuation_of,
+        supersedes_task_id=supersedes_task_id,
         status=status,
         attempts_delta=attempts_delta,
         attempts_abs=attempts_abs,
         cost_usd_add=cost_usd_add,
         cost_usd_set=cost_usd_set,
-        input_tokens_add=None,
-        cached_input_tokens_add=None,
-        output_tokens_add=None,
         tokens_add=tokens_add,
         tokens_set=tokens_set,
-        usage_cost_usd=usage_cost_usd,
-        usage_input_tokens=usage_input_tokens,
-        usage_cached_input_tokens=usage_cached_input_tokens,
-        usage_output_tokens=usage_output_tokens,
-        usage_total_tokens=usage_total_tokens,
-        auto_cost_usd=auto_cost_usd,
-        auto_input_tokens=auto_input_tokens,
-        auto_cached_input_tokens=auto_cached_input_tokens,
-        auto_output_tokens=auto_output_tokens,
-        auto_total_tokens=auto_total_tokens,
-        model=model,
-        usage_model=usage_model,
-        auto_model=auto_model,
         failure_reason=failure_reason,
+        result_fit=result_fit,
         notes=notes,
-        agent_name=detected_agent_name,
         started_at=started_at,
         finished_at=finished_at,
-        result_fit=result_fit,
+        model=model,
+        input_tokens=input_tokens,
+        cached_input_tokens=cached_input_tokens,
+        output_tokens=output_tokens,
+        pricing_path=pricing_path,
+        codex_state_path=codex_state_path,
+        codex_logs_path=codex_logs_path,
+        codex_thread_id=codex_thread_id,
+        cwd=cwd,
+        claude_root=claude_root,
+        usage_backend=usage_backend,
     )
-    finalize_goal_update(task)
-    task_dict = goal_to_dict(task)
-    tasks[task_index] = task_dict
-
-    return task_dict
 
 
 def _detect_module_prog() -> str | None:
@@ -1221,103 +985,14 @@ def build_parser() -> argparse.ArgumentParser:  # pylint: disable=too-many-local
     # them by name so users know they exist. This mutates a private argparse
     # attribute (stable across Py 3.9–3.13) because argparse has no public API
     # to mark a subparser as hidden after creation.
+    # pylint: disable=protected-access
     subparsers._choices_actions = [  # noqa: SLF001
         act for act in subparsers._choices_actions
         if act.dest not in _HIDDEN_FROM_TOPLEVEL_HELP
     ]
-
-    # Hide advanced / pipeline-internal commands from the top-level `--help`
-    # listing without unregistering them. The commands remain callable and
-    # `<cmd> --help` still renders their per-command help. The epilog lists
-    # them by name so users know they exist. This mutates a private argparse
-    # attribute (stable across Py 3.9–3.13) because argparse has no public API
-    # to mark a subparser as hidden after creation.
-    subparsers._choices_actions = [  # noqa: SLF001
-        act for act in subparsers._choices_actions
-        if act.dest not in _HIDDEN_FROM_TOPLEVEL_HELP
-    ]
+    # pylint: enable=protected-access
 
     return parser
-
-
-def _resolve_cli_sync_usage_window(
-    task: dict[str, Any],
-    *,
-    cwd: Path,
-    pricing_path: Path,
-    usage_state_path: Path,
-    usage_logs_path: Path,
-    usage_thread_id: str | None,
-    usage_backend: UsageBackend | None,
-    claude_root: Path,
-) -> tuple[Any, str | None]:
-    """Resolve the usage window for one task; return (window, detected_agent_name)."""
-    task_agent_name = task.get("agent_name")
-    detected_agent_name: str | None = None
-    if usage_backend is not None:
-        resolved_backend: UsageBackend = usage_backend
-        effective_state_path = usage_state_path
-    elif task_agent_name == "claude":
-        resolved_backend = ClaudeUsageBackend()
-        effective_state_path = claude_root
-    else:
-        resolved_backend = select_usage_backend(usage_state_path, cwd, usage_thread_id)
-        effective_state_path = usage_state_path
-    window = resolve_backend_usage_window(
-        resolved_backend,
-        state_path=effective_state_path,
-        logs_path=usage_logs_path,
-        cwd=cwd,
-        started_at=task.get("started_at"),
-        finished_at=task.get("finished_at"),
-        pricing_path=pricing_path,
-        thread_id=usage_thread_id,
-    )
-    if (
-        window.cost_usd is None
-        and window.total_tokens is None
-        and task_agent_name is None
-        and usage_backend is None
-    ):
-        claude_window = resolve_backend_usage_window(
-            ClaudeUsageBackend(),
-            state_path=claude_root,
-            logs_path=usage_logs_path,
-            cwd=cwd,
-            started_at=task.get("started_at"),
-            finished_at=task.get("finished_at"),
-            pricing_path=pricing_path,
-            thread_id=None,
-        )
-        if claude_window.cost_usd is not None or claude_window.total_tokens is not None:
-            window = claude_window
-            detected_agent_name = claude_window.backend_name
-    return window, detected_agent_name
-
-
-def _apply_cli_auto_usage_updates(
-    task: dict[str, Any], window: Any, detected_agent_name: str | None
-) -> bool:
-    """Copy resolved window fields onto *task*; return True if anything changed."""
-    auto_fields: list[tuple[str, Any]] = [
-        ("cost_usd", window.cost_usd),
-        ("input_tokens", window.input_tokens),
-        ("cached_input_tokens", window.cached_input_tokens),
-        ("output_tokens", window.output_tokens),
-        ("tokens_total", window.total_tokens),
-        ("model", window.model_name),
-    ]
-    if all(value is None for _, value in auto_fields):
-        return False
-    changed = False
-    for field_name, value in auto_fields:
-        if value is not None and task.get(field_name) != value:
-            task[field_name] = value
-            changed = True
-    if detected_agent_name is not None and task.get("agent_name") is None:
-        task["agent_name"] = detected_agent_name
-        changed = True
-    return changed
 
 
 def sync_usage(
@@ -1331,26 +1006,19 @@ def sync_usage(
     usage_backend: UsageBackend | None = None,
     claude_root: Path = CLAUDE_ROOT,
 ) -> int:
-    updated_tasks = 0
-    tasks: list[dict[str, Any]] = data["goals"]
-    for task in tasks:
-        previous_task = dict(task)
-        window, detected_agent_name = _resolve_cli_sync_usage_window(
-            task,
-            cwd=cwd,
-            pricing_path=pricing_path,
-            usage_state_path=usage_state_path,
-            usage_logs_path=usage_logs_path,
-            usage_thread_id=usage_thread_id,
-            usage_backend=usage_backend,
-            claude_root=claude_root,
-        )
-        if not _apply_cli_auto_usage_updates(task, window, detected_agent_name):
-            continue
-        validate_goal_record(task)
-        sync_goal_attempt_entries(data, task, previous_task)
-        updated_tasks += 1
-    return updated_tasks
+    # Lazy import — cli re-export shim; same pattern as resolve_goal_usage_updates.
+    from ai_agents_metrics import runtime_facade  # pylint: disable=import-outside-toplevel
+
+    return runtime_facade.sync_usage(
+        data=data,
+        cwd=cwd,
+        pricing_path=pricing_path,
+        usage_state_path=usage_state_path,
+        usage_logs_path=usage_logs_path,
+        usage_thread_id=usage_thread_id,
+        usage_backend=usage_backend,
+        claude_root=claude_root,
+    )
 
 
 def sync_codex_usage(

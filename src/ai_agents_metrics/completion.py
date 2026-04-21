@@ -1,6 +1,16 @@
+"""Shell-completion rendering for ai-agents-metrics.
+
+argparse does not provide a public API for introspecting registered actions or
+the subparsers action type, so the three helpers below intentionally read
+``parser._actions`` and test against ``argparse._SubParsersAction``. These are
+stable across CPython 3.9–3.13 and are the documented integration points used
+by every third-party shell-completion library (argcomplete, shtab, etc.).
+"""
 from __future__ import annotations
 
 import argparse
+
+# pylint: disable=protected-access
 
 
 def _option_strings(parser: argparse.ArgumentParser) -> list[str]:

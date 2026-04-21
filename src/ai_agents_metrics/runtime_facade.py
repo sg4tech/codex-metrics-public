@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, NamedTuple
@@ -47,7 +46,7 @@ from ai_agents_metrics.domain import (
     validate_non_negative_int,
 )
 from ai_agents_metrics.git_state import (
-    StartedWorkReport,
+    ActiveTaskResolution,
     detect_started_work,
 )
 from ai_agents_metrics.history.audit import (
@@ -210,14 +209,6 @@ __all__ = [
     "upsert_task",
     "verify_public_boundary",
 ]
-
-
-@dataclass(frozen=True)
-class ActiveTaskResolution:
-    status: str
-    goal_id: str | None
-    message: str
-    started_work_report: StartedWorkReport | None = None
 
 
 def ingest_codex_history(source_root: Path, warehouse_path: Path, source: str = "codex") -> IngestSummary:

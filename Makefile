@@ -61,7 +61,7 @@ pylint-check: check-init
 	@echo "=== Pylint tier 2: complexity gates (all modules) ==="
 	./.venv/bin/pylint src/ --disable=all --enable=R0912,R0913,R0914,R0915,R0902,W0401,C0411
 	@echo "=== Pylint tier 3: code-quality gates (all modules) ==="
-	./.venv/bin/pylint src/ --disable=all --enable=W0404,W0621,W1510,R1721,R0916,C0325,R0917,C0415,W0613,C0301 --max-line-length=250
+	./.venv/bin/pylint src/ --disable=all --enable=W0404,W0621,W1510,R1721,R0916,C0325,R0917,C0415,W0613,C0301,R0904,W0212,R0801 --max-line-length=250 --min-similarity-lines=40
 
 verify-fast: check-init lint typecheck test
 
