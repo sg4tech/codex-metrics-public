@@ -28,8 +28,10 @@ There is no database server, no background process, and no network dependency.
 Data flow:
 
 ```
-CLI (cli.py)
-  ↓  parses args, validates workflow state via workflow_fsm.py
+CLI entrypoint (cli.py)
+  ↓  parses args and dispatches handlers through runtime_facade.py
+Commands (commands.py)
+  ↓  orchestration against a sanctioned runtime surface (CommandRuntime)
 History pipeline (history/*)           ← primary analysis layer
   ↓  ingest → normalize → derive from ~/.codex or ~/.claude
   ↓  SQLite warehouse: retry pressure, token cost, session timeline
@@ -79,7 +81,9 @@ ai-agents-metrics/
 |------|------|
 | `__init__.py` | Version resolution: git-derived (`commit_count.sha`) with fallback to package metadata |
 | `__main__.py` | Enables `python -m ai_agents_metrics` dispatch |
-| `cli.py` | Main CLI — argparse, all subcommands, `console_main` entrypoint |
+| `cli.py` | User-facing CLI entrypoint — builds parser, records invocation, dispatches to command handlers, exposes `console_main` |
+| `commands.py` | Command handler orchestration layer; defines `CommandRuntime` protocol used by CLI handlers |
+| `runtime_facade.py` | Sanctioned runtime surface passed into `commands.py`; collects the supported application-level helpers and adapters |
 
 ### Core Domain
 
@@ -87,7 +91,6 @@ ai-agents-metrics/
 |------|------|
 | `domain/` | Domain package split into submodules: `models.py` (dataclasses), `serde.py` (from_dict / to_dict — the only place that converts timestamps between `str` and `datetime`), `validation.py`, `aggregation.py`, `ids.py`, `time_utils.py`. Public API re-exported via `domain/__init__.py`. |
 | `storage.py` | Atomic file writes and fcntl lockfile helpers |
-| `commands.py` | `CommandRuntime` Protocol — dependency injection interface for CLI commands |
 | `workflow_fsm.py` | Task lifecycle state machine (see below) |
 
 ### History Pipeline
@@ -120,6 +123,7 @@ Codex state/logs (SQLite)
 
 | File | Role |
 |------|------|
+| `pricing_runtime.py` | Sanctioned application-level pricing API: resolves effective pricing path and loads workspace-aware pricing |
 | `usage_resolution.py` | Pricing data loading, usage event parsing, cost computation, and window resolution logic for Claude and Codex sessions |
 | `usage_backends.py` | `UsageBackend` Protocol with `ClaudeUsageBackend` and `UnknownUsageBackend` implementations; delegates window resolution to `usage_resolution` |
 | `git_hooks.py` | Implements commit-msg validation and pre-push security scanning logic |
@@ -172,6 +176,12 @@ Transitions produce a `WorkflowDecision(action, message)`. Commands call `classi
 **Installed command:** `ai-agents-metrics` → `ai_agents_metrics.cli:console_main`
 **Repo wrapper:** `tools/ai-agents-metrics` — thin shell script, no pip install required
 
+Boundary note:
+
+- `cli.py` is the entrypoint module, not the general runtime dependency surface
+- `commands.py` should depend on `runtime_facade.py`, not on `cli.py`
+- pricing-aware runtime consumers should go through `pricing_runtime.py`, not ad-hoc pricing-path resolution
+
 Key command groups:
 
 | Group | Commands |
@@ -223,10 +233,12 @@ One test file per module; naming mirrors the source:
 |------|--------|----------|
 | **ruff** | `pyproject.toml` | Rules: F (pyflakes) + I (isort); target Python 3.14; line length 100 |
 | **mypy** | `pyproject.toml` | Strict: `check_untyped_defs`, `disallow_incomplete_defs`, `no_implicit_optional`; covers `src/` + `scripts/metrics_cli.py` |
+| **import-linter** | `pyproject.toml` | Architectural contracts: domain/storage/history boundaries, usage-layer restrictions, and a guardrail preventing package modules from importing `cli.py` outside the entrypoint shim |
+| **pylint** | `pyproject.toml` + `Makefile` | Tiered rollout: selective hard-fail and advisory rules today; full-project rollout tracked separately as ARCH-019 |
 | **pytest** | `pyproject.toml` | `pythonpath = ["src"]` |
 | **coverage** | `pyproject.toml` | Branch coverage, parallel mode, source = `ai_agents_metrics` |
 
-**Makefile targets:** `lint`, `security`, `typecheck`, `test`, `verify` (all four in sequence), `coverage`, `package`, public-overlay ops.
+**Makefile targets:** `lint`, `security`, `typecheck`, `test`, `arch-check`, `verify`, `verify-fast`, `coverage`, `package`, public-overlay ops.
 
 **Git hooks (`.githooks/`):**
 - `commit-msg` — rejects commits not matching `CODEX-NNN:` or `NO-TASK:` prefix

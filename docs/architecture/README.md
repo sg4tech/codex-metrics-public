@@ -26,6 +26,7 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 | [ARCH-016](ARCH-016-propagate-model-to-derived-tables.md) | Propagate model to all derived tables | medium | low | done |
 | [ARCH-017](ARCH-017-html-report-dimensions.md) | Add provider and model dimensions to HTML report | high | medium | done |
 | [ARCH-018](ARCH-018-layer-separation-cleanup.md) | Honor layer separation — move interpretation out of raw_* tables | medium | medium | open |
+| [ARCH-019](ARCH-019-global-pylint-rollout.md) | Globally enable pylint across the whole project | medium | medium | planned |
 
 ## Recommended order
 
@@ -45,3 +46,4 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 14. **ARCH-016** — medium priority; model is in `normalized_usage_events` but missing from `derived_session_usage`, `derived_attempts`, and always NULL in `derived_goals`; prerequisite for H-039 warehouse export
 15. **ARCH-017** — high priority; HTML report has no provider/model breakdown — the most actionable cost dimensions are invisible; Phase 1 (total cost, Chart 3 fallback, UX polish) has no deps; Phase 2 (model breakdown) depends on ARCH-016
 16. **ARCH-018** — medium priority; `raw_messages` / `raw_token_usage` / `raw_session_events` parse source payload into typed fields, violating the Layer 1 byte-perfect rule defined in `warehouse-layering.md`; replace with `raw_events` + unparsed payload, move typing to existing `normalized_*` tables
+17. **ARCH-019** — medium priority; `pylint` exists but still excludes major modules and only enforces a selective subset of rules; define and execute a staged rollout to make full-project `pylint` practical

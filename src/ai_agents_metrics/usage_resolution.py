@@ -87,7 +87,6 @@ def resolve_pricing_model_alias(model: str, pricing: dict[str, dict[str, float |
     Normalization steps tried in order:
     1. Direct lookup.
     2. Strip trailing date suffix (e.g. claude-sonnet-4-6-20251022 → claude-sonnet-4-6).
-    3. OpenAI Codex version suffix (e.g. gpt-5.4 → gpt-5).
     """
     if model in pricing:
         return model
@@ -96,16 +95,6 @@ def resolve_pricing_model_alias(model: str, pricing: dict[str, dict[str, float |
     date_stripped = re.sub(r"-\d{8}$", "", model)
     if date_stripped != model and date_stripped in pricing:
         return date_stripped
-
-    # OpenAI Codex version suffix alias (e.g. gpt-5.4 → gpt-5)
-    if model.endswith(".4"):
-        candidate = model.rsplit(".4", maxsplit=1)[0]
-        if candidate in pricing:
-            return candidate
-    if model.endswith(".4-mini"):
-        candidate = model.rsplit(".4-mini", maxsplit=1)[0] + "-mini"
-        if candidate in pricing:
-            return candidate
 
     return None
 
