@@ -1,3 +1,4 @@
+"""Goal-history audit rules: likely misses, stale in-progress, low-cost goals."""
 from __future__ import annotations
 
 import json

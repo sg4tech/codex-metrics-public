@@ -1,3 +1,4 @@
+"""Public-boundary validator for the oss/ subtree exported to the public repo."""
 from __future__ import annotations
 
 import fnmatch

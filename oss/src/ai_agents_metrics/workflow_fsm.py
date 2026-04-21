@@ -1,3 +1,4 @@
+"""State machine for active-task bookkeeping transitions (show / ensure / start)."""
 from __future__ import annotations
 
 from dataclasses import dataclass

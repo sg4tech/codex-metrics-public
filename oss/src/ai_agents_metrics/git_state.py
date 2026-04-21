@@ -1,3 +1,4 @@
+"""Git worktree inspection: StartedWorkReport and ActiveTaskResolution types."""
 from __future__ import annotations
 
 import subprocess

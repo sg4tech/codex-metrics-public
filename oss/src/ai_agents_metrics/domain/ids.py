@@ -1,3 +1,4 @@
+"""Deterministic ``goal_id`` and ``entry_id`` generation."""
 from __future__ import annotations
 
 from datetime import datetime

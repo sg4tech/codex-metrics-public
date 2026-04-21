@@ -1,3 +1,4 @@
+"""chattr-style file immutability helpers used around ledger mutations."""
 from __future__ import annotations
 
 import contextlib

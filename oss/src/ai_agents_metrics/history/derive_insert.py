@@ -1,3 +1,4 @@
+"""Per-row INSERT helpers used by the derive stage orchestrator."""
 from __future__ import annotations
 
 import hashlib

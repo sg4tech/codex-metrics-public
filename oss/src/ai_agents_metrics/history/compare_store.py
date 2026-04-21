@@ -1,3 +1,4 @@
+"""Warehouse-side row loader for the history-compare report."""
 from __future__ import annotations
 
 import sqlite3

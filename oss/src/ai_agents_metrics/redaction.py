@@ -1,3 +1,4 @@
+"""Secret redaction helpers for observability logs and audit payloads."""
 from __future__ import annotations
 
 import re

@@ -1,3 +1,4 @@
+"""ISO-8601 parsing and UTC-aware ``now_*`` helpers for the domain layer."""
 from __future__ import annotations
 
 from datetime import datetime, timezone

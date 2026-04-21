@@ -1,3 +1,4 @@
+"""SQLite event store and debug log for CLI-invocation observability."""
 from __future__ import annotations
 
 import json

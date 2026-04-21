@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Argparse CLI router; command handlers live in :mod:`commands`."""
 # pylint: disable=too-many-lines  # cli.py is a router/dispatcher/shim that will shrink as commands are extracted; tracked as a separate splitting task
 from __future__ import annotations
 

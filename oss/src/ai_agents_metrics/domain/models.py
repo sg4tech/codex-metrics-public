@@ -1,3 +1,4 @@
+"""Canonical data schemas used across the ledger, warehouse, and facade layers."""
 from __future__ import annotations
 
 from dataclasses import dataclass

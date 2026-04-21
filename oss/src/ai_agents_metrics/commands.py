@@ -1,3 +1,4 @@
+"""CLI command handlers (one ``handle_*`` per subcommand)."""
 # pylint: disable=too-many-lines  # commands.py bundles all CLI command implementations; split into per-command modules is a tracked future task
 from __future__ import annotations
 

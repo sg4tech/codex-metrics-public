@@ -1,3 +1,4 @@
+"""Usage-window backends: Codex (SQLite state/logs) and Claude (JSONL telemetry)."""
 from __future__ import annotations
 
 import sqlite3

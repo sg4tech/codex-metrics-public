@@ -1,3 +1,4 @@
+"""Atomic-write and ndjson mutation-lock helpers for the metrics ledger."""
 from __future__ import annotations
 
 import contextlib
