@@ -26,7 +26,7 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 | [ARCH-016](ARCH-016-propagate-model-to-derived-tables.md) | Propagate model to all derived tables | medium | low | done |
 | [ARCH-017](ARCH-017-html-report-dimensions.md) | Add provider and model dimensions to HTML report | high | medium | done |
 | [ARCH-018](ARCH-018-layer-separation-cleanup.md) | Honor layer separation — move interpretation out of raw_* tables | medium | medium | open |
-| [ARCH-019](ARCH-019-global-pylint-rollout.md) | Globally enable pylint across the whole project | medium | medium | planned |
+| [ARCH-019](ARCH-019-global-pylint-rollout.md) | Globally enable pylint across the whole project | medium | medium | done |
 
 ## Recommended order
 

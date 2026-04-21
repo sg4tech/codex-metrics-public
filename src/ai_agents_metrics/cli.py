@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# pylint: disable=unused-import  # This module re-exports symbols for downstream consumers (# noqa: F401 blocks ruff; this blocks pylint)
+# pylint: disable=too-many-lines  # cli.py is a router/dispatcher/shim that will shrink as commands are extracted; tracked as a separate splitting task
 from __future__ import annotations
 
 import argparse
