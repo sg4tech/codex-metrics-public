@@ -573,6 +573,7 @@ def _assemble_report_dict(
 def aggregate_report_data(
     goals: list[dict[str, Any]],
     days: int | None,
+    *,
     warehouse_retry: dict[str, dict[str, int]] | None = None,
     warehouse_tokens: list[tuple[str, str | None, int, int, int]] | None = None,
     pricing: dict[str, dict[str, float | None]] | None = None,

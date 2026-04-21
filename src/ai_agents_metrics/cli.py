@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from dataclasses import dataclass
 from decimal import Decimal
@@ -18,7 +19,13 @@ from ai_agents_metrics.bootstrap import (
     bootstrap_project as run_bootstrap_project,
 )
 from ai_agents_metrics.completion import render_completion
-from ai_agents_metrics.cost_audit import CostAuditContext, CostAuditReport
+from ai_agents_metrics.cost_audit import (
+    CostAuditContext,
+    CostAuditReport,
+)
+from ai_agents_metrics.cost_audit import (
+    audit_cost_coverage as _run_audit_cost_coverage,
+)
 from ai_agents_metrics.domain import (
     ALLOWED_FAILURE_REASONS,
     ALLOWED_RESULT_FITS,
@@ -92,7 +99,7 @@ from ai_agents_metrics.security import (
 from ai_agents_metrics.security import (
     verify_security as run_verify_security,
 )
-from ai_agents_metrics.storage import atomic_write_text
+from ai_agents_metrics.storage import atomic_write_text, ensure_parent_dir
 from ai_agents_metrics.usage_backends import (
     ClaudeUsageBackend,
     UsageBackend,
@@ -238,6 +245,7 @@ def ensure_active_task(data: dict[str, Any], cwd: Path) -> ActiveTaskResolution:
     )
 
 def resolve_usage_costs(
+    *,
     pricing_path: Path,
     model: str | None,
     input_tokens: int | None,
@@ -297,8 +305,6 @@ def init_files(metrics_path: Path, report_path: Path | None, force: bool = False
             raise ValueError(
                 f"Metrics files already exist: {joined_paths}. Use --force to overwrite."
             )
-    from ai_agents_metrics.storage import ensure_parent_dir
-
     ensure_parent_dir(metrics_path)
     metrics_path.write_text("", encoding="utf-8")
     if report_path is not None:
@@ -489,6 +495,7 @@ def resolve_goal_usage_updates(  # pylint: disable=too-many-arguments,too-many-l
 # Mirrors runtime_facade.upsert_task; the wide kwargs surface reflects the
 # `update`/`start-task`/`finish-task` argparse contract.
 def upsert_task(  # pylint: disable=too-many-arguments,too-many-locals
+    *,
     data: dict[str, Any],
     task_id: str | None,
     title: str | None,
@@ -630,8 +637,6 @@ def upsert_task(  # pylint: disable=too-many-arguments,too-many-locals
 
 def _detect_module_prog() -> str | None:
     """Return a human-readable prog name when invoked as ``python -m ai_agents_metrics``."""
-    import os
-
     argv0 = sys.argv[0] if sys.argv else ""
     if os.path.basename(argv0) == "__main__.py":
         py = f"python{sys.version_info.major}.{sys.version_info.minor}"
@@ -1317,6 +1322,7 @@ def _apply_cli_auto_usage_updates(
 
 def sync_usage(
     data: dict[str, Any],
+    *,
     cwd: Path,
     pricing_path: Path,
     usage_state_path: Path,
@@ -1349,6 +1355,7 @@ def sync_usage(
 
 def sync_codex_usage(
     data: dict[str, Any],
+    *,
     cwd: Path,
     pricing_path: Path,
     codex_state_path: Path,
@@ -1377,9 +1384,8 @@ def audit_cost_coverage(
     cwd: Path,
     claude_root: Path = CLAUDE_ROOT,
 ) -> CostAuditReport:
-    from ai_agents_metrics.cost_audit import audit_cost_coverage as build_cost_report
-
     def resolve_cost_audit_usage_window(
+        *,
         state_path: Path,
         logs_path: Path,
         cwd: Path,
@@ -1405,7 +1411,7 @@ def audit_cost_coverage(
         )
         return window.cost_usd, window.total_tokens
 
-    return build_cost_report(
+    return _run_audit_cost_coverage(
         data,
         context=CostAuditContext(
             pricing_path=pricing_path,
@@ -1424,7 +1430,11 @@ def merge_tasks(data: dict[str, Any], keep_task_id: str, drop_task_id: str) -> d
     # Delegate to the decomposed facade implementation (same behaviour) to avoid
     # duplicating the branch-heavy body; cli.merge_tasks is preserved as a
     # re-exported surface for scripts/metrics_cli.py and test_metrics_domain.py.
-    from ai_agents_metrics import runtime_facade
+    # Lazy import: hoisting runtime_facade to module top would pull every
+    # orchestration dependency into the cli import graph, which the
+    # re-export shim in scripts/metrics_cli.py is specifically designed to
+    # avoid.
+    from ai_agents_metrics import runtime_facade  # pylint: disable=import-outside-toplevel
 
     return runtime_facade.merge_tasks(data, keep_task_id, drop_task_id)
 
@@ -1468,7 +1478,14 @@ def _handle_security(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
-    from ai_agents_metrics import commands, runtime_facade
+    # Lazy by design: main() is only reached when the CLI is actually invoked.
+    # Hoisting commands+runtime_facade would pull the full orchestration graph
+    # into every import of this module (e.g. the re-export shim in
+    # scripts/metrics_cli.py).
+    from ai_agents_metrics import (  # pylint: disable=import-outside-toplevel
+        commands,
+        runtime_facade,
+    )
 
     parser = build_parser()
     args = parser.parse_args()

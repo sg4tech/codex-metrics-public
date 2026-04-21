@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Protocol
 
 from ai_agents_metrics.domain import GoalRecord, goal_from_dict
 
@@ -46,7 +47,24 @@ class CostAuditReport:
 
 
 ThreadResolver = Callable[[Path, Path, str | None], str | None]
-UsageResolver = Callable[[Path, Path, Path, str | None, str | None, Path, str | None, str | None], tuple[float | None, int | None]]
+
+
+class UsageResolver(Protocol):
+    """Keyword-only callable used to resolve Codex/Claude usage for an audit window."""
+
+    # pylint: disable-next=too-many-arguments
+    def __call__(
+        self,
+        *,
+        state_path: Path,
+        logs_path: Path,
+        cwd: Path,
+        started_at: str | None,
+        finished_at: str | None,
+        pricing_path: Path,
+        thread_id: str | None = None,
+        agent_name: str | None = None,
+    ) -> tuple[float | None, int | None]: ...
 
 
 @dataclass(frozen=True)
@@ -137,14 +155,14 @@ def _classify_goal_cost_coverage(
             )
         # No thread resolution for Claude — lookup is by directory, not SQLite row.
         recovered_cost_usd, recovered_total_tokens = context.resolve_usage_window(
-            context.claude_root,
-            context.codex_logs_path,  # unused for Claude, passed for interface compatibility
-            context.cwd,
-            _ts_str(goal.started_at),
-            _ts_str(goal.finished_at),
-            context.pricing_path,
-            None,
-            goal.agent_name,
+            state_path=context.claude_root,
+            logs_path=context.codex_logs_path,  # unused for Claude, passed for interface compatibility
+            cwd=context.cwd,
+            started_at=_ts_str(goal.started_at),
+            finished_at=_ts_str(goal.finished_at),
+            pricing_path=context.pricing_path,
+            thread_id=None,
+            agent_name=goal.agent_name,
         )
         if recovered_cost_usd is None and recovered_total_tokens is None:
             return _build_candidate(
@@ -180,14 +198,14 @@ def _classify_goal_cost_coverage(
         )
 
     recovered_cost_usd, recovered_total_tokens = context.resolve_usage_window(
-        context.codex_state_path,
-        context.codex_logs_path,
-        context.cwd,
-        _ts_str(goal.started_at),
-        _ts_str(goal.finished_at),
-        context.pricing_path,
-        context.codex_thread_id,
-        goal.agent_name,
+        state_path=context.codex_state_path,
+        logs_path=context.codex_logs_path,
+        cwd=context.cwd,
+        started_at=_ts_str(goal.started_at),
+        finished_at=_ts_str(goal.finished_at),
+        pricing_path=context.pricing_path,
+        thread_id=context.codex_thread_id,
+        agent_name=goal.agent_name,
     )
     if recovered_cost_usd is None and recovered_total_tokens is None:
         return _build_candidate(
@@ -268,7 +286,6 @@ def render_cost_audit_report(report: CostAuditReport) -> str:
 
 
 def render_cost_audit_report_json(report: CostAuditReport) -> str:
-    import json
     return json.dumps({
         "covered_goals": report.covered_goals,
         "candidate_count": len(report.candidates),

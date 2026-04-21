@@ -17,6 +17,9 @@ from ai_agents_metrics.cost_audit import (
     CostAuditReport,
     render_cost_audit_report_json,
 )
+from ai_agents_metrics.cost_audit import (
+    audit_cost_coverage as _run_audit_cost_coverage,
+)
 from ai_agents_metrics.domain import (
     GoalRecord,
     apply_goal_updates,
@@ -109,6 +112,7 @@ from ai_agents_metrics.retro_timeline import (
 )
 from ai_agents_metrics.storage import (
     atomic_write_text,
+    ensure_parent_dir,
     metrics_mutation_lock,
 )
 from ai_agents_metrics.usage_backends import (
@@ -298,6 +302,7 @@ def ensure_active_task(data: dict[str, Any], cwd: Path) -> ActiveTaskResolution:
 
 
 def resolve_usage_costs(
+    *,
     pricing_path: Path,
     model: str | None,
     input_tokens: int | None,
@@ -355,8 +360,6 @@ def init_files(metrics_path: Path, report_path: Path | None, force: bool = False
             raise ValueError(
                 f"Metrics files already exist: {joined_paths}. Use --force to overwrite."
             )
-    from ai_agents_metrics.storage import ensure_parent_dir
-
     ensure_parent_dir(metrics_path)
     metrics_path.write_text("", encoding="utf-8")
     if report_path is not None:
@@ -547,6 +550,7 @@ def resolve_goal_usage_updates(  # pylint: disable=too-many-arguments,too-many-l
 # `update`/`start-task`/`finish-task` argparse flags. See apply_goal_updates
 # for the matching precedent and follow-up plan.
 def upsert_task(  # pylint: disable=too-many-arguments,too-many-locals
+    *,
     data: dict[str, Any],
     task_id: str | None,
     title: str | None,
@@ -751,6 +755,7 @@ def _apply_auto_usage_updates(
 
 def sync_usage(
     data: dict[str, Any],
+    *,
     cwd: Path,
     pricing_path: Path,
     usage_state_path: Path,
@@ -783,6 +788,7 @@ def sync_usage(
 
 def sync_codex_usage(
     data: dict[str, Any],
+    *,
     cwd: Path,
     pricing_path: Path,
     codex_state_path: Path,
@@ -811,9 +817,8 @@ def audit_cost_coverage(
     cwd: Path,
     claude_root: Path = CLAUDE_ROOT,
 ) -> CostAuditReport:
-    from ai_agents_metrics.cost_audit import audit_cost_coverage as build_cost_report
-
     def resolve_cost_audit_usage_window(
+        *,
         state_path: Path,
         logs_path: Path,
         cwd: Path,
@@ -839,7 +844,7 @@ def audit_cost_coverage(
         )
         return window.cost_usd, window.total_tokens
 
-    return build_cost_report(
+    return _run_audit_cost_coverage(
         data,
         context=CostAuditContext(
             pricing_path=pricing_path,

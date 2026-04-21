@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -217,7 +218,6 @@ def render_audit_report(report: AuditReport) -> str:
 
 
 def render_audit_report_json(report: AuditReport) -> str:
-    import json
     return json.dumps({
         "candidate_count": len(report.candidates),
         "candidates": [

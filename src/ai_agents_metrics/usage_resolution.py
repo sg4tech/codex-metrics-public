@@ -260,7 +260,7 @@ def _accumulate_claude_event(
     except ValueError:
         return
 
-    if not (started_dt <= event_dt <= finished_dt):
+    if event_dt < started_dt or event_dt > finished_dt:
         return
 
     message = event.get("message") or {}
@@ -491,7 +491,7 @@ def _accumulate_session_usage_record(
     if not isinstance(timestamp, str):
         return
     event_dt = parse_iso_datetime_flexible(timestamp, "timestamp")
-    if not (started_dt <= event_dt <= finished_dt):
+    if event_dt < started_dt or event_dt > finished_dt:
         return
 
     info = payload.get("info")
@@ -655,6 +655,7 @@ def _aggregate_codex_sse_events(
 
 
 def _resolve_usage_window_impl(
+    *,
     state_path: Path,
     logs_path: Path,
     cwd: Path,
@@ -696,6 +697,7 @@ def _resolve_usage_window_impl(
 
 
 def resolve_codex_usage_window(
+    *,
     state_path: Path,
     logs_path: Path,
     cwd: Path,

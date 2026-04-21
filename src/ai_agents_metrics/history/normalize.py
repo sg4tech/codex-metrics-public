@@ -487,6 +487,7 @@ def _ensure_project_stats(project_stats: dict[str, dict[str, Any]], project_cwd:
 def _insert_normalized_threads(
     conn: sqlite3.Connection,
     raw_threads: list[Any],
+    *,
     idx: _NormalizeIndexes,
     project_stats: dict[str, dict[str, Any]],
     thread_project_cwd: dict[str, str],
@@ -541,6 +542,7 @@ def _insert_normalized_threads(
 def _insert_normalized_usage_events(
     conn: sqlite3.Connection,
     raw_session_events: list[Any],
+    *,
     idx: _NormalizeIndexes,
     project_stats: dict[str, dict[str, Any]],
     thread_project_cwd: dict[str, str],
@@ -597,6 +599,7 @@ def _insert_normalized_usage_events(
 def _insert_normalized_sessions(
     conn: sqlite3.Connection,
     raw_sessions: list[Any],
+    *,
     idx: _NormalizeIndexes,
     project_stats: dict[str, dict[str, Any]],
     thread_project_cwd: dict[str, str],
@@ -647,6 +650,7 @@ def _insert_normalized_sessions(
 def _insert_normalized_messages(
     conn: sqlite3.Connection,
     raw_messages: list[Any],
+    *,
     idx: _NormalizeIndexes,
 ) -> int:
     inserted = 0
@@ -681,6 +685,7 @@ def _insert_normalized_messages(
 def _insert_normalized_logs(
     conn: sqlite3.Connection,
     raw_logs: list[Any],
+    *,
     project_stats: dict[str, dict[str, Any]],
     thread_project_cwd: dict[str, str],
 ) -> int:
@@ -802,16 +807,24 @@ def normalize_codex_history(*, warehouse_path: Path) -> NormalizeSummary:
         _clear_normalized_tables(conn)
 
         counters.threads = _insert_normalized_threads(
-            conn, raw_threads, idx, project_stats, thread_project_cwd, threads_with_rows
+            conn, raw_threads,
+            idx=idx, project_stats=project_stats,
+            thread_project_cwd=thread_project_cwd, threads_with_rows=threads_with_rows,
         )
         counters.usage_events = _insert_normalized_usage_events(
-            conn, raw_session_events, idx, project_stats, thread_project_cwd
+            conn, raw_session_events,
+            idx=idx, project_stats=project_stats, thread_project_cwd=thread_project_cwd,
         )
         counters.sessions = _insert_normalized_sessions(
-            conn, raw_sessions, idx, project_stats, thread_project_cwd, threads_with_rows
+            conn, raw_sessions,
+            idx=idx, project_stats=project_stats,
+            thread_project_cwd=thread_project_cwd, threads_with_rows=threads_with_rows,
         )
-        counters.messages = _insert_normalized_messages(conn, raw_messages, idx)
-        counters.logs = _insert_normalized_logs(conn, raw_logs, project_stats, thread_project_cwd)
+        counters.messages = _insert_normalized_messages(conn, raw_messages, idx=idx)
+        counters.logs = _insert_normalized_logs(
+            conn, raw_logs,
+            project_stats=project_stats, thread_project_cwd=thread_project_cwd,
+        )
         counters.projects = _insert_normalized_projects(conn, project_stats)
 
         conn.commit()

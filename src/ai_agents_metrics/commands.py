@@ -1,11 +1,13 @@
 # pylint: disable=too-many-lines  # commands.py bundles all CLI command implementations; split into per-command modules is a tracked future task
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import stat
 import sys
 from argparse import Namespace
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -32,6 +34,11 @@ from ai_agents_metrics.history.compare import (
 from ai_agents_metrics.history.derive import DeriveSummary
 from ai_agents_metrics.history.ingest import IngestSummary, default_raw_warehouse_path
 from ai_agents_metrics.history.normalize import NormalizeSummary
+from ai_agents_metrics.html_report import (
+    aggregate_report_data,
+    check_warehouse_state,
+    render_html_report,
+)
 from ai_agents_metrics.observability import (
     record_goal_merge_observation,
     record_goal_mutation_observation,
@@ -71,6 +78,7 @@ class CommandRuntime(Protocol):
     def sync_usage(
         self,
         data: dict[str, Any],
+        *,
         cwd: Path,
         pricing_path: Path,
         usage_state_path: Path,
@@ -82,6 +90,7 @@ class CommandRuntime(Protocol):
     def sync_codex_usage(
         self,
         data: dict[str, Any],
+        *,
         cwd: Path,
         pricing_path: Path,
         codex_state_path: Path,
@@ -598,9 +607,6 @@ def _run_ingest(
 
 
 def handle_ingest_codex_history(args: Namespace, cli_module: CommandRuntime) -> int:
-    import json as _json
-    import sys
-
     source_root_arg: str | None = getattr(args, "source_root", None)
     source: str = getattr(args, "source", None) or ("codex" if source_root_arg is not None else "all")
     json_output: bool = getattr(args, "json", False)
@@ -613,7 +619,7 @@ def handle_ingest_codex_history(args: Namespace, cli_module: CommandRuntime) -> 
 
     if source == "all":
         if json_output:
-            print(_json.dumps({k: _json.loads(cli_module.render_ingest_summary_json(v)) for k, v in summaries.items()}))
+            print(json.dumps({k: json.loads(cli_module.render_ingest_summary_json(v)) for k, v in summaries.items()}))
         else:
             for src_name in skipped:
                 print(f"Skipping {src_name}: {Path.home() / ('.' + src_name)} not found")
@@ -753,8 +759,6 @@ def _summarise_ingest_results(
     json_output: bool,
 ) -> dict[str, object]:
     """Print per-source ingest output (or collect JSON payloads) and return the JSON dict."""
-    import json as _json  # pylint: disable=import-outside-toplevel
-
     ingest_summaries: dict[str, object] = {}
     if source == "all":
         for src_name in ingest_skipped:
@@ -765,22 +769,19 @@ def _summarise_ingest_results(
                 print(f"==> history-ingest ({src_name})")
                 print(f"    Imported {ingest_summary.imported_files} files, {ingest_summary.threads} threads")
             else:
-                ingest_summaries[src_name] = _json.loads(cli_module.render_ingest_summary_json(ingest_summary))
+                ingest_summaries[src_name] = json.loads(cli_module.render_ingest_summary_json(ingest_summary))
     else:
         ingest_summary = next(iter(ingest_results.values()))
         if not json_output:
             print("==> history-ingest")
             print(f"    Imported {ingest_summary.imported_files} files, {ingest_summary.threads} threads")
         else:
-            ingest_summaries = {source: _json.loads(cli_module.render_ingest_summary_json(ingest_summary))}
+            ingest_summaries = {source: json.loads(cli_module.render_ingest_summary_json(ingest_summary))}
     return ingest_summaries
 
 
 def handle_history_update(args: Namespace, cli_module: CommandRuntime) -> int:
     """Run the full history pipeline: ingest → normalize → derive."""
-    import json as _json
-    import sys
-
     source_root_arg: str | None = getattr(args, "source_root", None)
     source: str = getattr(args, "source", None) or ("codex" if source_root_arg is not None else "all")
     warehouse_path = Path(args.warehouse_path).expanduser()
@@ -799,7 +800,7 @@ def handle_history_update(args: Namespace, cli_module: CommandRuntime) -> int:
         if not json_output:
             _print_empty_history_guidance(source)
         else:
-            print(_json.dumps({"ingest": ingest_summaries, "normalize": None, "derive": None}))
+            print(json.dumps({"ingest": ingest_summaries, "normalize": None, "derive": None}))
         return 0
 
 
@@ -827,12 +828,12 @@ def handle_history_update(args: Namespace, cli_module: CommandRuntime) -> int:
         print(f"Done. Warehouse: {warehouse_path}")
     else:
         print(
-            _json.dumps(
+            json.dumps(
                 {
                     "ingest": ingest_summaries,
-                    "normalize": _json.loads(cli_module.render_normalize_summary_json(normalize_summary)),
-                    "classify": _json.loads(cli_module.render_classify_summary_json(classify_summary)),
-                    "derive": _json.loads(cli_module.render_derive_summary_json(derive_summary)),
+                    "normalize": json.loads(cli_module.render_normalize_summary_json(normalize_summary)),
+                    "classify": json.loads(cli_module.render_classify_summary_json(classify_summary)),
+                    "derive": json.loads(cli_module.render_derive_summary_json(derive_summary)),
                 }
             )
         )
@@ -1236,14 +1237,8 @@ def _load_render_html_warehouse_rows(
         by_day[day]["threads"] += 1
         if main_attempts and main_attempts > 1:
             by_day[day]["retry_threads"] += 1
-    warehouse_tokens = [
-        (last_seen_at, model, inp, cac, out)
-        for last_seen_at, model, inp, cac, out in token_rows
-    ]
-    warehouse_practice = [
-        (name, source_kind, count)
-        for name, source_kind, count in practice_rows
-    ]
+    warehouse_tokens = list(token_rows)
+    warehouse_practice = list(practice_rows)
     return by_day, warehouse_tokens, warehouse_practice
 
 
@@ -1280,14 +1275,6 @@ def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:  # 
     # _render_html_source_message. The remaining locals are the invocation
     # surface (args, imports, metrics/output paths, warehouse triple, chart
     # data, rendered html) that further extraction would obscure.
-    from datetime import datetime, timezone
-
-    from ai_agents_metrics.html_report import (
-        aggregate_report_data,
-        check_warehouse_state,
-        render_html_report,
-    )
-
     metrics_path = Path(args.metrics_path)
     output_path = Path(args.output)
     days: int | None = args.days
