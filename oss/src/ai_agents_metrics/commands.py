@@ -54,6 +54,7 @@ from ai_agents_metrics.workflow_fsm import (
 
 class CommandRuntime(Protocol):
     def init_files(self, metrics_path: Path, report_path: Path | None, force: bool = False) -> None: ...
+    # pylint: disable-next=too-many-arguments
     def bootstrap_project(
         self,
         *,
@@ -66,6 +67,7 @@ class CommandRuntime(Protocol):
         force: bool = False,
         dry_run: bool = False,
     ) -> list[str]: ...
+    # pylint: disable-next=too-many-arguments
     def sync_usage(
         self,
         data: dict[str, Any],
@@ -146,6 +148,10 @@ class CommandRuntime(Protocol):
     def resolve_effective_pricing_path(self, *, cwd: Path, pricing_path: Path | None = None) -> Path: ...
     def resolve_pricing_path(self, cwd: Path) -> Path: ...
     def merge_tasks(self, data: dict[str, Any], keep_task_id: str, drop_task_id: str) -> dict[str, Any]: ...
+    # upsert_task mirrors apply_goal_updates' signature; both are tracked as
+    # candidates for a sub-dataclass refactor once update precedence rules
+    # stabilise.
+    # pylint: disable-next=too-many-arguments,too-many-locals
     def upsert_task(
         self,
         *,
@@ -738,20 +744,16 @@ def _print_empty_history_guidance(source: str) -> None:
     print("       ai-agents-metrics history-update --source codex")
 
 
-def handle_history_update(args: Namespace, cli_module: CommandRuntime) -> int:
-    """Run the full history pipeline: ingest → normalize → derive."""
-    import json as _json
-    import sys
-
-    source_root_arg: str | None = getattr(args, "source_root", None)
-    source: str = getattr(args, "source", None) or ("codex" if source_root_arg is not None else "all")
-    warehouse_path = Path(args.warehouse_path).expanduser()
-    json_output: bool = getattr(args, "json", False)
-
-    ingest_results, ingest_skipped, error = _run_ingest(source, source_root_arg, warehouse_path, cli_module)
-    if error:
-        print(f"Error: {error}", file=sys.stderr)
-        return 1
+def _summarise_ingest_results(
+    source: str,
+    ingest_results: dict[str, IngestSummary],
+    ingest_skipped: list[str],
+    *,
+    cli_module: CommandRuntime,
+    json_output: bool,
+) -> dict[str, object]:
+    """Print per-source ingest output (or collect JSON payloads) and return the JSON dict."""
+    import json as _json  # pylint: disable=import-outside-toplevel
 
     ingest_summaries: dict[str, object] = {}
     if source == "all":
@@ -771,6 +773,27 @@ def handle_history_update(args: Namespace, cli_module: CommandRuntime) -> int:
             print(f"    Imported {ingest_summary.imported_files} files, {ingest_summary.threads} threads")
         else:
             ingest_summaries = {source: _json.loads(cli_module.render_ingest_summary_json(ingest_summary))}
+    return ingest_summaries
+
+
+def handle_history_update(args: Namespace, cli_module: CommandRuntime) -> int:
+    """Run the full history pipeline: ingest → normalize → derive."""
+    import json as _json
+    import sys
+
+    source_root_arg: str | None = getattr(args, "source_root", None)
+    source: str = getattr(args, "source", None) or ("codex" if source_root_arg is not None else "all")
+    warehouse_path = Path(args.warehouse_path).expanduser()
+    json_output: bool = getattr(args, "json", False)
+
+    ingest_results, ingest_skipped, error = _run_ingest(source, source_root_arg, warehouse_path, cli_module)
+    if error:
+        print(f"Error: {error}", file=sys.stderr)
+        return 1
+
+    ingest_summaries = _summarise_ingest_results(
+        source, ingest_results, ingest_skipped, cli_module=cli_module, json_output=json_output
+    )
 
     if not ingest_results and not warehouse_path.exists():
         if not json_output:
@@ -1146,8 +1169,117 @@ def handle_render_report(args: Namespace, cli_module: CommandRuntime) -> int:
     return 0
 
 
-def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:
-    import sqlite3
+def _load_render_html_warehouse_rows(
+    warehouse_path: Path, cwd: str
+) -> tuple[
+    dict[str, dict[str, int]] | None,
+    list[tuple[str, str | None, int, int, int]] | None,
+    list[tuple[str, str, int]] | None,
+]:
+    """Read retry/token/practice rows from the warehouse; return three-way Nones on error.
+
+    The queries pin to the given cwd so cross-repo rows don't bleed in. See
+    `handle_render_html` for the ledger-fallback rationale.
+    """
+    import sqlite3  # pylint: disable=import-outside-toplevel
+
+    try:
+        with sqlite3.connect(warehouse_path) as conn:
+            # Use main_attempt_count (H-040 classifier) to distinguish real
+            # main-agent retries from subagent Task() spawns, which also
+            # produce separate session JSONL files and would otherwise
+            # inflate retry_count. COALESCE treats unclassified rows as
+            # single-attempt (conservative — no false retry signal).
+            retry_rows = conn.execute(
+                "SELECT last_seen_at, "
+                "  COALESCE(main_attempt_count, 1) as main_attempts "
+                "FROM derived_goals "
+                "WHERE cwd = ? AND last_seen_at IS NOT NULL",
+                (cwd,),
+            ).fetchall()
+            token_rows = conn.execute(
+                "SELECT dg.last_seen_at, "
+                "  COALESCE(dg.model, ("
+                "    SELECT json_extract(nue.raw_json, '$.message.model') "
+                "    FROM normalized_usage_events nue "
+                "    WHERE nue.thread_id = dg.thread_id "
+                "      AND json_extract(nue.raw_json, '$.message.model') IS NOT NULL "
+                "    LIMIT 1"
+                "  )) as model, "
+                "  COALESCE(SUM(dsu.input_tokens), 0), "
+                "  COALESCE(SUM(dsu.cached_input_tokens), 0), "
+                "  COALESCE(SUM(dsu.output_tokens), 0) "
+                "FROM derived_goals dg "
+                "LEFT JOIN derived_session_usage dsu ON dsu.thread_id = dg.thread_id "
+                "WHERE dg.cwd = ? AND dg.last_seen_at IS NOT NULL "
+                "GROUP BY dg.thread_id",
+                (cwd,),
+            ).fetchall()
+            # Practice-event distribution, scoped to the current cwd via
+            # the goals table so foreign repos' events don't bleed in.
+            practice_rows = conn.execute(
+                "SELECT pe.practice_name, pe.source_kind, COUNT(*) "
+                "FROM derived_practice_events pe "
+                "JOIN derived_goals dg ON dg.thread_id = pe.thread_id "
+                "WHERE dg.cwd = ? "
+                "GROUP BY pe.practice_name, pe.source_kind",
+                (cwd,),
+            ).fetchall()
+    except (sqlite3.Error, OSError):
+        return None, None, None
+
+    by_day: dict[str, dict[str, int]] = {}
+    for last_seen_at, main_attempts in retry_rows:
+        day = last_seen_at[:10]
+        if day not in by_day:
+            by_day[day] = {"threads": 0, "retry_threads": 0}
+        by_day[day]["threads"] += 1
+        if main_attempts and main_attempts > 1:
+            by_day[day]["retry_threads"] += 1
+    warehouse_tokens = [
+        (last_seen_at, model, inp, cac, out)
+        for last_seen_at, model, inp, cac, out in token_rows
+    ]
+    warehouse_practice = [
+        (name, source_kind, count)
+        for name, source_kind, count in practice_rows
+    ]
+    return by_day, warehouse_tokens, warehouse_practice
+
+
+def _safe_load_effective_pricing(
+    cli_module: CommandRuntime,
+) -> dict[str, dict[str, float | None]] | None:
+    try:
+        return cli_module.load_effective_pricing(cwd=Path.cwd())
+    except (OSError, ValueError):
+        return None
+
+
+def _resolve_render_html_cwd_and_warehouse(args: Namespace, metrics_path: Path) -> tuple[str, Path]:
+    """Return (cwd, warehouse_path) for an html-render invocation.
+
+    --cwd override supports cross-machine warehouses (e.g. an imported Mac
+    snapshot queried on Linux) where Path.cwd() would never match the stored
+    paths. Empty override falls back to the real process cwd. When the
+    supplied warehouse path is missing we fall back to the default location
+    beside the metrics file.
+    """
+    cwd_arg = getattr(args, "cwd", "") or ""
+    cwd = cwd_arg if cwd_arg else str(Path.cwd())
+    warehouse_arg = getattr(args, "warehouse_path", "") or ""
+    warehouse_path = Path(warehouse_arg) if warehouse_arg else None
+    if warehouse_path is None or not warehouse_path.is_file():
+        warehouse_path = default_raw_warehouse_path(metrics_path)
+    return cwd, warehouse_path
+
+
+def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:  # pylint: disable=too-many-locals
+    # Already decomposed into _resolve_render_html_cwd_and_warehouse,
+    # _load_render_html_warehouse_rows, _safe_load_effective_pricing, and
+    # _render_html_source_message. The remaining locals are the invocation
+    # surface (args, imports, metrics/output paths, warehouse triple, chart
+    # data, rendered html) that further extraction would obscure.
     from datetime import datetime, timezone
 
     from ai_agents_metrics.html_report import (
@@ -1163,94 +1295,22 @@ def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:
     data = load_metrics(metrics_path)
     goals: list[dict] = data.get("goals", [])
 
-    # Load retry and token data from warehouse when available.
     warehouse_retry: dict[str, dict[str, int]] | None = None
     warehouse_tokens: list[tuple[str, str | None, int, int, int]] | None = None
     warehouse_practice: list[tuple[str, str, int]] | None = None
-    # --cwd override supports cross-machine warehouses (e.g. an imported Mac
-    # snapshot queried on Linux) where Path.cwd() would never match the
-    # stored paths. Empty override falls back to the real process cwd.
-    _cwd_arg = getattr(args, "cwd", "") or ""
-    cwd = _cwd_arg if _cwd_arg else str(Path.cwd())
-    _warehouse_arg = getattr(args, "warehouse_path", "") or ""
-    warehouse_path = Path(_warehouse_arg) if _warehouse_arg else None
-    if warehouse_path is None or not warehouse_path.is_file():
-        # Fall back to the default warehouse location beside the metrics file.
-        warehouse_path = default_raw_warehouse_path(metrics_path)
+    cwd, warehouse_path = _resolve_render_html_cwd_and_warehouse(args, metrics_path)
     warehouse_state = check_warehouse_state(warehouse_path, cwd)
     # Only query warehouse when it will actually yield usable rows. An empty
     # empty_for_cwd path would otherwise produce "warehouse-source" charts
     # with all-zero values, conflicting with the ledger-fallback badge and
     # callout shown to the user.
     if warehouse_state.get("status") == "ok" and warehouse_path.is_file():
-        try:
-            with sqlite3.connect(warehouse_path) as conn:
-                # Use main_attempt_count (H-040 classifier) to distinguish real
-                # main-agent retries from subagent Task() spawns, which also
-                # produce separate session JSONL files and would otherwise
-                # inflate retry_count. COALESCE treats unclassified rows as
-                # single-attempt (conservative — no false retry signal).
-                retry_rows = conn.execute(
-                    "SELECT last_seen_at, "
-                    "  COALESCE(main_attempt_count, 1) as main_attempts "
-                    "FROM derived_goals "
-                    "WHERE cwd = ? AND last_seen_at IS NOT NULL",
-                    (cwd,),
-                ).fetchall()
-                token_rows = conn.execute(
-                    "SELECT dg.last_seen_at, "
-                    "  COALESCE(dg.model, ("
-                    "    SELECT json_extract(nue.raw_json, '$.message.model') "
-                    "    FROM normalized_usage_events nue "
-                    "    WHERE nue.thread_id = dg.thread_id "
-                    "      AND json_extract(nue.raw_json, '$.message.model') IS NOT NULL "
-                    "    LIMIT 1"
-                    "  )) as model, "
-                    "  COALESCE(SUM(dsu.input_tokens), 0), "
-                    "  COALESCE(SUM(dsu.cached_input_tokens), 0), "
-                    "  COALESCE(SUM(dsu.output_tokens), 0) "
-                    "FROM derived_goals dg "
-                    "LEFT JOIN derived_session_usage dsu ON dsu.thread_id = dg.thread_id "
-                    "WHERE dg.cwd = ? AND dg.last_seen_at IS NOT NULL "
-                    "GROUP BY dg.thread_id",
-                    (cwd,),
-                ).fetchall()
-                # Practice-event distribution, scoped to the current cwd via
-                # the goals table so foreign repos' events don't bleed in.
-                practice_rows = conn.execute(
-                    "SELECT pe.practice_name, pe.source_kind, COUNT(*) "
-                    "FROM derived_practice_events pe "
-                    "JOIN derived_goals dg ON dg.thread_id = pe.thread_id "
-                    "WHERE dg.cwd = ? "
-                    "GROUP BY pe.practice_name, pe.source_kind",
-                    (cwd,),
-                ).fetchall()
-            by_day: dict[str, dict[str, int]] = {}
-            for last_seen_at, main_attempts in retry_rows:
-                day = last_seen_at[:10]
-                if day not in by_day:
-                    by_day[day] = {"threads": 0, "retry_threads": 0}
-                by_day[day]["threads"] += 1
-                if main_attempts and main_attempts > 1:
-                    by_day[day]["retry_threads"] += 1
-            warehouse_retry = by_day
-            warehouse_tokens = [
-                (last_seen_at, model, inp, cac, out)
-                for last_seen_at, model, inp, cac, out in token_rows
-            ]
-            warehouse_practice = [
-                (name, source_kind, count)
-                for name, source_kind, count in practice_rows
-            ]
-        except (sqlite3.Error, OSError):
-            pass  # warehouse unavailable or schema mismatch — fall back to ledger
+        warehouse_retry, warehouse_tokens, warehouse_practice = (
+            _load_render_html_warehouse_rows(warehouse_path, cwd)
+        )
 
-    # Load model pricing for token-cost breakdown in chart 3.
-    pricing: dict[str, dict[str, float | None]] | None = None
-    try:
-        pricing = _cli_module.load_effective_pricing(cwd=Path.cwd())
-    except (OSError, ValueError):
-        pricing = None
+    # Model pricing for token-cost breakdown in chart 3; None if unavailable.
+    pricing = _safe_load_effective_pricing(_cli_module)
 
     chart_data = aggregate_report_data(
         goals, days,
@@ -1265,14 +1325,31 @@ def handle_render_html(args: Namespace, _cli_module: CommandRuntime) -> int:
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")
+    print(_render_html_source_message(
+        output_path,
+        warehouse_retry=warehouse_retry,
+        warehouse_tokens=warehouse_tokens,
+        warehouse_practice=warehouse_practice,
+        warehouse_state=warehouse_state,
+    ))
+    return 0
+
+
+def _render_html_source_message(
+    output_path: Path,
+    *,
+    warehouse_retry: dict[str, dict[str, int]] | None,
+    warehouse_tokens: list[tuple[str, str | None, int, int, int]] | None,
+    warehouse_practice: list[tuple[str, str, int]] | None,
+    warehouse_state: dict[str, str],
+) -> str:
     retry_src = "warehouse" if warehouse_retry is not None else "ledger"
     token_src = "warehouse" if warehouse_tokens is not None else "ledger"
     practice_n = sum(c for _, _, c in warehouse_practice) if warehouse_practice else 0
     practice_src = f"warehouse ({practice_n} events)" if warehouse_practice else "none"
     wh_status = warehouse_state.get("status", "ok")
-    print(
+    return (
         f"Rendered HTML report: {output_path} "
         f"(retry: {retry_src}, tokens: {token_src}, practice: {practice_src}, "
         f"warehouse: {wh_status})"
     )
-    return 0

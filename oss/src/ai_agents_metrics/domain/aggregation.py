@@ -205,7 +205,10 @@ def aggregate_chain_timestamps(chain: list[GoalRecord]) -> tuple[datetime | None
     return started_at, finished_at
 
 
-def build_effective_goal_record(terminal_goal: GoalRecord, chain: list[GoalRecord]) -> EffectiveGoalRecord:
+# EffectiveGoalRecord mirrors the aggregated-chain schema field-for-field; the
+# local count tracks the schema's surface and cannot shrink without dropping
+# aggregated fields from the output contract.
+def build_effective_goal_record(terminal_goal: GoalRecord, chain: list[GoalRecord]) -> EffectiveGoalRecord:  # pylint: disable=too-many-locals
     aggregated_cost, aggregated_cost_known, cost_complete = aggregate_chain_costs(chain)
     aggregated_input, aggregated_input_known, input_complete = aggregate_chain_token_component(chain, "input_tokens")
     aggregated_cached, aggregated_cached_known, cached_complete = aggregate_chain_token_component(chain, "cached_input_tokens")
@@ -570,7 +573,10 @@ def compute_numeric_delta(previous_value: float | int | None, current_value: flo
     return delta
 
 
-def build_attempt_entry(
+# build_attempt_entry is a constructor helper: the kwargs mirror
+# AttemptEntryRecord's schema verbatim, so compressing them would just push the
+# unpacking to every caller.
+def build_attempt_entry(  # pylint: disable=too-many-arguments
     *,
     entries: list[dict[str, Any]],
     goal: dict[str, Any],
@@ -894,7 +900,11 @@ def _apply_model_update(
         task.model = auto_model
 
 
-def apply_goal_updates(
+# apply_goal_updates is the central goal-state mutator. The wide signature
+# mirrors the CLI update contract (manual/usage/auto sources kept distinct so
+# precedence is explicit at the call site). Grouping into sub-dataclasses is
+# tracked as a potential follow-up once the update precedence rules stabilise.
+def apply_goal_updates(  # pylint: disable=too-many-arguments,too-many-locals
     *,
     entries: list[dict[str, Any]],
     task: GoalRecord,

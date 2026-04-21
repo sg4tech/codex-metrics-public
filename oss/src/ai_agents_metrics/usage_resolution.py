@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from importlib import resources
@@ -216,6 +217,115 @@ def _compute_claude_event_cost_usd(
     return round_usd(input_cost + cache_creation_cost + cache_read_cost + output_cost)
 
 
+@dataclass
+class _ClaudeUsageAccumulator:
+    total_cost: float = 0.0
+    total_input: int = 0
+    total_cache_creation: int = 0
+    total_cache_read: int = 0
+    total_output: int = 0
+    total_tokens: int = 0
+    detected_model: str | None = None
+    latest_event_dt: datetime | None = field(default=None)
+
+
+def _collect_claude_jsonl_files(projects_dir: Path) -> list[Path]:
+    """Top-level session JSONLs plus subagent agent-*.jsonl files."""
+    jsonl_files: list[Path] = list(projects_dir.glob("*.jsonl"))
+    for subagent_dir in projects_dir.glob("*/subagents"):
+        jsonl_files.extend(subagent_dir.glob("agent-*.jsonl"))
+    return jsonl_files
+
+
+def _accumulate_claude_event(
+    event: dict[str, Any],
+    acc: _ClaudeUsageAccumulator,
+    *,
+    started_dt: datetime,
+    finished_dt: datetime,
+    pricing: dict[str, dict[str, float | None]],
+) -> None:
+    """Update *acc* in place with the event's usage contribution.
+
+    No-op if the event is out of window, malformed, or non-assistant.
+    """
+    if event.get("type") != "assistant":
+        return
+
+    ts_str = event.get("timestamp")
+    if not ts_str:
+        return
+    try:
+        event_dt = parse_iso_datetime_flexible(ts_str, "timestamp")
+    except ValueError:
+        return
+
+    if not (started_dt <= event_dt <= finished_dt):
+        return
+
+    message = event.get("message") or {}
+    usage = message.get("usage") or {}
+    model = message.get("model")
+
+    input_toks = int(usage.get("input_tokens") or 0)
+    cache_creation_toks = int(usage.get("cache_creation_input_tokens") or 0)
+    cache_read_toks = int(usage.get("cache_read_input_tokens") or 0)
+    output_toks = int(usage.get("output_tokens") or 0)
+
+    if acc.latest_event_dt is None or event_dt > acc.latest_event_dt:
+        acc.latest_event_dt = event_dt
+        if model:
+            acc.detected_model = model
+
+    acc.total_input += input_toks
+    acc.total_cache_creation += cache_creation_toks
+    acc.total_cache_read += cache_read_toks
+    acc.total_output += output_toks
+    acc.total_tokens += input_toks + cache_creation_toks + cache_read_toks + output_toks
+
+    if model is not None:
+        try:
+            acc.total_cost = round_usd(
+                acc.total_cost
+                + _compute_claude_event_cost_usd(
+                    model=model,
+                    input_tokens=input_toks,
+                    cache_creation_tokens=cache_creation_toks,
+                    cache_read_tokens=cache_read_toks,
+                    output_tokens=output_toks,
+                    pricing=pricing,
+                )
+            )
+        except ValueError:
+            # Unknown model — skip cost, still count tokens.
+            pass
+
+
+def _accumulate_claude_file(
+    jsonl_file: Path,
+    acc: _ClaudeUsageAccumulator,
+    *,
+    started_dt: datetime,
+    finished_dt: datetime,
+    pricing: dict[str, dict[str, float | None]],
+) -> None:
+    try:
+        lines = jsonl_file.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        try:
+            event = json.loads(stripped)
+        except json.JSONDecodeError:
+            continue
+        _accumulate_claude_event(
+            event, acc, started_dt=started_dt, finished_dt=finished_dt, pricing=pricing
+        )
+
+
 def _resolve_claude_usage_window_impl(
     claude_root: Path,
     cwd: Path,
@@ -247,95 +357,22 @@ def _resolve_claude_usage_window_impl(
         raise ValueError("finished_at cannot be earlier than started_at")
 
     pricing = load_pricing(pricing_path)
+    acc = _ClaudeUsageAccumulator()
+    for jsonl_file in _collect_claude_jsonl_files(projects_dir):
+        _accumulate_claude_file(
+            jsonl_file, acc, started_dt=started_dt, finished_dt=finished_dt, pricing=pricing
+        )
 
-    # Collect JSONL files: top-level sessions + subagent files
-    jsonl_files: list[Path] = list(projects_dir.glob("*.jsonl"))
-    for subagent_dir in projects_dir.glob("*/subagents"):
-        jsonl_files.extend(subagent_dir.glob("agent-*.jsonl"))
-
-    total_cost = 0.0
-    total_input = 0
-    total_cache_creation = 0
-    total_cache_read = 0
-    total_output = 0
-    total_tokens = 0
-    detected_model: str | None = None
-    latest_event_dt = None
-
-    for jsonl_file in jsonl_files:
-        try:
-            lines = jsonl_file.read_text(encoding="utf-8").splitlines()
-        except OSError:
-            continue
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                event = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-
-            if event.get("type") != "assistant":
-                continue
-
-            ts_str = event.get("timestamp")
-            if not ts_str:
-                continue
-            try:
-                event_dt = parse_iso_datetime_flexible(ts_str, "timestamp")
-            except ValueError:
-                continue
-
-            if not (started_dt <= event_dt <= finished_dt):
-                continue
-
-            message = event.get("message") or {}
-            usage = message.get("usage") or {}
-            model = message.get("model")
-
-            input_toks = int(usage.get("input_tokens") or 0)
-            cache_creation_toks = int(usage.get("cache_creation_input_tokens") or 0)
-            cache_read_toks = int(usage.get("cache_read_input_tokens") or 0)
-            output_toks = int(usage.get("output_tokens") or 0)
-
-            if latest_event_dt is None or event_dt > latest_event_dt:
-                latest_event_dt = event_dt
-                if model:
-                    detected_model = model
-
-            total_input += input_toks
-            total_cache_creation += cache_creation_toks
-            total_cache_read += cache_read_toks
-            total_output += output_toks
-            total_tokens += input_toks + cache_creation_toks + cache_read_toks + output_toks
-
-            if model is not None:
-                try:
-                    total_cost = round_usd(
-                        total_cost
-                        + _compute_claude_event_cost_usd(
-                            model=model,
-                            input_tokens=input_toks,
-                            cache_creation_tokens=cache_creation_toks,
-                            cache_read_tokens=cache_read_toks,
-                            output_tokens=output_toks,
-                            pricing=pricing,
-                        )
-                    )
-                except ValueError:
-                    pass  # unknown model — skip cost, still count tokens
-
-    if total_tokens == 0:
+    if acc.total_tokens == 0:
         return None, None, None, None, None, None
 
     return (
-        total_cost if total_cost > 0 else None,
-        total_tokens,
-        total_input,
-        total_cache_read,  # mapped to cached_input_tokens in domain
-        total_output,
-        detected_model,
+        acc.total_cost if acc.total_cost > 0 else None,
+        acc.total_tokens,
+        acc.total_input,
+        acc.total_cache_read,  # mapped to cached_input_tokens in domain
+        acc.total_output,
+        acc.detected_model,
     )
 
 
@@ -424,6 +461,74 @@ def resolve_thread_model_from_logs(logs_path: Path, thread_id: str) -> str | Non
     return None
 
 
+@dataclass
+class _SessionUsageAccumulator:
+    total_cost: float = 0.0
+    total_input_tokens: int = 0
+    total_cached_input_tokens: int = 0
+    total_output_tokens: int = 0
+    total_tokens: int = 0
+    cost_found: bool = False
+    tokens_found: bool = False
+    breakdown_found: bool = False
+
+
+def _accumulate_session_usage_record(
+    record: dict[str, Any],
+    acc: _SessionUsageAccumulator,
+    *,
+    started_dt: datetime,
+    finished_dt: datetime,
+    model: str | None,
+    pricing: dict[str, dict[str, float | None]],
+) -> None:
+    if record.get("type") != "event_msg":
+        return
+    payload = record.get("payload")
+    if not isinstance(payload, dict) or payload.get("type") != "token_count":
+        return
+    timestamp = record.get("timestamp")
+    if not isinstance(timestamp, str):
+        return
+    event_dt = parse_iso_datetime_flexible(timestamp, "timestamp")
+    if not (started_dt <= event_dt <= finished_dt):
+        return
+
+    info = payload.get("info")
+    if not isinstance(info, dict):
+        return
+    last_usage = info.get("last_token_usage")
+    if not isinstance(last_usage, dict):
+        return
+
+    input_tokens = int(last_usage.get("input_tokens", 0))
+    cached_input_tokens = int(last_usage.get("cached_input_tokens", 0))
+    output_tokens = int(last_usage.get("output_tokens", 0))
+    reasoning_tokens = int(last_usage.get("reasoning_output_tokens", 0))
+    acc.total_input_tokens += input_tokens
+    acc.total_cached_input_tokens += cached_input_tokens
+    acc.total_output_tokens += output_tokens
+    acc.total_tokens += int(
+        last_usage.get("total_tokens", input_tokens + cached_input_tokens + output_tokens)
+    )
+    if reasoning_tokens > 0 and "total_tokens" not in last_usage:
+        acc.total_tokens += reasoning_tokens
+    acc.tokens_found = True
+    acc.breakdown_found = True
+
+    if model is None:
+        return
+
+    event = {
+        "model": model,
+        "input_tokens": input_tokens,
+        "cached_input_tokens": cached_input_tokens,
+        "output_tokens": output_tokens,
+    }
+    acc.total_cost = round_usd(acc.total_cost + compute_event_cost_usd(event, pricing))
+    acc.cost_found = True
+
+
 def resolve_usage_session_window(
     *,
     logs_path: Path,
@@ -438,72 +543,29 @@ def resolve_usage_session_window(
         return None, None, None, None, None, None
 
     model = resolve_thread_model_from_logs(logs_path, thread_id)
-    total_cost = 0.0
-    total_input_tokens = 0
-    total_cached_input_tokens = 0
-    total_output_tokens = 0
-    total_tokens = 0
-    cost_found = False
-    tokens_found = False
-    breakdown_found = False
-    model_found = model
+    acc = _SessionUsageAccumulator()
 
     with rollout_path.open("r", encoding="utf-8") as handle:
         for line in handle:
             if not line.strip():
                 continue
             record = json.loads(line)
-            if record.get("type") != "event_msg":
-                continue
-            payload = record.get("payload")
-            if not isinstance(payload, dict) or payload.get("type") != "token_count":
-                continue
-            timestamp = record.get("timestamp")
-            if not isinstance(timestamp, str):
-                continue
-            event_dt = parse_iso_datetime_flexible(timestamp, "timestamp")
-            if not (started_dt <= event_dt <= finished_dt):
-                continue
-
-            info = payload.get("info")
-            if not isinstance(info, dict):
-                continue
-            last_usage = info.get("last_token_usage")
-            if not isinstance(last_usage, dict):
-                continue
-
-            input_tokens = int(last_usage.get("input_tokens", 0))
-            cached_input_tokens = int(last_usage.get("cached_input_tokens", 0))
-            output_tokens = int(last_usage.get("output_tokens", 0))
-            reasoning_tokens = int(last_usage.get("reasoning_output_tokens", 0))
-            total_input_tokens += input_tokens
-            total_cached_input_tokens += cached_input_tokens
-            total_output_tokens += output_tokens
-            total_tokens += int(last_usage.get("total_tokens", input_tokens + cached_input_tokens + output_tokens))
-            if reasoning_tokens > 0 and "total_tokens" not in last_usage:
-                total_tokens += reasoning_tokens
-            tokens_found = True
-            breakdown_found = True
-
-            if model is None:
-                continue
-
-            event = {
-                "model": model,
-                "input_tokens": input_tokens,
-                "cached_input_tokens": cached_input_tokens,
-                "output_tokens": output_tokens,
-            }
-            total_cost = round_usd(total_cost + compute_event_cost_usd(event, pricing))
-            cost_found = True
+            _accumulate_session_usage_record(
+                record,
+                acc,
+                started_dt=started_dt,
+                finished_dt=finished_dt,
+                model=model,
+                pricing=pricing,
+            )
 
     return (
-        round_usd(total_cost) if cost_found else None,
-        total_tokens if tokens_found else None,
-        total_input_tokens if breakdown_found else None,
-        total_cached_input_tokens if breakdown_found else None,
-        total_output_tokens if breakdown_found else None,
-        model_found if tokens_found else None,
+        round_usd(acc.total_cost) if acc.cost_found else None,
+        acc.total_tokens if acc.tokens_found else None,
+        acc.total_input_tokens if acc.breakdown_found else None,
+        acc.total_cached_input_tokens if acc.breakdown_found else None,
+        acc.total_output_tokens if acc.breakdown_found else None,
+        model if acc.tokens_found else None,
     )
 
 
@@ -521,6 +583,74 @@ def resolve_codex_session_usage_window(
         started_dt=started_dt,
         finished_dt=finished_dt,
         pricing=pricing,
+    )
+
+
+def _collect_codex_sse_events(
+    logs_path: Path,
+    resolved_thread_id: str,
+    *,
+    started_dt: datetime,
+    finished_dt: datetime,
+) -> list[dict[str, Any]]:
+    usage_events: list[dict[str, Any]] = []
+    with sqlite3.connect(logs_path) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """
+            SELECT feedback_log_body
+            FROM logs
+            WHERE feedback_log_body LIKE ?
+              AND feedback_log_body LIKE '%event.name="codex.sse_event"%'
+              AND feedback_log_body LIKE '%event.kind=response.completed%'
+            ORDER BY id ASC
+            """,
+            (f"%conversation.id={resolved_thread_id}%",),
+        ).fetchall()
+
+    for row in rows:
+        body = row["feedback_log_body"]
+        if body is None:
+            continue
+        event = parse_usage_event(str(body))
+        if event is None:
+            continue
+        if started_dt <= event["timestamp"] <= finished_dt:
+            usage_events.append(event)
+    return usage_events
+
+
+def _aggregate_codex_sse_events(
+    usage_events: list[dict[str, Any]],
+    pricing: dict[str, dict[str, float | None]],
+) -> tuple[float, int, int, int, int, str | None]:
+    total_cost = 0.0
+    total_input_tokens = 0
+    total_cached_input_tokens = 0
+    total_output_tokens = 0
+    total_tokens = 0
+    detected_model: str | None = None
+    for event in usage_events:
+        total_cost = round_usd(total_cost + compute_event_cost_usd(event, pricing))
+        total_input_tokens += event["input_tokens"]
+        total_cached_input_tokens += event["cached_input_tokens"]
+        total_output_tokens += event["output_tokens"]
+        total_tokens += (
+            event["input_tokens"]
+            + event["cached_input_tokens"]
+            + event["output_tokens"]
+            + event["reasoning_tokens"]
+            + event["tool_tokens"]
+        )
+        if detected_model is None and event.get("model") is not None:
+            detected_model = event["model"]
+    return (
+        total_cost,
+        total_tokens,
+        total_input_tokens,
+        total_cached_input_tokens,
+        total_output_tokens,
+        detected_model,
     )
 
 
@@ -546,78 +676,23 @@ def _resolve_usage_window_impl(
         return None, None, None, None, None, None
 
     pricing = load_pricing(pricing_path)
-    usage_events: list[dict[str, Any]] = []
-    with sqlite3.connect(logs_path) as conn:
-        conn.row_factory = sqlite3.Row
-        rows = conn.execute(
-            """
-            SELECT feedback_log_body
-            FROM logs
-            WHERE feedback_log_body LIKE ?
-              AND feedback_log_body LIKE '%event.name="codex.sse_event"%'
-              AND feedback_log_body LIKE '%event.kind=response.completed%'
-            ORDER BY id ASC
-            """,
-            (f"%conversation.id={resolved_thread_id}%",),
-        ).fetchall()
-
-    for row in rows:
-        body = row["feedback_log_body"]
-        if body is None:
-            continue
-        event = parse_usage_event(str(body))
-        if event is None:
-            continue
-        if started_dt <= event["timestamp"] <= finished_dt:
-            usage_events.append(event)
+    usage_events = _collect_codex_sse_events(
+        logs_path, resolved_thread_id, started_dt=started_dt, finished_dt=finished_dt
+    )
 
     if not usage_events:
-        session_cost_usd, session_total_tokens, session_input_tokens, session_cached_input_tokens, session_output_tokens, session_model = resolve_usage_session_window(
+        session_result = resolve_usage_session_window(
             logs_path=logs_path,
             thread_id=resolved_thread_id,
             started_dt=started_dt,
             finished_dt=finished_dt,
             pricing=pricing,
         )
-        if (
-            session_cost_usd is None
-            and session_total_tokens is None
-            and session_input_tokens is None
-            and session_cached_input_tokens is None
-            and session_output_tokens is None
-            and session_model is None
-        ):
+        if all(value is None for value in session_result):
             return None, None, None, None, None, None
-        return (
-            session_cost_usd,
-            session_total_tokens,
-            session_input_tokens,
-            session_cached_input_tokens,
-            session_output_tokens,
-            session_model,
-        )
+        return session_result
 
-    total_cost = 0.0
-    total_input_tokens = 0
-    total_cached_input_tokens = 0
-    total_output_tokens = 0
-    total_tokens = 0
-    detected_model = None
-    for event in usage_events:
-        total_cost = round_usd(total_cost + compute_event_cost_usd(event, pricing))
-        total_input_tokens += event["input_tokens"]
-        total_cached_input_tokens += event["cached_input_tokens"]
-        total_output_tokens += event["output_tokens"]
-        total_tokens += (
-            event["input_tokens"]
-            + event["cached_input_tokens"]
-            + event["output_tokens"]
-            + event["reasoning_tokens"]
-            + event["tool_tokens"]
-        )
-        if detected_model is None and event.get("model") is not None:
-            detected_model = event["model"]
-    return total_cost, total_tokens, total_input_tokens, total_cached_input_tokens, total_output_tokens, detected_model
+    return _aggregate_codex_sse_events(usage_events, pricing)
 
 
 def resolve_codex_usage_window(
