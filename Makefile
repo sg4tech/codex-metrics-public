@@ -55,8 +55,10 @@ endif
 sync-bootstrap-policy:
 	@test -r src/ai_agents_metrics/data/bootstrap_codex_metrics_policy.md || { echo "ERROR: bootstrap policy not found (expected symlink to docs/)"; exit 1; }
 
+ifndef PRIVATE_OVERRIDE
 pylint-check: check-init
 	./.venv/bin/pylint src/
+endif
 
 verify-fast: check-init lint typecheck test
 
