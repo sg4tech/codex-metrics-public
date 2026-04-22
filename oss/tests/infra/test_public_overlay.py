@@ -95,10 +95,10 @@ def test_public_overlay_push_execute_runs_verify_then_push(tmp_path: Path, monke
 
 
 def test_public_overlay_mirror_includes_security_verify_and_rules() -> None:
-    makefile_text = (Path(__file__).resolve().parents[1] / "Makefile").read_text(
+    makefile_text = (Path(__file__).resolve().parents[2] / "Makefile").read_text(
         encoding="utf-8"
     )
-    rules_text = (Path(__file__).resolve().parents[1] / "config" / "security-rules.toml").read_text(
+    rules_text = (Path(__file__).resolve().parents[2] / "config" / "security-rules.toml").read_text(
         encoding="utf-8"
     )
 

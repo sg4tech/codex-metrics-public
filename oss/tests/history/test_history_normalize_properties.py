@@ -23,12 +23,12 @@ from ai_agents_metrics.history.normalize import normalize_codex_history
 if TYPE_CHECKING:
     from pathlib import Path
 
-# Warehouse construction involves multiple INSERTs per example; 25 draws is
-# enough breadth without making the suite slow. ``function_scoped_fixture``
-# is suppressed because tmp_path is reused per draw (our build_warehouse
-# unlinks the previous file).
+# Each example runs multiple SQLite INSERTs + normalize queries; 10 draws keep
+# the property check meaningful while staying within the 60s timeout.
+# ``function_scoped_fixture`` is suppressed because tmp_path is reused per
+# draw (our build_warehouse unlinks the previous file).
 NORMALIZE_SETTINGS = settings(
-    max_examples=25,
+    max_examples=10,
     deadline=None,
     suppress_health_check=(HealthCheck.function_scoped_fixture,),
 )

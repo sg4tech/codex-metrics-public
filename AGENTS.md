@@ -148,7 +148,7 @@ After changing the CLI, update flow, bootstrap flow, or metrics semantics:
 Minimum validation commands:
 
 ```bash
-python -m pytest tests/public/test_metrics_cli.py
+python -m pytest tests/public/cli/test_metrics_cli.py
 ./tools/ai-agents-metrics show
 ```
 
@@ -162,7 +162,7 @@ Validate in layers — use the lightest tool that answers the question:
 | Lint | `ruff check <file>` or `ruff check <file> --fix` | after each edit |
 | Type check | `mypy src/ai_agents_metrics/<file>.py` | after type-relevant changes |
 | Import contracts | `lint-imports` | after import restructuring |
-| One test module | `pytest tests/test_X.py -x -q` | after changing logic |
+| One test module | `pytest tests/<area>/test_X.py -x -q` | after changing logic |
 
 Run `make verify` or `make verify-fast` **once only**, as the final gate before committing. Do not use them as intermediate diagnostic tools — each run costs 55s–1.5min and repeats all layers from scratch.
 

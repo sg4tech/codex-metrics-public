@@ -346,8 +346,8 @@ __all__ = [
     "default_raw_warehouse_path",
     "ingest_codex_history",
     "render_ingest_summary_json",
-    # Private test-facing re-exports: tests/test_history_ingest.py and
-    # tests/strategies/history.py import these names directly. Keep them
+    # Private test-facing re-exports: tests/history/test_history_ingest.py
+    # and tests/strategies/history.py import these names directly. Keep them
     # reachable from the package root until those tests migrate to
     # submodule imports.
     "_encode_claude_cwd",

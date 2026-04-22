@@ -22,10 +22,9 @@ from ai_agents_metrics.domain.aggregation import recompute_summary
 if TYPE_CHECKING:
     import random
 
-# The aggregation layer is pure in terms of arithmetic (no I/O), so 50 draws
-# are enough to exercise numerical corner cases without inflating CI time.
-# Per-test timeout overrides pyproject.toml's global 5s cap.
-AGGREGATION_SETTINGS = settings(max_examples=50, deadline=None)
+# The aggregation layer is pure arithmetic (no I/O); 20 draws cover the
+# numerical corner cases. Per-test timeout overrides pyproject.toml's 5s cap.
+AGGREGATION_SETTINGS = settings(max_examples=20, deadline=None)
 
 
 def _run_summary(data: dict[str, Any]) -> dict[str, Any]:

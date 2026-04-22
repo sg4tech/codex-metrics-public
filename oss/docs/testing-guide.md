@@ -27,7 +27,7 @@ make verify          # full suite incl. bandit, pylint, complexity (~1.5min) —
 make test            # pytest only
 make lint            # ruff only
 make typecheck       # mypy only
-python -m pytest tests/test_workflow_fsm.py -v   # single file
+python -m pytest tests/workflow/test_workflow_fsm.py -v   # single file
 ```
 
 Configuration in `pyproject.toml`:
@@ -45,7 +45,7 @@ make verify
 
 **Debugging a single test:**
 ```bash
-python -m pytest tests/test_metrics_cli.py::test_name -v -s
+python -m pytest tests/cli/test_metrics_cli.py::test_name -v -s
 ```
 
 **Running with subprocess coverage enabled:**

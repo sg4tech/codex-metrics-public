@@ -33,7 +33,7 @@ from ai_agents_metrics.history.classify import (
     classify_codex_history,
 )
 
-WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 ABS_SCRIPT = WORKSPACE_ROOT / "scripts" / "metrics_cli.py"
 ABS_SRC = WORKSPACE_ROOT / "src"
 

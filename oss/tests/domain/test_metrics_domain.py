@@ -1554,7 +1554,7 @@ def test_load_pricing_requires_all_fields(tmp_path: Path) -> None:
 
 
 def test_resolve_usage_costs_requires_token_fields_when_model_is_given() -> None:
-    pricing_json = Path(__file__).resolve().parents[1] / "pricing" / "model_pricing.json"
+    pricing_json = Path(__file__).resolve().parents[2] / "pricing" / "model_pricing.json"
     with pytest.raises(ValueError, match="At least one usage token field is required"):
         resolve_usage_costs(
             pricing_path=pricing_json,

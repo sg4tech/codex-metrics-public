@@ -11,7 +11,7 @@ from test_history_ingest import create_codex_history_source_root, run_cmd
 
 from ai_agents_metrics.history.normalize import _iso_from_unix_seconds, _usage_event_from_row
 
-WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 ABS_SCRIPT = WORKSPACE_ROOT / "scripts" / "metrics_cli.py"
 ABS_SRC = WORKSPACE_ROOT / "src"
 

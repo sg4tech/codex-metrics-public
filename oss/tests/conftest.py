@@ -11,12 +11,17 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-# Ensure oss/tests/ is importable by its real path so that cross-test imports
-# like `from test_history_ingest import ...` work regardless of whether tests
-# run from oss/ directly or from the root repo via the tests/public/ symlink.
-_tests_dir = str(Path(__file__).resolve().parent)
-if _tests_dir not in sys.path:
-    sys.path.insert(0, _tests_dir)
+# Ensure oss/tests/ and every immediate test subdirectory are importable by
+# their real paths so cross-test imports like `from test_history_ingest import
+# ...` keep resolving after tests were grouped into subject-area subdirs.
+_tests_dir = Path(__file__).resolve().parent
+if str(_tests_dir) not in sys.path:
+    sys.path.insert(0, str(_tests_dir))
+for _sub in _tests_dir.iterdir():
+    if _sub.is_dir() and not _sub.name.startswith((".", "__")):
+        _sub_str = str(_sub)
+        if _sub_str not in sys.path:
+            sys.path.insert(0, _sub_str)
 
 # Ensure oss/ is on sys.path so tests can `import scripts.*` regardless of
 # whether pytest is invoked via `python -m pytest` (which adds cwd) or via
