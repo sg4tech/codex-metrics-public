@@ -28,9 +28,9 @@ There is no database server, no background process, and no network dependency.
 Data flow:
 
 ```
-CLI entrypoint (cli.py)
-  ↓  parses args and dispatches handlers through runtime_facade.py
-Commands (commands.py)
+CLI entrypoint (cli.py + cli_parsers.py + cli_constants.py)
+  ↓  parses args and dispatches handlers through runtime_facade/
+Commands (commands/ package)
   ↓  orchestration against a sanctioned runtime surface (CommandRuntime)
 History pipeline (history/*)           ← primary analysis layer
   ↓  ingest → normalize → derive from ~/.codex or ~/.claude
@@ -77,13 +77,15 @@ ai-agents-metrics/
 
 ### Entry Points
 
-| File | Role |
-|------|------|
+| File / Package | Role |
+|----------------|------|
 | `__init__.py` | Version resolution: git-derived (`commit_count.sha`) with fallback to package metadata |
 | `__main__.py` | Enables `python -m ai_agents_metrics` dispatch |
-| `cli.py` | User-facing CLI entrypoint — builds parser, records invocation, dispatches to command handlers, exposes `console_main` |
-| `commands.py` | Command handler orchestration layer; defines `CommandRuntime` protocol used by CLI handlers |
-| `runtime_facade.py` | Sanctioned runtime surface passed into `commands.py`; collects the supported application-level helpers and adapters |
+| `cli.py` | CLI dispatcher + facade surface for `scripts/metrics_cli.py` — records invocation, routes `args.command` to handlers, exposes `console_main` |
+| `cli_parsers.py` | Argparse parser construction (`build_parser`, per-group `_add_*_parsers` helpers, hidden-command filter) |
+| `cli_constants.py` | Path defaults (`METRICS_JSON_PATH`, `CODEX_STATE_PATH`, `CLAUDE_ROOT`, `RAW_WAREHOUSE_PATH`, …) consumed by both `cli.py` and `cli_parsers.py` |
+| `commands/` | Package of CLI command handlers split by cluster: `install`, `history`, `tasks`, `report`, `misc`; `_runtime.py` defines the `CommandRuntime` Protocol; `__init__.py` re-exports every `handle_*` for backward-compatible `from ai_agents_metrics import commands` |
+| `runtime_facade/` | Concrete `CommandRuntime` implementation split into three submodules: `orchestration` (path constants, history wrappers, workflow helpers, init/bootstrap), `costs` (usage-cost resolution, `resolve_goal_usage_updates`, cost-audit), `mutations` (`upsert_task`, `sync_usage`, `merge_tasks`); `__init__.py` re-exports the full `__all__` surface |
 
 ### Core Domain
 
@@ -95,17 +97,28 @@ ai-agents-metrics/
 
 ### History Pipeline
 
-Four sequential modules that reconstruct goal history from raw Codex agent state:
+Sequential stages that reconstruct goal history from raw Codex + Claude Code agent state:
 
 ```
-Codex state/logs (SQLite)
-  ↓  history/ingest.py       → .ai-agents-metrics/warehouse.db
-  ↓  history/normalize.py    → cleaned warehouse rows
-  ↓  history/derive.py       → GoalRecord + AttemptEntryRecord objects
+Codex (~/.codex) or Claude Code (~/.claude)
+  ↓  history/ingest/         → .ai-agents-metrics/warehouse.db (raw_* tables)
+       ingest/warehouse.py     — schema, SQL helpers, manifest, path resolution
+       ingest/codex.py         — Codex adapter (state_5.sqlite, logs_1.sqlite, session JSONL)
+       ingest/claude.py        — Claude Code adapter (projects/*.jsonl, subagent files)
+       ingest/__init__.py      — orchestrator (ingest_codex_history), IngestSummary, snapshots
+  ↓  history/normalize.py    → cleaned warehouse rows (normalized_* tables)
+  ↓  history/classify.py     → session kinds (main vs subagent) + practice-event labels
+  ↓  history/derive.py       → GoalRecord + AttemptEntryRecord objects (derived_* tables)
+       history/derive_build.py    — pipeline stage builders
+       history/derive_insert.py   — typed inserts into derived_*
+       history/derive_schema.py   — schema for derived tables
   ↓  history/compare.py      → diff against replayed metrics state
        history/compare_store.py  (persistence for compare results)
        history/audit.py          (consistency checks on derived goals)
 ```
+
+For the layering rules (raw_* byte-perfect, normalized_* typed, derived_* aggregated) see
+`warehouse-layering.md`.
 
 ### Analysis and Reporting
 
@@ -162,8 +175,8 @@ Transitions produce a `WorkflowDecision(action, message)`. Commands call `classi
 - Mutations serialised via fcntl lockfile (`metrics/events.ndjson.lock`)
 
 **History warehouse:** `.ai-agents-metrics/warehouse.db`
-- Intermediate cache populated by `history/ingest.py`
-- Consumed by normalize → derive steps; not the source of truth
+- Intermediate cache populated by `history/ingest/` (Codex + Claude adapters)
+- Consumed by normalize → classify → derive steps; not the source of truth
 - Also read directly by `render-html` for token/cost and retry data (warehouse-first reporting, H-038): covers full session history, while the ndjson ledger only covers manually-tracked goals
 
 **Event log:** `.ai-agents-metrics/events.sqlite` + `events.debug.log`
@@ -179,7 +192,8 @@ Transitions produce a `WorkflowDecision(action, message)`. Commands call `classi
 Boundary note:
 
 - `cli.py` is the entrypoint module, not the general runtime dependency surface
-- `commands.py` should depend on `runtime_facade.py`, not on `cli.py`
+- `commands/` depends on `runtime_facade/`, not on `cli.py` (enforced by import-linter)
+- Inside `runtime_facade/` the one-way direction is `mutations → costs → orchestration`
 - pricing-aware runtime consumers should go through `pricing_runtime.py`, not ad-hoc pricing-path resolution
 
 Key command groups:
@@ -187,11 +201,12 @@ Key command groups:
 | Group | Commands |
 |-------|----------|
 | Task lifecycle | `start-task`, `continue-task`, `finish-task` |
-| Metrics mutation | `update`, `create`, `merge-tasks` |
-| Inspection | `show`, `show-goal`, `render-report`, `render-html` |
-| History | `history-ingest`, `history-normalize`, `history-derive`, `history-compare`, `history-audit` |
-| Sync | `sync-usage` |
-| Tooling | `init`, `verify-public-boundary`, `render-completion`, `export` |
+| Metrics mutation | `update`, `merge-tasks`, `ensure-active-task` |
+| Inspection | `show`, `render-report`, `render-html` |
+| History pipeline | `history-ingest`, `history-normalize`, `history-classify`, `history-derive`, `history-update` |
+| History audit | `history-compare`, `history-audit`, `audit-cost-coverage`, `derive-retro-timeline` |
+| Sync | `sync-usage`, `sync-codex-usage` |
+| Tooling | `init`, `bootstrap`, `install-self`, `completion`, `verify-public-boundary`, `security` |
 
 ---
 
@@ -231,11 +246,12 @@ One test file per module; naming mirrors the source:
 
 | Tool | Config | Settings |
 |------|--------|----------|
-| **ruff** | `pyproject.toml` | Rules: F (pyflakes) + I (isort); target Python 3.14; line length 100 |
-| **mypy** | `pyproject.toml` | Strict: `check_untyped_defs`, `disallow_incomplete_defs`, `no_implicit_optional`; covers `src/` + `scripts/metrics_cli.py` |
-| **import-linter** | `pyproject.toml` | Architectural contracts: domain/storage/history boundaries, usage-layer restrictions, and a guardrail preventing package modules from importing `cli.py` outside the entrypoint shim |
-| **pylint** | `pyproject.toml` + `Makefile` | Tiered rollout: selective hard-fail and advisory rules today; full-project rollout tracked separately as ARCH-019 |
-| **pytest** | `pyproject.toml` | `pythonpath = ["src"]` |
+| **ruff** | `pyproject.toml` | 15 rule categories (B, C4, ERA, F, FURB, I, PERF, PGH, PTH, Q, RET, RSE, SIM, TC, UP); target Python 3.14; line length 100 |
+| **mypy** | `pyproject.toml` | `strict = true` at top level (ARCH-030); covers `src/` + `scripts/`; 65/65 files pass `--strict` |
+| **import-linter** | `pyproject.toml` | Six architectural contracts: domain/storage/history boundaries, usage-layer restrictions, package modules must not import `cli.py` outside the entrypoint shim |
+| **pylint** | `pyproject.toml` + `Makefile` | Full default rule set on the whole project (ARCH-019 … ARCH-023); a small `disable` list documents the few intentionally-off rules |
+| **hypothesis** | `pyproject.toml` dev dep | Property-based tests for `domain/aggregation` (8 invariants) and `history/normalize` (8 invariants); strategies in `tests/strategies/` |
+| **pytest** | `pyproject.toml` | `pythonpath = ["src"]`, xdist auto workers, 5s default timeout (overridden per-test on hypothesis suites) |
 | **coverage** | `pyproject.toml` | Branch coverage, parallel mode, source = `ai_agents_metrics` |
 
 **Makefile targets:** `lint`, `security`, `typecheck`, `test`, `arch-check`, `verify`, `verify-fast`, `coverage`, `package`, public-overlay ops.

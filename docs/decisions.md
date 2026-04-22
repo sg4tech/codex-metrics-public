@@ -137,4 +137,66 @@ New entries should follow the format below. Add entries as decisions are made or
 
 **Decision:** `cli.py` re-exports ~50 symbols from `domain`, `reporting`, and `storage` to maintain backward compatibility.
 
-**Trade-offs:** Any code importing from `cli` pulls the entire CLI layer as a dependency. Adding a new domain function requires updating the re-export list. This is a known weakness tracked in ARCH-001.
+**Trade-offs:** Any code importing from `cli` pulls the entire CLI layer as a dependency. Adding a new domain function requires updating the re-export list. This is a known weakness tracked in ARCH-001. ARCH-032 (2026-04-22) removed 9 re-exports that were kept only for a reflective test pattern; `test_metrics_domain.py` now imports directly from `usage_resolution` / `pricing_runtime` / `runtime_facade`.
+
+---
+
+## Oversized-file splits into packages (ARCH-027 / ARCH-028 / ARCH-034)
+
+**Context:** By mid-April 2026 four modules had drifted past 900 lines:
+`commands.py` (1340), `runtime_facade.py` (927), `history/ingest.py` (1152),
+and `cli.py` (1091). Files that large strain human review and exceed the
+single-tool-call budget for AI-agent contributors.
+
+**Decision:** Split each into a package that preserves the import surface.
+
+| Before | After | Direction |
+|--------|-------|-----------|
+| `commands.py` | `commands/` — `install.py`, `history.py`, `tasks.py`, `report.py`, `misc.py`, `_runtime.py`, `__init__.py` | cluster-per-command |
+| `runtime_facade.py` | `runtime_facade/` — `orchestration.py`, `costs.py`, `mutations.py`, `__init__.py` | `mutations → costs → orchestration` |
+| `history/ingest.py` | `history/ingest/` — `warehouse.py`, `codex.py`, `claude.py`, `__init__.py` | adapters → warehouse |
+| `cli.py` | `cli.py` (dispatch + facade) + `cli_parsers.py` (argparse) + `cli_constants.py` (paths) | extract, not package |
+
+**Why packages, not just more files:** Each `__init__.py` re-exports the
+full public surface so existing importers (`from ai_agents_metrics import
+commands`, `from ai_agents_metrics.history.ingest import IngestSummary`)
+resolve unchanged. `scripts/metrics_cli.py`'s reflective `globals().update(vars(cli))`
+shim keeps working without edits. Tests that imported private helpers
+(`_encode_claude_cwd`, `_ensure_schema`, etc.) continue to work via
+`__init__.py` re-exports.
+
+**Trade-offs:**
+- More files: 4 split sites → 17 new files total. `git blame` at file level
+  loses continuity (mitigated by atomic move commits).
+- Test-only private re-exports in `history/ingest/__init__.py` document
+  a minor boundary leak; tracked for future migration.
+
+**Why this works:** Direction-of-dependency is one-way inside each package
+(validated by `lint-imports`). No file now exceeds the pylint
+`max-module-lines = 1000` threshold. The only remaining `too-many-lines`
+suppressions were stale and have been dropped (ARCH-031).
+
+---
+
+## mypy `--strict` globally (ARCH-030)
+
+**Context:** Strict type-checking was partial: `[tool.mypy]` enabled a
+handful of individual flags (`check_untyped_defs`, `no_implicit_optional`,
+`disallow_incomplete_defs`), and ARCH-029 introduced a per-module override
+for `domain/*` and `history/*` using the explicit strict flag set.
+
+**Decision:** Promote `strict = true` to the top-level `[tool.mypy]`
+section. All 65 source files (`src/` + `scripts/`) now pass `mypy --strict`.
+
+**Trade-offs:**
+- Required three small fixes: a typed local in `usage_backends.py:135`
+  (`sqlite3.Cursor.fetchone()` is typeshed-typed `Any | None`), explicit
+  `-> ModuleType` annotations on two bootstrap shim files, and `dict` →
+  `dict[str, Any]` in one permission-audit helper.
+- ARCH-029 had to work around a mypy ≤ 1.20 bug where `strict = true` in a
+  per-module override leaks `warn_return_any` into unrelated modules;
+  top-level `strict = true` is not affected.
+
+**Why this works:** The codebase was already mostly strict-clean thanks to
+years of incremental typing. The cost of turning the screw the rest of the
+way was measured (3 fixes total) and locked in via the global config.
