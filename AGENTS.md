@@ -36,9 +36,10 @@ For product-management, framing, and metrics-interpretation work, also read:
 For history/search/reconstruction work, also read:
 
 - `docs/public/history-pipeline.md`
-- `src/ai_agents_metrics/history_ingest.py`
-- `src/ai_agents_metrics/history_normalize.py`
-- `src/ai_agents_metrics/history_derive.py`
+- `src/ai_agents_metrics/history/ingest/` (Codex + Claude adapter package; ARCH-034 split)
+- `src/ai_agents_metrics/history/normalize.py`
+- `src/ai_agents_metrics/history/classify.py`
+- `src/ai_agents_metrics/history/derive.py` (+ `derive_build.py`, `derive_insert.py`, `derive_schema.py`)
 
 ## Reference documentation
 
