@@ -5,9 +5,13 @@ import os
 import shutil
 import sqlite3
 import subprocess
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+from conftest import find_repo_paths
+
+if TYPE_CHECKING:
+    from pathlib import Path
 from test_history_ingest import (
     create_claude_history_source_root,
     create_codex_history_source_root,
@@ -23,9 +27,8 @@ from ai_agents_metrics.history.derive import (
 )
 from ai_agents_metrics.history.normalize import _ensure_schema
 
-WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
-ABS_SCRIPT = WORKSPACE_ROOT / "scripts" / "metrics_cli.py"
-ABS_SRC = WORKSPACE_ROOT / "src"
+WORKSPACE_ROOT, _SCRIPTS_DIR, ABS_SRC = find_repo_paths()
+ABS_SCRIPT = _SCRIPTS_DIR / "metrics_cli.py"
 
 
 @pytest.fixture

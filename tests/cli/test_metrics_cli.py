@@ -12,11 +12,11 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
+from conftest import find_repo_paths
 
-WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
+WORKSPACE_ROOT, _SCRIPTS_DIR, ABS_SRC = find_repo_paths()
 SCRIPT = Path("scripts/metrics_cli.py")
-ABS_SCRIPT = WORKSPACE_ROOT / "scripts" / "metrics_cli.py"
-ABS_SRC = WORKSPACE_ROOT / "src"
+ABS_SCRIPT = _SCRIPTS_DIR / "metrics_cli.py"
 PRICING = WORKSPACE_ROOT / "pricing" / "model_pricing.json"
 
 if str(ABS_SRC) not in sys.path:
@@ -505,14 +505,25 @@ def _repo_template(tmp_path_factory: pytest.TempPathFactory) -> Path:
         ["git", "commit", "-m", "baseline"],
         cwd=template, text=True, capture_output=True, check=True,
     )
+    # Guardrail for the cp -rl hardlink fixture below: strip write bits on
+    # every file in the template. Since hardlinks share inode permissions,
+    # any test that accidentally does write_text() on a template-originated
+    # path (src/**, scripts/metrics_cli.py, pricing/model_pricing.json, .git/**)
+    # fails loudly with PermissionError instead of silently poisoning the
+    # template for every subsequent test in the session. Directories stay
+    # writable so tests can still add new files to their own copy.
+    for path in template.rglob("*"):
+        if path.is_file():
+            path.chmod(path.stat().st_mode & 0o555)
     return template
 
 
 @pytest.fixture
 def repo(tmp_path: Path, _repo_template: Path) -> Path:
-    # cp -rl hardlinks source files so the copy is near-instant. Safe here
-    # because no test body does git-commit (only git-read ops), so .git/logs
-    # is never appended to and git index updates use atomic rename.
+    # cp -rl hardlinks every file to the template — near-instant copy.
+    # The template's files are read-only (see _repo_template), so any attempt
+    # to overwrite a template-originated file from a test body will fail loudly
+    # rather than silently mutate the shared inode.
     subprocess.run(
         ["cp", "-rl", f"{_repo_template}/.", str(tmp_path)],
         check=True, capture_output=True,

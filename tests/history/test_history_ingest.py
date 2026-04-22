@@ -6,10 +6,10 @@ import shutil
 import sqlite3
 import subprocess
 import sys
-import tomllib
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+from conftest import find_repo_paths
 
 from ai_agents_metrics.history.ingest import (
     _encode_claude_cwd,
@@ -19,20 +19,10 @@ from ai_agents_metrics.history.ingest import (
     _optional_row_value,
 )
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
-def _find_paths() -> tuple[Path, Path, Path]:
-    for parent in Path(__file__).resolve().parents:
-        cfg = parent / "pyproject.toml"
-        if not cfg.exists():
-            continue
-        with cfg.open("rb") as f:
-            ct = tomllib.load(f).get("tool", {}).get("codex_tests")
-        if ct:
-            return parent, parent / ct["scripts"], parent / ct["src"]
-    raise RuntimeError("No [tool.codex_tests] found in any pyproject.toml")
-
-
-_REPO_ROOT, _SCRIPTS_DIR, _SRC_DIR = _find_paths()
+_REPO_ROOT, _SCRIPTS_DIR, _SRC_DIR = find_repo_paths()
 ABS_SCRIPT = _SCRIPTS_DIR / "metrics_cli.py"
 ABS_SRC = _SRC_DIR
 

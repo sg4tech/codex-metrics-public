@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 
 import pytest
+from conftest import find_repo_paths
 
-SRC = Path(__file__).resolve().parents[2] / "src"
+SRC = find_repo_paths()[2]
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 

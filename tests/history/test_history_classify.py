@@ -8,6 +8,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from conftest import find_repo_paths
 from test_history_ingest import (
     create_claude_history_source_root,
     run_cmd,
@@ -33,9 +34,8 @@ from ai_agents_metrics.history.classify import (
     classify_codex_history,
 )
 
-WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
-ABS_SCRIPT = WORKSPACE_ROOT / "scripts" / "metrics_cli.py"
-ABS_SRC = WORKSPACE_ROOT / "src"
+WORKSPACE_ROOT, _SCRIPTS_DIR, ABS_SRC = find_repo_paths()
+ABS_SCRIPT = _SCRIPTS_DIR / "metrics_cli.py"
 
 
 @pytest.fixture
