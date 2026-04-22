@@ -25,12 +25,12 @@ from ai_agents_metrics.domain import (
 )
 from ai_agents_metrics.runtime_facade.costs import resolve_goal_usage_updates
 from ai_agents_metrics.runtime_facade.orchestration import CLAUDE_ROOT
-from ai_agents_metrics.usage_backends import (
+from ai_agents_metrics.usage.backends import (
     ClaudeUsageBackend,
     UsageBackend,
     select_usage_backend,
 )
-from ai_agents_metrics.usage_backends import (
+from ai_agents_metrics.usage.backends import (
     resolve_usage_window as resolve_backend_usage_window,
 )
 

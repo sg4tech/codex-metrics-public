@@ -23,8 +23,8 @@ if str(ABS_SRC) not in sys.path:
 
 import ai_agents_metrics as codex_metrics_pkg
 import ai_agents_metrics.cli as codex_metrics_cli
-from ai_agents_metrics.usage_backends import ClaudeUsageBackend, select_usage_backend
-from ai_agents_metrics.usage_backends import resolve_usage_window as resolve_backend_usage_window
+from ai_agents_metrics.usage.backends import ClaudeUsageBackend, select_usage_backend
+from ai_agents_metrics.usage.backends import resolve_usage_window as resolve_backend_usage_window
 
 
 def _build_subprocess_cmd(*args: str) -> list[str]:

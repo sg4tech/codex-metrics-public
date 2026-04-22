@@ -11,7 +11,7 @@ Security scanning is not enforced in CI/CD. Bandit (Python security linter) has 
 
 - **B608**: 11 instances of f-strings in SQL (SQL injection false positives)
   - `src/ai_agents_metrics/history_compare_store.py` (multiple lines)
-  - `src/ai_agents_metrics/usage_backends.py:156`
+  - `src/ai_agents_metrics/usage/backends.py:156`
   - **Context**: All use parameterized queries (`?` placeholders) + separate `params` list — safe from SQL injection
   - **Fix**: Add `# nosec B608` inline comments or rewrite without f-strings for clarity
 

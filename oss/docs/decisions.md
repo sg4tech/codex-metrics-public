@@ -139,7 +139,7 @@ The original split used three underscore-prefixed modules (`_report_aggregation.
 
 **Decision:** `cli.py` re-exports ~50 symbols from `domain`, `reporting`, and `storage` to maintain backward compatibility.
 
-**Trade-offs:** Any code importing from `cli` pulls the entire CLI layer as a dependency. Adding a new domain function requires updating the re-export list. This is a known weakness tracked in ARCH-001. ARCH-032 (2026-04-22) removed 9 re-exports that were kept only for a reflective test pattern; `test_metrics_domain.py` now imports directly from `usage_resolution` / `pricing_runtime` / `runtime_facade`.
+**Trade-offs:** Any code importing from `cli` pulls the entire CLI layer as a dependency. Adding a new domain function requires updating the re-export list. This is a known weakness tracked in ARCH-001. ARCH-032 (2026-04-22) removed 9 re-exports that were kept only for a reflective test pattern; `test_metrics_domain.py` now imports directly from `usage.resolution` / `usage.pricing_runtime` / `runtime_facade`.
 
 ---
 
@@ -191,7 +191,7 @@ for `domain/*` and `history/*` using the explicit strict flag set.
 section. All 65 source files (`src/` + `scripts/`) now pass `mypy --strict`.
 
 **Trade-offs:**
-- Required three small fixes: a typed local in `usage_backends.py:135`
+- Required three small fixes: a typed local in `usage/backends.py:135`
   (`sqlite3.Cursor.fetchone()` is typeshed-typed `Any | None`), explicit
   `-> ModuleType` annotations on two bootstrap shim files, and `dict` →
   `dict[str, Any]` in one permission-audit helper.
