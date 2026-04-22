@@ -1,3 +1,4 @@
+"""Entrypoint for ``python -m ai_agents_metrics``."""
 # ruff: noqa: I001
 
 from ai_agents_metrics.cli import console_main

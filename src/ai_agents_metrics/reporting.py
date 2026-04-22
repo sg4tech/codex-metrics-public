@@ -1,3 +1,4 @@
+"""Operator-facing summary and markdown-report rendering for metrics data."""
 from __future__ import annotations
 
 import json
@@ -15,8 +16,10 @@ if TYPE_CHECKING:
     from ai_agents_metrics.history.compare import HistorySignals
 
 
+# ProductQualitySummary is a flat KPI record consumed directly by report rendering.
+# Each field is a distinct KPI surfaced in the product-quality block.
 @dataclass(frozen=True)
-class ProductQualitySummary:
+class ProductQualitySummary:  # pylint: disable=too-many-instance-attributes
     closed_product_goals: int
     successful_product_goals: int
     failed_product_goals: int
@@ -295,7 +298,7 @@ def build_operator_review(summary: dict[str, Any]) -> list[str]:
 
 
 def build_quality_review(summary: ProductQualitySummary) -> list[str]:
-    filtered = [
+    return [
         recommendation.diagnosis
         for recommendation in build_agent_recommendations(
             {
@@ -315,7 +318,6 @@ def build_quality_review(summary: ProductQualitySummary) -> list[str]:
         )
         if recommendation.category in {"product_sample", "quality_review_coverage", "quality_miss", "quality_partial_fit", "retry_pressure"}
     ]
-    return filtered
 
 
 def _format_recommendation(recommendation: AgentRecommendation) -> str:
@@ -575,11 +577,10 @@ def generate_report_md(data: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def print_summary(data: dict[str, Any], history_signals: HistorySignals | None = None) -> None:
-    summary = data["summary"]
-    product_quality = build_product_quality_summary(data)
-    recommendations = build_agent_recommendations(summary, product_quality)
-    print("AI Agents Metrics Summary")
+def _print_product_quality_block(
+    product_quality: ProductQualitySummary,
+    recommendations: list[AgentRecommendation],
+) -> None:
     print("Product quality:")
     print(f"Closed product goals: {product_quality.closed_product_goals}")
     print(
@@ -604,6 +605,9 @@ def print_summary(data: dict[str, Any], history_signals: HistorySignals | None =
     print("Agent recommendations:")
     for recommendation in recommendations:
         print(f"- {_format_recommendation(recommendation)}")
+
+
+def _print_operational_summary_block(summary: dict[str, Any]) -> None:
     print("Operational summary:")
     print(f"Closed goals: {summary['closed_tasks']}")
     print(f"Successes: {summary['successes']}")
@@ -645,13 +649,17 @@ def print_summary(data: dict[str, Any], history_signals: HistorySignals | None =
             print(f"- {model}: {model_summary['closed_tasks']} closed, {model_summary['successes']} successes, {model_summary['fails']} fails")
     else:
         print("- n/a")
-    print(f"Closed entries: {summary['entries']['closed_entries']}")
-    print(f"Entry successes: {summary['entries']['successes']}")
-    print(f"Entry fails: {summary['entries']['fails']}")
-    print(f"Entry Success Rate: {format_pct(summary['entries']['success_rate'])}")
+
+
+def _print_entries_block(summary: dict[str, Any]) -> None:
+    entries = summary["entries"]
+    print(f"Closed entries: {entries['closed_entries']}")
+    print(f"Entry successes: {entries['successes']}")
+    print(f"Entry fails: {entries['fails']}")
+    print(f"Entry Success Rate: {format_pct(entries['success_rate'])}")
     print(
         "Entry token breakdown totals: "
-        f"{format_token_breakdown(summary['entries'].get('total_input_tokens'), summary['entries'].get('total_cached_input_tokens'), summary['entries'].get('total_output_tokens'))}"
+        f"{format_token_breakdown(entries.get('total_input_tokens'), entries.get('total_cached_input_tokens'), entries.get('total_output_tokens'))}"
     )
     for task_type in ("product", "retro", "meta"):
         type_summary = summary["by_goal_type"][task_type]
@@ -659,25 +667,39 @@ def print_summary(data: dict[str, Any], history_signals: HistorySignals | None =
             f"{task_type.title()} goals: {type_summary['closed_tasks']} closed, "
             f"{type_summary['successes']} successes, {type_summary['fails']} fails"
         )
-    if summary["entries"]["failure_reasons"]:
+    if entries["failure_reasons"]:
         print("Entry failure reasons:")
-        for reason, count in summary["entries"]["failure_reasons"].items():
+        for reason, count in entries["failure_reasons"].items():
             print(f"- {reason}: {count}")
+
+
+def _print_history_signals_block(history_signals: HistorySignals | None) -> None:
     if history_signals is None:
         print("History signals: not available")
         print("  Run 'ai-agents-metrics history-update' to extract retry pressure and")
         print("  token cost from your agent history files.")
-    else:
-        scope_label = "all projects" if history_signals.is_all_projects else "warehouse"
-        print(f"History signals ({scope_label}):")
-        if history_signals.is_all_projects:
-            print("  (no history for current directory — showing all projects)")
-            print("  Tip: run history-update from your project directory to get per-project signals.")
-        retry_pct = f"{history_signals.retry_rate:.0%}"
-        print(f"  Project threads: {history_signals.project_threads}  (worktrees merged)")
-        print(f"  Threads with retry pressure: {history_signals.retry_threads} / {history_signals.project_threads} ({retry_pct})")
-        if not history_signals.is_all_projects:
-            print(f"  Per-goal alignment: {history_signals.ledger_goal_alignments} / {history_signals.ledger_goals_total} ledger goals matched to history window")
+        return
+    scope_label = "all projects" if history_signals.is_all_projects else "warehouse"
+    print(f"History signals ({scope_label}):")
+    if history_signals.is_all_projects:
+        print("  (no history for current directory — showing all projects)")
+        print("  Tip: run history-update from your project directory to get per-project signals.")
+    retry_pct = f"{history_signals.retry_rate:.0%}"
+    print(f"  Project threads: {history_signals.project_threads}  (worktrees merged)")
+    print(f"  Threads with retry pressure: {history_signals.retry_threads} / {history_signals.project_threads} ({retry_pct})")
+    if not history_signals.is_all_projects:
+        print(f"  Per-goal alignment: {history_signals.ledger_goal_alignments} / {history_signals.ledger_goals_total} ledger goals matched to history window")
+
+
+def print_summary(data: dict[str, Any], history_signals: HistorySignals | None = None) -> None:
+    summary = data["summary"]
+    product_quality = build_product_quality_summary(data)
+    recommendations = build_agent_recommendations(summary, product_quality)
+    print("AI Agents Metrics Summary")
+    _print_product_quality_block(product_quality, recommendations)
+    _print_operational_summary_block(summary)
+    _print_entries_block(summary)
+    _print_history_signals_block(history_signals)
 
 
 def render_summary_json(data: dict[str, Any], history_signals: HistorySignals | None = None) -> str:

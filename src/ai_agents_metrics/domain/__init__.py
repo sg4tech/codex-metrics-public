@@ -55,9 +55,12 @@ from ai_agents_metrics.domain.models import (
     ALLOWED_RESULT_FITS,
     ALLOWED_STATUSES,
     ALLOWED_TASK_TYPES,
+    EMPTY_GOAL_USAGE_RESOLUTION,
     AttemptEntryRecord,
     EffectiveGoalRecord,
     GoalRecord,
+    GoalUsageResolution,
+    ManualGoalUpdates,
     StatusRecordT,
 )
 from ai_agents_metrics.domain.serde import (
@@ -102,8 +105,11 @@ __all__ = [
     "ALLOWED_STATUSES",
     "ALLOWED_TASK_TYPES",
     "AttemptEntryRecord",
+    "EMPTY_GOAL_USAGE_RESOLUTION",
     "EffectiveGoalRecord",
     "GoalRecord",
+    "GoalUsageResolution",
+    "ManualGoalUpdates",
     "StatusRecordT",
     # time_utils
     "choose_earliest_timestamp",

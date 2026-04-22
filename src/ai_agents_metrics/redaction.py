@@ -1,3 +1,4 @@
+"""Secret redaction helpers for observability logs and audit payloads."""
 from __future__ import annotations
 
 import re
@@ -24,7 +25,7 @@ _SENSITIVE_KEY_PARTS = (
 
 _TEXT_REDACTIONS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
-        re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----.*?-----END [A-Z0-9 ]*PRIVATE KEY-----", re.S),
+        re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----.*?-----END [A-Z0-9 ]*PRIVATE KEY-----", re.DOTALL),
         REDACTED_TEXT,
     ),
     (re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._-]{10,}\b"), REDACTED_TEXT),

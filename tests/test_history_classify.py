@@ -26,6 +26,7 @@ from ai_agents_metrics.history.classify import (
     SESSION_KIND_MAIN,
     SESSION_KIND_SUBAGENT,
     SESSION_KIND_UNKNOWN,
+    PracticeSourceRow,
     _classify_practice_family,
     _classify_session_kind,
     _extract_practice_rows,
@@ -284,13 +285,15 @@ def test_extract_practice_rows_emits_rows_for_agent_and_skill() -> None:
         }
     }
     rows = _extract_practice_rows(
-        event_id="evt-abc",
-        session_path="/t/sess.jsonl",
-        thread_id="t-1",
-        source_path="src",
-        event_index=3,
-        timestamp="2026-04-19T12:00:00Z",
-        raw_json=json.dumps(raw_payload),
+        PracticeSourceRow(
+            event_id="evt-abc",
+            session_path="/t/sess.jsonl",
+            thread_id="t-1",
+            source_path="src",
+            event_index=3,
+            timestamp="2026-04-19T12:00:00Z",
+            raw_json=json.dumps(raw_payload),
+        ),
         classifier_version=PRACTICE_EVENT_CLASSIFIER_VERSION,
         classified_at="2026-04-19T12:00:01Z",
     )
@@ -311,13 +314,15 @@ def test_extract_practice_rows_emits_rows_for_agent_and_skill() -> None:
 
 def test_extract_practice_rows_on_malformed_json_returns_empty() -> None:
     rows = _extract_practice_rows(
-        event_id="e",
-        session_path="p",
-        thread_id=None,
-        source_path="s",
-        event_index=0,
-        timestamp=None,
-        raw_json="{not json",
+        PracticeSourceRow(
+            event_id="e",
+            session_path="p",
+            thread_id=None,
+            source_path="s",
+            event_index=0,
+            timestamp=None,
+            raw_json="{not json",
+        ),
         classifier_version="v1-00000000",
         classified_at="2026-04-19T00:00:00Z",
     )
@@ -331,13 +336,15 @@ def test_extract_practice_rows_agent_without_subagent_type_falls_back() -> None:
         "message": {"content": [{"type": "tool_use", "id": "t1", "name": "Agent", "input": {}}]}
     }
     rows = _extract_practice_rows(
-        event_id="e",
-        session_path="p",
-        thread_id="t",
-        source_path="s",
-        event_index=0,
-        timestamp=None,
-        raw_json=json.dumps(payload),
+        PracticeSourceRow(
+            event_id="e",
+            session_path="p",
+            thread_id="t",
+            source_path="s",
+            event_index=0,
+            timestamp=None,
+            raw_json=json.dumps(payload),
+        ),
         classifier_version=PRACTICE_EVENT_CLASSIFIER_VERSION,
         classified_at="2026-04-19T00:00:00Z",
     )

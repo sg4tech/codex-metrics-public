@@ -607,8 +607,7 @@ def _make_claude_session_jsonl(
                 },
             }
         ]
-    for msg in messages:
-        lines.append(json.dumps(msg))
+    lines.extend(json.dumps(msg) for msg in messages)
     return "\n".join(lines) + "\n"
 
 

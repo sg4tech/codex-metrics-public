@@ -14,8 +14,12 @@ Replay is last-write-wins per goal_id / entry_id, processed in file order.
 from __future__ import annotations
 
 import json
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+from ai_agents_metrics.domain.time_utils import now_utc_iso
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 EVENT_TYPES: frozenset[str] = frozenset(
     {
@@ -59,8 +63,6 @@ def append_event(
         raise ValueError(f"Unknown event type: {event_type!r}. Must be one of {sorted(EVENT_TYPES)}")
 
     if ts is None:
-        from ai_agents_metrics.domain.time_utils import now_utc_iso
-
         ts = now_utc_iso()
 
     event: dict[str, Any] = {"event_type": event_type, "ts": ts}
@@ -78,6 +80,69 @@ def append_event(
     line = json.dumps(event, ensure_ascii=False) + "\n"
     with events_path.open("a", encoding="utf-8") as f:
         f.write(line)
+
+
+def _upsert_goal(goals: dict[str, dict[str, Any]], goal: dict[str, Any] | None) -> None:
+    if goal and "goal_id" in goal:
+        goals[goal["goal_id"]] = goal
+
+
+def _upsert_entries(
+    entries: dict[str, dict[str, Any]],
+    event_entries: list[dict[str, Any]] | None,
+) -> None:
+    for entry in event_entries or []:
+        if "entry_id" in entry:
+            entries[entry["entry_id"]] = entry
+
+
+def _apply_single_goal_event(
+    event: dict[str, Any],
+    goals: dict[str, dict[str, Any]],
+    entries: dict[str, dict[str, Any]],
+) -> None:
+    _upsert_goal(goals, event.get("goal"))
+    _upsert_entries(entries, event.get("entries"))
+
+
+def _apply_goals_merged_event(
+    event: dict[str, Any],
+    goals: dict[str, dict[str, Any]],
+    entries: dict[str, dict[str, Any]],
+) -> None:
+    _upsert_goal(goals, event.get("goal"))
+    dropped = event.get("dropped_goal_id")
+    if dropped:
+        goals.pop(dropped, None)
+    # Any downstream goals that had supersession links rewritten
+    for downstream_goal in event.get("goals") or []:
+        _upsert_goal(goals, downstream_goal)
+    _upsert_entries(entries, event.get("entries"))
+
+
+def _apply_usage_synced_event(
+    event: dict[str, Any],
+    goals: dict[str, dict[str, Any]],
+    entries: dict[str, dict[str, Any]],
+) -> None:
+    _upsert_goal(goals, event.get("goal"))
+    for updated_goal in event.get("goals") or []:
+        _upsert_goal(goals, updated_goal)
+    _upsert_entries(entries, event.get("entries"))
+
+
+def _apply_event(
+    event: dict[str, Any],
+    goals: dict[str, dict[str, Any]],
+    entries: dict[str, dict[str, Any]],
+) -> None:
+    event_type = event.get("event_type", "")
+    if event_type in _SINGLE_GOAL_EVENTS:
+        _apply_single_goal_event(event, goals, entries)
+    elif event_type == "goals_merged":
+        _apply_goals_merged_event(event, goals, entries)
+    elif event_type == "usage_synced":
+        _apply_usage_synced_event(event, goals, entries)
 
 
 def replay_events(events_path: Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -105,41 +170,7 @@ def replay_events(events_path: Path) -> tuple[list[dict[str, Any]], list[dict[st
                     f"Invalid JSON in {events_path} at line {line_num}: {exc}"
                 ) from exc
 
-            event_type = event.get("event_type", "")
-
-            if event_type in _SINGLE_GOAL_EVENTS:
-                goal = event.get("goal")
-                if goal and "goal_id" in goal:
-                    goals[goal["goal_id"]] = goal
-                for entry in event.get("entries") or []:
-                    if "entry_id" in entry:
-                        entries[entry["entry_id"]] = entry
-
-            elif event_type == "goals_merged":
-                kept_goal = event.get("goal")
-                if kept_goal and "goal_id" in kept_goal:
-                    goals[kept_goal["goal_id"]] = kept_goal
-                dropped = event.get("dropped_goal_id")
-                if dropped:
-                    goals.pop(dropped, None)
-                # Any downstream goals that had supersession links rewritten
-                for g in event.get("goals") or []:
-                    if "goal_id" in g:
-                        goals[g["goal_id"]] = g
-                for entry in event.get("entries") or []:
-                    if "entry_id" in entry:
-                        entries[entry["entry_id"]] = entry
-
-            elif event_type == "usage_synced":
-                single_goal = event.get("goal")
-                if single_goal and "goal_id" in single_goal:
-                    goals[single_goal["goal_id"]] = single_goal
-                for g in event.get("goals") or []:
-                    if "goal_id" in g:
-                        goals[g["goal_id"]] = g
-                for entry in event.get("entries") or []:
-                    if "entry_id" in entry:
-                        entries[entry["entry_id"]] = entry
+            _apply_event(event, goals, entries)
 
     goals_list = sorted(goals.values(), key=lambda g: g.get("goal_id", ""))
     entries_list = sorted(entries.values(), key=lambda e: e.get("entry_id", ""))

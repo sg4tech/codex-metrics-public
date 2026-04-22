@@ -1,22 +1,25 @@
+"""Index-building and row-fetch helpers for the derive stage."""
 from __future__ import annotations
 
-import sqlite3
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
-from ai_agents_metrics.history.normalize import (
-    NormalizedLogRow,
-    NormalizedMessageRow,
-    NormalizedSessionRow,
-    NormalizedThreadRow,
-    NormalizedUsageEventRow,
-)
+if TYPE_CHECKING:
+    import sqlite3
+
+    from ai_agents_metrics.history.normalize import (
+        NormalizedLogRow,
+        NormalizedMessageRow,
+        NormalizedSessionRow,
+        NormalizedThreadRow,
+        NormalizedUsageEventRow,
+    )
 
 
 def _normalize_timestamp(value: str | None) -> str | None:
     if value is None:
         return None
     cleaned = value.strip()
-    return cleaned if cleaned else None
+    return cleaned or None
 
 
 def _message_date_from_timestamp(value: str | None) -> str | None:
@@ -32,7 +35,7 @@ def _normalize_project_cwd(value: Any) -> str | None:
     if not isinstance(value, str):
         return None
     cleaned = value.strip()
-    return cleaned if cleaned else None
+    return cleaned or None
 
 
 def _parent_project_cwd(value: Any) -> str | None:
@@ -50,7 +53,7 @@ def _parent_project_cwd(value: Any) -> str | None:
     if idx == -1:
         return raw
     parent = raw[:idx]
-    return parent if parent else raw
+    return parent or raw
 
 
 def _pick_earliest_timestamp(current: str | None, candidate: str | None) -> str | None:
@@ -60,7 +63,7 @@ def _pick_earliest_timestamp(current: str | None, candidate: str | None) -> str 
         return candidate_value
     if candidate_value is None:
         return current_value
-    return candidate_value if candidate_value < current_value else current_value
+    return min(current_value, candidate_value)
 
 
 def _pick_latest_timestamp(current: str | None, candidate: str | None) -> str | None:
@@ -70,7 +73,7 @@ def _pick_latest_timestamp(current: str | None, candidate: str | None) -> str | 
         return candidate_value
     if candidate_value is None:
         return current_value
-    return candidate_value if candidate_value > current_value else current_value
+    return max(current_value, candidate_value)
 
 
 def _compact_text(value: str | None, *, limit: int = 120) -> str | None:
@@ -107,7 +110,7 @@ def _fetch_normalized_threads(conn: sqlite3.Connection) -> list[NormalizedThread
         ORDER BY thread_id
         """
     ).fetchall()
-    return [cast(NormalizedThreadRow, dict(row)) for row in rows]
+    return [cast("NormalizedThreadRow", dict(row)) for row in rows]
 
 
 def _fetch_normalized_sessions(conn: sqlite3.Connection) -> list[NormalizedSessionRow]:
@@ -120,7 +123,7 @@ def _fetch_normalized_sessions(conn: sqlite3.Connection) -> list[NormalizedSessi
         ORDER BY thread_id, session_timestamp, session_path
         """
     ).fetchall()
-    return [cast(NormalizedSessionRow, dict(row)) for row in rows]
+    return [cast("NormalizedSessionRow", dict(row)) for row in rows]
 
 
 def _fetch_normalized_messages(conn: sqlite3.Connection) -> list[NormalizedMessageRow]:
@@ -132,7 +135,7 @@ def _fetch_normalized_messages(conn: sqlite3.Connection) -> list[NormalizedMessa
         ORDER BY thread_id, session_path, event_index, message_index
         """
     ).fetchall()
-    return [cast(NormalizedMessageRow, dict(row)) for row in rows]
+    return [cast("NormalizedMessageRow", dict(row)) for row in rows]
 
 
 def _fetch_normalized_usage_events(conn: sqlite3.Connection) -> list[NormalizedUsageEventRow]:
@@ -145,7 +148,7 @@ def _fetch_normalized_usage_events(conn: sqlite3.Connection) -> list[NormalizedU
         ORDER BY thread_id, session_path, event_index, usage_event_id
         """
     ).fetchall()
-    return [cast(NormalizedUsageEventRow, dict(row)) for row in rows]
+    return [cast("NormalizedUsageEventRow", dict(row)) for row in rows]
 
 
 def _fetch_normalized_logs(conn: sqlite3.Connection) -> list[NormalizedLogRow]:
@@ -156,7 +159,7 @@ def _fetch_normalized_logs(conn: sqlite3.Connection) -> list[NormalizedLogRow]:
         ORDER BY thread_id, ts, row_id
         """
     ).fetchall()
-    return [cast(NormalizedLogRow, dict(row)) for row in rows]
+    return [cast("NormalizedLogRow", dict(row)) for row in rows]
 
 
 def _build_index_maps(
@@ -271,8 +274,8 @@ def _build_timeline_items(
             "raw_json": session_row["raw_json"],
         })
 
-    for message_row in thread_messages:
-        items.append({
+    items.extend(
+        {
             "thread_id": thread_id,
             "source_path": message_row["source_path"],
             "session_path": message_row["session_path"],
@@ -283,10 +286,12 @@ def _build_timeline_items(
             "timestamp": _normalize_timestamp(message_row["timestamp"]),
             "summary": _compact_text(f"{message_row['role']}: {message_row['text']}"),
             "raw_json": message_row["raw_json"],
-        })
+        }
+        for message_row in thread_messages
+    )
 
-    for usage_row in thread_usage_events:
-        items.append({
+    items.extend(
+        {
             "thread_id": thread_id,
             "source_path": usage_row["source_path"],
             "session_path": usage_row["session_path"],
@@ -299,10 +304,12 @@ def _build_timeline_items(
                 f"usage tokens={usage_row['total_tokens']} model={usage_row['model'] or ''}".strip()
             ),
             "raw_json": usage_row["raw_json"],
-        })
+        }
+        for usage_row in thread_usage_events
+    )
 
-    for log_row in thread_logs:
-        items.append({
+    items.extend(
+        {
             "thread_id": thread_id,
             "source_path": log_row["source_path"],
             "session_path": None,
@@ -313,7 +320,9 @@ def _build_timeline_items(
             "timestamp": _normalize_timestamp(log_row["ts_iso"]),
             "summary": _compact_text(log_row["body"] or log_row["target"]),
             "raw_json": log_row["raw_json"],
-        })
+        }
+        for log_row in thread_logs
+    )
 
     items.sort(key=_timeline_sort_key)
     return items

@@ -1,14 +1,15 @@
+"""ISO-8601 parsing and UTC-aware ``now_*`` helpers for the domain layer."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 def now_utc_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    return datetime.now(UTC).replace(microsecond=0).isoformat()
 
 
 def now_utc_datetime() -> datetime:
-    return datetime.now(timezone.utc).replace(microsecond=0)
+    return datetime.now(UTC).replace(microsecond=0)
 
 
 def parse_iso_datetime(value: str, field_name: str) -> datetime:

@@ -237,7 +237,7 @@ def main(argv: list[str] | None = None) -> None:
     deny, allow_local, allow_global = load_rules(args.settings, args.global_settings)
 
     commands: list[tuple[int, str]] = []
-    with open(args.input) as f:
+    with args.input.open() as f:
         for line in f:
             line = line.strip()
             if not line or line.startswith("#"):
@@ -288,7 +288,7 @@ def _write_not_allowed(
     path: Path, rows: list[tuple[int, str, bool, str]]
 ) -> None:
     total = sum(c for c, _, _, _ in rows)
-    with open(path, "w") as f:
+    with path.open("w") as f:
         f.write("# Commands not matching any allow rule\n")
         f.write(f"# Unique: {len(rows)}, Invocations: {total}\n")
         f.write("# Format: count<tab>SIMPLE|COMPOUND<tab>command<tab>reason\n")
@@ -298,22 +298,20 @@ def _write_not_allowed(
 
 
 def _write_denied(path: Path, rows: list[tuple[int, str, str]]) -> None:
-    with open(path, "w") as f:
+    with path.open("w") as f:
         f.write("# Commands matching DENY rules\n")
         f.write(f"# Unique: {len(rows)}\n")
         f.write("# Format: count<tab>command<tab>deny_rule\n")
-        for count, cmd, reason in rows:
-            f.write(f"{count}\t{cmd}\t{reason}\n")
+        f.writelines(f"{count}\t{cmd}\t{reason}\n" for count, cmd, reason in rows)
 
 
 def _write_compound(path: Path, rows: list[tuple[int, str, str]]) -> None:
     total = sum(c for c, _, _ in rows)
-    with open(path, "w") as f:
+    with path.open("w") as f:
         f.write("# Compound commands not matching any allow rule\n")
         f.write(f"# Unique: {len(rows)}, Invocations: {total}\n")
         f.write("# Format: count<tab>command<tab>reason\n")
-        for count, cmd, reason in rows:
-            f.write(f"{count}\t{cmd}\t{reason}\n")
+        f.writelines(f"{count}\t{cmd}\t{reason}\n" for count, cmd, reason in rows)
 
 
 if __name__ == "__main__":

@@ -11,13 +11,15 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ._report_aggregation import (
     aggregate_report_data,
 )
 from ._report_template import _HTML_TEMPLATE
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 __all__ = ["aggregate_report_data", "render_html_report", "check_warehouse_state"]
 

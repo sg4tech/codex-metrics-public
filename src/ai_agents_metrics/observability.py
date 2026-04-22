@@ -1,15 +1,19 @@
+"""SQLite event store and debug log for CLI-invocation observability."""
 from __future__ import annotations
 
+import contextlib
 import json
 import sqlite3
 import uuid
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ai_agents_metrics.domain import now_utc_iso
 from ai_agents_metrics.redaction import redact_text, redact_value
 from ai_agents_metrics.storage import ensure_parent_dir
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 OBSERVABILITY_DIRNAME = ".ai-agents-metrics"
 _OBSERVABILITY_DIRNAME_LEGACY = ".codex-metrics"
@@ -21,6 +25,25 @@ EVENT_DEBUG_LOG_FILENAME = "events.debug.log"
 class ObservabilityPaths:
     event_store_path: Path
     debug_log_path: Path
+
+
+@dataclass(frozen=True)
+class EventContext:
+    """Metadata describing an observability event's source goal/command.
+
+    Groups the recurring fields that otherwise inflate helper signatures
+    past pylint's too-many-arguments threshold.
+    """
+
+    command: str | None
+    goal_id: str | None
+    goal_type: str | None
+    status_before: str | None
+    status_after: str | None
+    attempts_before: int | None
+    attempts_after: int | None
+    result_fit_before: str | None
+    result_fit_after: str | None
 
 
 def observability_paths(metrics_path: Path) -> ObservabilityPaths:
@@ -46,15 +69,7 @@ def _build_debug_line(
     event_type: str,
     occurred_at: str,
     source: str,
-    command: str | None,
-    goal_id: str | None,
-    goal_type: str | None,
-    status_before: str | None,
-    status_after: str | None,
-    attempts_before: int | None,
-    attempts_after: int | None,
-    result_fit_before: str | None,
-    result_fit_after: str | None,
+    context: EventContext,
     payload: dict[str, Any],
 ) -> str:
     parts = [
@@ -63,24 +78,24 @@ def _build_debug_line(
         f"event_type={_debug_field(event_type)}",
         f"source={_debug_field(source)}",
     ]
-    if command is not None:
-        parts.append(f"command={_debug_field(command)}")
-    if goal_id is not None:
-        parts.append(f"goal_id={_debug_field(goal_id)}")
-    if goal_type is not None:
-        parts.append(f"goal_type={_debug_field(goal_type)}")
-    if status_before is not None:
-        parts.append(f"status_before={_debug_field(status_before)}")
-    if status_after is not None:
-        parts.append(f"status_after={_debug_field(status_after)}")
-    if attempts_before is not None:
-        parts.append(f"attempts_before={attempts_before}")
-    if attempts_after is not None:
-        parts.append(f"attempts_after={attempts_after}")
-    if result_fit_before is not None:
-        parts.append(f"result_fit_before={_debug_field(result_fit_before)}")
-    if result_fit_after is not None:
-        parts.append(f"result_fit_after={_debug_field(result_fit_after)}")
+    if context.command is not None:
+        parts.append(f"command={_debug_field(context.command)}")
+    if context.goal_id is not None:
+        parts.append(f"goal_id={_debug_field(context.goal_id)}")
+    if context.goal_type is not None:
+        parts.append(f"goal_type={_debug_field(context.goal_type)}")
+    if context.status_before is not None:
+        parts.append(f"status_before={_debug_field(context.status_before)}")
+    if context.status_after is not None:
+        parts.append(f"status_after={_debug_field(context.status_after)}")
+    if context.attempts_before is not None:
+        parts.append(f"attempts_before={context.attempts_before}")
+    if context.attempts_after is not None:
+        parts.append(f"attempts_after={context.attempts_after}")
+    if context.result_fit_before is not None:
+        parts.append(f"result_fit_before={_debug_field(context.result_fit_before)}")
+    if context.result_fit_after is not None:
+        parts.append(f"result_fit_after={_debug_field(context.result_fit_after)}")
     if payload:
         parts.append(f"payload={_debug_field(payload)}")
     return " ".join(parts)
@@ -129,15 +144,7 @@ def _store_event(
     metrics_path: Path,
     event_type: str,
     payload: dict[str, Any],
-    command: str | None,
-    goal_id: str | None,
-    goal_type: str | None,
-    status_before: str | None,
-    status_after: str | None,
-    attempts_before: int | None,
-    attempts_after: int | None,
-    result_fit_before: str | None,
-    result_fit_after: str | None,
+    context: EventContext,
 ) -> str:
     paths = observability_paths(metrics_path)
     event_id = uuid.uuid4().hex
@@ -149,15 +156,7 @@ def _store_event(
         event_type=event_type,
         occurred_at=occurred_at,
         source="codex-metrics",
-        command=command,
-        goal_id=goal_id,
-        goal_type=goal_type,
-        status_before=status_before,
-        status_after=status_after,
-        attempts_before=attempts_before,
-        attempts_after=attempts_after,
-        result_fit_before=result_fit_before,
-        result_fit_after=result_fit_after,
+        context=context,
         payload=redacted_payload,
     )
     ensure_parent_dir(paths.event_store_path)
@@ -189,15 +188,15 @@ def _store_event(
                 occurred_at,
                 event_type,
                 "codex-metrics",
-                command,
-                goal_id,
-                goal_type,
-                status_before,
-                status_after,
-                attempts_before,
-                attempts_after,
-                result_fit_before,
-                result_fit_after,
+                context.command,
+                context.goal_id,
+                context.goal_type,
+                context.status_before,
+                context.status_after,
+                context.attempts_before,
+                context.attempts_after,
+                context.result_fit_before,
+                context.result_fit_after,
                 payload_json,
                 debug_line,
             ),
@@ -212,30 +211,14 @@ def _record_event_best_effort(
     metrics_path: Path,
     event_type: str,
     payload: dict[str, Any],
-    command: str | None,
-    goal_id: str | None,
-    goal_type: str | None,
-    status_before: str | None,
-    status_after: str | None,
-    attempts_before: int | None,
-    attempts_after: int | None,
-    result_fit_before: str | None,
-    result_fit_after: str | None,
+    context: EventContext,
 ) -> None:
     try:
         _store_event(
             metrics_path=metrics_path,
             event_type=event_type,
             payload=payload,
-            command=command,
-            goal_id=goal_id,
-            goal_type=goal_type,
-            status_before=status_before,
-            status_after=status_after,
-            attempts_before=attempts_before,
-            attempts_after=attempts_after,
-            result_fit_before=result_fit_before,
-            result_fit_after=result_fit_after,
+            context=context,
         )
     except Exception as exc:  # pylint: disable=broad-exception-caught
         paths = observability_paths(metrics_path)
@@ -243,29 +226,19 @@ def _record_event_best_effort(
             "error": type(exc).__name__,
             "message": redact_text(str(exc)),
             "event_type": event_type,
-            "goal_id": goal_id,
-            "command": command,
+            "goal_id": context.goal_id,
+            "command": context.command,
         }
         fallback_line = _build_debug_line(
             event_id=uuid.uuid4().hex,
             event_type="observability_write_failed",
             occurred_at=now_utc_iso(),
             source="codex-metrics",
-            command=command,
-            goal_id=goal_id,
-            goal_type=goal_type,
-            status_before=status_before,
-            status_after=status_after,
-            attempts_before=attempts_before,
-            attempts_after=attempts_after,
-            result_fit_before=result_fit_before,
-            result_fit_after=result_fit_after,
+            context=context,
             payload=fallback_payload,
         )
-        try:
+        with contextlib.suppress(Exception):  # nosec B110  # pylint: disable=broad-exception-caught
             _append_debug_line(paths.debug_log_path, fallback_line)
-        except Exception:  # nosec B110  # pylint: disable=broad-exception-caught
-            pass
 
 
 def record_cli_invocation_observation(
@@ -288,15 +261,17 @@ def record_cli_invocation_observation(
         metrics_path=metrics_path,
         event_type="cli_invoked",
         payload=payload,
-        command=command,
-        goal_id=task_id,
-        goal_type=None,
-        status_before=None,
-        status_after=None,
-        attempts_before=None,
-        attempts_after=None,
-        result_fit_before=None,
-        result_fit_after=None,
+        context=EventContext(
+            command=command,
+            goal_id=task_id,
+            goal_type=None,
+            status_before=None,
+            status_after=None,
+            attempts_before=None,
+            attempts_after=None,
+            result_fit_before=None,
+            result_fit_after=None,
+        ),
     )
 
 
@@ -325,29 +300,29 @@ def _changed_fields(previous_task: dict[str, Any] | None, current_task: dict[str
             if current_task.get(field) is not None
         )
 
-    changed_fields: list[str] = []
-    for field in (
-        "title",
-        "goal_type",
-        "status",
-        "attempts",
-        "started_at",
-        "finished_at",
-        "cost_usd",
-        "input_tokens",
-        "cached_input_tokens",
-        "output_tokens",
-        "tokens_total",
-        "failure_reason",
-        "notes",
-        "agent_name",
-        "result_fit",
-        "model",
-        "supersedes_goal_id",
-    ):
-        if previous_task.get(field) != current_task.get(field):
-            changed_fields.append(field)
-    return changed_fields
+    return [
+        field
+        for field in (
+            "title",
+            "goal_type",
+            "status",
+            "attempts",
+            "started_at",
+            "finished_at",
+            "cost_usd",
+            "input_tokens",
+            "cached_input_tokens",
+            "output_tokens",
+            "tokens_total",
+            "failure_reason",
+            "notes",
+            "agent_name",
+            "result_fit",
+            "model",
+            "supersedes_goal_id",
+        )
+        if previous_task.get(field) != current_task.get(field)
+    ]
 
 
 def _classify_goal_event(previous_task: dict[str, Any] | None, current_task: dict[str, Any]) -> str:
@@ -390,15 +365,17 @@ def record_goal_mutation_observation(
         metrics_path=metrics_path,
         event_type=event_type,
         payload=payload,
-        command=command,
-        goal_id=current_task.get("goal_id"),
-        goal_type=current_task.get("goal_type"),
-        status_before=None if previous_task is None else previous_task.get("status"),
-        status_after=current_task.get("status"),
-        attempts_before=None if previous_task is None else int(previous_task.get("attempts") or 0),
-        attempts_after=int(current_task.get("attempts") or 0),
-        result_fit_before=None if previous_task is None else previous_task.get("result_fit"),
-        result_fit_after=current_task.get("result_fit"),
+        context=EventContext(
+            command=command,
+            goal_id=current_task.get("goal_id"),
+            goal_type=current_task.get("goal_type"),
+            status_before=None if previous_task is None else previous_task.get("status"),
+            status_after=current_task.get("status"),
+            attempts_before=None if previous_task is None else int(previous_task.get("attempts") or 0),
+            attempts_after=int(current_task.get("attempts") or 0),
+            result_fit_before=None if previous_task is None else previous_task.get("result_fit"),
+            result_fit_after=current_task.get("result_fit"),
+        ),
     )
 
 
@@ -420,15 +397,17 @@ def record_usage_sync_observation(
         metrics_path=metrics_path,
         event_type="usage_synced",
         payload=payload,
-        command=command,
-        goal_id=None,
-        goal_type=None,
-        status_before=None,
-        status_after=None,
-        attempts_before=None,
-        attempts_after=None,
-        result_fit_before=None,
-        result_fit_after=None,
+        context=EventContext(
+            command=command,
+            goal_id=None,
+            goal_type=None,
+            status_before=None,
+            status_after=None,
+            attempts_before=None,
+            attempts_after=None,
+            result_fit_before=None,
+            result_fit_after=None,
+        ),
     )
 
 
@@ -451,13 +430,15 @@ def record_goal_merge_observation(
         metrics_path=metrics_path,
         event_type="goal_merged",
         payload=payload,
-        command=command,
-        goal_id=keep_task_id,
-        goal_type=merged_task.get("goal_type"),
-        status_before=None,
-        status_after=merged_task.get("status"),
-        attempts_before=None,
-        attempts_after=int(merged_task.get("attempts") or 0),
-        result_fit_before=None,
-        result_fit_after=merged_task.get("result_fit"),
+        context=EventContext(
+            command=command,
+            goal_id=keep_task_id,
+            goal_type=merged_task.get("goal_type"),
+            status_before=None,
+            status_after=merged_task.get("status"),
+            attempts_before=None,
+            attempts_after=int(merged_task.get("attempts") or 0),
+            result_fit_before=None,
+            result_fit_after=merged_task.get("result_fit"),
+        ),
     )

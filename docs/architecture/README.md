@@ -26,7 +26,11 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 | [ARCH-016](ARCH-016-propagate-model-to-derived-tables.md) | Propagate model to all derived tables | medium | low | done |
 | [ARCH-017](ARCH-017-html-report-dimensions.md) | Add provider and model dimensions to HTML report | high | medium | done |
 | [ARCH-018](ARCH-018-layer-separation-cleanup.md) | Honor layer separation — move interpretation out of raw_* tables | medium | medium | open |
-| [ARCH-019](ARCH-019-global-pylint-rollout.md) | Globally enable pylint across the whole project | medium | medium | planned |
+| [ARCH-019](ARCH-019-global-pylint-rollout.md) | Globally enable pylint across the whole project | medium | medium | done |
+| [ARCH-020](ARCH-020-tier2-pylint-gating.md) | Promote Tier 2 pylint complexity rules to hard-fail | medium | medium | done |
+| [ARCH-021](ARCH-021-tier3-pylint-gating.md) | Promote Tier 3 pylint code-quality rules to hard-fail | medium | low-medium | done |
+| [ARCH-022](ARCH-022-tier3-pylint-followup.md) | Tier 3 follow-up — R0904/W0212/R0801 gating + explicit R0903/R0911 skip | medium | medium | done |
+| [ARCH-023](ARCH-023-pylint-single-run.md) | Collapse Tier 1/2/3 into a single default pylint run | low | low | done |
 
 ## Recommended order
 
@@ -47,3 +51,7 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 15. **ARCH-017** — high priority; HTML report has no provider/model breakdown — the most actionable cost dimensions are invisible; Phase 1 (total cost, Chart 3 fallback, UX polish) has no deps; Phase 2 (model breakdown) depends on ARCH-016
 16. **ARCH-018** — medium priority; `raw_messages` / `raw_token_usage` / `raw_session_events` parse source payload into typed fields, violating the Layer 1 byte-perfect rule defined in `warehouse-layering.md`; replace with `raw_events` + unparsed payload, move typing to existing `normalized_*` tables
 17. **ARCH-019** — medium priority; `pylint` exists but still excludes major modules and only enforces a selective subset of rules; define and execute a staged rollout to make full-project `pylint` practical
+18. **ARCH-020** — medium priority; Tier 2 complexity rules were advisory after ARCH-019; promote them to hard-fail so `make verify` blocks complexity regression (64 starting findings resolved via params dataclasses, decomposition, and scoped inline disables on canonical data schemas and CLI-contract boundaries)
+19. **ARCH-021** — medium priority; curate the remaining default pylint rules into a Tier 3 set that catches real code-quality issues (reimported, subprocess-run-check, unnecessary-comprehension, kwonly conversion, lazy-import justification) while deliberately skipping style-policy noise (docstring-per-helper, line-too-long at 100); promoted to hard-fail alongside Tier 1 and Tier 2
+20. **ARCH-022** — medium priority; re-review the five rules parked by ARCH-021. Promote R0904/W0212/R0801 to hard-fail (eliminate cli ↔ runtime_facade duplication at source, narrow-scope inline disables for argparse private API and `CommandRuntime` Protocol breadth). Explicitly keep R0903/R0911 excluded (false positives on `@dataclass` and `cli.main` dispatch).
+21. **ARCH-023** — low priority; once all tiers are hard-fail, the tier framing is just cost. Collapse the three pylint invocations in `make verify` into a single default run; replace the `disable = "all"` / `enable = [...]` whitelist in pyproject with a reasoned `disable = [...]` blacklist so rule changes happen in one place.

@@ -6,7 +6,7 @@ into the flat ``dict`` consumed by :func:`render_html_report`.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from ._report_buckets import _bucket_key, _make_buckets, _parse_date
@@ -241,8 +241,8 @@ def _aggregate_warehouse_retry(
     bucket and *line* is retry_rate % (0-100) per bucket, or ``None`` when
     there are no threads in that bucket.
     """
-    bucket_threads: dict[str, int] = {b: 0 for b in buckets}
-    bucket_retries: dict[str, int] = {b: 0 for b in buckets}
+    bucket_threads: dict[str, int] = dict.fromkeys(buckets, 0)
+    bucket_retries: dict[str, int] = dict.fromkeys(buckets, 0)
     bucket_set = set(buckets)
 
     for date_str, vals in warehouse_retry.items():
@@ -308,8 +308,8 @@ def _apply_date_cutoff(
     warehouse_tokens: list[tuple[str, str | None, int, int, int]] | None,
 ) -> tuple[list[dict[str, Any]], list[tuple[str, str | None, int, int, int]] | None]:
     """Drop goals and warehouse token rows older than *days* days."""
-    cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
-    epoch = datetime.min.replace(tzinfo=timezone.utc)
+    cutoff = datetime.now(tz=UTC) - timedelta(days=days)
+    epoch = datetime.min.replace(tzinfo=UTC)
     filtered_closed = [
         g for g in closed if (_parse_date(g["finished_at"]) or epoch) >= cutoff
     ]
@@ -341,13 +341,16 @@ def _collect_chart_dates(
     return dates
 
 
-def _determine_granularity(
-    dates: list[datetime],
-) -> tuple[datetime, datetime, str, list[str]]:
+def _determine_granularity(dates: list[datetime]) -> _AggregationAxis:
     """Pick daily vs weekly granularity and build the bucket list."""
     earliest, latest = min(dates), max(dates)
     gran = "day" if (latest - earliest).days <= 30 else "week"
-    return earliest, latest, gran, _make_buckets(earliest, latest, gran)
+    return _AggregationAxis(
+        buckets=_make_buckets(earliest, latest, gran),
+        gran=gran,
+        earliest=earliest,
+        latest=latest,
+    )
 
 
 def _parse_goal_scalars(
@@ -506,9 +509,71 @@ def _avg_cost_usd(known_costs: list[float]) -> float | None:
 # ── main aggregation entry point ──────────────────────────────────────────────
 
 
+@dataclass(frozen=True)
+class _AggregationAxis:
+    buckets: list[str]
+    gran: str
+    earliest: datetime
+    latest: datetime
+
+
+@dataclass(frozen=True)
+class _ChartOutputs:
+    chart1: tuple[list[int], list[int], list[int]]
+    chart2: tuple[list[int], list[float | None], str]
+    chart3: tuple[list[dict[str, Any]], str]
+    chart5: dict[str, Any]
+
+
+def _assemble_report_dict(
+    *,
+    parsed: list[tuple[dict[str, Any], datetime]],
+    axis: _AggregationAxis,
+    series: Any,
+    c4: Any,
+    charts: _ChartOutputs,
+    state: dict[str, str],
+    pricing: dict[str, dict[str, float | None]] | None,
+) -> dict[str, Any]:
+    ledger_date_from, ledger_date_to = _compute_ledger_date_range(parsed)
+    total = len(parsed)
+    return {
+        "granularity": axis.gran,
+        "buckets": axis.buckets,
+        "chart1_product": charts.chart1[0],
+        "chart1_meta": charts.chart1[1],
+        "chart1_retro": charts.chart1[2],
+        "chart2_bar": charts.chart2[0],
+        "chart2_line": charts.chart2[1],
+        "chart2_source": charts.chart2[2],
+        "chart3_mode": "cost" if pricing else "tokens",
+        "chart3_source": charts.chart3[1],
+        "chart3_series": charts.chart3[0],
+        "chart4_buckets": c4.buckets,
+        "chart4_values": c4.values,
+        "chart5": charts.chart5,
+        "ledger_date_from": ledger_date_from,
+        "ledger_date_to": ledger_date_to,
+        "history_date_from": axis.earliest.strftime("%Y-%m-%d"),
+        "history_date_to": axis.latest.strftime("%Y-%m-%d"),
+        "warehouse_state": state,
+        "summary": {
+            "total_closed": total,
+            "success_count": series.success_count,
+            "success_rate_pct": round(100 * series.success_count / total, 1) if total else None,
+            "total_cost_usd": round(series.total_known_cost_usd, 2) if series.total_known_cost_usd else None,
+            "avg_cost_usd": _avg_cost_usd(series.known_cost_successes),
+            "cost_trend": _compute_cost_trend(c4.pairs),
+            "date_from": axis.earliest.strftime("%Y-%m-%d"),
+            "date_to": axis.latest.strftime("%Y-%m-%d"),
+        },
+    }
+
+
 def aggregate_report_data(
     goals: list[dict[str, Any]],
     days: int | None,
+    *,
     warehouse_retry: dict[str, dict[str, int]] | None = None,
     warehouse_tokens: list[tuple[str, str | None, int, int, int]] | None = None,
     pricing: dict[str, dict[str, float | None]] | None = None,
@@ -536,46 +601,25 @@ def aggregate_report_data(
         empty["warehouse_state"] = state
         return empty
 
-    earliest, latest, gran, buckets = _determine_granularity(dates)
-    series = _accumulate_goals(parsed, buckets, gran, pricing)
+    axis = _determine_granularity(dates)
+    series = _accumulate_goals(parsed, axis.buckets, axis.gran, pricing)
     c4 = _compute_c4_series(series)
-    chart1 = _build_chart1(series, buckets)
-    chart2 = _build_chart2(warehouse_retry, series, buckets, gran)
-    chart3 = _build_chart3(warehouse_tokens, series, buckets, gran, pricing)
-    ledger_date_from, ledger_date_to = _compute_ledger_date_range(parsed)
-    total = len(parsed)
+    charts = _ChartOutputs(
+        chart1=_build_chart1(series, axis.buckets),
+        chart2=_build_chart2(warehouse_retry, series, axis.buckets, axis.gran),
+        chart3=_build_chart3(warehouse_tokens, series, axis.buckets, axis.gran, pricing),
+        chart5=chart5,
+    )
 
-    return {
-        "granularity": gran,
-        "buckets": buckets,
-        "chart1_product": chart1[0],
-        "chart1_meta": chart1[1],
-        "chart1_retro": chart1[2],
-        "chart2_bar": chart2[0],
-        "chart2_line": chart2[1],
-        "chart2_source": chart2[2],
-        "chart3_mode": "cost" if pricing else "tokens",
-        "chart3_source": chart3[1],
-        "chart3_series": chart3[0],
-        "chart4_buckets": c4.buckets,
-        "chart4_values": c4.values,
-        "chart5": chart5,
-        "ledger_date_from": ledger_date_from,
-        "ledger_date_to": ledger_date_to,
-        "history_date_from": earliest.strftime("%Y-%m-%d"),
-        "history_date_to": latest.strftime("%Y-%m-%d"),
-        "warehouse_state": state,
-        "summary": {
-            "total_closed": total,
-            "success_count": series.success_count,
-            "success_rate_pct": round(100 * series.success_count / total, 1) if total else None,
-            "total_cost_usd": round(series.total_known_cost_usd, 2) if series.total_known_cost_usd else None,
-            "avg_cost_usd": _avg_cost_usd(series.known_cost_successes),
-            "cost_trend": _compute_cost_trend(c4.pairs),
-            "date_from": earliest.strftime("%Y-%m-%d"),
-            "date_to": latest.strftime("%Y-%m-%d"),
-        },
-    }
+    return _assemble_report_dict(
+        parsed=parsed,
+        axis=axis,
+        series=series,
+        c4=c4,
+        charts=charts,
+        state=state,
+        pricing=pricing,
+    )
 
 
 def _empty_data() -> dict[str, Any]:

@@ -1,21 +1,25 @@
+"""Per-row INSERT helpers used by the derive stage orchestrator."""
 from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ai_agents_metrics.history.derive_build import (
     _message_date_from_timestamp,
     _normalize_timestamp,
 )
-from ai_agents_metrics.history.normalize import (
-    NormalizedMessageRow,
-    NormalizedSessionRow,
-    NormalizedThreadRow,
-    NormalizedUsageEventRow,
-)
+
+if TYPE_CHECKING:
+    import sqlite3
+
+    from ai_agents_metrics.history.normalize import (
+        NormalizedMessageRow,
+        NormalizedSessionRow,
+        NormalizedThreadRow,
+        NormalizedUsageEventRow,
+    )
 
 
 def _sum_known_int(values: list[int | None]) -> int | None:
@@ -26,7 +30,7 @@ def _sum_known_int(values: list[int | None]) -> int | None:
 
 
 def _derived_attempt_id(thread_id: str, session_path: str) -> str:
-    return hashlib.sha256(f"{thread_id}:{session_path}".encode("utf-8")).hexdigest()
+    return hashlib.sha256(f"{thread_id}:{session_path}".encode()).hexdigest()
 
 
 def _session_usage_id(session_path: str) -> str:
@@ -106,6 +110,7 @@ def _resolve_usage_for_message(
 
 def _insert_message_fact_row(
     conn: sqlite3.Connection,
+    *,
     thread_id: str,
     session_path: str,
     attempt_index: int | None,
@@ -153,6 +158,7 @@ def _insert_message_fact_row(
 
 def _insert_message_facts(
     conn: sqlite3.Connection,
+    *,
     thread_id: str,
     thread_row: NormalizedThreadRow,
     thread_messages: list[NormalizedMessageRow],
@@ -171,8 +177,14 @@ def _insert_message_facts(
         for message_row in session_messages:
             usage_event, usage_rows = _resolve_usage_for_message(message_row, usage_groups)
             _insert_message_fact_row(
-                conn, thread_id, session_path, attempt_index,
-                message_row, thread_row["model"], usage_event, usage_rows,
+                conn,
+                thread_id=thread_id,
+                session_path=session_path,
+                attempt_index=attempt_index,
+                message_row=message_row,
+                thread_model=thread_row["model"],
+                usage_event=usage_event,
+                usage_rows=usage_rows,
             )
             count += 1
     return count
@@ -381,6 +393,7 @@ def _insert_attempts_and_session_usage(
 
 def _insert_goal_and_retry_chain(
     conn: sqlite3.Connection,
+    *,
     thread_id: str,
     thread_row: NormalizedThreadRow,
     sorted_sessions: list[NormalizedSessionRow],

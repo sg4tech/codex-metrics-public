@@ -62,7 +62,7 @@ def test_public_overlay_push_execute_runs_verify_then_push(tmp_path: Path, monke
     private_repo_root.mkdir()
     (private_repo_root / "oss" / "config").mkdir(parents=True)
     (private_repo_root / "oss" / "config" / "public-boundary-rules.toml").write_text(
-        "allowed_roots = [\"README.md\"]\n",
+        'allowed_roots = ["README.md"]\n',
         encoding="utf-8",
     )
     calls: list[tuple[list[str], Path]] = []

@@ -6,7 +6,10 @@ import subprocess
 import sys
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 # Ensure oss/tests/ is importable by its real path so that cross-test imports
 # like `from test_history_ingest import ...` work regardless of whether tests
@@ -19,7 +22,7 @@ if _tests_dir not in sys.path:
 @contextmanager
 def _chdir(path: Path) -> Iterator[None]:
     """Temporarily change working directory (safe within xdist workers)."""
-    old = os.getcwd()
+    old = str(Path.cwd())
     os.chdir(path)
     try:
         yield

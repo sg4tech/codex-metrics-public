@@ -3,8 +3,7 @@ from __future__ import annotations
 import json
 from argparse import Namespace
 from pathlib import Path
-
-import pytest
+from typing import TYPE_CHECKING
 
 from ai_agents_metrics import commands
 from ai_agents_metrics.cost_audit import (
@@ -13,6 +12,9 @@ from ai_agents_metrics.cost_audit import (
     render_cost_audit_report,
     render_cost_audit_report_json,
 )
+
+if TYPE_CHECKING:
+    import pytest
 
 
 class _FakeRuntime:

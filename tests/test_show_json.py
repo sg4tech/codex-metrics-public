@@ -3,11 +3,13 @@ from __future__ import annotations
 import json
 from argparse import Namespace
 from pathlib import Path
-
-import pytest
+from typing import TYPE_CHECKING
 
 from ai_agents_metrics import commands
 from ai_agents_metrics.reporting import render_summary_json
+
+if TYPE_CHECKING:
+    import pytest
 
 
 class _FakeDecision:

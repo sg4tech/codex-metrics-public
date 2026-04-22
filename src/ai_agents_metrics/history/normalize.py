@@ -1,12 +1,15 @@
+"""Normalize stage: raw_* warehouse rows → normalized_* analysis-friendly tables."""
 from __future__ import annotations
 
 import hashlib
 import json
 import sqlite3
-from dataclasses import dataclass
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Any, TypedDict
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any, TypedDict
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class NormalizedThreadRow(TypedDict):
@@ -99,21 +102,21 @@ class NormalizeSummary:
 def _iso_from_unix_seconds(value: int | None) -> str | None:
     if value is None:
         return None
-    return datetime.fromtimestamp(value, tz=timezone.utc).replace(microsecond=0).isoformat()
+    return datetime.fromtimestamp(value, tz=UTC).replace(microsecond=0).isoformat()
 
 
 def _normalize_timestamp(value: str | None) -> str | None:
     if value is None:
         return None
     cleaned = value.strip()
-    return cleaned if cleaned else None
+    return cleaned or None
 
 
 def _normalize_project_cwd(value: Any) -> str | None:
     if not isinstance(value, str):
         return None
     cleaned = value.strip()
-    return cleaned if cleaned else None
+    return cleaned or None
 
 
 def _pick_earliest_timestamp(current: str | None, candidate: str | None) -> str | None:
@@ -123,7 +126,7 @@ def _pick_earliest_timestamp(current: str | None, candidate: str | None) -> str 
         return candidate_value
     if candidate_value is None:
         return current_value
-    return candidate_value if candidate_value < current_value else current_value
+    return min(current_value, candidate_value)
 
 
 def _pick_latest_timestamp(current: str | None, candidate: str | None) -> str | None:
@@ -133,7 +136,7 @@ def _pick_latest_timestamp(current: str | None, candidate: str | None) -> str | 
         return candidate_value
     if candidate_value is None:
         return current_value
-    return candidate_value if candidate_value > current_value else current_value
+    return max(current_value, candidate_value)
 
 
 def _ensure_schema(conn: sqlite3.Connection) -> None:
@@ -349,7 +352,7 @@ def _usage_event_from_row(row: sqlite3.Row) -> dict[str, Any] | None:
     last_token_usage = info.get("last_token_usage")
     if not isinstance(last_token_usage, dict):
         return None
-    event_payload = {
+    return {
         "event_id": row["event_id"],
         "thread_id": row["thread_id"],
         "session_path": row["session_path"],
@@ -365,7 +368,6 @@ def _usage_event_from_row(row: sqlite3.Row) -> dict[str, Any] | None:
         "model": payload_body.get("info", {}).get("model"),
         "raw_json": row["raw_json"],
     }
-    return event_payload
 
 
 def _usage_event_from_token_row(row: sqlite3.Row) -> dict[str, Any] | None:
@@ -389,6 +391,397 @@ def _usage_event_from_token_row(row: sqlite3.Row) -> dict[str, Any] | None:
     }
 
 
+# _NormalizeIndexes packs per-thread/per-session counters accumulated during
+# the build-indexes pass. Each field serves a different downstream inserter;
+# collapsing them into nested structs would only add indirection.
+@dataclass
+class _NormalizeIndexes:  # pylint: disable=too-many-instance-attributes
+    session_count_by_thread: dict[str, int] = field(default_factory=dict)
+    event_count_by_thread: dict[str, int] = field(default_factory=dict)
+    message_count_by_thread: dict[str, int] = field(default_factory=dict)
+    log_count_by_thread: dict[str, int] = field(default_factory=dict)
+    first_seen_by_thread: dict[str, str | None] = field(default_factory=dict)
+    last_seen_by_thread: dict[str, str | None] = field(default_factory=dict)
+    message_count_by_session: dict[str, int] = field(default_factory=dict)
+    event_count_by_session: dict[str, int] = field(default_factory=dict)
+    first_event_by_session: dict[str, str | None] = field(default_factory=dict)
+    last_event_by_session: dict[str, str | None] = field(default_factory=dict)
+    event_timestamp_by_session_index: dict[tuple[str, int], str | None] = field(default_factory=dict)
+    token_usage_by_session_index: dict[tuple[str, int], Any] = field(default_factory=dict)
+
+
+@dataclass
+class _NormalizeCounters:
+    threads: int = 0
+    projects: int = 0
+    sessions: int = 0
+    messages: int = 0
+    usage_events: int = 0
+    logs: int = 0
+
+
+def _build_normalize_indexes(
+    raw_sessions: list[Any],
+    raw_session_events: list[Any],
+    raw_messages: list[Any],
+    raw_logs: list[Any],
+    raw_token_usage: list[Any],
+) -> _NormalizeIndexes:
+    idx = _NormalizeIndexes(
+        token_usage_by_session_index={
+            (row["session_path"], int(row["event_index"])): row
+            for row in raw_token_usage
+            if int(row["has_breakdown"] or 0) == 1
+        }
+    )
+    for session_row in raw_sessions:
+        thread_id = session_row["thread_id"]
+        if thread_id is None:
+            continue
+        idx.session_count_by_thread[thread_id] = idx.session_count_by_thread.get(thread_id, 0) + 1
+        session_timestamp = session_row["session_timestamp"]
+        idx.first_seen_by_thread[thread_id] = _pick_earliest_timestamp(idx.first_seen_by_thread.get(thread_id), session_timestamp)
+        idx.last_seen_by_thread[thread_id] = _pick_latest_timestamp(idx.last_seen_by_thread.get(thread_id), session_timestamp)
+    for event_row in raw_session_events:
+        thread_id = event_row["thread_id"]
+        if thread_id is not None:
+            idx.event_count_by_thread[thread_id] = idx.event_count_by_thread.get(thread_id, 0) + 1
+            timestamp = event_row["timestamp"]
+            idx.first_seen_by_thread[thread_id] = _pick_earliest_timestamp(idx.first_seen_by_thread.get(thread_id), timestamp)
+            idx.last_seen_by_thread[thread_id] = _pick_latest_timestamp(idx.last_seen_by_thread.get(thread_id), timestamp)
+        idx.event_count_by_session[event_row["session_path"]] = idx.event_count_by_session.get(event_row["session_path"], 0) + 1
+        idx.event_timestamp_by_session_index[(event_row["session_path"], int(event_row["event_index"]))] = _normalize_timestamp(
+            event_row["timestamp"]
+        )
+    for message_row in raw_messages:
+        thread_id = message_row["thread_id"]
+        if thread_id is not None:
+            idx.message_count_by_thread[thread_id] = idx.message_count_by_thread.get(thread_id, 0) + 1
+        idx.message_count_by_session[message_row["session_path"]] = idx.message_count_by_session.get(message_row["session_path"], 0) + 1
+    for log_row in raw_logs:
+        thread_id = log_row["thread_id"]
+        if thread_id is not None:
+            idx.log_count_by_thread[thread_id] = idx.log_count_by_thread.get(thread_id, 0) + 1
+    return idx
+
+
+def _empty_project_stats() -> dict[str, Any]:
+    return {
+        "thread_count": 0,
+        "session_count": 0,
+        "event_count": 0,
+        "message_count": 0,
+        "usage_event_count": 0,
+        "log_count": 0,
+        "first_seen_at": None,
+        "last_seen_at": None,
+    }
+
+
+def _ensure_project_stats(project_stats: dict[str, dict[str, Any]], project_cwd: str) -> dict[str, Any]:
+    stats = project_stats.get(project_cwd)
+    if stats is None:
+        stats = _empty_project_stats()
+        project_stats[project_cwd] = stats
+    return stats
+
+
+def _insert_normalized_threads(
+    conn: sqlite3.Connection,
+    raw_threads: list[Any],
+    *,
+    idx: _NormalizeIndexes,
+    project_stats: dict[str, dict[str, Any]],
+    thread_project_cwd: dict[str, str],
+    threads_with_rows: set[str],
+) -> int:
+    inserted = 0
+    for thread_row in raw_threads:
+        thread_id = thread_row["thread_id"]
+        threads_with_rows.add(thread_id)
+        project_cwd = _normalize_project_cwd(thread_row["cwd"])
+        if project_cwd is not None:
+            thread_project_cwd[thread_id] = project_cwd
+            stats = _ensure_project_stats(project_stats, project_cwd)
+            stats["thread_count"] += 1
+            stats["session_count"] += idx.session_count_by_thread.get(thread_id, 0)
+            stats["event_count"] += idx.event_count_by_thread.get(thread_id, 0)
+            stats["message_count"] += idx.message_count_by_thread.get(thread_id, 0)
+            stats["first_seen_at"] = _pick_earliest_timestamp(stats["first_seen_at"], idx.first_seen_by_thread.get(thread_id))
+            stats["last_seen_at"] = _pick_latest_timestamp(stats["last_seen_at"], idx.last_seen_by_thread.get(thread_id))
+        conn.execute(
+            """
+            INSERT INTO normalized_threads (
+                thread_id, source_path, cwd, model_provider, model, title, archived,
+                created_at, updated_at, rollout_path, session_count, event_count,
+                message_count, log_count, first_seen_at, last_seen_at, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                thread_id,
+                thread_row["source_path"],
+                thread_row["cwd"],
+                thread_row["model_provider"],
+                thread_row["model"],
+                thread_row["title"],
+                thread_row["archived"],
+                thread_row["created_at"],
+                thread_row["updated_at"],
+                thread_row["rollout_path"],
+                idx.session_count_by_thread.get(thread_id, 0),
+                idx.event_count_by_thread.get(thread_id, 0),
+                idx.message_count_by_thread.get(thread_id, 0),
+                idx.log_count_by_thread.get(thread_id, 0),
+                idx.first_seen_by_thread.get(thread_id),
+                idx.last_seen_by_thread.get(thread_id),
+                thread_row["raw_json"],
+            ),
+        )
+        inserted += 1
+    return inserted
+
+
+def _insert_normalized_usage_events(
+    conn: sqlite3.Connection,
+    raw_session_events: list[Any],
+    *,
+    idx: _NormalizeIndexes,
+    project_stats: dict[str, dict[str, Any]],
+    thread_project_cwd: dict[str, str],
+) -> int:
+    inserted = 0
+    for event_row in raw_session_events:
+        session_path = event_row["session_path"]
+        event_index = int(event_row["event_index"])
+        timestamp = event_row["timestamp"]
+        idx.first_event_by_session[session_path] = _pick_earliest_timestamp(idx.first_event_by_session.get(session_path), timestamp)
+        idx.last_event_by_session[session_path] = _pick_latest_timestamp(idx.last_event_by_session.get(session_path), timestamp)
+        token_row = idx.token_usage_by_session_index.get((event_row["session_path"], event_index))
+        usage_event = _usage_event_from_token_row(token_row) if token_row is not None else None
+        if usage_event is None:
+            usage_event = _usage_event_from_row(event_row)
+        if usage_event is None:
+            continue
+        project_cwd = thread_project_cwd.get(event_row["thread_id"])
+        if project_cwd is not None:
+            stats = _ensure_project_stats(project_stats, project_cwd)
+            stats["usage_event_count"] += 1
+        usage_event_id = hashlib.sha256(
+            f"{event_row['event_id']}:{event_row['session_path']}:{event_index}".encode()
+        ).hexdigest()
+        conn.execute(
+            """
+            INSERT INTO normalized_usage_events (
+                usage_event_id, thread_id, session_path, source_path, event_index, timestamp,
+                input_tokens, cache_creation_input_tokens, cached_input_tokens,
+                output_tokens, reasoning_output_tokens, total_tokens, model, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                usage_event_id,
+                usage_event["thread_id"],
+                usage_event["session_path"],
+                usage_event["source_path"],
+                usage_event["event_index"],
+                usage_event["timestamp"],
+                usage_event["input_tokens"],
+                usage_event["cache_creation_input_tokens"],
+                usage_event["cached_input_tokens"],
+                usage_event["output_tokens"],
+                usage_event["reasoning_output_tokens"],
+                usage_event["total_tokens"],
+                usage_event["model"],
+                usage_event["raw_json"],
+            ),
+        )
+        inserted += 1
+    return inserted
+
+
+def _insert_normalized_sessions(
+    conn: sqlite3.Connection,
+    raw_sessions: list[Any],
+    *,
+    idx: _NormalizeIndexes,
+    project_stats: dict[str, dict[str, Any]],
+    thread_project_cwd: dict[str, str],
+    threads_with_rows: set[str],
+) -> int:
+    inserted = 0
+    for session_row in raw_sessions:
+        session_path = session_row["session_path"]
+        thread_id = session_row["thread_id"]
+        project_cwd = _normalize_project_cwd(session_row["cwd"])
+        if project_cwd is not None and thread_id is not None and thread_id not in threads_with_rows:
+            thread_project_cwd[thread_id] = project_cwd
+            stats = _ensure_project_stats(project_stats, project_cwd)
+            stats["session_count"] += 1
+            stats["event_count"] += idx.event_count_by_session.get(session_path, 0)
+            stats["message_count"] += idx.message_count_by_session.get(session_path, 0)
+            stats["first_seen_at"] = _pick_earliest_timestamp(stats["first_seen_at"], idx.first_event_by_session.get(session_path))
+            stats["last_seen_at"] = _pick_latest_timestamp(stats["last_seen_at"], idx.last_event_by_session.get(session_path))
+        conn.execute(
+            """
+            INSERT INTO normalized_sessions (
+                session_path, thread_id, source_path, session_timestamp, cwd, source,
+                model_provider, cli_version, originator, event_count, message_count,
+                first_event_at, last_event_at, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                session_path,
+                session_row["thread_id"],
+                session_row["source_path"],
+                session_row["session_timestamp"],
+                session_row["cwd"],
+                session_row["source"],
+                session_row["model_provider"],
+                session_row["cli_version"],
+                session_row["originator"],
+                idx.event_count_by_session.get(session_path, 0),
+                idx.message_count_by_session.get(session_path, 0),
+                idx.first_event_by_session.get(session_path),
+                idx.last_event_by_session.get(session_path),
+                session_row["raw_json"],
+            ),
+        )
+        inserted += 1
+    return inserted
+
+
+def _insert_normalized_messages(
+    conn: sqlite3.Connection,
+    raw_messages: list[Any],
+    *,
+    idx: _NormalizeIndexes,
+) -> int:
+    inserted = 0
+    for message_row in raw_messages:
+        timestamp = idx.event_timestamp_by_session_index.get(
+            (message_row["session_path"], int(message_row["event_index"]))
+        )
+        conn.execute(
+            """
+            INSERT INTO normalized_messages (
+                message_id, thread_id, session_path, source_path, event_index,
+                message_index, role, text, timestamp, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                message_row["message_id"],
+                message_row["thread_id"],
+                message_row["session_path"],
+                message_row["source_path"],
+                message_row["event_index"],
+                message_row["message_index"],
+                message_row["role"],
+                message_row["text"],
+                timestamp,
+                message_row["raw_json"],
+            ),
+        )
+        inserted += 1
+    return inserted
+
+
+def _insert_normalized_logs(
+    conn: sqlite3.Connection,
+    raw_logs: list[Any],
+    *,
+    project_stats: dict[str, dict[str, Any]],
+    thread_project_cwd: dict[str, str],
+) -> int:
+    inserted = 0
+    for log_row in raw_logs:
+        project_cwd = thread_project_cwd.get(log_row["thread_id"])
+        if project_cwd is not None:
+            stats = _ensure_project_stats(project_stats, project_cwd)
+            stats["log_count"] += 1
+        conn.execute(
+            """
+            INSERT INTO normalized_logs (
+                source_path, row_id, thread_id, ts, ts_iso, level, target, body, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                log_row["source_path"],
+                log_row["row_id"],
+                log_row["thread_id"],
+                log_row["ts"],
+                _iso_from_unix_seconds(log_row["ts"]),
+                log_row["level"],
+                log_row["target"],
+                log_row["body"],
+                log_row["raw_json"],
+            ),
+        )
+        inserted += 1
+    return inserted
+
+
+def _insert_normalized_projects(
+    conn: sqlite3.Connection,
+    project_stats: dict[str, dict[str, Any]],
+) -> int:
+    inserted = 0
+    for project_cwd, stats in project_stats.items():
+        conn.execute(
+            """
+            INSERT INTO normalized_projects (
+                project_cwd, thread_count, session_count, event_count, message_count,
+                usage_event_count, log_count, first_seen_at, last_seen_at, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                project_cwd,
+                stats["thread_count"],
+                stats["session_count"],
+                stats["event_count"],
+                stats["message_count"],
+                stats["usage_event_count"],
+                stats["log_count"],
+                stats["first_seen_at"],
+                stats["last_seen_at"],
+                json.dumps(
+                    {
+                        "project_cwd": project_cwd,
+                        "thread_count": stats["thread_count"],
+                        "session_count": stats["session_count"],
+                        "event_count": stats["event_count"],
+                        "message_count": stats["message_count"],
+                        "usage_event_count": stats["usage_event_count"],
+                        "log_count": stats["log_count"],
+                        "first_seen_at": stats["first_seen_at"],
+                        "last_seen_at": stats["last_seen_at"],
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ),
+            ),
+        )
+        inserted += 1
+    return inserted
+
+
+def _load_raw_warehouse_rows(conn: sqlite3.Connection) -> tuple[list[Any], list[Any], list[Any], list[Any], list[Any], list[Any]]:
+    try:
+        raw_threads = _fetch_raw_threads(conn)
+        raw_sessions = _fetch_raw_sessions(conn)
+        raw_messages = _fetch_raw_messages(conn)
+        raw_session_events = _fetch_raw_session_events(conn)
+        try:
+            raw_token_usage = _fetch_raw_token_usage(conn)
+        except sqlite3.OperationalError:
+            raw_token_usage = []
+        raw_logs = _fetch_raw_logs(conn)
+    except sqlite3.OperationalError as exc:
+        raise ValueError(
+            "Warehouse does not contain raw agent history; run history-ingest first"
+        ) from exc
+    return raw_threads, raw_sessions, raw_messages, raw_session_events, raw_token_usage, raw_logs
+
+
 def normalize_codex_history(*, warehouse_path: Path) -> NormalizeSummary:
     if not warehouse_path.exists():
         raise ValueError(
@@ -396,326 +789,56 @@ def normalize_codex_history(*, warehouse_path: Path) -> NormalizeSummary:
             "Run 'ai-agents-metrics history-update' first."
         )
 
-    threads = 0
-    projects = 0
-    sessions = 0
-    messages = 0
-    usage_events = 0
-    logs = 0
+    counters = _NormalizeCounters()
 
     with sqlite3.connect(warehouse_path) as conn:
         conn.row_factory = sqlite3.Row
         _ensure_schema(conn)
-        try:
-            raw_threads = _fetch_raw_threads(conn)
-            raw_sessions = _fetch_raw_sessions(conn)
-            raw_messages = _fetch_raw_messages(conn)
-            raw_session_events = _fetch_raw_session_events(conn)
-            try:
-                raw_token_usage = _fetch_raw_token_usage(conn)
-            except sqlite3.OperationalError:
-                raw_token_usage = []
-            raw_logs = _fetch_raw_logs(conn)
-        except sqlite3.OperationalError as exc:
-            raise ValueError(
-                "Warehouse does not contain raw agent history; run history-ingest first"
-            ) from exc
 
-        session_count_by_thread: dict[str, int] = {}
-        event_count_by_thread: dict[str, int] = {}
-        message_count_by_thread: dict[str, int] = {}
-        log_count_by_thread: dict[str, int] = {}
-        first_seen_by_thread: dict[str, str | None] = {}
-        last_seen_by_thread: dict[str, str | None] = {}
-        message_count_by_session: dict[str, int] = {}
-        event_count_by_session: dict[str, int] = {}
-        first_event_by_session: dict[str, str | None] = {}
-        last_event_by_session: dict[str, str | None] = {}
-        event_timestamp_by_session_index: dict[tuple[str, int], str | None] = {}
-        token_usage_rows = raw_token_usage
-        token_usage_by_session_index = {
-            (row["session_path"], int(row["event_index"])): row
-            for row in token_usage_rows
-            if int(row["has_breakdown"] or 0) == 1
-        }
+        raw_threads, raw_sessions, raw_messages, raw_session_events, raw_token_usage, raw_logs = (
+            _load_raw_warehouse_rows(conn)
+        )
+
+        idx = _build_normalize_indexes(
+            raw_sessions, raw_session_events, raw_messages, raw_logs, raw_token_usage
+        )
         project_stats: dict[str, dict[str, Any]] = {}
         thread_project_cwd: dict[str, str] = {}
         threads_with_rows: set[str] = set()
 
-        def get_project_stats(project_cwd: str) -> dict[str, Any]:
-            stats = project_stats.get(project_cwd)
-            if stats is None:
-                stats = {
-                    "thread_count": 0,
-                    "session_count": 0,
-                    "event_count": 0,
-                    "message_count": 0,
-                    "usage_event_count": 0,
-                    "log_count": 0,
-                    "first_seen_at": None,
-                    "last_seen_at": None,
-                }
-                project_stats[project_cwd] = stats
-            return stats
-
-        for session_row in raw_sessions:
-            thread_id = session_row["thread_id"]
-            if thread_id is None:
-                continue
-            session_count_by_thread[thread_id] = session_count_by_thread.get(thread_id, 0) + 1
-            session_timestamp = session_row["session_timestamp"]
-            first_seen_by_thread[thread_id] = _pick_earliest_timestamp(first_seen_by_thread.get(thread_id), session_timestamp)
-            last_seen_by_thread[thread_id] = _pick_latest_timestamp(last_seen_by_thread.get(thread_id), session_timestamp)
-        for event_row in raw_session_events:
-            thread_id = event_row["thread_id"]
-            if thread_id is not None:
-                event_count_by_thread[thread_id] = event_count_by_thread.get(thread_id, 0) + 1
-                timestamp = event_row["timestamp"]
-                first_seen_by_thread[thread_id] = _pick_earliest_timestamp(first_seen_by_thread.get(thread_id), timestamp)
-                last_seen_by_thread[thread_id] = _pick_latest_timestamp(last_seen_by_thread.get(thread_id), timestamp)
-            event_count_by_session[event_row["session_path"]] = event_count_by_session.get(event_row["session_path"], 0) + 1
-            event_timestamp_by_session_index[(event_row["session_path"], int(event_row["event_index"]))] = _normalize_timestamp(
-                event_row["timestamp"]
-            )
-
-        for message_row in raw_messages:
-            thread_id = message_row["thread_id"]
-            if thread_id is not None:
-                message_count_by_thread[thread_id] = message_count_by_thread.get(thread_id, 0) + 1
-            message_count_by_session[message_row["session_path"]] = message_count_by_session.get(message_row["session_path"], 0) + 1
-
-        for log_row in raw_logs:
-            thread_id = log_row["thread_id"]
-            if thread_id is not None:
-                log_count_by_thread[thread_id] = log_count_by_thread.get(thread_id, 0) + 1
-
         _clear_normalized_tables(conn)
 
-        for thread_row in raw_threads:
-            thread_id = thread_row["thread_id"]
-            threads_with_rows.add(thread_id)
-            project_cwd = _normalize_project_cwd(thread_row["cwd"])
-            if project_cwd is not None:
-                thread_project_cwd[thread_id] = project_cwd
-                stats = get_project_stats(project_cwd)
-                stats["thread_count"] += 1
-                stats["session_count"] += session_count_by_thread.get(thread_id, 0)
-                stats["event_count"] += event_count_by_thread.get(thread_id, 0)
-                stats["message_count"] += message_count_by_thread.get(thread_id, 0)
-                stats["first_seen_at"] = _pick_earliest_timestamp(stats["first_seen_at"], first_seen_by_thread.get(thread_id))
-                stats["last_seen_at"] = _pick_latest_timestamp(stats["last_seen_at"], last_seen_by_thread.get(thread_id))
-            conn.execute(
-                """
-                INSERT INTO normalized_threads (
-                    thread_id, source_path, cwd, model_provider, model, title, archived,
-                    created_at, updated_at, rollout_path, session_count, event_count,
-                    message_count, log_count, first_seen_at, last_seen_at, raw_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    thread_id,
-                    thread_row["source_path"],
-                    thread_row["cwd"],
-                    thread_row["model_provider"],
-                    thread_row["model"],
-                    thread_row["title"],
-                    thread_row["archived"],
-                    thread_row["created_at"],
-                    thread_row["updated_at"],
-                    thread_row["rollout_path"],
-                    session_count_by_thread.get(thread_id, 0),
-                    event_count_by_thread.get(thread_id, 0),
-                    message_count_by_thread.get(thread_id, 0),
-                    log_count_by_thread.get(thread_id, 0),
-                    first_seen_by_thread.get(thread_id),
-                    last_seen_by_thread.get(thread_id),
-                    thread_row["raw_json"],
-                ),
-            )
-            threads += 1
-
-        for event_row in raw_session_events:
-            session_path = event_row["session_path"]
-            event_index = int(event_row["event_index"])
-            timestamp = event_row["timestamp"]
-            first_event_by_session[session_path] = _pick_earliest_timestamp(first_event_by_session.get(session_path), timestamp)
-            last_event_by_session[session_path] = _pick_latest_timestamp(last_event_by_session.get(session_path), timestamp)
-            token_row = token_usage_by_session_index.get((event_row["session_path"], event_index))
-            usage_event = _usage_event_from_token_row(token_row) if token_row is not None else None
-            if usage_event is None:
-                usage_event = _usage_event_from_row(event_row)
-            if usage_event is None:
-                continue
-            project_cwd = thread_project_cwd.get(event_row["thread_id"])
-            if project_cwd is not None:
-                stats = get_project_stats(project_cwd)
-                stats["usage_event_count"] += 1
-            usage_event_id = hashlib.sha256(
-                f"{event_row['event_id']}:{event_row['session_path']}:{event_index}".encode("utf-8")
-            ).hexdigest()
-            conn.execute(
-                """
-                INSERT INTO normalized_usage_events (
-                    usage_event_id, thread_id, session_path, source_path, event_index, timestamp,
-                    input_tokens, cache_creation_input_tokens, cached_input_tokens,
-                    output_tokens, reasoning_output_tokens, total_tokens, model, raw_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    usage_event_id,
-                    usage_event["thread_id"],
-                    usage_event["session_path"],
-                    usage_event["source_path"],
-                    usage_event["event_index"],
-                    usage_event["timestamp"],
-                    usage_event["input_tokens"],
-                    usage_event["cache_creation_input_tokens"],
-                    usage_event["cached_input_tokens"],
-                    usage_event["output_tokens"],
-                    usage_event["reasoning_output_tokens"],
-                    usage_event["total_tokens"],
-                    usage_event["model"],
-                    usage_event["raw_json"],
-                ),
-            )
-            usage_events += 1
-
-        for session_row in raw_sessions:
-            session_path = session_row["session_path"]
-            thread_id = session_row["thread_id"]
-            project_cwd = _normalize_project_cwd(session_row["cwd"])
-            if project_cwd is not None and thread_id is not None and thread_id not in threads_with_rows:
-                thread_project_cwd[thread_id] = project_cwd
-                stats = get_project_stats(project_cwd)
-                stats["session_count"] += 1
-                stats["event_count"] += event_count_by_session.get(session_path, 0)
-                stats["message_count"] += message_count_by_session.get(session_path, 0)
-                stats["first_seen_at"] = _pick_earliest_timestamp(stats["first_seen_at"], first_event_by_session.get(session_path))
-                stats["last_seen_at"] = _pick_latest_timestamp(stats["last_seen_at"], last_event_by_session.get(session_path))
-            conn.execute(
-                """
-                INSERT INTO normalized_sessions (
-                    session_path, thread_id, source_path, session_timestamp, cwd, source,
-                    model_provider, cli_version, originator, event_count, message_count,
-                    first_event_at, last_event_at, raw_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    session_path,
-                    session_row["thread_id"],
-                    session_row["source_path"],
-                    session_row["session_timestamp"],
-                    session_row["cwd"],
-                    session_row["source"],
-                    session_row["model_provider"],
-                    session_row["cli_version"],
-                    session_row["originator"],
-                    event_count_by_session.get(session_path, 0),
-                    message_count_by_session.get(session_path, 0),
-                    first_event_by_session.get(session_path),
-                    last_event_by_session.get(session_path),
-                    session_row["raw_json"],
-                ),
-            )
-            sessions += 1
-
-        for message_row in raw_messages:
-            timestamp = event_timestamp_by_session_index.get((message_row["session_path"], int(message_row["event_index"])))
-            conn.execute(
-                """
-                INSERT INTO normalized_messages (
-                    message_id, thread_id, session_path, source_path, event_index,
-                    message_index, role, text, timestamp, raw_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    message_row["message_id"],
-                    message_row["thread_id"],
-                    message_row["session_path"],
-                    message_row["source_path"],
-                    message_row["event_index"],
-                    message_row["message_index"],
-                    message_row["role"],
-                    message_row["text"],
-                    timestamp,
-                    message_row["raw_json"],
-                ),
-            )
-            messages += 1
-
-        for log_row in raw_logs:
-            project_cwd = thread_project_cwd.get(log_row["thread_id"])
-            if project_cwd is not None:
-                stats = get_project_stats(project_cwd)
-                stats["log_count"] += 1
-            conn.execute(
-                """
-                INSERT INTO normalized_logs (
-                    source_path, row_id, thread_id, ts, ts_iso, level, target, body, raw_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    log_row["source_path"],
-                    log_row["row_id"],
-                    log_row["thread_id"],
-                    log_row["ts"],
-                    _iso_from_unix_seconds(log_row["ts"]),
-                    log_row["level"],
-                    log_row["target"],
-                    log_row["body"],
-                    log_row["raw_json"],
-                ),
-            )
-            logs += 1
-
-        for project_cwd, stats in project_stats.items():
-            conn.execute(
-                """
-                INSERT INTO normalized_projects (
-                    project_cwd, thread_count, session_count, event_count, message_count,
-                    usage_event_count, log_count, first_seen_at, last_seen_at, raw_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    project_cwd,
-                    stats["thread_count"],
-                    stats["session_count"],
-                    stats["event_count"],
-                    stats["message_count"],
-                    stats["usage_event_count"],
-                    stats["log_count"],
-                    stats["first_seen_at"],
-                    stats["last_seen_at"],
-                    json.dumps(
-                        {
-                            "project_cwd": project_cwd,
-                            "thread_count": stats["thread_count"],
-                            "session_count": stats["session_count"],
-                            "event_count": stats["event_count"],
-                            "message_count": stats["message_count"],
-                            "usage_event_count": stats["usage_event_count"],
-                            "log_count": stats["log_count"],
-                            "first_seen_at": stats["first_seen_at"],
-                            "last_seen_at": stats["last_seen_at"],
-                        },
-                        ensure_ascii=False,
-                        sort_keys=True,
-                        separators=(",", ":"),
-                    ),
-                ),
-            )
-            projects += 1
+        counters.threads = _insert_normalized_threads(
+            conn, raw_threads,
+            idx=idx, project_stats=project_stats,
+            thread_project_cwd=thread_project_cwd, threads_with_rows=threads_with_rows,
+        )
+        counters.usage_events = _insert_normalized_usage_events(
+            conn, raw_session_events,
+            idx=idx, project_stats=project_stats, thread_project_cwd=thread_project_cwd,
+        )
+        counters.sessions = _insert_normalized_sessions(
+            conn, raw_sessions,
+            idx=idx, project_stats=project_stats,
+            thread_project_cwd=thread_project_cwd, threads_with_rows=threads_with_rows,
+        )
+        counters.messages = _insert_normalized_messages(conn, raw_messages, idx=idx)
+        counters.logs = _insert_normalized_logs(
+            conn, raw_logs,
+            project_stats=project_stats, thread_project_cwd=thread_project_cwd,
+        )
+        counters.projects = _insert_normalized_projects(conn, project_stats)
 
         conn.commit()
 
     return NormalizeSummary(
         warehouse_path=warehouse_path,
-        projects=projects,
-        threads=threads,
-        sessions=sessions,
-        messages=messages,
-        usage_events=usage_events,
-        logs=logs,
+        projects=counters.projects,
+        threads=counters.threads,
+        sessions=counters.sessions,
+        messages=counters.messages,
+        usage_events=counters.usage_events,
+        logs=counters.logs,
     )
 
 

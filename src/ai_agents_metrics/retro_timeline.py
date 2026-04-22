@@ -1,3 +1,4 @@
+"""Derive before/after product-metric windows around retrospective events."""
 from __future__ import annotations
 
 import json
@@ -12,8 +13,11 @@ from ai_agents_metrics.domain import EffectiveGoalRecord, build_effective_goals,
 from ai_agents_metrics.reporting import format_pct, format_usd
 
 
+# RetroTimelineEvent / RetroMetricWindow / RetroWindowDelta are canonical
+# SQL row schemas whose fields map 1:1 to warehouse tables defined in
+# `_ensure_schema`. Restructuring would desync the dataclass from SQL.
 @dataclass(frozen=True)
-class RetroTimelineEvent:
+class RetroTimelineEvent:  # pylint: disable=too-many-instance-attributes
     retro_event_id: str
     message_id: str
     thread_id: str | None
@@ -32,7 +36,7 @@ class RetroTimelineEvent:
 
 
 @dataclass(frozen=True)
-class RetroMetricWindow:
+class RetroMetricWindow:  # pylint: disable=too-many-instance-attributes
     window_id: str
     retro_event_id: str
     window_side: str
@@ -56,7 +60,7 @@ class RetroMetricWindow:
 
 
 @dataclass(frozen=True)
-class RetroWindowDelta:
+class RetroWindowDelta:  # pylint: disable=too-many-instance-attributes
     retro_event_id: str
     window_strategy: str
     window_size: int
@@ -98,14 +102,14 @@ def _goal_timestamp(goal: EffectiveGoalRecord) -> str | None:
 
 
 def _parse_timestamp(value: str) -> datetime:
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return datetime.fromisoformat(value)
 
 
 def _normalize_timestamp(value: str | None) -> str | None:
     if value is None:
         return None
     cleaned = value.strip()
-    return cleaned if cleaned else None
+    return cleaned or None
 
 
 def _compact_text(value: str | None, *, limit: int = 120) -> str | None:

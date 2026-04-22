@@ -1,5 +1,7 @@
+"""Public-boundary validator for the oss/ subtree exported to the public repo."""
 from __future__ import annotations
 
+import contextlib
 import fnmatch
 import json
 import re
@@ -72,10 +74,8 @@ def verify_public_boundary(*, repo_root: Path, rules_path: Path) -> PublicBounda
     rules = load_public_boundary_rules(normalized_rules)
     candidate_paths = _collect_candidate_paths(normalized_root, rules)
     skipped_marker_paths: set[str] = set()
-    try:
+    with contextlib.suppress(ValueError):
         skipped_marker_paths.add(normalized_rules.relative_to(normalized_root).as_posix())
-    except ValueError:
-        pass
     for pattern in rules.marker_ignored_paths:
         for path_text in candidate_paths:
             if _glob_matches(path_text, pattern):
@@ -172,8 +172,7 @@ def _git_candidate_paths(repo_root: Path) -> list[str] | None:
     except (OSError, subprocess.CalledProcessError):
         return None
     raw_paths = [item.decode("utf-8") for item in result.stdout.split(b"\x00") if item]
-    normalized = sorted(_normalize_relative_path(path) for path in raw_paths if path)
-    return normalized
+    return sorted(_normalize_relative_path(path) for path in raw_paths if path)
 
 
 def _normalize_relative_path(path_text: str) -> str:
@@ -204,26 +203,26 @@ def _check_allowed_roots(paths: list[str], rules: PublicBoundaryRules) -> list[P
 def _check_forbidden_paths(paths: list[str], rules: PublicBoundaryRules) -> list[PublicBoundaryFinding]:
     findings: list[PublicBoundaryFinding] = []
     for path_text in paths:
-        for forbidden in rules.forbidden_paths:
-            if path_text == forbidden or path_text.startswith(f"{forbidden}/"):
-                findings.append(
-                    PublicBoundaryFinding(
-                        kind="forbidden_path",
-                        path=path_text,
-                        message="path matches a forbidden private-only boundary rule",
-                        matched_rule=forbidden,
-                    )
-                )
-        for pattern in rules.forbidden_globs:
-            if _glob_matches(path_text, pattern):
-                findings.append(
-                    PublicBoundaryFinding(
-                        kind="forbidden_path",
-                        path=path_text,
-                        message="path matches a forbidden glob rule",
-                        matched_rule=pattern,
-                    )
-                )
+        findings.extend(
+            PublicBoundaryFinding(
+                kind="forbidden_path",
+                path=path_text,
+                message="path matches a forbidden private-only boundary rule",
+                matched_rule=forbidden,
+            )
+            for forbidden in rules.forbidden_paths
+            if path_text == forbidden or path_text.startswith(f"{forbidden}/")
+        )
+        findings.extend(
+            PublicBoundaryFinding(
+                kind="forbidden_path",
+                path=path_text,
+                message="path matches a forbidden glob rule",
+                matched_rule=pattern,
+            )
+            for pattern in rules.forbidden_globs
+            if _glob_matches(path_text, pattern)
+        )
     return findings
 
 

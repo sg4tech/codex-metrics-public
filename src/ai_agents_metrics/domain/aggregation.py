@@ -1,16 +1,20 @@
+"""Goal/entry/summary aggregation and the central ``apply_goal_updates`` mutator."""
+# pylint: disable=too-many-lines  # domain/aggregation bundles goal/entry/summary aggregation and update application; splitting per stage is a tracked future task
 from __future__ import annotations
 
 from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ai_agents_metrics.domain.ids import next_entry_id
 from ai_agents_metrics.domain.models import (
     ALLOWED_TASK_TYPES,
+    EMPTY_GOAL_USAGE_RESOLUTION,
     AttemptEntryRecord,
     EffectiveGoalRecord,
     GoalRecord,
+    GoalUsageResolution,
+    ManualGoalUpdates,
     StatusRecordT,
 )
 from ai_agents_metrics.domain.serde import (
@@ -39,6 +43,9 @@ from ai_agents_metrics.domain.validation import (
     validate_status,
     validate_task_type,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def round_usd(value: Decimal | float) -> float:
@@ -206,12 +213,15 @@ def aggregate_chain_timestamps(chain: list[GoalRecord]) -> tuple[datetime | None
 
 
 def build_effective_goal_record(terminal_goal: GoalRecord, chain: list[GoalRecord]) -> EffectiveGoalRecord:
-    aggregated_cost, aggregated_cost_known, cost_complete = aggregate_chain_costs(chain)
-    aggregated_input, aggregated_input_known, input_complete = aggregate_chain_token_component(chain, "input_tokens")
-    aggregated_cached, aggregated_cached_known, cached_complete = aggregate_chain_token_component(chain, "cached_input_tokens")
-    aggregated_output, aggregated_output_known, output_complete = aggregate_chain_token_component(chain, "output_tokens")
-    aggregated_tokens, aggregated_tokens_known, tokens_complete = aggregate_chain_tokens(chain)
-    aggregated_model, model_complete, model_consistent = aggregate_chain_model(chain)
+    # Aggregated chain results are kept as triples indexed inline in the
+    # constructor so the local count stays under the limit even though
+    # EffectiveGoalRecord is a wide canonical schema.
+    cost = aggregate_chain_costs(chain)
+    inp = aggregate_chain_token_component(chain, "input_tokens")
+    cac = aggregate_chain_token_component(chain, "cached_input_tokens")
+    out = aggregate_chain_token_component(chain, "output_tokens")
+    tokens = aggregate_chain_tokens(chain)
+    mdl = aggregate_chain_model(chain)
     started_at, finished_at = aggregate_chain_timestamps(chain)
 
     return EffectiveGoalRecord(
@@ -222,26 +232,26 @@ def build_effective_goal_record(terminal_goal: GoalRecord, chain: list[GoalRecor
         attempts=sum(goal.attempts for goal in chain),
         started_at=started_at,
         finished_at=finished_at,
-        cost_usd=aggregated_cost,
-        cost_usd_known=aggregated_cost_known,
-        cost_complete=cost_complete,
-        input_tokens=aggregated_input,
-        input_tokens_known=aggregated_input_known,
-        cached_input_tokens=aggregated_cached,
-        cached_input_tokens_known=aggregated_cached_known,
-        output_tokens=aggregated_output,
-        output_tokens_known=aggregated_output_known,
-        token_breakdown_complete=input_complete and cached_complete and output_complete,
-        tokens_total=aggregated_tokens,
-        tokens_total_known=aggregated_tokens_known,
-        tokens_complete=tokens_complete,
+        cost_usd=cost[0],
+        cost_usd_known=cost[1],
+        cost_complete=cost[2],
+        input_tokens=inp[0],
+        input_tokens_known=inp[1],
+        cached_input_tokens=cac[0],
+        cached_input_tokens_known=cac[1],
+        output_tokens=out[0],
+        output_tokens_known=out[1],
+        token_breakdown_complete=inp[2] and cac[2] and out[2],
+        tokens_total=tokens[0],
+        tokens_total_known=tokens[1],
+        tokens_complete=tokens[2],
         failure_reason=terminal_goal.failure_reason,
         notes=terminal_goal.notes,
         supersedes_goal_id=terminal_goal.supersedes_goal_id,
         result_fit=terminal_goal.result_fit,
-        model=aggregated_model,
-        model_complete=model_complete,
-        model_consistent=model_consistent,
+        model=mdl[0],
+        model_complete=mdl[1],
+        model_consistent=mdl[2],
     )
 
 
@@ -531,6 +541,10 @@ def normalize_legacy_metrics_data(data: dict[str, Any]) -> None:
 
 
 def load_metrics(path: Path) -> dict[str, Any]:
+    # Lazy by contract: the "Domain layer must not import from CLI or
+    # orchestration" import-linter rule treats event_store as infrastructure
+    # that is only reached at runtime, not a module-level domain dependency.
+    # pylint: disable-next=import-outside-toplevel
     from ai_agents_metrics.event_store import replay_events
 
     goals_list, entries_list = replay_events(path)
@@ -570,44 +584,14 @@ def compute_numeric_delta(previous_value: float | int | None, current_value: flo
     return delta
 
 
-def build_attempt_entry(
-    *,
-    entries: list[dict[str, Any]],
-    goal: dict[str, Any],
-    inferred: bool,
-    status: str,
-    started_at: str | None,
-    finished_at: str | None,
-    cost_usd: float | None,
-    input_tokens: int | None,
-    cached_input_tokens: int | None,
-    output_tokens: int | None,
-    tokens_total: int | None,
-    failure_reason: str | None,
-    notes: str | None,
-    agent_name: str | None,
-    model: str | None,
-) -> dict[str, Any]:
-    entry = entry_to_dict(
-        AttemptEntryRecord(
-            entry_id=next_entry_id(entries, goal["goal_id"]),
-            goal_id=goal["goal_id"],
-            entry_type=goal["goal_type"],
-            inferred=inferred,
-            status=status,
-            started_at=parse_iso_datetime_flexible(started_at, "started_at") if started_at is not None else None,
-            finished_at=parse_iso_datetime_flexible(finished_at, "finished_at") if finished_at is not None else None,
-            cost_usd=cost_usd,
-            input_tokens=input_tokens,
-            cached_input_tokens=cached_input_tokens,
-            output_tokens=output_tokens,
-            tokens_total=tokens_total,
-            failure_reason=failure_reason,
-            notes=notes,
-            agent_name=agent_name,
-            model=model,
-        )
-    )
+def build_attempt_entry(record: AttemptEntryRecord) -> dict[str, Any]:
+    """Serialize an AttemptEntryRecord into its dict form and validate invariants.
+
+    Callers construct the record directly so the schema is a single point of
+    truth — `AttemptEntryRecord` dictates both the struct and the storage
+    dict shape.
+    """
+    entry = entry_to_dict(record)
     validate_entry_record(entry)
     return entry
 
@@ -667,21 +651,24 @@ def append_missing_attempt_entries(
         if inferred_failed_attempt:
             notes = "Inferred historical failed attempt from attempts count."
         entry = build_attempt_entry(
-            entries=entries,
-            goal=goal,
-            inferred=inferred_failed_attempt,
-            status=entry_status,
-            started_at=started_at,
-            finished_at=entry_finished_at,
-            cost_usd=None,
-            input_tokens=None,
-            cached_input_tokens=None,
-            output_tokens=None,
-            tokens_total=None,
-            failure_reason=goal.get("failure_reason") if entry_status == "fail" and is_latest_attempt else None,
-            notes=notes,
-            agent_name=goal.get("agent_name"),
-            model=goal.get("model") if is_latest_attempt else None,
+            AttemptEntryRecord(
+                entry_id=next_entry_id(entries, goal["goal_id"]),
+                goal_id=goal["goal_id"],
+                entry_type=goal["goal_type"],
+                inferred=inferred_failed_attempt,
+                status=entry_status,
+                started_at=parse_iso_datetime_flexible(started_at, "started_at") if started_at is not None else None,
+                finished_at=parse_iso_datetime_flexible(entry_finished_at, "finished_at") if entry_finished_at is not None else None,
+                cost_usd=None,
+                input_tokens=None,
+                cached_input_tokens=None,
+                output_tokens=None,
+                tokens_total=None,
+                failure_reason=goal.get("failure_reason") if entry_status == "fail" and is_latest_attempt else None,
+                notes=notes,
+                agent_name=goal.get("agent_name"),
+                model=goal.get("model") if is_latest_attempt else None,
+            )
         )
         entries.append(entry)
         goal_entries.append(entry)
@@ -845,6 +832,7 @@ def _apply_int_token_update(
     task: GoalRecord,
     field: str,
     validate_name: str,
+    *,
     add_val: int | None,
     usage_val: int | None,
     auto_val: int | None,
@@ -895,81 +883,96 @@ def _apply_model_update(
 
 
 def apply_goal_updates(
-    *,
     entries: list[dict[str, Any]],
     task: GoalRecord,
-    title: str | None,
-    task_type: str | None,
-    status: str | None,
-    attempts_delta: int | None,
-    attempts_abs: int | None,
-    cost_usd_add: float | None,
-    cost_usd_set: float | None,
-    input_tokens_add: int | None,
-    cached_input_tokens_add: int | None,
-    output_tokens_add: int | None,
-    tokens_add: int | None,
-    tokens_set: int | None,
-    usage_cost_usd: float | None,
-    usage_input_tokens: int | None,
-    usage_cached_input_tokens: int | None,
-    usage_output_tokens: int | None,
-    usage_total_tokens: int | None,
-    auto_cost_usd: float | None,
-    auto_input_tokens: int | None,
-    auto_cached_input_tokens: int | None,
-    auto_output_tokens: int | None,
-    auto_total_tokens: int | None,
-    model: str | None,
-    usage_model: str | None,
-    auto_model: str | None,
-    failure_reason: str | None,
-    notes: str | None,
-    started_at: str | None,
-    finished_at: str | None,
-    agent_name: str | None = None,
-    result_fit: str | None = None,
+    manual: ManualGoalUpdates,
+    resolution: GoalUsageResolution = EMPTY_GOAL_USAGE_RESOLUTION,
 ) -> None:
-    if title is not None:
-        if not title.strip():
+    """Apply a CLI-driven update request to *task* in place.
+
+    Precedence for cost/token/model fields: manual > usage-pricing > auto-recovery.
+    `manual` carries user-facing flags; `resolution` carries the usage/auto
+    recovery outputs produced by :func:`runtime_facade.resolve_goal_usage_updates`.
+    """
+    if manual.title is not None:
+        if not manual.title.strip():
             raise ValueError("title cannot be empty")
-        task.title = title
-    if task_type is not None:
-        validate_task_type(task_type)
-        ensure_goal_type_update_allowed(entries, task, task_type)
-        task.goal_type = task_type
-    if status is not None:
-        validate_status(status)
-        task.status = status
-    if attempts_abs is not None:
-        validate_non_negative_int(attempts_abs, "attempts")
-        task.attempts = attempts_abs
-    if attempts_delta is not None:
-        validate_non_negative_int(attempts_delta, "attempts_delta")
-        task.attempts = task.attempts + attempts_delta
+        task.title = manual.title
+    if manual.task_type is not None:
+        validate_task_type(manual.task_type)
+        ensure_goal_type_update_allowed(entries, task, manual.task_type)
+        task.goal_type = manual.task_type
+    if manual.status is not None:
+        validate_status(manual.status)
+        task.status = manual.status
+    if manual.attempts_abs is not None:
+        validate_non_negative_int(manual.attempts_abs, "attempts")
+        task.attempts = manual.attempts_abs
+    if manual.attempts_delta is not None:
+        validate_non_negative_int(manual.attempts_delta, "attempts_delta")
+        task.attempts = task.attempts + manual.attempts_delta
 
-    _apply_cost_update(task, cost_usd_set, cost_usd_add, usage_cost_usd, auto_cost_usd)
-    _apply_int_token_update(task, "input_tokens", "input_tokens_add", input_tokens_add, usage_input_tokens, auto_input_tokens)
-    _apply_int_token_update(task, "cached_input_tokens", "cached_input_tokens_add", cached_input_tokens_add, usage_cached_input_tokens, auto_cached_input_tokens)
-    _apply_int_token_update(task, "output_tokens", "output_tokens_add", output_tokens_add, usage_output_tokens, auto_output_tokens)
-    _apply_total_tokens_update(task, tokens_set, tokens_add, usage_total_tokens, auto_total_tokens)
-    _apply_model_update(task, usage_model, model, auto_model)
+    _apply_cost_update(
+        task, manual.cost_usd_set, manual.cost_usd_add,
+        resolution.usage_cost_usd, resolution.auto_cost_usd,
+    )
+    _apply_int_token_update(
+        task, "input_tokens", "input_tokens_add",
+        add_val=manual.input_tokens_add,
+        usage_val=resolution.usage_input_tokens,
+        auto_val=resolution.auto_input_tokens,
+    )
+    _apply_int_token_update(
+        task, "cached_input_tokens", "cached_input_tokens_add",
+        add_val=manual.cached_input_tokens_add,
+        usage_val=resolution.usage_cached_input_tokens,
+        auto_val=resolution.auto_cached_input_tokens,
+    )
+    _apply_int_token_update(
+        task, "output_tokens", "output_tokens_add",
+        add_val=manual.output_tokens_add,
+        usage_val=resolution.usage_output_tokens,
+        auto_val=resolution.auto_output_tokens,
+    )
+    _apply_total_tokens_update(
+        task, manual.tokens_set, manual.tokens_add,
+        resolution.usage_total_tokens, resolution.auto_total_tokens,
+    )
+    _apply_model_update(task, resolution.usage_model, manual.model, resolution.auto_model)
 
-    if failure_reason is not None:
-        validate_failure_reason(failure_reason)
-        task.failure_reason = failure_reason
-    if result_fit is not None:
-        validate_result_fit(result_fit)
-        task.result_fit = result_fit
-    if agent_name is not None:
-        validate_agent_name(agent_name)
-        task.agent_name = agent_name
-    if notes is not None:
-        task.notes = notes
-    if started_at is not None:
-        task.started_at = parse_iso_datetime_flexible(started_at, "started_at")
-    if finished_at is not None:
-        task.finished_at = parse_iso_datetime_flexible(finished_at, "finished_at")
+    effective_agent_name = manual.agent_name or resolution.detected_agent_name
+    if manual.failure_reason is not None:
+        validate_failure_reason(manual.failure_reason)
+        task.failure_reason = manual.failure_reason
+    if manual.result_fit is not None:
+        validate_result_fit(manual.result_fit)
+        task.result_fit = manual.result_fit
+    if effective_agent_name is not None:
+        validate_agent_name(effective_agent_name)
+        task.agent_name = effective_agent_name
+    if manual.notes is not None:
+        task.notes = manual.notes
+    if manual.started_at is not None:
+        task.started_at = parse_iso_datetime_flexible(manual.started_at, "started_at")
+    if manual.finished_at is not None:
+        task.finished_at = parse_iso_datetime_flexible(manual.finished_at, "finished_at")
+
+
+def _needs_goal_window_nudge(task: GoalRecord) -> bool:
+    """True when a closed product goal has a zero-duration window and no usage.
+
+    The caller widens `started_at` by one second so the window covers the real
+    work and automatic usage recovery has a non-empty interval to look at.
+    """
+    return (
+        task.goal_type == "product"
+        and task.status in {"success", "fail"}
+        and task.cost_usd is None
+        and task.tokens_total is None
+        and task.started_at is not None
+        and task.finished_at is not None
+        and task.started_at == task.finished_at
+    )
 
 
 def finalize_goal_update(task: GoalRecord) -> None:
@@ -980,16 +983,8 @@ def finalize_goal_update(task: GoalRecord) -> None:
         if task.started_at is not None and finished_dt < task.started_at:
             finished_dt = task.started_at
         task.finished_at = finished_dt
-    if (
-        task.goal_type == "product"
-        and task.status in {"success", "fail"}
-        and task.cost_usd is None
-        and task.tokens_total is None
-        and task.started_at is not None
-        and task.finished_at is not None
-    ):
-        if task.started_at == task.finished_at:
-            task.started_at = task.started_at - timedelta(seconds=1)
+    if _needs_goal_window_nudge(task) and task.started_at is not None:
+        task.started_at = task.started_at - timedelta(seconds=1)
     if task.status == "success":
         task.failure_reason = None
 

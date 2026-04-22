@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from argparse import Namespace
 from pathlib import Path
-
-import pytest
+from typing import TYPE_CHECKING
 
 from ai_agents_metrics import commands
 from ai_agents_metrics.public_boundary import (
@@ -14,6 +13,9 @@ from ai_agents_metrics.public_boundary import (
     render_public_boundary_report_json,
     verify_public_boundary,
 )
+
+if TYPE_CHECKING:
+    import pytest
 
 
 def _write_rules(path: Path, *, marker_ignored_paths: list[str] | None = None) -> None:

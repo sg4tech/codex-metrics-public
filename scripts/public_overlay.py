@@ -79,7 +79,7 @@ def quote_path(path: Path) -> str:
 
 def build_status_lines(*, private_repo_root: Path, prefix: str, remote_name: str, branch: str, pr_branch: str) -> list[str]:
     overlay_root = private_repo_root / prefix
-    lines = [
+    return [
         f"private repo root: {private_repo_root}",
         f"overlay prefix: {prefix}/",
         f"overlay directory exists: {'yes' if overlay_root.exists() else 'no'}",
@@ -95,7 +95,6 @@ def build_status_lines(*, private_repo_root: Path, prefix: str, remote_name: str
         "sync from public to private (after PR is merged):",
         f"  git subtree pull --prefix={prefix} {remote_name} {branch} --squash",
     ]
-    return lines
 
 
 def build_bootstrap_commands(*, public_repo: Path, remote_name: str, prefix: str, branch: str) -> list[str]:

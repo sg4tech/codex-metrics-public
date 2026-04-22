@@ -1,10 +1,14 @@
+"""Goal-history audit rules: likely misses, stale in-progress, low-cost goals."""
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ai_agents_metrics.domain import GoalRecord, goal_from_dict
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 AUDIT_CATEGORY_ORDER = (
     "likely_miss",
@@ -217,7 +221,6 @@ def render_audit_report(report: AuditReport) -> str:
 
 
 def render_audit_report_json(report: AuditReport) -> str:
-    import json
     return json.dumps({
         "candidate_count": len(report.candidates),
         "candidates": [

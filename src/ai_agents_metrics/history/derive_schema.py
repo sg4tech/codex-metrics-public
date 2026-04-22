@@ -1,6 +1,10 @@
+"""SQL schema for derived_* tables consumed by later analysis stages."""
 from __future__ import annotations
 
-import sqlite3
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import sqlite3
 
 
 def _ensure_schema(conn: sqlite3.Connection) -> None:

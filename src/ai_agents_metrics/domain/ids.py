@@ -1,9 +1,12 @@
+"""Deterministic ``goal_id`` and ``entry_id`` generation."""
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ai_agents_metrics.domain.time_utils import now_utc_datetime
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 def next_entry_id(entries: list[dict[str, Any]], goal_id: str) -> str:

@@ -1,10 +1,11 @@
+"""State machine for active-task bookkeeping transitions (show / ensure / start)."""
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 
-class WorkflowState(str, Enum):
+class WorkflowState(StrEnum):
     CLEAN_NO_ACTIVE_GOAL = "clean_no_active_goal"
     STARTED_WORK_WITHOUT_ACTIVE_GOAL = "started_work_without_active_goal"
     ACTIVE_GOAL_EXISTS = "active_goal_exists"
@@ -12,7 +13,7 @@ class WorkflowState(str, Enum):
     DETECTION_UNCERTAIN = "detection_uncertain"
 
 
-class WorkflowEvent(str, Enum):
+class WorkflowEvent(StrEnum):
     START_TASK = "start-task"
     CONTINUE_TASK = "continue-task"
     FINISH_TASK_SUCCESS = "finish-task(success)"

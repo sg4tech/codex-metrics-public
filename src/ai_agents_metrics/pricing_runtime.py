@@ -1,8 +1,12 @@
+"""Pricing-file loading and model-alias resolution for token→USD conversion."""
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ai_agents_metrics.usage_resolution import load_pricing, resolve_pricing_path
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def resolve_effective_pricing_path(*, cwd: Path, pricing_path: Path | None = None) -> Path:

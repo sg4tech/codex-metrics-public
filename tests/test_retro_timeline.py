@@ -4,8 +4,7 @@ import json
 from argparse import Namespace
 from contextlib import nullcontext
 from pathlib import Path
-
-import pytest
+from typing import TYPE_CHECKING
 
 from ai_agents_metrics import commands
 from ai_agents_metrics.retro_timeline import (
@@ -17,6 +16,9 @@ from ai_agents_metrics.retro_timeline import (
     render_retro_timeline_report,
     render_retro_timeline_report_json,
 )
+
+if TYPE_CHECKING:
+    import pytest
 
 
 class _FakeRuntime:

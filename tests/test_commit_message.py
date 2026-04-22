@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ai_agents_metrics.commit_message import (
     validate_commit_message_file,
     validate_commit_message_text,
     validate_commit_subject,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_validate_commit_subject_accepts_linear_linked_subject() -> None:

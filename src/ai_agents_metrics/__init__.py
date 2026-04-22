@@ -14,7 +14,8 @@ def _resolve_version() -> str:
     except PackageNotFoundError:
         pass
     try:
-        from ai_agents_metrics._version import version
+        # Lazy to tolerate editable installs where _version.py is generated on demand.
+        from ai_agents_metrics._version import version  # pylint: disable=import-outside-toplevel
         return version
     except ImportError:
         return "unknown"

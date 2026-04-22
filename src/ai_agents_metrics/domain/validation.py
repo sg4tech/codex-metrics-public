@@ -1,7 +1,7 @@
+"""Business-rule invariants for goals, entries, and metrics payloads."""
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ai_agents_metrics.domain.models import (
     ALLOWED_FAILURE_REASONS,
@@ -12,6 +12,9 @@ from ai_agents_metrics.domain.models import (
 )
 from ai_agents_metrics.domain.serde import entry_from_dict, goal_from_dict
 from ai_agents_metrics.domain.time_utils import parse_iso_datetime
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def validate_status(status: str) -> None:

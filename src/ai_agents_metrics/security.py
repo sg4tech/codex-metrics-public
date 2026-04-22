@@ -1,6 +1,8 @@
+"""Staged-file security scanner: secrets, private keys, dangerous patterns."""
 from __future__ import annotations
 
 import ast
+import contextlib
 import fnmatch
 import re
 import subprocess
@@ -108,10 +110,8 @@ def scan_security_paths(
     candidate_paths: list[str],
 ) -> SecurityReport:
     skipped_paths = {path_text for path_text in candidate_paths if _is_ignored_path(path_text, rules)}
-    try:
+    with contextlib.suppress(ValueError):
         skipped_paths.add(rules_path.relative_to(repo_root).as_posix())
-    except ValueError:
-        pass
     findings: list[SecurityFinding] = []
     findings.extend(_check_forbidden_paths(candidate_paths, rules))
     findings.extend(_check_forbidden_extensions(candidate_paths, rules))
@@ -173,8 +173,7 @@ def collect_staged_paths(repo_root: Path) -> list[str]:
         raise ValueError("security scan requires a readable git index") from exc
 
     raw_paths = [item.decode("utf-8", errors="surrogateescape") for item in result.stdout.split(b"\x00") if item]
-    normalized = sorted(_normalize_relative_path(path) for path in raw_paths if path)
-    return normalized
+    return sorted(_normalize_relative_path(path) for path in raw_paths if path)
 
 
 def _normalize_rule_values(values: object, *, lower: bool = False) -> tuple[str, ...]:
@@ -202,26 +201,26 @@ def _is_ignored_path(path_text: str, rules: SecurityRules) -> bool:
 def _check_forbidden_paths(paths: list[str], rules: SecurityRules) -> list[SecurityFinding]:
     findings: list[SecurityFinding] = []
     for path_text in paths:
-        for forbidden in rules.forbidden_paths:
-            if path_text == forbidden or path_text.startswith(f"{forbidden}/"):
-                findings.append(
-                    SecurityFinding(
-                        kind="forbidden_path",
-                        path=path_text,
-                        message="path matches a forbidden security rule",
-                        matched_rule=forbidden,
-                    )
-                )
-        for pattern in rules.forbidden_globs:
-            if _glob_matches(path_text, pattern):
-                findings.append(
-                    SecurityFinding(
-                        kind="forbidden_path",
-                        path=path_text,
-                        message="path matches a forbidden security glob",
-                        matched_rule=pattern,
-                    )
-                )
+        findings.extend(
+            SecurityFinding(
+                kind="forbidden_path",
+                path=path_text,
+                message="path matches a forbidden security rule",
+                matched_rule=forbidden,
+            )
+            for forbidden in rules.forbidden_paths
+            if path_text == forbidden or path_text.startswith(f"{forbidden}/")
+        )
+        findings.extend(
+            SecurityFinding(
+                kind="forbidden_path",
+                path=path_text,
+                message="path matches a forbidden security glob",
+                matched_rule=pattern,
+            )
+            for pattern in rules.forbidden_globs
+            if _glob_matches(path_text, pattern)
+        )
     return findings
 
 

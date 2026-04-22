@@ -1,9 +1,10 @@
+"""Compare the metrics ledger against the agent-history warehouse."""
 from __future__ import annotations
 
+import json
 import sqlite3
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ai_agents_metrics.domain import build_effective_goals, goal_from_dict
 from ai_agents_metrics.history.compare_store import (
@@ -12,6 +13,9 @@ from ai_agents_metrics.history.compare_store import (
     HistoryCompareWarehouseData,
     load_history_compare_warehouse_data,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -171,8 +175,11 @@ class HistoryCompareFinding:
     message: str
 
 
+# HistoryCompareReport aggregates counts and summaries over the ledger and
+# warehouse side-by-side. Each field is surfaced directly in rendered output,
+# so grouping into nested structs would break the report contract.
 @dataclass(frozen=True)
-class HistoryCompareReport:
+class HistoryCompareReport:  # pylint: disable=too-many-instance-attributes
     metrics_path: Path
     warehouse_path: Path
     cwd: Path
@@ -391,13 +398,13 @@ def render_history_compare_report(report: HistoryCompareReport) -> str:
     if not report.warehouse_projects:
         lines.append("- no project-level rollup rows available")
     else:
-        for project in report.warehouse_projects:
-            lines.append(
-                f"- {project.project_cwd}: threads={project.threads}, attempts={project.attempts}, "
-                f"retry_threads={project.retry_threads}, messages={project.message_count}, "
-                f"usage_events={project.usage_event_count}, logs={project.log_count}, "
-                f"timeline_events={project.timeline_event_count}, total_tokens={project.total_tokens}"
-            )
+        lines.extend(
+            f"- {project.project_cwd}: threads={project.threads}, attempts={project.attempts}, "
+            f"retry_threads={project.retry_threads}, messages={project.message_count}, "
+            f"usage_events={project.usage_event_count}, logs={project.log_count}, "
+            f"timeline_events={project.timeline_event_count}, total_tokens={project.total_tokens}"
+            for project in report.warehouse_projects
+        )
     lines.extend([
         "",
         "[findings]",
@@ -405,14 +412,11 @@ def render_history_compare_report(report: HistoryCompareReport) -> str:
     if not report.findings:
         lines.append("- no major aggregate mismatches detected")
     else:
-        for finding in report.findings:
-            lines.append(f"- {finding.category}: {finding.message}")
+        lines.extend(f"- {finding.category}: {finding.message}" for finding in report.findings)
     return "\n".join(lines)
 
 
 def render_history_compare_report_json(report: HistoryCompareReport) -> str:
-    import json
-
     def _scope(s: WarehouseScopeSummary) -> dict[str, object]:
         return {
             "projects": s.projects,

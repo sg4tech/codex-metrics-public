@@ -150,6 +150,41 @@ def test_main_routes_commands_through_runtime_facade(
     assert captured_runtime is runtime_facade
 
 
+def test_main_passes_runtime_facade_to_every_command_handler() -> None:
+    """Static contract: every ``commands.handle_*`` dispatch in ``cli.main()``
+    must route through ``runtime_facade``, not ``sys.modules[__name__]``.
+
+    Accepts both explicit call sites (``commands.handle_foo(args, runtime_facade)``)
+    and dict-based dispatch (``{"foo": commands.handle_foo}`` followed by a
+    single call through ``runtime_facade``). Catches the regression where a
+    new subcommand is added but still dispatched via the legacy
+    ``sys.modules[__name__]`` path.
+    """
+    import inspect
+    import re
+
+    source = inspect.getsource(codex_metrics_cli.main)
+
+    assert "sys.modules[__name__]" not in source, (
+        "cli.main() must route through runtime_facade, not sys.modules[__name__]"
+    )
+
+    handler_refs = re.findall(r"commands\.handle_\w+", source)
+    assert handler_refs, "expected commands.handle_* references in cli.main()"
+
+    # Every handler call site (explicit or dispatched) must pass runtime_facade.
+    explicit_calls = re.findall(r"commands\.handle_\w+\(\s*args,\s*(\w+)\s*\)", source)
+    dispatched_calls = re.findall(r"\w+\(\s*args,\s*(\w+)\s*\)", source)
+    offenders = [
+        runtime
+        for runtime in [*explicit_calls, *dispatched_calls]
+        if runtime != "runtime_facade"
+    ]
+    assert not offenders, (
+        f"these handler calls do not pass runtime_facade: {offenders}"
+    )
+
+
 def render_report(repo: Path) -> subprocess.CompletedProcess[str]:
     return run_cmd(repo, "render-report")
 
@@ -300,7 +335,7 @@ def create_codex_usage_sources(
             VALUES (?, ?)
             """,
             (
-                "event.name=\"codex.sse_event\" "
+                'event.name="codex.sse_event" '
                 "event.kind=response.completed "
                 f"input_token_count={input_tokens} "
                 f"output_token_count={output_tokens} "
@@ -601,7 +636,7 @@ def test_show_records_cli_invocation_event(repo: Path) -> None:
     payload = json.loads(row["payload_json"])
     assert payload["command"] == "show"
     assert payload["cwd"] == str(repo)
-    assert "event_type=\"cli_invoked\"" in debug_log.read_text(encoding="utf-8")
+    assert 'event_type="cli_invoked"' in debug_log.read_text(encoding="utf-8")
 
 
 def test_ensure_active_task_is_idempotent_when_active_goal_exists(repo: Path) -> None:
@@ -3205,12 +3240,12 @@ def test_help_includes_goal_language_and_examples(repo: Path) -> None:
     assert "Examples:" in result.stdout
     assert "history-audit" in result.stdout
     assert "audit-cost-coverage" in result.stdout
-    assert "start-task --title \"Add CSV import\" --task-type product" in result.stdout
+    assert 'start-task --title "Add CSV import" --task-type product' in result.stdout
     assert "--supersedes-task-id" in update_help.stdout
     assert "Stable goal identifier." in update_help.stdout
     assert "Omit this for new goals" in update_help.stdout
-    assert "%(prog)s --title \"Improve CLI help\"" not in update_help.stdout
-    assert "--title \"Improve CLI help\" --task-type product --attempts-delta 1" in update_help.stdout
+    assert '%(prog)s --title "Improve CLI help"' not in update_help.stdout
+    assert '--title "Improve CLI help" --task-type product --attempts-delta 1' in update_help.stdout
     assert "--title" in start_help.stdout
     assert "--task-type" in start_help.stdout
     assert "--task-id" in continue_help.stdout
@@ -4912,7 +4947,7 @@ def test_history_ingest_no_source_flag_defaults_to_all(repo: Path) -> None:
     else:
         # Neither source was mentioned — acceptable only if both were actually ingested without labels,
         # which should not happen; fail loudly so the test surface is clear.
-        assert False, f"Unexpected default output (no source labels):\n{result_default.stdout}"
+        raise AssertionError(f"Unexpected default output (no source labels):\n{result_default.stdout}")
 
 
 def test_history_ingest_source_root_incompatible_with_source_all(repo: Path) -> None:

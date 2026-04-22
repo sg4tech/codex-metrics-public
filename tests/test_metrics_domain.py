@@ -4,7 +4,7 @@ import importlib.util
 import json
 import sqlite3
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -13,6 +13,7 @@ from ai_agents_metrics.domain import (
     AttemptEntryRecord,
     EffectiveGoalRecord,
     GoalRecord,
+    ManualGoalUpdates,
     apply_attempt_usage_deltas,
     apply_goal_updates,
     build_effective_goals,
@@ -408,7 +409,7 @@ def test_next_goal_id_ignores_malformed_and_other_day_ids() -> None:
             {"goal_id": "2026-03-28-999"},
             {"goal_id": None},
         ],
-        now=datetime(2026, 3, 29, 12, 0, tzinfo=timezone.utc),
+        now=datetime(2026, 3, 29, 12, 0, tzinfo=UTC),
     )
 
     assert goal_id == "2026-03-29-002"
@@ -769,37 +770,9 @@ def test_apply_goal_updates_rejects_blank_title() -> None:
 
     with pytest.raises(ValueError, match="title cannot be empty"):
         apply_goal_updates(
-            entries=[],
-            task=task,
-            title="   ",
-            task_type=None,
-            status=None,
-            attempts_delta=None,
-            attempts_abs=None,
-            cost_usd_add=None,
-            cost_usd_set=None,
-            input_tokens_add=None,
-            cached_input_tokens_add=None,
-            output_tokens_add=None,
-            tokens_add=None,
-            tokens_set=None,
-            usage_cost_usd=None,
-            usage_input_tokens=None,
-            usage_cached_input_tokens=None,
-            usage_output_tokens=None,
-            usage_total_tokens=None,
-            auto_cost_usd=None,
-            auto_input_tokens=None,
-            auto_cached_input_tokens=None,
-            auto_output_tokens=None,
-            auto_total_tokens=None,
-            model=None,
-            usage_model=None,
-            auto_model=None,
-            failure_reason=None,
-            notes=None,
-            started_at=None,
-            finished_at=None,
+            [],
+            task,
+            ManualGoalUpdates(title="   "),
         )
 
 

@@ -18,19 +18,20 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import sqlite3
-from collections.abc import Iterator
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ai_agents_metrics.history.derive_schema import (
     _clear_derived_practice_events,
     _clear_derived_session_kinds,
     _ensure_schema,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 SESSION_KIND_MAIN = "main"
 SESSION_KIND_SUBAGENT = "subagent"
@@ -117,7 +118,7 @@ def _classify_session_kind(session_path: str) -> str:
     """
     if not session_path:
         return SESSION_KIND_UNKNOWN
-    base = os.path.basename(session_path)
+    base = Path(session_path).name
     if base.startswith("agent-"):
         return SESSION_KIND_SUBAGENT
     normalized = session_path.replace("\\", "/")
@@ -153,18 +154,25 @@ def _iter_tool_use_blocks(node: object) -> Iterator[dict[str, Any]]:
             yield from _iter_tool_use_blocks(item)
 
 
+@dataclass(frozen=True)
+class PracticeSourceRow:
+    """Source-row identity for a raw_session_events tool_use payload."""
+
+    event_id: str
+    session_path: str
+    thread_id: str | None
+    source_path: str
+    event_index: int
+    timestamp: str | None
+    raw_json: str
+
+
 def _extract_practice_rows(
+    source_row: PracticeSourceRow,
     *,
-    event_id: str,
-    session_path: str,
-    thread_id: str | None,
-    source_path: str,
-    event_index: int,
-    timestamp: str | None,
-    raw_json: str,
     classifier_version: str,
     classified_at: str,
-) -> list[tuple]:
+) -> list[tuple[Any, ...]]:
     """Parse one raw_session_events row and return zero or more practice rows.
 
     Each row is a tuple aligned with the INSERT statement columns in
@@ -172,10 +180,10 @@ def _extract_practice_rows(
     tool_use blocks may legitimately be absent).
     """
     try:
-        payload = json.loads(raw_json)
+        payload = json.loads(source_row.raw_json)
     except (TypeError, ValueError):
         return []
-    rows: list[tuple] = []
+    rows: list[tuple[Any, ...]] = []
     for tool_use_ordinal, block in enumerate(_iter_tool_use_blocks(payload)):
         name = block.get("name")
         raw_input = block.get("input")
@@ -191,15 +199,15 @@ def _extract_practice_rows(
         family = _classify_practice_family(source_kind, practice_name)
         tool_use_id = block.get("id")
         # Deterministic PK: (event_id, tool_use_ordinal) — stable across reruns.
-        practice_event_id = f"{event_id}:{tool_use_ordinal}"
+        practice_event_id = f"{source_row.event_id}:{tool_use_ordinal}"
         raw_row = json.dumps(
             {
                 "practice_event_id": practice_event_id,
-                "session_path": session_path,
-                "thread_id": thread_id,
-                "source_path": source_path,
-                "event_index": event_index,
-                "timestamp": timestamp,
+                "session_path": source_row.session_path,
+                "thread_id": source_row.thread_id,
+                "source_path": source_row.source_path,
+                "event_index": source_row.event_index,
+                "timestamp": source_row.timestamp,
                 "tool_use_id": tool_use_id,
                 "source_kind": source_kind,
                 "practice_name": practice_name,
@@ -212,11 +220,11 @@ def _extract_practice_rows(
         rows.append(
             (
                 practice_event_id,
-                session_path,
-                thread_id,
-                source_path,
-                event_index,
-                timestamp,
+                source_row.session_path,
+                source_row.thread_id,
+                source_row.source_path,
+                source_row.event_index,
+                source_row.timestamp,
                 tool_use_id,
                 source_kind,
                 practice_name,
@@ -229,7 +237,7 @@ def _extract_practice_rows(
     return rows
 
 
-def _insert_practice_row(conn: sqlite3.Connection, row: tuple) -> None:
+def _insert_practice_row(conn: sqlite3.Connection, row: tuple[Any, ...]) -> None:
     conn.execute(
         """
         INSERT INTO derived_practice_events (
@@ -264,13 +272,15 @@ def _classify_practice_events(
     )
     for row in cur:
         practice_rows = _extract_practice_rows(
-            event_id=row["event_id"],
-            session_path=row["session_path"],
-            thread_id=row["thread_id"],
-            source_path=row["source_path"],
-            event_index=row["event_index"],
-            timestamp=row["timestamp"],
-            raw_json=row["raw_json"],
+            PracticeSourceRow(
+                event_id=row["event_id"],
+                session_path=row["session_path"],
+                thread_id=row["thread_id"],
+                source_path=row["source_path"],
+                event_index=row["event_index"],
+                timestamp=row["timestamp"],
+                raw_json=row["raw_json"],
+            ),
             classifier_version=PRACTICE_EVENT_CLASSIFIER_VERSION,
             classified_at=classified_at,
         )
@@ -309,7 +319,7 @@ def classify_codex_history(*, warehouse_path: Path) -> ClassifySummary:
     subagent_count = 0
     unknown_count = 0
 
-    classified_at = datetime.now(timezone.utc).isoformat()
+    classified_at = datetime.now(UTC).isoformat()
 
     with sqlite3.connect(warehouse_path) as conn:
         conn.row_factory = sqlite3.Row

@@ -1,11 +1,16 @@
+"""Audit which closed product goals have missing/partial cost coverage and why."""
 from __future__ import annotations
 
+import json
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Protocol
 
 from ai_agents_metrics.domain import GoalRecord, goal_from_dict
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 def _ts_str(value: datetime | None) -> str | None:
@@ -21,8 +26,11 @@ AUDIT_CATEGORY_ORDER = (
 )
 
 
+# CostAuditCandidate is a canonical audit-record schema whose fields are
+# consumed field-by-field by JSON/text renderers and tests — compressing the
+# schema into nested structs would break the rendered output contract.
 @dataclass(frozen=True)
-class CostAuditCandidate:
+class CostAuditCandidate:  # pylint: disable=too-many-instance-attributes
     category: str
     goal_id: str
     goal_type: str
@@ -43,7 +51,42 @@ class CostAuditReport:
 
 
 ThreadResolver = Callable[[Path, Path, str | None], str | None]
-UsageResolver = Callable[[Path, Path, Path, str | None, str | None, Path, str | None, str | None], tuple[float | None, int | None]]
+
+
+class UsageResolver(Protocol):
+    """Keyword-only callable used to resolve Codex/Claude usage for an audit window."""
+
+    # pylint: disable-next=too-many-arguments
+    def __call__(
+        self,
+        *,
+        state_path: Path,
+        logs_path: Path,
+        cwd: Path,
+        started_at: str | None,
+        finished_at: str | None,
+        pricing_path: Path,
+        thread_id: str | None = None,
+        agent_name: str | None = None,
+    ) -> tuple[float | None, int | None]: ...
+
+
+@dataclass(frozen=True)
+class CostAuditContext:
+    """Bundle of paths and resolver callables shared by every audit call.
+
+    Grouped so `_classify_goal_cost_coverage` and `audit_cost_coverage` stay
+    below pylint's too-many-arguments threshold.
+    """
+
+    pricing_path: Path
+    codex_state_path: Path
+    codex_logs_path: Path
+    claude_root: Path
+    cwd: Path
+    codex_thread_id: str | None
+    find_thread_id: ThreadResolver
+    resolve_usage_window: UsageResolver
 
 
 def _build_candidate(
@@ -71,14 +114,7 @@ def _build_candidate(
 def _classify_goal_cost_coverage(
     goal: GoalRecord,
     *,
-    pricing_path: Path,
-    codex_state_path: Path,
-    codex_logs_path: Path,
-    claude_root: Path,
-    cwd: Path,
-    codex_thread_id: str | None,
-    find_thread_id: ThreadResolver,
-    resolve_usage_window: UsageResolver,
+    context: CostAuditContext,
 ) -> CostAuditCandidate | None:
     has_cost = goal.cost_usd is not None
     has_tokens = goal.tokens_total is not None
@@ -114,7 +150,7 @@ def _classify_goal_cost_coverage(
 
     if is_claude_goal:
         # Claude uses JSONL telemetry under claude_root/projects/, not Codex SQLite.
-        if not (claude_root / "projects").exists():
+        if not (context.claude_root / "projects").exists():
             return _build_candidate(
                 goal,
                 category="telemetry_unavailable",
@@ -122,15 +158,15 @@ def _classify_goal_cost_coverage(
                 suggested_next_action="Ensure ~/.claude/projects/ exists and contains session JSONL files.",
             )
         # No thread resolution for Claude — lookup is by directory, not SQLite row.
-        recovered_cost_usd, recovered_total_tokens = resolve_usage_window(
-            claude_root,
-            codex_logs_path,  # unused for Claude, passed for interface compatibility
-            cwd,
-            _ts_str(goal.started_at),
-            _ts_str(goal.finished_at),
-            pricing_path,
-            None,
-            goal.agent_name,
+        recovered_cost_usd, recovered_total_tokens = context.resolve_usage_window(
+            state_path=context.claude_root,
+            logs_path=context.codex_logs_path,  # unused for Claude, passed for interface compatibility
+            cwd=context.cwd,
+            started_at=_ts_str(goal.started_at),
+            finished_at=_ts_str(goal.finished_at),
+            pricing_path=context.pricing_path,
+            thread_id=None,
+            agent_name=goal.agent_name,
         )
         if recovered_cost_usd is None and recovered_total_tokens is None:
             return _build_candidate(
@@ -146,7 +182,7 @@ def _classify_goal_cost_coverage(
             suggested_next_action="Run sync-usage or inspect why automatic usage recovery was skipped during update.",
         )
 
-    if not codex_state_path.exists() or not codex_logs_path.exists():
+    if not context.codex_state_path.exists() or not context.codex_logs_path.exists():
         return _build_candidate(
             goal,
             category="telemetry_unavailable",
@@ -154,7 +190,9 @@ def _classify_goal_cost_coverage(
             suggested_next_action="Provide the correct Codex state/log paths before expecting automatic cost recovery.",
         )
 
-    resolved_thread_id = find_thread_id(codex_state_path, cwd, codex_thread_id)
+    resolved_thread_id = context.find_thread_id(
+        context.codex_state_path, context.cwd, context.codex_thread_id
+    )
     if resolved_thread_id is None:
         return _build_candidate(
             goal,
@@ -163,15 +201,15 @@ def _classify_goal_cost_coverage(
             suggested_next_action="Run the goal closer to the actual Codex thread or pass an explicit --codex-thread-id when syncing.",
         )
 
-    recovered_cost_usd, recovered_total_tokens = resolve_usage_window(
-        codex_state_path,
-        codex_logs_path,
-        cwd,
-        _ts_str(goal.started_at),
-        _ts_str(goal.finished_at),
-        pricing_path,
-        codex_thread_id,
-        goal.agent_name,
+    recovered_cost_usd, recovered_total_tokens = context.resolve_usage_window(
+        state_path=context.codex_state_path,
+        logs_path=context.codex_logs_path,
+        cwd=context.cwd,
+        started_at=_ts_str(goal.started_at),
+        finished_at=_ts_str(goal.finished_at),
+        pricing_path=context.pricing_path,
+        thread_id=context.codex_thread_id,
+        agent_name=goal.agent_name,
     )
     if recovered_cost_usd is None and recovered_total_tokens is None:
         return _build_candidate(
@@ -192,14 +230,7 @@ def _classify_goal_cost_coverage(
 def audit_cost_coverage(
     data: dict[str, Any],
     *,
-    pricing_path: Path,
-    codex_state_path: Path,
-    codex_logs_path: Path,
-    cwd: Path,
-    claude_root: Path = Path.home() / ".claude",
-    codex_thread_id: str | None,
-    find_thread_id: ThreadResolver,
-    resolve_usage_window: UsageResolver,
+    context: CostAuditContext,
 ) -> CostAuditReport:
     goals = [goal_from_dict(goal) for goal in data.get("goals", [])]
     closed_product_goals = [
@@ -210,19 +241,7 @@ def audit_cost_coverage(
     candidates = [
         candidate
         for goal in closed_product_goals
-        for candidate in [
-            _classify_goal_cost_coverage(
-                goal,
-                pricing_path=pricing_path,
-                codex_state_path=codex_state_path,
-                codex_logs_path=codex_logs_path,
-                claude_root=claude_root,
-                cwd=cwd,
-                codex_thread_id=codex_thread_id,
-                find_thread_id=find_thread_id,
-                resolve_usage_window=resolve_usage_window,
-            )
-        ]
+        for candidate in [_classify_goal_cost_coverage(goal, context=context)]
         if candidate is not None
     ]
     ordered_candidates = sorted(
@@ -271,7 +290,6 @@ def render_cost_audit_report(report: CostAuditReport) -> str:
 
 
 def render_cost_audit_report_json(report: CostAuditReport) -> str:
-    import json
     return json.dumps({
         "covered_goals": report.covered_goals,
         "candidate_count": len(report.candidates),

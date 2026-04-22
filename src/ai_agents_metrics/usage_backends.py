@@ -1,14 +1,17 @@
+"""Usage-window backends: Codex (SQLite state/logs) and Claude (JSONL telemetry)."""
 from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from ai_agents_metrics.usage_resolution import (
     resolve_claude_usage_window,
     resolve_codex_usage_window,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -41,7 +44,10 @@ class UsageBackend(Protocol):
 class UnknownUsageBackend:
     name = "unknown"
 
-    def resolve_window(
+    # All kwargs are unused: the unknown backend returns an empty window no
+    # matter what the caller passes. The signature must match UsageBackend so
+    # it can be dispatched through ``resolve_usage_window``.
+    def resolve_window(  # pylint: disable=unused-argument
         self,
         *,
         state_path: Path,
@@ -101,7 +107,7 @@ def detect_usage_backend_name(
     if row is None:
         return None
 
-    provider = row["model_provider"] if "model_provider" in row.keys() else None
+    provider = row["model_provider"] if "model_provider" in row.keys() else None  # noqa: SIM118 sqlite3.Row lacks .get()
     if provider in {"anthropic", "claude"}:
         return "claude"
     if provider in {"openai", "codex"}:
@@ -175,20 +181,19 @@ def find_thread_id(
 class ClaudeUsageBackend:
     name = "claude"
 
-    def resolve_window(
+    # logs_path and thread_id are required by the UsageBackend protocol but
+    # unused for Claude (JSONL telemetry is directory-scoped, not SQLite-based).
+    # state_path is repurposed as claude_root (e.g. ~/.claude).
+    def resolve_window(  # pylint: disable=unused-argument
         self,
         *,
         state_path: Path,
-        # state_path is repurposed as claude_root (e.g. ~/.claude) for Claude.
-        # This avoids changing the UsageBackend protocol interface.
         logs_path: Path,
-        # logs_path is unused for Claude; Claude telemetry is JSONL, not SQLite.
         cwd: Path,
         started_at: str | None,
         finished_at: str | None,
         pricing_path: Path,
         thread_id: str | None = None,
-        # thread_id is unused for Claude; lookup is by cwd directory, not thread row.
     ) -> UsageWindow:
         cost_usd, total_tokens, input_tokens, cached_input_tokens, output_tokens, model_name = resolve_claude_usage_window(
             claude_root=state_path,

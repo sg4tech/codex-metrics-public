@@ -1,3 +1,4 @@
+"""Repository scaffolding: metrics artifact, policy doc, and instructions-file block."""
 from __future__ import annotations
 
 import os
@@ -30,7 +31,30 @@ class SaveReportCallable(Protocol):
 
 
 @dataclass(frozen=True)
-class BootstrapPlan:
+class BootstrapPaths:
+    """Target paths for a bootstrap run — grouped so helpers stay under the arg cap."""
+
+    metrics_path: Path
+    report_path: Path | None
+    policy_path: Path
+    command_path: Path
+    agents_path: Path
+
+
+@dataclass(frozen=True)
+class BootstrapCallbacks:
+    """Pluggable metrics/report callables — kept together to shrink helper signatures."""
+
+    load_metrics: LoadMetricsCallable
+    default_metrics: DefaultMetricsCallable
+    save_report: SaveReportCallable
+
+
+# BootstrapPlan aggregates per-flag decisions consumed by bootstrap_project.
+# Each field is a distinct write/replace intent, so compressing them would
+# obscure what the plan approves.
+@dataclass(frozen=True)
+class BootstrapPlan:  # pylint: disable=too-many-instance-attributes
     metrics_data: dict[str, object]
     policy_content: str
     agents_text: str
@@ -120,29 +144,24 @@ def write_path(path: Path, content: str) -> None:
 
 def build_bootstrap_plan(
     *,
-    metrics_path: Path,
-    report_path: Path | None,
-    policy_path: Path,
-    command_path: Path,
-    agents_path: Path,
+    paths: BootstrapPaths,
     force: bool,
     dry_run: bool,
-    load_metrics: LoadMetricsCallable,
-    default_metrics: DefaultMetricsCallable,
+    callbacks: BootstrapCallbacks,
 ) -> BootstrapPlan:
-    if metrics_path.exists():
-        metrics_data = load_metrics(metrics_path)
+    if paths.metrics_path.exists():
+        metrics_data = callbacks.load_metrics(paths.metrics_path)
     else:
-        metrics_data = default_metrics()
+        metrics_data = callbacks.default_metrics()
 
     policy_content = load_policy_template()
     policy_conflict = False
-    if policy_path.exists():
-        existing_policy = policy_path.read_text(encoding="utf-8")
+    if paths.policy_path.exists():
+        existing_policy = paths.policy_path.read_text(encoding="utf-8")
         if existing_policy != policy_content and not force:
             if not dry_run:
                 raise ValueError(
-                    f"Policy file already exists with different content: {policy_path}. Use --force to replace it."
+                    f"Policy file already exists with different content: {paths.policy_path}. Use --force to replace it."
                 )
             policy_conflict = True
         replace_policy = existing_policy != policy_content and not policy_conflict
@@ -151,19 +170,27 @@ def build_bootstrap_plan(
         create_policy = True
         replace_policy = False
 
-    existing_agents_text = agents_path.read_text(encoding="utf-8") if agents_path.exists() else None
+    existing_agents_text = paths.agents_path.read_text(encoding="utf-8") if paths.agents_path.exists() else None
     agents_text, _agents_action = upsert_agents_text(
         existing_agents_text,
-        policy_path=path_for_agents(policy_path, agents_path=agents_path),
-        command_path=path_for_agents(command_path, agents_path=agents_path),
-        metrics_path=path_for_agents(metrics_path, agents_path=agents_path),
-        report_path=path_for_agents(report_path, agents_path=agents_path) if report_path is not None else Path("docs/ai-agents-metrics.md"),
-        instructions_filename=agents_path.name,
+        policy_path=path_for_agents(paths.policy_path, agents_path=paths.agents_path),
+        command_path=path_for_agents(paths.command_path, agents_path=paths.agents_path),
+        metrics_path=path_for_agents(paths.metrics_path, agents_path=paths.agents_path),
+        report_path=(
+            path_for_agents(paths.report_path, agents_path=paths.agents_path)
+            if paths.report_path is not None
+            else Path("docs/ai-agents-metrics.md")
+        ),
+        instructions_filename=paths.agents_path.name,
     )
 
-    create_metrics = not metrics_path.exists()
-    create_report = report_path is not None and not report_path.exists()
-    replace_report = report_path is not None and metrics_path.exists() is False and report_path.exists()
+    create_metrics = not paths.metrics_path.exists()
+    create_report = paths.report_path is not None and not paths.report_path.exists()
+    replace_report = (
+        paths.report_path is not None
+        and paths.metrics_path.exists() is False
+        and paths.report_path.exists()
+    )
 
     return BootstrapPlan(
         metrics_data=metrics_data,
@@ -180,95 +207,102 @@ def build_bootstrap_plan(
     )
 
 
+def _dry_run_messages(plan: BootstrapPlan, paths: BootstrapPaths) -> list[str]:
+    messages: list[str] = []
+    if paths.report_path is None:
+        messages.append(
+            "Would skip markdown report generation by default (use render-report or --write-report when needed)"
+        )
+    elif plan.create_report:
+        messages.append(f"Would create report file: {paths.report_path}")
+    elif plan.replace_report:
+        messages.append(f"Would replace report file: {paths.report_path}")
+    else:
+        messages.append(f"Would keep existing report file: {paths.report_path}")
+
+    if plan.create_policy:
+        messages.append(f"Would create policy file: {paths.policy_path}")
+    elif plan.policy_conflict:
+        messages.append(
+            f"Would refuse to replace existing policy file without --force: {paths.policy_path}"
+        )
+    elif plan.replace_policy:
+        messages.append(f"Would replace policy file: {paths.policy_path}")
+    else:
+        messages.append(f"Would keep existing policy file: {paths.policy_path}")
+
+    if not paths.agents_path.exists():
+        messages.append(f"Would create instructions file: {paths.agents_path}")
+    elif plan.write_agents:
+        messages.append(f"Would update instructions file: {paths.agents_path}")
+    else:
+        messages.append(f"Would keep instructions file unchanged: {paths.agents_path}")
+    return messages
+
+
+def _apply_plan(
+    plan: BootstrapPlan,
+    paths: BootstrapPaths,
+    save_report: SaveReportCallable,
+) -> list[str]:
+    messages: list[str] = []
+    if plan.create_metrics:
+        ensure_parent_dir(paths.metrics_path)
+        if not paths.metrics_path.exists():
+            paths.metrics_path.touch()
+
+    if paths.report_path is None:
+        messages.append("Skipping markdown report generation by default")
+    elif plan.create_report or plan.replace_report:
+        save_report(paths.report_path, plan.metrics_data)
+        verb = "Created" if plan.create_report else "Replaced"
+        messages.append(f"{verb} report file: {paths.report_path}")
+    else:
+        messages.append(f"Keeping existing report file: {paths.report_path}")
+
+    if plan.create_policy:
+        write_path(paths.policy_path, plan.policy_content)
+        messages.append(f"Created policy file: {paths.policy_path}")
+    elif plan.replace_policy:
+        write_path(paths.policy_path, plan.policy_content)
+        messages.append(f"Replaced policy file: {paths.policy_path}")
+    else:
+        messages.append(f"Keeping existing policy file: {paths.policy_path}")
+
+    if plan.write_agents:
+        write_path(paths.agents_path, plan.agents_text)
+        if plan.create_agents:
+            messages.append(f"Created instructions file: {paths.agents_path}")
+        else:
+            messages.append(f"Updated instructions file: {paths.agents_path}")
+    else:
+        messages.append(f"Keeping instructions file unchanged: {paths.agents_path}")
+    return messages
+
+
 def bootstrap_project(
     *,
-    target_dir: Path,
-    metrics_path: Path,
-    report_path: Path | None,
-    policy_path: Path,
-    command_path: Path,
-    agents_path: Path,
+    paths: BootstrapPaths,
     force: bool,
     dry_run: bool,
-    load_metrics: LoadMetricsCallable,
-    default_metrics: DefaultMetricsCallable,
-    save_report: SaveReportCallable,
+    callbacks: BootstrapCallbacks,
 ) -> BootstrapResult:
-    del target_dir
     plan = build_bootstrap_plan(
-        metrics_path=metrics_path,
-        report_path=report_path,
-        policy_path=policy_path,
-        command_path=command_path,
-        agents_path=agents_path,
+        paths=paths,
         force=force,
         dry_run=dry_run,
-        load_metrics=load_metrics,
-        default_metrics=default_metrics,
+        callbacks=callbacks,
     )
     messages: list[str] = []
 
     if plan.create_metrics:
-        messages.append(f"{'Would create' if dry_run else 'Created'} metrics file: {metrics_path}")
+        messages.append(f"{'Would create' if dry_run else 'Created'} metrics file: {paths.metrics_path}")
     else:
-        messages.append(f"{'Would keep' if dry_run else 'Keeping'} existing metrics file: {metrics_path}")
+        messages.append(f"{'Would keep' if dry_run else 'Keeping'} existing metrics file: {paths.metrics_path}")
 
     if dry_run:
-        if report_path is None:
-            messages.append("Would skip markdown report generation by default (use render-report or --write-report when needed)")
-        elif plan.create_report:
-            messages.append(f"Would create report file: {report_path}")
-        elif plan.replace_report:
-            messages.append(f"Would replace report file: {report_path}")
-        else:
-            messages.append(f"Would keep existing report file: {report_path}")
-
-        if plan.create_policy:
-            messages.append(f"Would create policy file: {policy_path}")
-        elif plan.policy_conflict:
-            messages.append(f"Would refuse to replace existing policy file without --force: {policy_path}")
-        elif plan.replace_policy:
-            messages.append(f"Would replace policy file: {policy_path}")
-        else:
-            messages.append(f"Would keep existing policy file: {policy_path}")
-
-        if not agents_path.exists():
-            messages.append(f"Would create instructions file: {agents_path}")
-        elif plan.write_agents:
-            messages.append(f"Would update instructions file: {agents_path}")
-        else:
-            messages.append(f"Would keep instructions file unchanged: {agents_path}")
+        messages.extend(_dry_run_messages(plan, paths))
     else:
-        if plan.create_metrics:
-            ensure_parent_dir(metrics_path)
-            if not metrics_path.exists():
-                metrics_path.touch()
-
-        if report_path is None:
-            messages.append("Skipping markdown report generation by default")
-        elif plan.create_report or plan.replace_report:
-            save_report(report_path, plan.metrics_data)
-            verb = "Created" if plan.create_report else "Replaced"
-            messages.append(f"{verb} report file: {report_path}")
-        else:
-            messages.append(f"Keeping existing report file: {report_path}")
-
-        if plan.create_policy:
-            write_path(policy_path, plan.policy_content)
-            messages.append(f"Created policy file: {policy_path}")
-        elif plan.replace_policy:
-            write_path(policy_path, plan.policy_content)
-            messages.append(f"Replaced policy file: {policy_path}")
-        else:
-            messages.append(f"Keeping existing policy file: {policy_path}")
-
-        if plan.write_agents:
-            write_path(agents_path, plan.agents_text)
-            if plan.create_agents:
-                messages.append(f"Created instructions file: {agents_path}")
-            else:
-                messages.append(f"Updated instructions file: {agents_path}")
-        else:
-            messages.append(f"Keeping instructions file unchanged: {agents_path}")
+        messages.extend(_apply_plan(plan, paths, callbacks.save_report))
 
     return BootstrapResult(messages=messages)

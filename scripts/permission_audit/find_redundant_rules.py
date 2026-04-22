@@ -62,7 +62,7 @@ def main(argv: list[str] | None = None) -> None:
     # Load real commands.
     real_commands: list[str] = []
     if args.input.exists():
-        with open(args.input) as f:
+        with args.input.open() as f:
             for line in f:
                 line = line.strip()
                 if not line or line.startswith("#"):

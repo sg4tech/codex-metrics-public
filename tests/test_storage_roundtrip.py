@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ai_agents_metrics.domain import load_metrics
 from ai_agents_metrics.event_store import append_event, replay_events
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _goal_dict(**overrides: object) -> dict:

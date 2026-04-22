@@ -5,14 +5,16 @@ from argparse import Namespace
 from contextlib import nullcontext
 from dataclasses import replace
 from pathlib import Path
-
-import pytest
+from typing import TYPE_CHECKING
 
 from ai_agents_metrics import commands
 from ai_agents_metrics.history.classify import ClassifySummary, render_classify_summary_json
 from ai_agents_metrics.history.derive import DeriveSummary, render_derive_summary_json
 from ai_agents_metrics.history.ingest import IngestSummary, render_ingest_summary_json
 from ai_agents_metrics.history.normalize import NormalizeSummary, render_normalize_summary_json
+
+if TYPE_CHECKING:
+    import pytest
 
 
 def _make_ingest_summary(source_root: str = "/source", warehouse: str = "/warehouse.sqlite") -> IngestSummary:

@@ -18,7 +18,7 @@ def _parse_date(ts: str | None) -> datetime | None:
     if not ts:
         return None
     try:
-        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        return datetime.fromisoformat(ts)
     except ValueError:
         return None
 

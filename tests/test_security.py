@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sys
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -15,6 +15,9 @@ from ai_agents_metrics.security import (
     scan_security_paths,
     verify_security,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _write_rules(path: Path) -> None:

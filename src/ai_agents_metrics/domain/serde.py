@@ -1,10 +1,13 @@
+"""Dataclass ↔ ndjson-dict conversion for the canonical goal/entry records."""
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ai_agents_metrics.domain.models import AttemptEntryRecord, EffectiveGoalRecord, GoalRecord
 from ai_agents_metrics.domain.time_utils import parse_iso_datetime_flexible
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 def _parse_ts(value: str | None, field: str) -> datetime | None:

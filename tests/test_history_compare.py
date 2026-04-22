@@ -4,8 +4,8 @@ import json
 import sqlite3
 from argparse import Namespace
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-import pytest
 from test_history_ingest import run_cmd
 
 from ai_agents_metrics import commands
@@ -17,6 +17,9 @@ from ai_agents_metrics.history.compare import (
     render_history_compare_report,
     render_history_compare_report_json,
 )
+
+if TYPE_CHECKING:
+    import pytest
 
 
 class _FakeRuntime:

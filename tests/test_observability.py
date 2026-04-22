@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from pathlib import Path
-
-import pytest
+from typing import TYPE_CHECKING
 
 import ai_agents_metrics.observability as observability
 from ai_agents_metrics.observability import (
@@ -12,6 +10,11 @@ from ai_agents_metrics.observability import (
     record_cli_invocation_observation,
     record_goal_mutation_observation,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    import pytest
 
 
 def test_record_goal_mutation_observation_writes_sqlite_and_debug_log(tmp_path: Path) -> None:
@@ -66,7 +69,7 @@ def test_record_goal_mutation_observation_writes_sqlite_and_debug_log(tmp_path: 
     ]
     debug_log = paths.debug_log_path.read_text(encoding="utf-8")
     assert row["event_id"] in debug_log
-    assert "event_type=\"goal_created\"" in debug_log
+    assert 'event_type="goal_created"' in debug_log
 
 
 def test_record_cli_invocation_observation_writes_sqlite_and_debug_log(tmp_path: Path) -> None:
@@ -97,7 +100,7 @@ def test_record_cli_invocation_observation_writes_sqlite_and_debug_log(tmp_path:
     assert payload["task_id"] == "goal-1"
     debug_log = paths.debug_log_path.read_text(encoding="utf-8")
     assert row["event_id"] in debug_log
-    assert "event_type=\"cli_invoked\"" in debug_log
+    assert 'event_type="cli_invoked"' in debug_log
 
 
 def test_record_cli_invocation_observation_redacts_sensitive_payload_values(tmp_path: Path) -> None:
@@ -131,5 +134,5 @@ def test_record_cli_invocation_observation_best_effort_on_store_failure(
     paths = observability_paths(metrics_path)
     assert not paths.event_store_path.exists()
     debug_log = paths.debug_log_path.read_text(encoding="utf-8")
-    assert "event_type=\"observability_write_failed\"" in debug_log
-    assert "command=\"show\"" in debug_log
+    assert 'event_type="observability_write_failed"' in debug_log
+    assert 'command="show"' in debug_log

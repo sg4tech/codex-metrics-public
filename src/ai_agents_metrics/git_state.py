@@ -1,3 +1,4 @@
+"""Git worktree inspection: StartedWorkReport and ActiveTaskResolution types."""
 from __future__ import annotations
 
 import subprocess
@@ -18,6 +19,16 @@ class StartedWorkReport:
     changed_paths: list[str]
     reason: str
     git_available: bool
+
+
+@dataclass(frozen=True)
+class ActiveTaskResolution:
+    """Outcome of ensure_active_task — shared between cli.py and runtime_facade."""
+
+    status: str
+    goal_id: str | None
+    message: str
+    started_work_report: StartedWorkReport | None = None
 
 
 def _run_git(cwd: Path, *args: str) -> str | None:
@@ -50,9 +61,7 @@ def _is_meaningful_worktree_path(path_text: str) -> bool:
         return False
     if parts[0] in MEANINGFUL_WORKTREE_DIRS:
         return True
-    if len(parts) == 1 and parts[0] in MEANINGFUL_WORKTREE_FILES:
-        return True
-    return False
+    return bool(len(parts) == 1 and parts[0] in MEANINGFUL_WORKTREE_FILES)
 
 
 def detect_started_work(cwd: Path) -> StartedWorkReport:

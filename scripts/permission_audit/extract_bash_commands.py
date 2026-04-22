@@ -49,7 +49,7 @@ def extract_commands(session_files: list[Path]) -> Counter[str]:
     """Parse Bash commands from a list of JSONL session files."""
     commands: Counter[str] = Counter()
     for path in session_files:
-        with open(path) as fh:
+        with path.open() as fh:
             for line in fh:
                 try:
                     rec = json.loads(line)
@@ -76,9 +76,8 @@ def extract_commands(session_files: list[Path]) -> Counter[str]:
 
 def write_tsv(commands: Counter[str], output: Path) -> None:
     """Write *commands* as a frequency-sorted TSV file."""
-    with open(output, "w") as f:
-        for cmd, count in commands.most_common():
-            f.write(f"{count}\t{cmd}\n")
+    with output.open("w") as f:
+        f.writelines(f"{count}\t{cmd}\n" for cmd, count in commands.most_common())
 
 
 def main(argv: list[str] | None = None) -> None:

@@ -677,10 +677,10 @@ def _make_stats() -> dict:
 
 def _make_sums(**kwargs):
     from ai_agents_metrics.history.derive_insert import _SessionTokenSums
-    defaults = dict(
-        inp=None, cac_create=None, cac=None, out=None, reasoning=None,
-        total=None, count=0, first_at=None, last_at=None, model=None,
-    )
+    defaults = {
+        "inp": None, "cac_create": None, "cac": None, "out": None, "reasoning": None,
+        "total": None, "count": 0, "first_at": None, "last_at": None, "model": None,
+    }
     defaults.update(kwargs)
     return _SessionTokenSums(**defaults)
 

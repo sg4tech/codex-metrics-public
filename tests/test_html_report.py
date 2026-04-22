@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -101,8 +101,7 @@ def test_bucket_key_daily():
 
 def test_bucket_key_weekly():
     # Wednesday 2026-01-14 → week of Monday 2026-01-12
-    from datetime import timezone
-    dt = datetime(2026, 1, 14, 9, 0, tzinfo=timezone.utc)
+    dt = datetime(2026, 1, 14, 9, 0, tzinfo=UTC)
     assert _bucket_key(dt, "week") == "2026-01-12"
 
 
@@ -294,9 +293,9 @@ def test_granularity_weekly_for_long_span():
 
 
 def test_days_filter():
-    from datetime import timedelta, timezone
+    from datetime import timedelta
 
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=UTC)
     old = (now - timedelta(days=60)).isoformat()
     recent = (now - timedelta(days=5)).isoformat()
 
@@ -892,12 +891,12 @@ def test_retry_pressure_uses_main_attempt_count_sql():
     was reading subagent-usage growth as quality degradation. SQL change
     must survive refactors.
     """
-    from ai_agents_metrics import commands as commands_module
-    commands_py = Path(commands_module.__file__).read_text()
+    from ai_agents_metrics.commands import report as report_module
+    report_py = Path(report_module.__file__).read_text()
     # Pin the exact formulation so a later "simplification" cannot revert it.
-    assert "COALESCE(main_attempt_count, 1)" in commands_py
+    assert "COALESCE(main_attempt_count, 1)" in report_py
     # And the downstream check must compare to 1 (main_attempts > 1 = retry).
-    assert "main_attempts > 1" in commands_py
+    assert "main_attempts > 1" in report_py
 
 
 def test_retry_pressure_subtitle_disambiguates_from_subagents():
