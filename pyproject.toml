@@ -37,7 +37,7 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["ruff", "mypy", "pytest", "pytest-xdist", "pytest-timeout", "coverage[toml]", "setuptools>=82", "build", "bandit", "radon", "import-linter", "pylint"]
+dev = ["ruff", "mypy", "pytest", "pytest-xdist", "pytest-timeout", "hypothesis", "coverage[toml]", "setuptools>=82", "build", "bandit", "radon", "import-linter", "pylint"]
 
 [project.scripts]
 ai-agents-metrics = "ai_agents_metrics.cli:console_main"
