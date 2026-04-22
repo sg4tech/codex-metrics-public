@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 import sqlite3
-import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -32,15 +30,19 @@ from ai_agents_metrics.domain import (
     validate_goal_record,
     validate_metrics_data,
 )
+from ai_agents_metrics.pricing_runtime import (
+    load_effective_pricing,
+    resolve_effective_pricing_path,
+)
 from ai_agents_metrics.reporting import build_operator_review
-
-SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "metrics_cli.py"
-SPEC = importlib.util.spec_from_file_location("metrics_cli_module", SCRIPT_PATH)
-assert SPEC is not None
-assert SPEC.loader is not None
-MODULE = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = MODULE
-SPEC.loader.exec_module(MODULE)
+from ai_agents_metrics.runtime_facade import resolve_usage_costs
+from ai_agents_metrics.usage_resolution import (
+    load_pricing,
+    parse_usage_event,
+    resolve_codex_usage_window,
+    resolve_pricing_model_alias,
+    resolve_pricing_path,
+)
 
 
 def _ts(value: object) -> object:
@@ -793,7 +795,7 @@ def test_finalize_goal_update_sets_attempts_and_clears_failure_reason_on_success
 
 
 def test_parse_usage_event_extracts_expected_fields() -> None:
-    event = MODULE.parse_usage_event(
+    event = parse_usage_event(
         'event.name="codex.sse_event" '
         "event.kind=response.completed "
         "input_token_count=1000 "
@@ -830,8 +832,8 @@ def test_resolve_pricing_model_alias_prefers_direct_openai_model_match() -> None
         },
     }
 
-    assert MODULE.resolve_pricing_model_alias("gpt-5.4", pricing) == "gpt-5.4"
-    assert MODULE.resolve_pricing_model_alias("gpt-5.4-mini", pricing) == "gpt-5.4-mini"
+    assert resolve_pricing_model_alias("gpt-5.4", pricing) == "gpt-5.4"
+    assert resolve_pricing_model_alias("gpt-5.4-mini", pricing) == "gpt-5.4-mini"
 
 
 def test_resolve_pricing_model_alias_strips_date_suffix() -> None:
@@ -844,9 +846,9 @@ def test_resolve_pricing_model_alias_strips_date_suffix() -> None:
     }
 
     # Model ID with date suffix should resolve to the date-stripped key
-    assert MODULE.resolve_pricing_model_alias("claude-sonnet-4-6-20251022", pricing) == "claude-sonnet-4-6"
+    assert resolve_pricing_model_alias("claude-sonnet-4-6-20251022", pricing) == "claude-sonnet-4-6"
     # Model ID without date suffix resolves directly
-    assert MODULE.resolve_pricing_model_alias("claude-sonnet-4-6", pricing) == "claude-sonnet-4-6"
+    assert resolve_pricing_model_alias("claude-sonnet-4-6", pricing) == "claude-sonnet-4-6"
 
 
 def test_resolve_pricing_model_alias_unknown_model_returns_none() -> None:
@@ -858,7 +860,7 @@ def test_resolve_pricing_model_alias_unknown_model_returns_none() -> None:
         },
     }
 
-    assert MODULE.resolve_pricing_model_alias("unknown-model-xyz", pricing) is None
+    assert resolve_pricing_model_alias("unknown-model-xyz", pricing) is None
 
 
 def test_resolve_pricing_path_returns_workspace_override(tmp_path: Path) -> None:
@@ -868,27 +870,27 @@ def test_resolve_pricing_path_returns_workspace_override(tmp_path: Path) -> None
         encoding="utf-8",
     )
 
-    result = MODULE.resolve_pricing_path(tmp_path)
+    result = resolve_pricing_path(tmp_path)
     assert result == override
 
 
 def test_resolve_pricing_path_falls_back_to_bundled(tmp_path: Path) -> None:
     # tmp_path has no model_pricing.json
-    result = MODULE.resolve_pricing_path(tmp_path)
+    result = resolve_pricing_path(tmp_path)
     assert result.name == "model_pricing.json"
     assert result.exists()
 
 
 def test_resolve_effective_pricing_path_prefers_explicit_path(tmp_path: Path) -> None:
     explicit = tmp_path / "explicit-pricing.json"
-    result = MODULE.resolve_effective_pricing_path(cwd=tmp_path, pricing_path=explicit)
+    result = resolve_effective_pricing_path(cwd=tmp_path, pricing_path=explicit)
     assert result == explicit
 
 
 def test_resolve_effective_pricing_path_falls_back_to_workspace_resolution(tmp_path: Path) -> None:
     override = tmp_path / "model_pricing.json"
     override.write_text("{}", encoding="utf-8")
-    result = MODULE.resolve_effective_pricing_path(cwd=tmp_path)
+    result = resolve_effective_pricing_path(cwd=tmp_path)
     assert result == override
 
 
@@ -899,7 +901,7 @@ def test_load_effective_pricing_uses_explicit_path(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    pricing = MODULE.load_effective_pricing(cwd=tmp_path, pricing_path=explicit)
+    pricing = load_effective_pricing(cwd=tmp_path, pricing_path=explicit)
     assert pricing["my-model"]["input_per_million_usd"] == 1.0
 
 
@@ -950,7 +952,7 @@ def test_resolve_codex_usage_window_returns_none_without_matching_thread(
             """
         )
 
-    assert MODULE.resolve_codex_usage_window(
+    assert resolve_codex_usage_window(
         state_path=state_path,
         logs_path=logs_path,
         cwd=tmp_path,
@@ -1048,7 +1050,7 @@ def test_resolve_codex_usage_window_falls_back_to_session_token_counts(
             ),
         )
 
-    assert MODULE.resolve_codex_usage_window(
+    assert resolve_codex_usage_window(
         state_path=state_path,
         logs_path=logs_path,
         cwd=tmp_path,
@@ -1164,7 +1166,7 @@ def test_resolve_codex_usage_window_sums_multiple_session_token_events(
             ),
         )
 
-    assert MODULE.resolve_codex_usage_window(
+    assert resolve_codex_usage_window(
         state_path=state_path,
         logs_path=logs_path,
         cwd=tmp_path,
@@ -1298,7 +1300,7 @@ def test_resolve_codex_usage_window_ignores_session_events_outside_window(
             ),
         )
 
-    assert MODULE.resolve_codex_usage_window(
+    assert resolve_codex_usage_window(
         state_path=state_path,
         logs_path=logs_path,
         cwd=tmp_path,
@@ -1392,7 +1394,7 @@ def test_resolve_codex_usage_window_recovers_tokens_without_cost_when_model_miss
             ),
         )
 
-    assert MODULE.resolve_codex_usage_window(
+    assert resolve_codex_usage_window(
         state_path=state_path,
         logs_path=logs_path,
         cwd=tmp_path,
@@ -1500,7 +1502,7 @@ def test_resolve_codex_usage_window_prefers_legacy_sse_events_over_session_fallb
             ),
         )
 
-    assert MODULE.resolve_codex_usage_window(
+    assert resolve_codex_usage_window(
         state_path=state_path,
         logs_path=logs_path,
         cwd=tmp_path,
@@ -1528,7 +1530,7 @@ def test_load_pricing_rejects_negative_values(tmp_path: Path) -> None:
     )
 
     with pytest.raises(ValueError, match="Pricing value cannot be negative"):
-        MODULE.load_pricing(pricing_path)
+        load_pricing(pricing_path)
 
 
 def test_load_pricing_requires_all_fields(tmp_path: Path) -> None:
@@ -1548,13 +1550,14 @@ def test_load_pricing_requires_all_fields(tmp_path: Path) -> None:
     )
 
     with pytest.raises(ValueError, match="Missing pricing field"):
-        MODULE.load_pricing(pricing_path)
+        load_pricing(pricing_path)
 
 
 def test_resolve_usage_costs_requires_token_fields_when_model_is_given() -> None:
+    pricing_json = Path(__file__).resolve().parents[1] / "pricing" / "model_pricing.json"
     with pytest.raises(ValueError, match="At least one usage token field is required"):
-        MODULE.resolve_usage_costs(
-            pricing_path=SCRIPT_PATH.parents[1] / "pricing" / "model_pricing.json",
+        resolve_usage_costs(
+            pricing_path=pricing_json,
             model="gpt-5",
             input_tokens=None,
             cached_input_tokens=None,

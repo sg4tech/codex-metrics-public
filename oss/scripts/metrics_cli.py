@@ -1,15 +1,24 @@
 #!/usr/bin/env python3
+"""Bootstrap shim: loads ``ai_agents_metrics.cli`` with a repo-local sys.path."""
+from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from types import ModuleType
 
 
-def _load_cli_module():
+def _load_cli_module() -> ModuleType:
     repo_src_path = Path(__file__).resolve().parents[1] / "src"
     if repo_src_path.exists():
         sys.path.insert(0, str(repo_src_path))
 
-    from ai_agents_metrics import cli
+    # Deferred import: the sys.path manipulation above must run before the
+    # package can be resolved when the shim is invoked without the package
+    # installed.
+    import ai_agents_metrics.cli as cli  # pylint: disable=import-outside-toplevel
 
     return cli
 
