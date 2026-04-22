@@ -107,7 +107,12 @@ def detect_usage_backend_name(
     if row is None:
         return None
 
-    provider = row["model_provider"] if "model_provider" in row.keys() else None  # noqa: SIM118 sqlite3.Row lacks .get()
+    # sqlite3.Row[str] raises IndexError on missing column; catch it to express
+    # the default-on-miss semantics without the SIM118-triggering ``.keys()`` idiom.
+    try:
+        provider = row["model_provider"]
+    except IndexError:
+        provider = None
     if provider in {"anthropic", "claude"}:
         return "claude"
     if provider in {"openai", "codex"}:
@@ -132,7 +137,10 @@ def _select_thread_by_providers(
     _prefix = "SELECT id FROM threads WHERE cwd = ? AND model_provider IN ("
     _suffix = ") ORDER BY updated_at DESC LIMIT 1"
     sql = _prefix + placeholders + _suffix  # nosec B608
-    return conn.execute(sql, (cwd, *provider_names)).fetchone()
+    # Typed local: sqlite3.Cursor.fetchone() is typeshed-typed as Any | None,
+    # so the assignment pins the narrow type for mypy --strict (warn_return_any).
+    row: sqlite3.Row | None = conn.execute(sql, (cwd, *provider_names)).fetchone()
+    return row
 
 
 def find_thread_id(
