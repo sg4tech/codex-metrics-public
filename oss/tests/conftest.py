@@ -18,6 +18,14 @@ _tests_dir = str(Path(__file__).resolve().parent)
 if _tests_dir not in sys.path:
     sys.path.insert(0, _tests_dir)
 
+# Ensure oss/ is on sys.path so tests can `import scripts.*` regardless of
+# whether pytest is invoked via `python -m pytest` (which adds cwd) or via
+# the `pytest` console script (which does not). Previously tests only passed
+# via the former; the latter raised ModuleNotFoundError for `scripts`.
+_repo_root = str(Path(__file__).resolve().parent.parent)
+if _repo_root not in sys.path:
+    sys.path.insert(0, _repo_root)
+
 
 @contextmanager
 def _chdir(path: Path) -> Iterator[None]:

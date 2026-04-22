@@ -132,7 +132,10 @@ def _select_thread_by_providers(
     _prefix = "SELECT id FROM threads WHERE cwd = ? AND model_provider IN ("
     _suffix = ") ORDER BY updated_at DESC LIMIT 1"
     sql = _prefix + placeholders + _suffix  # nosec B608
-    return conn.execute(sql, (cwd, *provider_names)).fetchone()
+    # Typed local: sqlite3.Cursor.fetchone() is typeshed-typed as Any | None,
+    # so the assignment pins the narrow type for mypy --strict (warn_return_any).
+    row: sqlite3.Row | None = conn.execute(sql, (cwd, *provider_names)).fetchone()
+    return row
 
 
 def find_thread_id(
