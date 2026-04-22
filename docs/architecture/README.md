@@ -2,7 +2,11 @@
 
 Technical debt and structural improvements not tied to specific product features.
 
-Each file is a standalone task. When picked up, create a Linear issue and commit via `CODEX-NNN:`.
+Each file is a standalone task. Track via an in-repo metrics goal
+(`./tools/ai-agents-metrics start-task --title '...' --task-type meta`) and
+commit via `NO-TASK: ARCH-NNN <summary>`. Tickets without an individual
+spec file (post-ARCH-023) are documented through their commit messages and
+the campaign-level retros in `docs/private/retros/`.
 
 ## Tasks
 
@@ -31,6 +35,17 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 | [ARCH-021](ARCH-021-tier3-pylint-gating.md) | Promote Tier 3 pylint code-quality rules to hard-fail | medium | low-medium | done |
 | [ARCH-022](ARCH-022-tier3-pylint-followup.md) | Tier 3 follow-up — R0904/W0212/R0801 gating + explicit R0903/R0911 skip | medium | medium | done |
 | [ARCH-023](ARCH-023-pylint-single-run.md) | Collapse Tier 1/2/3 into a single default pylint run | low | low | done |
+| ARCH-024 | Replace low-hanging pylint disables with real refactors (C + B + A) | medium | low-medium | done |
+| ARCH-025 | Enforce C0114 module docstrings; prune zero-finding disables | low | low | done |
+| ARCH-026 | Expand ruff from 2 to 15 rule categories | medium | low | done |
+| ARCH-027 | Split `commands.py` (1340 lines) into `commands/` package | medium | medium | done |
+| ARCH-028 | Split `runtime_facade.py` (927 lines) into `runtime_facade/` package | medium | medium | done |
+| ARCH-029 | Gate mypy strict on `domain/` + `history/`; add hypothesis property tests (16 invariants) | medium | medium | done |
+| ARCH-030 | Enable `mypy --strict` globally at `[tool.mypy]` | low | low | done |
+| ARCH-031 | Remove stale `too-many-lines` disable from `aggregation.py` | trivial | trivial | done |
+| ARCH-032 | Drop 11 inline suppressions via real refactors (SIM118 + re-exports) | low | medium | done |
+| ARCH-033 | Bundle `upsert_task` kwargs into dataclass to drop `too-many-arguments` disables | medium | high | **aborted** |
+| ARCH-034 | Split `history/ingest.py` (1152) + `cli.py` (1091) into packages | medium | medium | done |
 
 ## Recommended order
 
@@ -55,3 +70,34 @@ Each file is a standalone task. When picked up, create a Linear issue and commit
 19. **ARCH-021** — medium priority; curate the remaining default pylint rules into a Tier 3 set that catches real code-quality issues (reimported, subprocess-run-check, unnecessary-comprehension, kwonly conversion, lazy-import justification) while deliberately skipping style-policy noise (docstring-per-helper, line-too-long at 100); promoted to hard-fail alongside Tier 1 and Tier 2
 20. **ARCH-022** — medium priority; re-review the five rules parked by ARCH-021. Promote R0904/W0212/R0801 to hard-fail (eliminate cli ↔ runtime_facade duplication at source, narrow-scope inline disables for argparse private API and `CommandRuntime` Protocol breadth). Explicitly keep R0903/R0911 excluded (false positives on `@dataclass` and `cli.main` dispatch).
 21. **ARCH-023** — low priority; once all tiers are hard-fail, the tier framing is just cost. Collapse the three pylint invocations in `make verify` into a single default run; replace the `disable = "all"` / `enable = [...]` whitelist in pyproject with a reasoned `disable = [...]` blacklist so rule changes happen in one place.
+
+## Post-ARCH-023 cleanup campaign (2026-04-22)
+
+Tickets ARCH-024 through ARCH-034 were landed as a single one-session campaign
+that followed naturally from the pylint work — once all rules were live, removing
+stale suppressions and splitting oversized files became the obvious next step.
+These entries live in the table above without individual spec files (the commit
+messages and the campaign retro carry the full reasoning).
+
+- **ARCH-024/025/026** — incremental lint cleanup (real refactors, module
+  docstrings, wider ruff ruleset).
+- **ARCH-027/028/034** — split the four files that were ≥900 lines
+  (`commands.py`, `runtime_facade.py`, `history/ingest.py`, `cli.py`) into
+  cohesive packages. Result: zero src files ≥900 lines.
+- **ARCH-029/030** — mypy strict gating. ARCH-029 used a per-module override
+  for `domain/` + `history/` (workaround for a mypy 1.20 bug with
+  `strict = true` in overrides). ARCH-030 promoted strict to the top-level
+  `[tool.mypy]` block once a one-line fix in `usage_backends.py:135`
+  unblocked the rollout. Also adds hypothesis property tests: 16 invariants
+  split evenly between `domain/aggregation.py::recompute_summary` and
+  `history/normalize.py::normalize_codex_history`.
+- **ARCH-031/032** — inline suppression cleanup: 55 → 43 real suppressions
+  via stale-removal + SIM118 try/except + test migration off `importlib` reflection.
+- **ARCH-033** (aborted) — proposed dataclass bundling for
+  `resolve_goal_usage_updates` / `upsert_task` to drop `too-many-arguments`.
+  Aborted before coding: ~300-line refactor across 6 files with a public
+  runtime_facade signature break, for 3 comment-line removals. The remaining
+  suppressions are documented as deliberate ("Wide kwargs surface reflects
+  the CLI update contract; grouping tracked once precedence rules stabilise").
+
+Public commits for every ticket are reachable via `git log --grep="ARCH-02[4-9]\|ARCH-03[0-4]"`.

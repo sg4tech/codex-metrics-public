@@ -1,6 +1,6 @@
 # ARCH-019: Globally enable pylint across the whole project
 
-**Status:** done  
+**Status:** done
 **Priority:** medium  
 **Complexity:** medium
 
@@ -32,12 +32,12 @@ The `pylint-check` target now runs across the entire `src/` tree without any `--
 
 ### Rule tiers
 
-**Tier 1 — hard-fail (gates `verify`):**  
+**Tier 1 — hard-fail (gates `verify`):**
 `E0401,E0602,E1101,E1120,W0102,W0611,W0612,W0718,W1203,R0401,C0302`
 
 These rules catch real bugs and architectural violations (missing imports, undefined names, unused imports, method signature mismatches, mutable defaults, circular imports, file-size gate).
 
-**Tier 2 — advisory (reported but does not block):**  
+**Tier 2 — advisory (reported but does not block):**
 `R0912,R0913,R0914,R0915,R0902,W0401,C0411`
 
 These rules surface complexity and style findings that are useful signal but currently produce many false positives in large data-centric modules. They are reported with `|| true` to inform without blocking.
