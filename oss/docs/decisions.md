@@ -133,6 +133,42 @@ The original split used three underscore-prefixed modules (`_report_aggregation.
 
 ---
 
+## Subpackage-grouping heuristic: 3+ tightly-coupled top-level modules
+
+**Context:** After the `report/` and `usage/` extractions (the `usage_*.py` + `pricing_runtime.py` trio moved into `usage/` the same way), we need a rule for when the next grouping is worth doing — otherwise every refactor devolves into debating taste.
+
+**Decision:** Promote top-level modules into a subpackage when **three or more** of them form a directed import cluster. Two files is too thin to justify the restructuring cost (directory, `__init__.py`, importer updates, import-linter contract rewrites). Examples:
+- `report/` (4 files: `html_report`, `aggregation`, `buckets`, `template`) — promoted.
+- `usage/` (3 files: `backends`, `resolution`, `pricing_runtime` — `backends` imports `resolution`, `pricing_runtime` imports `resolution`) — promoted.
+- `git/` (`git_hooks.py` + `git_state.py`, 2 files) — **not** promoted.
+- One-file concerns (`bootstrap.py`, `workflow_fsm.py`, `observability.py`, `storage.py`, …) — stay flat.
+
+When promoting, drop leading underscores from files whose privacy the new package boundary already expresses (`_report_aggregation.py` → `report/aggregation.py`). Collapse the matching `ai_agents_metrics.<module>` entries in import-linter's "no cli import" contract into a single `ai_agents_metrics.<pkg>` entry — `as_packages=True` covers the subtree.
+
+**Trade-offs:** The threshold is a judgement call, not a rigid rule. Two files that are about to grow into three can be grouped pre-emptively if the third is already in a PR. Conversely, three files without real coupling (only thematic similarity) are not a cluster — don't promote.
+
+**Why this works:** The rule matches the observed ROI curve. Two-file groupings save ~3 lines of import-linter config but cost a PR's worth of importer churn; three-file groupings start paying back (import-linter collapse, top-level listing clean-up, localized contract). Beyond the file-count test, the hard signal is internal edges: if the would-be submodules already import each other, the package boundary matches reality.
+
+---
+
+## Shared `_repo_template` fixture in `tests/conftest.py`
+
+**Context:** Five test files (`tests/cli/test_metrics_cli.py` plus four `tests/history/test_history_*.py`) each defined a local `repo` fixture that spawned five git subprocesses per test (`git init`, two `git config`, `git add`, `git commit`). Across ~160 tests this is several hundred subprocess invocations per run. Under xdist parallel workers + the 5s per-test `pytest-timeout` the git spawns queued up during CPU contention and pushed tests over the cliff intermittently (~50% flake rate on 1-CPU CI hardware).
+
+**Decision:** Build a session-scoped `_repo_template` once (`tests/conftest.py`), then have a function-scoped `repo` fixture `cp -rl` (hardlink-copy) from it for each test. The template's files are `chmod 0o555` so accidental writes fail loudly instead of silently poisoning the shared inode. The pattern was originally introduced for the cli test suite (PR #46) and generalized to all subdirs in PR #49.
+
+Two supporting conventions:
+
+1. **Subprocess-heavy tests get an explicit `@pytest.mark.timeout(15)` override**, not a global timeout bump. The 5s default catches runaway loops; bumping it repo-wide would mask real regressions. Tests that legitimately spawn multiple real Python subprocesses (e.g. `test_bootstrap_wrapper_runs_from_repo_root_even_when_invoked_from_other_cwd`, which runs `bootstrap` then the wrapper's `show`) are rare and marked at the call site.
+
+2. **New test subdirectories must not redefine `repo`.** If a test needs a repo variant, extend via a sibling fixture that takes `repo` as input, or factor the divergent setup into an explicit helper. Per-file copies of the heavy fixture were the exact pattern this ADR replaces.
+
+**Trade-offs:** Tests that don't need `src/`, `scripts/`, or `pricing/` now get them as hardlinks. Hardlink cost is near-zero, so the extra files are free; the risk is tests accidentally depending on template-baked state, which the read-only permission guardrail surfaces immediately.
+
+**Why this works:** The session-scoped template amortizes the 5-subprocess git setup across the entire test run. `cp -rl` makes the per-test copy effectively free because no bytes are copied — just inode entries. Flake rate dropped from ~50% to 0 across 5 consecutive full-suite runs without any test skipping or xdist worker tuning.
+
+---
+
 ## cli.py as a re-export facade
 
 **Context:** Early in the project, external scripts and tests imported symbols directly from `cli.py` before the module structure was stable.

@@ -76,7 +76,7 @@ dropping the file at the root.
 
 ## conftest.py
 
-`conftest.py` exposes two helpers every test area imports:
+`conftest.py` exposes three shared surfaces every test area imports:
 
 - `run_cli_inprocess()` — in-process CLI runner that calls `main()` directly
   with captured stdout/stderr and a temporary `os.chdir()`. Eliminates Python
@@ -87,6 +87,10 @@ dropping the file at the root.
   up to the first `pyproject.toml` with a `[tool.codex_tests]` section. Prefer
   it over `Path(__file__).parents[N]` so test paths stay valid when files
   move between subdirs. Cached with `@lru_cache` so it runs once per process.
+- `_repo_template` (session-scoped) + `repo` (function-scoped) — a git
+  baseline built once and hardlinked per test with `cp -rl`. Replaces the
+  per-file `repo` fixtures that used to spawn five git subprocesses per test.
+  See the CLI integration section and `decisions.md` for the full rationale.
 
 `conftest.py` also inserts every immediate subdir of `tests/` into `sys.path`,
 so cross-test imports like `from test_history_ingest import run_cmd` keep
@@ -142,18 +146,25 @@ def run_module_cmd(tmp_path: Path, *args: str, extra_env=None) -> subprocess.Com
     ...
 ```
 
-A per-test timeout of 5 seconds is enforced via `pytest-timeout` (`pyproject.toml`). Any new test exceeding this limit should use in-process execution or be investigated for unnecessary overhead.
+A per-test timeout of 5 seconds is enforced via `pytest-timeout` (`pyproject.toml`). Any new test exceeding this limit should use in-process execution or be investigated for unnecessary overhead. Tests that legitimately spawn multiple real Python subprocesses (not the in-process fast path) are rare — when one is unavoidable, override explicitly at the call site with `@pytest.mark.timeout(15)` rather than bumping the repo-wide default. Masking the 5s gate globally would also hide real regressions elsewhere.
 
-**The `repo` fixture (CLI tests):** `cli/test_metrics_cli.py` ships a
-session-scoped `_repo_template` (git-initialized repo with `src/`, `scripts/`,
-and a baseline commit) that the function-scoped `repo` fixture hardlinks into
-each test's `tmp_path` via `cp -rl`. Template files are `chmod a-w` after
-build, so any `write_text()` on a template-originated path (`src/**`,
-`scripts/metrics_cli.py`, `pricing/model_pricing.json`, `.git/**`) will raise
-`PermissionError` — this is intentional: overwriting a hardlinked file would
-mutate the shared inode and poison the template for every subsequent test.
-Create new files under `src/` (e.g. `worktree_change.py`) or new top-level
-paths instead.
+**The `repo` fixture (shared across all test subdirs):** `tests/conftest.py`
+ships a session-scoped `_repo_template` (git-initialized repo with `src/`,
+`scripts/`, `pricing/`, and a baseline commit) that the function-scoped `repo`
+fixture hardlinks into each test's `tmp_path` via `cp -rl`. The same fixture
+serves `cli/`, `history/`, and any future subdir — do not redefine `repo`
+locally (the five local copies that used to spawn `git init` + two `git config`
++ `git add` + `git commit` per test were the dominant xdist flake source on
+1-CPU runners and were removed in PR #49; see `decisions.md`).
+
+Template files are `chmod a-w` after build, so any `write_text()` on a
+template-originated path (`src/**`, `scripts/metrics_cli.py`,
+`pricing/model_pricing.json`, `.git/**`) will raise `PermissionError` — this is
+intentional: overwriting a hardlinked file would mutate the shared inode and
+poison the template for every subsequent test. Create new files under `src/`
+(e.g. `worktree_change.py`) or new top-level paths instead. If a test needs a
+variant repo state, extend via a sibling fixture that takes `repo` as input
+rather than duplicating the template build.
 
 End-to-end test pattern:
 
