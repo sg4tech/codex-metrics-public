@@ -41,12 +41,14 @@ The product model (goals, attempts, outcomes, cost) is source-agnostic. New sour
 Raw sources (~/.codex, Codex sessions)
   ↓  ingest       → raw warehouse tables (SQLite)
   ↓  normalize    → cleaned, stable rows
+  ↓  classify     → session kinds (main/subagent) + practice events
   ↓  derive       → goal/attempt/timeline marts
   ↓  compare      → diff against metrics ledger (events.ndjson)
 
 Raw sources (~/.claude/projects, Claude Code sessions)
   ↓  ingest       → raw warehouse tables (SQLite)
   ↓  normalize    → cleaned, stable rows
+  ↓  classify     → session kinds (main/subagent) + practice events
   ↓  derive       → goal/attempt/timeline marts
   ↓  compare      → diff against metrics ledger (events.ndjson)
 
@@ -56,12 +58,13 @@ Raw sources (~/.claude, Claude Code telemetry) — cost/token only (lightweight 
 
 | Stage | Module | What it does |
 |-------|--------|--------------|
-| Ingest | `history/ingest.py` | Reads raw Codex sources into the warehouse |
+| Ingest | `history/ingest/` (package: `warehouse.py`, `codex.py`, `claude.py`, `__init__.py`) | Reads raw Codex + Claude sources into the warehouse |
 | Normalize | `history/normalize.py` | Cleans and stabilises raw rows |
-| Derive | `history/derive.py` | Builds goal, attempt, and timeline marts |
+| Classify | `history/classify.py` | Labels session kinds (main vs subagent) and extracts practice events |
+| Derive | `history/derive.py` + `derive_build.py` + `derive_insert.py` + `derive_schema.py` | Builds goal, attempt, and timeline marts |
 | Compare | `history/compare.py` | Diffs derived goals against the NDJSON ledger |
 
-Run in order: ingest → normalize → derive → compare.
+Run in order: ingest → normalize → classify → derive → compare.
 
 ---
 
