@@ -52,7 +52,7 @@ alongside Tier 1 and Tier 2.
 
 - `file_immutability.py`: added `check=False` to the cleanup `subprocess.run`
   so the gate is explicit.
-- `usage_resolution.py`: rewrote two `if not (a <= x <= b):` guards into
+- `usage/resolution.py`: rewrote two `if not (a <= x <= b):` guards into
   positive `if x < a or x > b:` form (removes `C0325` and improves
   readability).
 - `commands.py`: replaced `[tuple(row) for row in token_rows]` with
@@ -61,7 +61,7 @@ alongside Tier 1 and Tier 2.
   to module-top imports.
 - `domain/aggregation.py`: extracted `_needs_goal_window_nudge` helper from
   `finalize_goal_update`, removing the 6-boolean `if` chain.
-- `usage_backends.py`: inline-disabled `W0613` on `UnknownUsageBackend.resolve_window`
+- `usage/backends.py`: inline-disabled `W0613` on `UnknownUsageBackend.resolve_window`
   (interface conformance — all kwargs are intentionally unused) and
   `ClaudeUsageBackend.resolve_window` (protocol requires `logs_path` and
   `thread_id` but Claude JSONL telemetry ignores them).

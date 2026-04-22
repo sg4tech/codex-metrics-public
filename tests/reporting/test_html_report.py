@@ -835,7 +835,7 @@ def test_render_html_includes_warehouse_callout_wiring():
 def test_pricing_file_has_claude_opus_4_7():
     """Guard against regression: opus-4-7 was silently dropped from chart 3
     when absent from the pricing file (P0-4, 2026-04-20). Keep it here."""
-    from ai_agents_metrics.usage_resolution import PRICING_JSON_PATH, load_pricing
+    from ai_agents_metrics.usage.resolution import PRICING_JSON_PATH, load_pricing
     pricing = load_pricing(PRICING_JSON_PATH)
     assert "claude-opus-4-7" in pricing
     entry = pricing["claude-opus-4-7"]

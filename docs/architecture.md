@@ -138,9 +138,9 @@ For the layering rules (raw_* byte-perfect, normalized_* typed, derived_* aggreg
 
 | File | Role |
 |------|------|
-| `pricing_runtime.py` | Sanctioned application-level pricing API: resolves effective pricing path and loads workspace-aware pricing |
-| `usage_resolution.py` | Pricing data loading, usage event parsing, cost computation, and window resolution logic for Claude and Codex sessions |
-| `usage_backends.py` | `UsageBackend` Protocol with `ClaudeUsageBackend` and `UnknownUsageBackend` implementations; delegates window resolution to `usage_resolution` |
+| `usage/pricing_runtime.py` | Sanctioned application-level pricing API: resolves effective pricing path and loads workspace-aware pricing |
+| `usage/resolution.py` | Pricing data loading, usage event parsing, cost computation, and window resolution logic for Claude and Codex sessions |
+| `usage/backends.py` | `UsageBackend` Protocol with `ClaudeUsageBackend` and `UnknownUsageBackend` implementations; delegates window resolution to `usage.resolution` |
 | `git_hooks.py` | Implements commit-msg validation and pre-push security scanning logic |
 | `commit_message.py` | Validates commit subject format (`CODEX-123:` / `NO-TASK:`) |
 | `public_boundary.py` | Verifies files against TOML-configured inclusion/exclusion rules |
@@ -196,7 +196,7 @@ Boundary note:
 - `cli.py` is the entrypoint module, not the general runtime dependency surface
 - `commands/` depends on `runtime_facade/`, not on `cli.py` (enforced by import-linter)
 - Inside `runtime_facade/` the one-way direction is `mutations → costs → orchestration`
-- pricing-aware runtime consumers should go through `pricing_runtime.py`, not ad-hoc pricing-path resolution
+- pricing-aware runtime consumers should go through `usage/pricing_runtime.py`, not ad-hoc pricing-path resolution
 
 Key command groups:
 

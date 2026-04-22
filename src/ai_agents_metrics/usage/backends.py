@@ -5,7 +5,7 @@ import sqlite3
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 
-from ai_agents_metrics.usage_resolution import (
+from ai_agents_metrics.usage.resolution import (
     resolve_claude_usage_window,
     resolve_codex_usage_window,
 )

@@ -17,15 +17,15 @@ from ai_agents_metrics.domain import (
     validate_non_negative_int,
 )
 from ai_agents_metrics.runtime_facade.orchestration import CLAUDE_ROOT
-from ai_agents_metrics.usage_backends import (
+from ai_agents_metrics.usage.backends import (
     ClaudeUsageBackend,
     UsageBackend,
     select_usage_backend,
 )
-from ai_agents_metrics.usage_backends import (
+from ai_agents_metrics.usage.backends import (
     resolve_usage_window as resolve_backend_usage_window,
 )
-from ai_agents_metrics.usage_resolution import (
+from ai_agents_metrics.usage.resolution import (
     find_usage_thread_id,
     load_pricing,
     resolve_pricing_model_alias,

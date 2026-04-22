@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from ai_agents_metrics.history.ingest import IngestSummary
     from ai_agents_metrics.history.normalize import NormalizeSummary
     from ai_agents_metrics.retro_timeline import RetroTimelineReport
-    from ai_agents_metrics.usage_backends import UsageBackend
+    from ai_agents_metrics.usage.backends import UsageBackend
     from ai_agents_metrics.workflow_fsm import WorkflowEvent
 
 

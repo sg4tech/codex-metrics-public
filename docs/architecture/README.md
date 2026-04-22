@@ -60,7 +60,7 @@ the campaign-level retros in `docs/private/retros/`.
 9. **ARCH-011** — medium priority; identifies overly complex functions and modules needing decomposition (radon metrics)
 10. **ARCH-012** — medium priority; enforces architectural layer boundaries as code grows (import-linter rules)
 11. **ARCH-013** — high priority; `derive_codex_history` (CC=85) and `aggregate_report_data` (CC=70) are untestable monoliths; decompose before further growth
-12. **ARCH-014** — medium priority; lazy `cli` imports in `usage_backends` and `commands` are a circular dep workaround; unblock import-linter contract after fix
+12. **ARCH-014** — medium priority; lazy `cli` imports in `usage/backends` and `commands` are a circular dep workaround; unblock import-linter contract after fix
 13. **ARCH-015** — medium priority; replace raw sqlite3 SQL strings with SQLAlchemy Core for safer, composable queries as complexity grows
 14. **ARCH-016** — medium priority; model is in `normalized_usage_events` but missing from `derived_session_usage`, `derived_attempts`, and always NULL in `derived_goals`; prerequisite for H-039 warehouse export
 15. **ARCH-017** — high priority; HTML report has no provider/model breakdown — the most actionable cost dimensions are invisible; Phase 1 (total cost, Chart 3 fallback, UX polish) has no deps; Phase 2 (model breakdown) depends on ARCH-016
@@ -87,7 +87,7 @@ messages and the campaign retro carry the full reasoning).
 - **ARCH-029/030** — mypy strict gating. ARCH-029 used a per-module override
   for `domain/` + `history/` (workaround for a mypy 1.20 bug with
   `strict = true` in overrides). ARCH-030 promoted strict to the top-level
-  `[tool.mypy]` block once a one-line fix in `usage_backends.py:135`
+  `[tool.mypy]` block once a one-line fix in `usage/backends.py:135`
   unblocked the rollout. Also adds hypothesis property tests: 16 invariants
   split evenly between `domain/aggregation.py::recompute_summary` and
   `history/normalize.py::normalize_codex_history`.

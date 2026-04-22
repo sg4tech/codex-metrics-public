@@ -4,6 +4,8 @@
 **Priority:** medium  
 **Complexity:** medium
 
+> **Path update (2026-04-22):** `usage_backends.py` and `usage_resolution.py` were later moved into the `usage/` subpackage (`usage/backends.py`, `usage/resolution.py`). The paths below reflect the module layout at ARCH-014 completion.
+
 ## Rationale
 
 `usage_backends.py` and `commands.py` import from `cli.py` via lazy imports to work around a circular dependency:

@@ -83,15 +83,15 @@ from ai_agents_metrics.security import (
     verify_security as run_verify_security,
 )
 from ai_agents_metrics.storage import atomic_write_text, ensure_parent_dir
-from ai_agents_metrics.usage_backends import (
+from ai_agents_metrics.usage.backends import (
     ClaudeUsageBackend,
     UsageBackend,
     select_usage_backend,
 )
-from ai_agents_metrics.usage_backends import (
+from ai_agents_metrics.usage.backends import (
     resolve_usage_window as resolve_backend_usage_window,
 )
-from ai_agents_metrics.usage_resolution import find_usage_thread_id
+from ai_agents_metrics.usage.resolution import find_usage_thread_id
 from ai_agents_metrics.workflow_fsm import (
     WorkflowEvent,
     WorkflowResolution,

@@ -34,10 +34,6 @@ from ai_agents_metrics.history.compare import (
 from ai_agents_metrics.history.derive import render_derive_summary_json
 from ai_agents_metrics.history.ingest import render_ingest_summary_json
 from ai_agents_metrics.history.normalize import render_normalize_summary_json
-from ai_agents_metrics.pricing_runtime import (
-    load_effective_pricing,
-    resolve_effective_pricing_path,
-)
 from ai_agents_metrics.reporting import (
     print_summary,
     render_summary_json,
@@ -79,7 +75,11 @@ from ai_agents_metrics.runtime_facade.orchestration import (
     verify_public_boundary,
 )
 from ai_agents_metrics.storage import metrics_mutation_lock
-from ai_agents_metrics.usage_resolution import (
+from ai_agents_metrics.usage.pricing_runtime import (
+    load_effective_pricing,
+    resolve_effective_pricing_path,
+)
+from ai_agents_metrics.usage.resolution import (
     PRICING_JSON_PATH,
     compute_event_cost_usd,
     find_usage_thread_id,

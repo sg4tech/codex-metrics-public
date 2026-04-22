@@ -171,18 +171,18 @@ layers = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "usage_backends must not import from cli"
+name = "usage.backends must not import from cli"
 type = "forbidden"
-source_modules = ["ai_agents_metrics.usage_backends"]
+source_modules = ["ai_agents_metrics.usage.backends"]
 forbidden_modules = ["ai_agents_metrics.cli"]
 
 [[tool.importlinter.contracts]]
-name = "usage_resolution must not import from cli or usage_backends"
+name = "usage.resolution must not import from cli or usage.backends"
 type = "forbidden"
-source_modules = ["ai_agents_metrics.usage_resolution"]
+source_modules = ["ai_agents_metrics.usage.resolution"]
 forbidden_modules = [
     "ai_agents_metrics.cli",
-    "ai_agents_metrics.usage_backends",
+    "ai_agents_metrics.usage.backends",
 ]
 
 [[tool.importlinter.contracts]]
@@ -211,7 +211,6 @@ source_modules = [
     "ai_agents_metrics.git_state",
     "ai_agents_metrics.history",
     "ai_agents_metrics.observability",
-    "ai_agents_metrics.pricing_runtime",
     "ai_agents_metrics.public_boundary",
     "ai_agents_metrics.redaction",
     "ai_agents_metrics.report",
@@ -220,8 +219,7 @@ source_modules = [
     "ai_agents_metrics.runtime_facade",
     "ai_agents_metrics.security",
     "ai_agents_metrics.storage",
-    "ai_agents_metrics.usage_backends",
-    "ai_agents_metrics.usage_resolution",
+    "ai_agents_metrics.usage",
     "ai_agents_metrics.workflow_fsm",
 ]
 forbidden_modules = ["ai_agents_metrics.cli"]

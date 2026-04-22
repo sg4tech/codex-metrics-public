@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ai_agents_metrics.usage_resolution import load_pricing, resolve_pricing_path
+from ai_agents_metrics.usage.resolution import load_pricing, resolve_pricing_path
 
 if TYPE_CHECKING:
     from pathlib import Path
