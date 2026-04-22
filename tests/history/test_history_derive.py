@@ -1,14 +1,8 @@
 from __future__ import annotations
 
 import json
-import os
-import shutil
 import sqlite3
-import subprocess
 from typing import TYPE_CHECKING
-
-import pytest
-from conftest import find_repo_paths
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -27,29 +21,7 @@ from ai_agents_metrics.history.derive import (
 )
 from ai_agents_metrics.history.normalize import _ensure_schema
 
-WORKSPACE_ROOT, _SCRIPTS_DIR, ABS_SRC = find_repo_paths()
-ABS_SCRIPT = _SCRIPTS_DIR / "metrics_cli.py"
-
-
-@pytest.fixture
-def repo(tmp_path: Path) -> Path:
-    (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "metrics").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "pricing").mkdir(parents=True, exist_ok=True)
-
-    if os.environ.get("CODEX_SUBPROCESS_COVERAGE") == "1":
-        (tmp_path / "scripts").mkdir(parents=True, exist_ok=True)
-        script_target = tmp_path / "scripts" / "metrics_cli.py"
-        script_target.write_text(ABS_SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
-        shutil.copytree(ABS_SRC, tmp_path / "src")
-
-    (tmp_path / ".gitkeep").write_text("", encoding="utf-8")
-    subprocess.run(["git", "init"], cwd=tmp_path, text=True, capture_output=True, check=True)
-    subprocess.run(["git", "config", "user.email", "codex@example.com"], cwd=tmp_path, text=True, capture_output=True, check=True)
-    subprocess.run(["git", "config", "user.name", "Codex"], cwd=tmp_path, text=True, capture_output=True, check=True)
-    subprocess.run(["git", "add", "."], cwd=tmp_path, text=True, capture_output=True, check=True)
-    subprocess.run(["git", "commit", "-m", "baseline"], cwd=tmp_path, text=True, capture_output=True, check=True)
-    return tmp_path
+# The ``repo`` fixture is provided by tests/conftest.py.
 
 
 def _add_retry_session(source_root: Path) -> None:

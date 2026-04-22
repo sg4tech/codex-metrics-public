@@ -4,7 +4,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import shutil
 import sqlite3
 import subprocess
 import sys
@@ -472,63 +471,9 @@ def create_codex_session_usage_sources(
     return state_path, logs_path
 
 
-@pytest.fixture(scope="session")
-def _repo_template(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """Build the baseline git repo once per session; ``repo`` copies from here."""
-    template = tmp_path_factory.mktemp("repo_template")
-
-    (template / "src").mkdir(parents=True, exist_ok=True)
-    (template / "scripts").mkdir(parents=True, exist_ok=True)
-    (template / "docs").mkdir(parents=True, exist_ok=True)
-    (template / "metrics").mkdir(parents=True, exist_ok=True)
-    (template / "pricing").mkdir(parents=True, exist_ok=True)
-
-    (template / "pricing" / "model_pricing.json").write_text(
-        PRICING.read_text(encoding="utf-8"), encoding="utf-8"
-    )
-    (template / "scripts" / "metrics_cli.py").write_text(
-        ABS_SCRIPT.read_text(encoding="utf-8"), encoding="utf-8"
-    )
-    shutil.copytree(ABS_SRC, template / "src", dirs_exist_ok=True)
-
-    subprocess.run(["git", "init"], cwd=template, text=True, capture_output=True, check=True)
-    subprocess.run(
-        ["git", "config", "user.email", "codex@example.com"],
-        cwd=template, text=True, capture_output=True, check=True,
-    )
-    subprocess.run(
-        ["git", "config", "user.name", "Codex"],
-        cwd=template, text=True, capture_output=True, check=True,
-    )
-    subprocess.run(["git", "add", "."], cwd=template, text=True, capture_output=True, check=True)
-    subprocess.run(
-        ["git", "commit", "-m", "baseline"],
-        cwd=template, text=True, capture_output=True, check=True,
-    )
-    # Guardrail for the cp -rl hardlink fixture below: strip write bits on
-    # every file in the template. Since hardlinks share inode permissions,
-    # any test that accidentally does write_text() on a template-originated
-    # path (src/**, scripts/metrics_cli.py, pricing/model_pricing.json, .git/**)
-    # fails loudly with PermissionError instead of silently poisoning the
-    # template for every subsequent test in the session. Directories stay
-    # writable so tests can still add new files to their own copy.
-    for path in template.rglob("*"):
-        if path.is_file():
-            path.chmod(path.stat().st_mode & 0o555)
-    return template
-
-
-@pytest.fixture
-def repo(tmp_path: Path, _repo_template: Path) -> Path:
-    # cp -rl hardlinks every file to the template — near-instant copy.
-    # The template's files are read-only (see _repo_template), so any attempt
-    # to overwrite a template-originated file from a test body will fail loudly
-    # rather than silently mutate the shared inode.
-    subprocess.run(
-        ["cp", "-rl", f"{_repo_template}/.", str(tmp_path)],
-        check=True, capture_output=True,
-    )
-    yield tmp_path
+# _repo_template + repo fixtures live in tests/conftest.py (shared with
+# tests/history/*) so the baseline git repo is built once per session and
+# hardlink-copied per test.
 
 
 def test_init_creates_files(repo: Path) -> None:
@@ -1222,6 +1167,10 @@ def test_bootstrap_can_target_claude_instructions_file(repo: Path) -> None:
     assert "Use `tools/ai-agents-metrics ...` in this repository." in instructions_text
 
 
+# Bumped timeout: this test legitimately spawns two real Python subprocesses
+# (``bootstrap`` then the wrapper's ``show``), each doing full package import.
+# Under xdist CPU contention the two spawns alone can cross the 5s default.
+@pytest.mark.timeout(15)
 def test_bootstrap_wrapper_runs_from_repo_root_even_when_invoked_from_other_cwd(repo: Path, tmp_path: Path) -> None:
     result = _run_cmd_subprocess(repo, "bootstrap")
     assert result.returncode == 0, result.stderr

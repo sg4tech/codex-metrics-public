@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import os
+import shutil
 import subprocess
 import sys
 import tomllib
@@ -9,6 +10,8 @@ from contextlib import contextmanager
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+import pytest
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -51,6 +54,64 @@ def find_repo_paths() -> tuple[Path, Path, Path]:
         if codex_tests:
             return parent, parent / codex_tests["scripts"], parent / codex_tests["src"]
     raise RuntimeError("No [tool.codex_tests] found in any ancestor pyproject.toml")
+
+
+# Session-scoped baseline repo built once per test run; ``repo`` below copies
+# from it with ``cp -rl`` (hardlinks) so per-test setup avoids re-running git
+# five times. Previously each test dir duplicated a ``repo`` fixture that
+# spawned ``git init`` + two ``git config`` + ``git add`` + ``git commit`` per
+# test — under xdist parallel workers this was the dominant source of flakes
+# at the 5s per-test pytest-timeout (the git subprocesses queue up under CPU
+# contention and push normal in-process tests over the cliff).
+@pytest.fixture(scope="session")
+def _repo_template(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    _workspace_root, _scripts_dir, abs_src = find_repo_paths()
+    abs_script = _scripts_dir / "metrics_cli.py"
+    pricing_source = _workspace_root / "pricing" / "model_pricing.json"
+
+    template = tmp_path_factory.mktemp("repo_template")
+    for name in ("src", "scripts", "docs", "metrics", "pricing"):
+        (template / name).mkdir(parents=True, exist_ok=True)
+    (template / "pricing" / "model_pricing.json").write_text(
+        pricing_source.read_text(encoding="utf-8"), encoding="utf-8",
+    )
+    (template / "scripts" / "metrics_cli.py").write_text(
+        abs_script.read_text(encoding="utf-8"), encoding="utf-8",
+    )
+    shutil.copytree(abs_src, template / "src", dirs_exist_ok=True)
+
+    subprocess.run(["git", "init"], cwd=template, text=True, capture_output=True, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "codex@example.com"],
+        cwd=template, text=True, capture_output=True, check=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Codex"],
+        cwd=template, text=True, capture_output=True, check=True,
+    )
+    subprocess.run(["git", "add", "."], cwd=template, text=True, capture_output=True, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", "baseline"],
+        cwd=template, text=True, capture_output=True, check=True,
+    )
+    # Strip write bits so accidental writes to template-originated hardlinks
+    # fail loudly with PermissionError instead of silently poisoning the
+    # shared inode for every subsequent test. Directories stay writable so
+    # tests can still add their own files.
+    for path in template.rglob("*"):
+        if path.is_file():
+            path.chmod(path.stat().st_mode & 0o555)
+    return template
+
+
+@pytest.fixture
+def repo(tmp_path: Path, _repo_template: Path) -> Path:
+    """Per-test repo copy. ``cp -rl`` hardlinks from the session template."""
+    subprocess.run(
+        ["cp", "-rl", f"{_repo_template}/.", str(tmp_path)],
+        check=True, capture_output=True,
+    )
+    return tmp_path
 
 
 @contextmanager
