@@ -25,6 +25,7 @@ import argparse
 import json
 import re
 from pathlib import Path
+from typing import Any
 
 from claude_glob import find_repo_root, matches
 
@@ -32,7 +33,7 @@ from claude_glob import find_repo_root, matches
 # Pattern loading
 # ---------------------------------------------------------------------------
 
-def _extract_bash_patterns(perms: dict, key: str) -> list[str]:
+def _extract_bash_patterns(perms: dict[str, Any], key: str) -> list[str]:
     """Extract glob patterns from ``Bash(...)`` permission rules."""
     patterns: list[str] = []
     for rule in perms.get(key, []):

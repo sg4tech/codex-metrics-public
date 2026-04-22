@@ -7,15 +7,20 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from types import ModuleType
 
 
-def _load_cli_module():
+def _load_cli_module() -> ModuleType:
     repo_src_path = Path(__file__).resolve().parents[1] / "src"
     if repo_src_path.exists():
         sys.path.insert(0, str(repo_src_path))
 
-    from ai_agents_metrics import cli
+    # Deferred import: sys.path must be adjusted first when the package is
+    # not installed in the active environment.
+    import ai_agents_metrics.cli as cli  # pylint: disable=import-outside-toplevel
 
     return cli
 

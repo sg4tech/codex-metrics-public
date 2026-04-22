@@ -172,7 +172,7 @@ def _extract_practice_rows(
     *,
     classifier_version: str,
     classified_at: str,
-) -> list[tuple]:
+) -> list[tuple[Any, ...]]:
     """Parse one raw_session_events row and return zero or more practice rows.
 
     Each row is a tuple aligned with the INSERT statement columns in
@@ -183,7 +183,7 @@ def _extract_practice_rows(
         payload = json.loads(source_row.raw_json)
     except (TypeError, ValueError):
         return []
-    rows: list[tuple] = []
+    rows: list[tuple[Any, ...]] = []
     for tool_use_ordinal, block in enumerate(_iter_tool_use_blocks(payload)):
         name = block.get("name")
         raw_input = block.get("input")
@@ -237,7 +237,7 @@ def _extract_practice_rows(
     return rows
 
 
-def _insert_practice_row(conn: sqlite3.Connection, row: tuple) -> None:
+def _insert_practice_row(conn: sqlite3.Connection, row: tuple[Any, ...]) -> None:
     conn.execute(
         """
         INSERT INTO derived_practice_events (
