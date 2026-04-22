@@ -61,7 +61,9 @@ Reporting (reporting.py)
 ```
 ai-agents-metrics/
 ├── src/ai_agents_metrics/   # Main Python package
-├── tests/               # Pytest test suite
+├── tests/               # Pytest test suite (grouped by subject area: cli/,
+│                        # domain/, history/, reporting/, workflow/, infra/;
+│                        # hypothesis strategies in tests/strategies/)
 ├── scripts/             # Automation and utility scripts
 ├── tools/               # CLI wrapper (tools/ai-agents-metrics)
 ├── config/              # Public boundary rules (TOML)
@@ -223,22 +225,25 @@ Key command groups:
 
 ## Tests (`tests/`)
 
-One test file per module; naming mirrors the source:
+One test file per module; files are grouped into subject-area subdirectories so
+the root shows structure at a glance:
 
-| Test file | Covers |
-|-----------|--------|
-| `test_metrics_cli.py` | Full CLI workflow integration |
-| `test_metrics_domain.py` | Domain model logic |
-| `test_workflow_fsm.py` | State machine transitions |
-| `test_history_{ingest,normalize,derive,compare,audit}.py` | Pipeline stages |
-| `test_storage_roundtrip.py` | Event log I/O and replay |
-| `test_{cost_audit,reporting,retro_timeline}.py` | Analysis and reporting |
-| `test_{git_hooks,commit_message,public_boundary}.py` | Integrations |
-| `test_observability.py` | Event recording |
-| `test_public_overlay.py` | Public/private sync |
-| `test_claude_md.py` | Documentation generation |
+| Subdir | Test file | Covers |
+|--------|-----------|--------|
+| `cli/` | `test_metrics_cli.py` | Full CLI workflow integration |
+| `domain/` | `test_metrics_domain{,_properties}.py` | Domain model logic + hypothesis invariants |
+| `history/` | `test_history_{ingest,normalize,normalize_properties,derive,classify,compare,audit,pipeline_json}.py` | Pipeline stages |
+| `reporting/` | `test_{html_report,reporting,retro_timeline,show_json}.py` | Analysis and report rendering |
+| `workflow/` | `test_workflow_fsm.py`, `test_git_state.py`, `test_commit_message.py` | State machine transitions, git + hook integrations |
+| `infra/` | `test_{public_boundary,public_overlay,security,storage_roundtrip,observability,cost_audit}.py` | Boundary rules, sync, event log I/O, observability |
+| `strategies/` | `domain.py`, `history.py` | Hypothesis strategies shared across property tests |
+| `tests/private/` (private root only) | `test_git_hooks.py`, `test_claude_md.py` | Git hook behavior and doc generation |
 
-`conftest.py` provides shared fixtures (temp metrics paths, fake goal factories, etc.).
+`conftest.py` provides shared fixtures (temp metrics paths, fake goal factories,
+etc.) plus `find_repo_paths()` — a `[tool.codex_tests]`-marker-based helper for
+resolving the repo root from any test subdir. Prefer it over
+`Path(__file__).parents[N]` so test paths stay stable when files move between
+subdirs.
 
 ---
 

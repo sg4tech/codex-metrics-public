@@ -55,28 +55,42 @@ CODEX_SUBPROCESS_COVERAGE=1 make test
 
 ---
 
-## Structure: one file per module
+## Structure: one file per module, grouped by subject area
 
-| Test file | Covers |
-|-----------|--------|
-| `test_metrics_cli.py` | CLI integration (in-process, subprocess for a few tests) |
-| `test_metrics_domain.py` | Domain logic (unit) |
-| `test_workflow_fsm.py` | State machine transitions |
-| `test_history_{ingest,normalize,derive,compare,audit}.py` | Pipeline stages |
-| `test_storage_roundtrip.py` | Event log I/O and replay |
-| `test_{cost_audit,reporting,retro_timeline}.py` | Analysis and reporting |
-| `test_{git_hooks,commit_message,public_boundary}.py` | Integrations |
-| `test_observability.py` | Event store |
-| `test_public_overlay.py` | Public/private sync |
-| `test_claude_md.py` | Documentation generation |
+Tests live under `tests/<area>/test_*.py`. Pick the area that matches the
+module under test; if none fits cleanly, add a new subdir rather than
+dropping the file at the root.
+
+| Subdir | Test file | Covers |
+|--------|-----------|--------|
+| `cli/` | `test_metrics_cli.py` | CLI integration (in-process; subprocess for a few script-shim tests) |
+| `domain/` | `test_metrics_domain{,_properties}.py` | Domain logic + hypothesis invariants |
+| `history/` | `test_history_{ingest,normalize,normalize_properties,derive,classify,compare,audit,pipeline_json}.py` | Pipeline stages |
+| `reporting/` | `test_{html_report,reporting,retro_timeline,show_json}.py` | Analysis and report rendering |
+| `workflow/` | `test_workflow_fsm.py`, `test_git_state.py`, `test_commit_message.py` | State machine, git + hook integrations |
+| `infra/` | `test_{public_boundary,public_overlay,security,storage_roundtrip,observability,cost_audit}.py` | Boundary rules, sync, event log I/O, observability |
+| `strategies/` | `domain.py`, `history.py` | Hypothesis strategies shared across property tests |
+| `tests/private/` (private root) | `test_git_hooks.py`, `test_claude_md.py` | Git hook behavior, doc generation |
 
 ---
 
 ## conftest.py
 
-`conftest.py` provides `run_cli_inprocess()` — an in-process CLI runner that calls `main()` directly with captured stdout/stderr and temporary `os.chdir()`. This eliminates Python startup overhead (~0.5s per subprocess call) and makes tests ~18x faster than the previous subprocess-based approach.
+`conftest.py` exposes two helpers every test area imports:
 
-Tests use `run_cli_inprocess()` by default and fall back to real subprocess when `CODEX_SUBPROCESS_COVERAGE=1` is set.
+- `run_cli_inprocess()` — in-process CLI runner that calls `main()` directly
+  with captured stdout/stderr and a temporary `os.chdir()`. Eliminates Python
+  startup overhead (~0.5s per subprocess call) and makes tests ~18x faster
+  than a subprocess-based approach. Tests use it by default and fall back to
+  real subprocess when `CODEX_SUBPROCESS_COVERAGE=1` is set.
+- `find_repo_paths()` — returns `(repo_root, scripts_dir, src_dir)` by walking
+  up to the first `pyproject.toml` with a `[tool.codex_tests]` section. Prefer
+  it over `Path(__file__).parents[N]` so test paths stay valid when files
+  move between subdirs. Cached with `@lru_cache` so it runs once per process.
+
+`conftest.py` also inserts every immediate subdir of `tests/` into `sys.path`,
+so cross-test imports like `from test_history_ingest import run_cmd` keep
+working from any area.
 
 ---
 
@@ -130,6 +144,17 @@ def run_module_cmd(tmp_path: Path, *args: str, extra_env=None) -> subprocess.Com
 
 A per-test timeout of 5 seconds is enforced via `pytest-timeout` (`pyproject.toml`). Any new test exceeding this limit should use in-process execution or be investigated for unnecessary overhead.
 
+**The `repo` fixture (CLI tests):** `cli/test_metrics_cli.py` ships a
+session-scoped `_repo_template` (git-initialized repo with `src/`, `scripts/`,
+and a baseline commit) that the function-scoped `repo` fixture hardlinks into
+each test's `tmp_path` via `cp -rl`. Template files are `chmod a-w` after
+build, so any `write_text()` on a template-originated path (`src/**`,
+`scripts/metrics_cli.py`, `pricing/model_pricing.json`, `.git/**`) will raise
+`PermissionError` — this is intentional: overwriting a hardlinked file would
+mutate the shared inode and poison the template for every subsequent test.
+Create new files under `src/` (e.g. `worktree_change.py`) or new top-level
+paths instead.
+
 End-to-end test pattern:
 
 ```python
@@ -157,7 +182,7 @@ def test_start_and_finish(tmp_path: Path) -> None:
 
 ## Object factories
 
-`test_metrics_domain.py` defines factory functions with defaults and `**overrides`. They live locally in that file, not in `conftest.py`. Copy the pattern when needed:
+`domain/test_metrics_domain.py` defines factory functions with defaults and `**overrides`. They live locally in that file, not in `conftest.py`. Copy the pattern when needed:
 
 ```python
 def make_goal_dict(**overrides: object) -> dict[str, object]:
@@ -197,7 +222,7 @@ The same pattern exists for `make_goal_record`, `make_effective_goal_record`, an
 
 Tests for `history_ingest` / `history_normalize` / `history_derive` require creating SQLite databases with the correct schema.
 
-`create_codex_usage_sources(repo, ...)` in `test_metrics_cli.py` creates:
+`create_codex_usage_sources(repo, ...)` in `cli/test_metrics_cli.py` creates:
 - `codex_state.sqlite` with a `threads` table
 - `codex_logs.sqlite` with a `logs` table
 
