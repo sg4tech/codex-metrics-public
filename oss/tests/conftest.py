@@ -4,7 +4,9 @@ import io
 import os
 import subprocess
 import sys
+import tomllib
 from contextlib import contextmanager
+from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -30,6 +32,25 @@ for _sub in _tests_dir.iterdir():
 _repo_root = str(Path(__file__).resolve().parent.parent)
 if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
+
+
+@lru_cache(maxsize=1)
+def find_repo_paths() -> tuple[Path, Path, Path]:
+    """Locate the repo root, scripts/, and src/ via ``[tool.codex_tests]``.
+
+    Walks up from this file until a ``pyproject.toml`` with a ``[tool.codex_tests]``
+    section is found. Prefer this over ``Path(__file__).parents[N]`` so tests
+    keep resolving paths correctly even when files move between subdirectories.
+    """
+    for parent in Path(__file__).resolve().parents:
+        cfg = parent / "pyproject.toml"
+        if not cfg.exists():
+            continue
+        with cfg.open("rb") as fh:
+            codex_tests = tomllib.load(fh).get("tool", {}).get("codex_tests")
+        if codex_tests:
+            return parent, parent / codex_tests["scripts"], parent / codex_tests["src"]
+    raise RuntimeError("No [tool.codex_tests] found in any ancestor pyproject.toml")
 
 
 @contextmanager

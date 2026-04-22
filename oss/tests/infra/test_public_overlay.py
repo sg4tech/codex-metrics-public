@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import subprocess
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+from conftest import find_repo_paths
 
 import scripts.public_overlay as public_overlay
 from scripts.public_overlay import (
@@ -11,6 +13,9 @@ from scripts.public_overlay import (
     build_status_lines,
     main,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_public_overlay_status_describes_layout(tmp_path: Path) -> None:
@@ -95,12 +100,9 @@ def test_public_overlay_push_execute_runs_verify_then_push(tmp_path: Path, monke
 
 
 def test_public_overlay_mirror_includes_security_verify_and_rules() -> None:
-    makefile_text = (Path(__file__).resolve().parents[2] / "Makefile").read_text(
-        encoding="utf-8"
-    )
-    rules_text = (Path(__file__).resolve().parents[2] / "config" / "security-rules.toml").read_text(
-        encoding="utf-8"
-    )
+    repo_root = find_repo_paths()[0]
+    makefile_text = (repo_root / "Makefile").read_text(encoding="utf-8")
+    rules_text = (repo_root / "config" / "security-rules.toml").read_text(encoding="utf-8")
 
     assert "security:" in makefile_text
     assert "verify:" in makefile_text
